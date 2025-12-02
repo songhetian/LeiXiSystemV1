@@ -436,19 +436,8 @@ const allMenuItems = [
       { id: 'assessment-exams', label: '试卷管理', icon: <FileTextOutlined /> },
       { id: 'exam-plans', label: '考核计划', icon: <CalendarOutlined /> },
       { id: 'assessment-categories', label: '分类管理', icon: <FolderOpenOutlined /> },
-      { id: 'assessment-results', label: '考试结果', icon: <EyeOutlined /> },
+      { id: 'exam-results', label: '考试结果', icon: <EyeOutlined /> },
       { id: 'my-exams', label: '我的考试', icon: <IdcardOutlined /> },
-    ],
-  },
-  {
-    id: 'statistics',
-    label: '统计分析',
-    icon: <BarChartOutlined />,
-    children: [
-      { id: 'statistics-overview', label: '总览', icon: <LineChartOutlined /> },
-      { id: 'statistics-employee', label: '员工统计', icon: <UserOutlined /> },
-      { id: 'statistics-department', label: '部门统计', icon: <ApartmentOutlined /> },
-      { id: 'statistics-viewing', label: '浏览统计', icon: <EyeOutlined /> },
     ],
   },
   {
@@ -457,14 +446,7 @@ const allMenuItems = [
     icon: <UserOutlined />,
     children: [
       { id: 'personal-info', label: '个人信息', icon: <IdcardOutlined /> },
-    ],
-  },
-  {
-    id: 'diagnostics',
-    label: '系统诊断',
-    icon: <DatabaseOutlined />,
-    children: [
-      { id: 'diagnostics-info', label: '诊断信息', icon: <FileSearchOutlined /> },
+      { id: 'my-exam-results', label: '我的考试结果', icon: <FileTextOutlined /> },
     ],
   },
 ];

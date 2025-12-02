@@ -77,6 +77,15 @@ const qualityAPI = {
   getRecommendedCases: (params) => api.get('/quality/cases/recommended', { params }),
   // 检查会话是否已在案例库
   checkSessionInCaseLibrary: (sessionId) => api.get(`/quality/cases/check-session/${sessionId}`),
+  // 获取回收站案例
+  getRecycleBinCases: (params) => api.get('/quality/cases/recycle-bin', { params }),
+  // 恢复已删除案例
+  restoreCase: (id) => api.post(`/quality/cases/${id}/restore`),
+  // 永久删除案例
+  permanentDeleteCase: (id) => api.delete(`/quality/cases/${id}/permanent`),
+
+  // Empty recycle bin
+  emptyRecycleBin: () => api.delete('/quality/cases/recycle-bin/empty'),
 
   // --- 案例互动 & 收藏 ---
   // 添加收藏

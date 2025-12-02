@@ -288,7 +288,43 @@ const ExamTaking = () => {
     );
   }
 
+  // Check if questions array is valid
+  if (!examData.questions || !Array.isArray(examData.questions) || examData.questions.length === 0) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Card>
+          <Space direction="vertical" align="center">
+            <ExclamationCircleOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
+            <Title level={4}>试卷数据异常</Title>
+            <Text type="secondary">该试卷没有题目，请联系管理员检查试卷配置</Text>
+            <Button type="primary" onClick={() => navigate('/assessment/my-exams')}>
+              返回考试列表
+            </Button>
+          </Space>
+        </Card>
+      </div>
+    );
+  }
+
   const currentQuestion = examData.questions[currentQuestionIndex];
+
+  // Additional safety check for current question
+  if (!currentQuestion) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Card>
+          <Space direction="vertical" align="center">
+            <ExclamationCircleOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
+            <Title level={4}>题目加载失败</Title>
+            <Text type="secondary">无法加载当前题目，请刷新页面重试</Text>
+            <Button type="primary" onClick={() => navigate('/assessment/my-exams')}>
+              返回考试列表
+            </Button>
+          </Space>
+        </Card>
+      </div>
+    );
+  }
   const answeredCount = Object.keys(userAnswers).filter(qId => userAnswers[qId] !== undefined && userAnswers[qId] !== null && userAnswers[qId] !== '').length;
   const totalQuestions = examData.questions.length;
   const progressPercent = (answeredCount / totalQuestions) * 100;

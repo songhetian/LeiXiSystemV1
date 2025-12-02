@@ -197,122 +197,111 @@ const PersonalInfo = () => {
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      {/* 页面标题 */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary-100 rounded-xl">
-              <span className="text-3xl">👤</span>
+      <div className="max-w-5xl mx-auto">
+        {/* 页面标题 */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary-100 rounded-xl">
+                <span className="text-3xl">👤</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">个人中心</h1>
+                <p className="text-sm text-gray-600 mt-1">管理您的个人信息和账户设置</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">个人中心</h1>
-              <p className="text-sm text-gray-600 mt-1">管理您的个人信息和账户设置</p>
-            </div>
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
+            >
+              <span className="text-lg">🔒</span>
+              修改密码
+            </button>
           </div>
-          <button
-            onClick={() => setShowPasswordModal(true)}
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"
-          >
-            <span className="text-lg">🔒</span>
-            修改密码
-          </button>
         </div>
-      </div>
 
-      {/* 个人信息卡片 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* 头部 - 柔和色调 */}
-        <div className="relative bg-gradient-to-r from-primary-500 to-primary-600 px-8 py-10">
-          <div className="relative flex items-center gap-6">
-            <div className="w-24 h-24 rounded-xl bg-white shadow-lg flex items-center justify-center text-4xl font-bold text-primary-600">
-              {user.real_name?.charAt(0) || '员'}
-            </div>
-            <div className="text-white flex-1">
-              <h2 className="text-3xl font-bold mb-2">{user.real_name}</h2>
-              <div className="flex items-center gap-6 text-primary-50">
-                <div className="flex items-center gap-2">
-                  <span>👤</span>
-                  <span>{user.username}</span>
-                </div>
-                {user.employee_no && (
-                  <div className="flex items-center gap-2">
-                    <span>🏷️</span>
-                    <span>工号：{user.employee_no}</span>
+        {/* 个人信息卡片 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* 头部 - 柔和色调 */}
+          <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-12">
+            <div className="relative flex items-center gap-8">
+              <div className="w-28 h-28 rounded-2xl bg-white shadow-xl flex items-center justify-center text-5xl font-bold text-blue-600 ring-4 ring-white/30">
+                {user.real_name?.charAt(0) || '员'}
+              </div>
+              <div className="text-white flex-1">
+                <h2 className="text-3xl font-bold mb-3 tracking-tight">{user.real_name}</h2>
+                <div className="flex items-center gap-6 text-blue-50">
+                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                    <span>👤</span>
+                    <span className="font-medium">{user.username}</span>
                   </div>
-                )}
+                  {user.employee_no && (
+                    <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                      <span>🏷️</span>
+                      <span className="font-medium">工号：{user.employee_no}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 信息内容 */}
-        <div className="p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-gray-800">基本信息</h3>
-            {!editing ? (
-              <button
-                onClick={() => setEditing(true)}
-                className="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"
-              >
-                <span>✏️</span>
-                编辑信息
-              </button>
-            ) : (
-              <div className="flex gap-3">
+          {/* 信息内容 */}
+          <div className="p-10">
+            <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                基本信息
+              </h3>
+              {!editing ? (
                 <button
-                  onClick={() => {
-                    setEditing(false)
-                    loadUserInfo()
-                  }}
-                  className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                  onClick={() => setEditing(true)}
+                  className="px-5 py-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium flex items-center gap-2"
                 >
-                  取消
+                  <span>✏️</span>
+                  编辑信息
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
-                >
-                  <span>💾</span>
-                  {loading ? '保存中...' : '保存'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <InfoItem label="姓名" value={formData.real_name} icon="👤" editing={editing} />
-            <InfoItem label="邮箱" value={formData.email} icon="📧" editing={editing} type="email" />
-            <InfoItem label="手机号" value={formData.phone} icon="📱" editing={editing} type="tel" />
-            <InfoItem
-              label="学历"
-              value={formData.education}
-              icon="🎓"
-              editing={editing}
-              type="select"
-              options={['高中', '大专', '本科', '硕士', '博士']}
-            />
-            <InfoItem label="紧急联系人" value={formData.emergency_contact} icon="🆘" editing={editing} />
-            <InfoItem label="紧急联系电话" value={formData.emergency_phone} icon="☎️" editing={editing} type="tel" />
-            <div className="md:col-span-2">
-              <InfoItem label="家庭住址" value={formData.address} icon="🏠" editing={editing} />
+              ) : (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setEditing(false)
+                      loadUserInfo()
+                    }}
+                    className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                  >
+                    <span>💾</span>
+                    {loading ? '保存中...' : '保存'}
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* 提示信息 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-        <div className="flex items-start gap-3">
-          <span className="text-blue-600 text-xl">💡</span>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-blue-900 mb-1">页面缩放提示</p>
-            <p className="text-sm text-blue-800">
-              如需调整页面显示大小，请使用浏览器自带的缩放功能：
-              <br />• Windows: 按住 Ctrl + 鼠标滚轮
-              <br />• Mac: 按住 Command + 鼠标滚轮
-              <br />• 或使用 Ctrl/Command + 加号/减号键
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+              <InfoItem label="姓名" value={formData.real_name} icon="👤" editing={editing} />
+              <InfoItem label="邮箱" value={formData.email} icon="📧" editing={editing} type="email" />
+              <InfoItem label="手机号" value={formData.phone} icon="📱" editing={editing} type="tel" />
+              <InfoItem
+                label="学历"
+                value={formData.education}
+                icon="🎓"
+                editing={editing}
+                type="select"
+                options={['高中', '大专', '本科', '硕士', '博士']}
+              />
+              <InfoItem label="紧急联系人" value={formData.emergency_contact} icon="🆘" editing={editing} />
+              <InfoItem label="紧急联系电话" value={formData.emergency_phone} icon="☎️" editing={editing} type="tel" />
+              <div className="md:col-span-2">
+                <InfoItem label="家庭住址" value={formData.address} icon="🏠" editing={editing} />
+              </div>
+            </div>
           </div>
         </div>
       </div>

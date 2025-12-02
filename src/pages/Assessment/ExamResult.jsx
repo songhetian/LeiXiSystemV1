@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Pie, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title as ChartTitle } from 'chart.js';
+import './ExamResult.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartTitle);
 
@@ -113,21 +114,25 @@ const ExamResult = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <Spin size="large" tip="加载中..." />
+      <div className="exam-result-page">
+        <div className="loading-container">
+          <Spin className="loading-spinner" size="large" tip="加载中..." />
+        </div>
       </div>
     );
   }
 
   if (!examResult) {
     return (
-      <div style={{ padding: 24 }}>
-        <Card title="考试结果">
-          <p>无法加载考试结果。</p>
-          <Button type="primary" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
-            返回我的考试
-          </Button>
-        </Card>
+      <div className="exam-result-page">
+        <div className="empty-state">
+          <Card title="考试结果">
+            <p>无法加载考试结果。</p>
+            <Button type="primary" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
+              返回我的考试
+            </Button>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -138,18 +143,18 @@ const ExamResult = () => {
   const canRetake = true;
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card title={<Title level={3}>考试结果 - {exam_title}</Title>}>
+    <div className="exam-result-page">
+      <Card className="exam-result-card" title={<Title level={3}>考试结果 - {exam_title}</Title>}>
         {/* 成绩卡片 */}
-        <Card style={{ marginBottom: 24 }}>
+        <Card className="score-summary-card">
           <Space direction="vertical" style={{ width: '100%', textAlign: 'center' }}>
-            <Title level={1} style={{ margin: 0 }}>
+            <Title className="score-title">
               {score !== null ? score.toFixed(2) : '待评分'} / {total_score}
             </Title>
-            <Tag color={is_passed ? 'success' : 'error'} style={{ fontSize: '16px', padding: '4px 12px' }}>
+            <Tag className="score-status-tag" color={is_passed ? 'success' : 'error'}>
               {is_passed ? '通过' : '未通过'}
             </Tag>
-            <Descriptions column={2} bordered style={{ width: '100%', marginTop: 16 }}>
+            <Descriptions className="score-descriptions" column={2} bordered style={{ width: '100%', marginTop: 16 }}>
               <Descriptions.Item label="正确率">{correct_rate !== null ? `${(correct_rate * 100).toFixed(2)}%` : '-'}</Descriptions.Item>
               <Descriptions.Item label="用时">{time_taken !== null ? `${Math.floor(time_taken / 60)}分${time_taken % 60}秒` : '-'}</Descriptions.Item>
               <Descriptions.Item label="排名">{rank !== null ? rank : '-'}</Descriptions.Item>
@@ -159,9 +164,9 @@ const ExamResult = () => {
         </Card>
 
         {/* 答题统计 */}
-        <Space style={{ width: '100%', marginBottom: 24 }} align="start">
-          <Card title="各题型正确率" style={{ flex: 1 }}>
-            <div style={{ height: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="charts-container">
+          <Card className="chart-card" title="各题型正确率">
+            <div className="chart-container">
               {getCorrectRateByQuestionType().labels.length > 0 ? (
                 <Pie data={getCorrectRateByQuestionType()} options={{ responsive: true, maintainAspectRatio: false }} />
               ) : (
@@ -169,8 +174,8 @@ const ExamResult = () => {
               )}
             </div>
           </Card>
-          <Card title="分数分布" style={{ flex: 1 }}>
-            <div style={{ height: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Card className="chart-card" title="分数分布">
+            <div className="chart-container">
               {getScoreDistribution().labels.length > 0 ? (
                 <Bar data={getScoreDistribution()} options={{ responsive: true, maintainAspectRatio: false }} />
               ) : (
@@ -178,22 +183,22 @@ const ExamResult = () => {
               )}
             </div>
           </Card>
-        </Space>
+        </div>
 
         {/* 操作按钮 */}
-        <Space style={{ marginTop: 16 }}>
-          <Button type="primary" icon={<EyeOutlined />} onClick={() => navigate(`/assessment/results/${resultId}/answers`)}>
+        <div className="button-group">
+          <Button className="result-action-btn btn-view-details" icon={<EyeOutlined />} onClick={() => navigate(`/assessment/results/${resultId}/answers`)}>
             查看答题详情
           </Button>
-          <Button onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
+          <Button className="result-action-btn btn-back" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
             返回我的考试
           </Button>
           {canRetake && (
-            <Button type="dashed" icon={<RedoOutlined />} onClick={() => navigate(`/assessment/instructions/${plan_id}`)}>
+            <Button className="result-action-btn btn-retake" icon={<RedoOutlined />} onClick={() => navigate(`/assessment/instructions/${plan_id}`)}>
               再次考试
             </Button>
           )}
-        </Space>
+        </div>
       </Card>
     </div>
   );

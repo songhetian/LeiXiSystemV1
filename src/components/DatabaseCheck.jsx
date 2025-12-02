@@ -5,7 +5,10 @@ const DatabaseCheck = ({ children }) => {
   const [dbStatus, setDbStatus] = useState('checking'); // checking, connected, error
   const [errorMessage, setErrorMessage] = useState('');
 
+
+
   useEffect(() => {
+
     const checkDatabaseConnection = async () => {
       try {
         // 获取API URL并打印到控制台，便于调试
@@ -50,11 +53,11 @@ const DatabaseCheck = ({ children }) => {
         }
       }
     };
-
     checkDatabaseConnection();
   }, []);
 
   if (dbStatus === 'checking') {
+
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">

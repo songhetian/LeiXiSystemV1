@@ -198,6 +198,19 @@ const TagSelector = ({
     );
   };
 
+  // Calculate contrast text color
+  const getContrastColor = (hexColor) => {
+    if (!hexColor) return '#1f2937';
+    if (hexColor.length === 4) {
+      hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
+    }
+    const r = parseInt(hexColor.substr(1, 2), 16);
+    const g = parseInt(hexColor.substr(3, 2), 16);
+    const b = parseInt(hexColor.substr(5, 2), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#1f2937' : '#ffffff';
+  };
+
   return (
     <div className="tag-selector">
       <div
@@ -216,7 +229,10 @@ const TagSelector = ({
                 <span
                   key={tag.id}
                   className="selected-tag"
-                  style={{ backgroundColor: tag.color, color: '#fff' }}
+                  style={{
+                    backgroundColor: tag.color,
+                    color: getContrastColor(tag.color)
+                  }}
                 >
                   {tag.name}
                   <CloseOutlined

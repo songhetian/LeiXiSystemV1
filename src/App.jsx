@@ -38,8 +38,7 @@ const MyExamList = lazy(() => import('./components/MyExamList'));
 const ExamTaking = lazy(() => import('./components/ExamTaking'));
 const ExamResult = lazy(() => import('./components/ExamResult'));
 const MyExams = lazy(() => import('./components/MyExams'));
-const Statistics = lazy(() => import('./components/Statistics'));
-const ComingSoon = lazy(() => import('./components/ComingSoon'));
+const MyExamResults = lazy(() => import('./components/MyExamResults'));
 const PersonalInfo = lazy(() => import('./components/PersonalInfo'));
 
 const CaseLibraryPage = lazy(() => import('./pages/CaseLibraryPage'));
@@ -48,8 +47,6 @@ const QualityRuleManagementPage = lazy(() => import('./pages/QualityRuleManageme
 const QualityStatisticsPage = lazy(() => import('./pages/QualityStatisticsPage'));
 const QualityReportPage = lazy(() => import('./pages/QualityReportPage'));
 const CaseRecommendationPage = lazy(() => import('./pages/CaseRecommendationPage'));
-const ViewingStatistics = lazy(() => import('./pages/ViewingStatistics'));
-const Diagnostics = lazy(() => import('./components/Diagnostics'));
 const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
 const NotificationSender = lazy(() => import('./components/NotificationSender'));
 const NotificationSettings = lazy(() => import('./components/NotificationSettings'));
@@ -86,9 +83,19 @@ const CreateGroupPage = lazy(() => import('./pages/Messaging').then(module => ({
 import DatabaseCheck from './components/DatabaseCheck';
 
 function App() {
+
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState({ name: 'user-employee', params: {} })
+
+  useEffect(() => {
+
+    console.log('Current Active Tab:', activeTab);
+  }, []);
+
+  useEffect(() => {
+
+  }, [activeTab]);
 
   useEffect(() => {
     // 检查本地存储的登录状态
@@ -141,6 +148,8 @@ function App() {
   useTokenVerification(handleLogout, user?.id)
 
   const handleSetActiveTab = (tabName, params = {}) => {
+
+    console.trace('Trace for handleSetActiveTab');
     setActiveTab({ name: tabName, params });
   };
 
@@ -264,8 +273,10 @@ function App() {
         return <AssessmentPlanManagement />
       case 'my-exams':
         return <MyExams onNavigate={handleSetActiveTab} />
-      case 'assessment-results':
-        return <ExamResultsManagement />
+      case 'my-exam-results':
+        return <MyExamResults onNavigate={handleSetActiveTab} />
+      case 'exam-results':
+        return <ExamResultsManagement onNavigate={handleSetActiveTab} />
       // 已移除拖拽组卷功能，创建试卷在试卷管理中进行
       case 'exam-taking':
         return <ExamTaking
@@ -281,20 +292,6 @@ function App() {
         />
       case 'assessment-management':
         return <AssessmentManagement />
-
-      // 统计分析
-      case 'statistics-overview':
-        return <Statistics />
-      case 'statistics-employee':
-        return <ComingSoon title="员工统计" />
-      case 'statistics-department':
-        return <ComingSoon title="部门统计" />
-      case 'statistics-viewing':
-        return <ViewingStatistics />
-
-      // 系统诊断
-      case 'diagnostics-info':
-        return <Diagnostics />
 
       // 消息通知
       case 'notification-center':

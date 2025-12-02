@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../../utils/axiosConfig';
 import { getApiUrl } from '../../utils/apiConfig';
 import './Notifications.css';
 
@@ -34,22 +34,34 @@ const Notifications = () => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
+      // 构建查询参数
+      const params = {
         userId,
         page: currentPage,
         pageSize,
-        search: searchText,
-        type: filterType,
-        isRead: filterRead
-      });
+        search: searchText || undefined, // 空字符串不传
+        type: filterType || undefined,
+        isRead: filterRead || undefined
+      };
 
-      const response = await axios.get(getApiUrl(`/api/notifications?${params}`));
-      setNotifications(response.data.data);
-      setTotal(response.data.total);
-      setTotalPages(response.data.totalPages);
+      // 移除 undefined 的参数
+      Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+
+      const response = await axios.get(getApiUrl('/api/notifications'), { params });
+
+      if (response.data && response.data.success) {
+        setNotifications(response.data.data || []);
+        setTotal(response.data.pagination?.total || 0);
+        setTotalPages(Math.ceil((response.data.pagination?.total || 0) / pageSize));
+      } else {
+        // 如果后端返回格式不一致，尝试直接读取
+        setNotifications(response.data.data || response.data || []);
+        setTotal(response.data.total || 0);
+      }
     } catch (error) {
       console.error('加载通知失败:', error);
-      alert('加载通知失败');
+      // 不弹窗报错，避免打扰用户，只在控制台输出
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

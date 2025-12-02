@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import React, { useState, useEffect } from 'react'
+import axios from '../../utils/axiosConfig'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
 
@@ -53,15 +53,56 @@ export default function ApprovalManagement() {
       }
 
       const response = await axios.get(getApiUrl(endpoint), { params })
+
+      // 成功获取数据（即使是空数组也是成功）
       if (response.data.success) {
-        setRecords(response.data.data)
+        setRecords(response.data.data || [])
         setPagination(prev => ({
           ...prev,
           total: response.data.pagination?.total || 0
         }))
+      } else {
+        // 后端明确返回失败
+        setRecords([])
+        setPagination(prev => ({ ...prev, total: 0 }))
+        toast.error(response.data.message || '获取记录失败')
       }
     } catch (error) {
-      toast.error('获取记录失败')
+      console.error('获取记录错误:', error)
+
+      // 只在真正的错误时才提示（排除 404 和网络超时等情况）
+      if (error.response) {
+        // 有响应，但状态码不是 2xx
+        if (error.response.status === 404) {
+          // 404 通常表示没有数据，不报错
+          setRecords([])
+          setPagination(prev => ({ ...prev, total: 0 }))
+        } else if (error.response.status >= 500) {
+          // 服务器错误
+          toast.error('服务器错误，请稍后重试')
+          setRecords([])
+          setPagination(prev => ({ ...prev, total: 0 }))
+        } else if (error.response.status === 401) {
+          // 未授权（已由 axios 拦截器处理）
+          setRecords([])
+          setPagination(prev => ({ ...prev, total: 0 }))
+        } else {
+          // 其他客户端错误
+          toast.error(error.response.data?.message || '获取记录失败')
+          setRecords([])
+          setPagination(prev => ({ ...prev, total: 0 }))
+        }
+      } else if (error.request) {
+        // 请求已发出但没有收到响应（网络问题）
+        toast.error('网络连接失败，请检查网络')
+        setRecords([])
+        setPagination(prev => ({ ...prev, total: 0 }))
+      } else {
+        // 其他错误
+        toast.error('获取记录失败')
+        setRecords([])
+        setPagination(prev => ({ ...prev, total: 0 }))
+      }
     } finally {
       setLoading(false)
     }
@@ -70,7 +111,38 @@ export default function ApprovalManagement() {
   const handleApprove = (record) => {
     setSelectedRecord(record)
     setApprovalNote('')
-    setShow(true)
+    setShowModal(true)
+  }
+
+  // 辅助函数：更新排班为休息
+  const updateScheduleForLeave = async (record) => {
+    if (activeTab !== 'leave' || !record.start_date || !record.end_date) return
+
+    try {
+      const startDate = new Date(record.start_date)
+      const endDate = new Date(record.end_date)
+      const schedules = []
+
+      // 循环日期范围
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0]
+        schedules.push({
+          employee_id: record.employee_id,
+          shift_id: null, // 休息
+          schedule_date: dateStr,
+          is_rest_day: true
+        })
+      }
+
+      // 批量更新排班
+      if (schedules.length > 0) {
+        await axios.post(getApiUrl('/api/schedules/batch'), { schedules })
+        console.log('排班已自动更新为休息')
+      }
+    } catch (error) {
+      console.error('自动更新排班失败:', error)
+      toast.warning('审批通过，但自动更新排班失败，请手动检查排班')
+    }
   }
 
   const handleSubmitApproval = async (approved) => {
@@ -97,6 +169,12 @@ export default function ApprovalManagement() {
 
       if (response.data.success) {
         toast.success(approved ? '✅ 审批通过' : '❌ 审批驳回')
+
+        // 如果是请假且审批通过，自动更新排班
+        if (approved && activeTab === 'leave') {
+          await updateScheduleForLeave(selectedRecord)
+        }
+
         setShowModal(false)
         fetchRecords()
       }
@@ -135,9 +213,14 @@ export default function ApprovalManagement() {
         approved,
         approval_note: ''
       })
-
       if (response.data.success) {
         toast.success(approved ? '✅ 审批通过' : '❌ 审批驳回')
+
+        // 如果是请假且审批通过，自动更新排班
+        if (approved && activeTab === 'leave') {
+          await updateScheduleForLeave(record)
+        }
+
         setShowConfirmModal(false)
         setConfirmAction(null)
         fetchRecords()
@@ -187,6 +270,9 @@ export default function ApprovalManagement() {
             <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
               {getLeaveTypeName(record.leave_type)}
             </span>
+            {record.status === 'approved' && (
+              <span className="ml-1 w-2 h-2 bg-red-500 rounded-full" title="已通过"></span>
+            )}
           </div>
           <div className="text-sm text-gray-600 mb-2">
             📅 {record.start_date?.substring(0, 10) || record.start_date} 至 {record.end_date?.substring(0, 10) || record.end_date}
@@ -252,7 +338,12 @@ export default function ApprovalManagement() {
         {record.reason}
       </td>
       <td className="px-4 py-3 border-b text-center">
-        {getStatusBadge(record.status)}
+        <div className="flex items-center justify-center gap-1">
+          {getStatusBadge(record.status)}
+          {record.status === 'approved' && (
+            <span className="w-2 h-2 bg-red-500 rounded-full" title="已通过"></span>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3 border-b">
         {record.status === 'pending' ? (

@@ -1,7 +1,18 @@
-// 考勤审批 API
+const jwt = require('jsonwebtoken')
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
+
+  // 辅助函数：从 token 获取用户 ID
+  const getUserIdFromToken = (request) => {
+    const token = request.headers.authorization?.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('未登录')
+    }
+    const decoded = jwt.verify(token, JWT_SECRET)
+    return decoded.id
+  }
 
   // 获取请假记录列表（支持分页和筛选）
   fastify.get('/api/attendance/leave/records', async (request, reply) => {
@@ -246,7 +257,13 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/attendance/leave/:id/approve', async (request, reply) => {
     const { id } = request.params
     const { approved, approval_note } = request.body
-    const approver_id = 1 // TODO: 从登录用户获取
+
+    let approver_id
+    try {
+      approver_id = getUserIdFromToken(request)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
 
     try {
       const status = approved ? 'approved' : 'rejected'
@@ -272,7 +289,13 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/attendance/overtime/:id/approve', async (request, reply) => {
     const { id } = request.params
     const { approved, approval_note } = request.body
-    const approver_id = 1 // TODO: 从登录用户获取
+
+    let approver_id
+    try {
+      approver_id = getUserIdFromToken(request)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
 
     try {
       const status = approved ? 'approved' : 'rejected'
@@ -298,7 +321,13 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/attendance/makeup/:id/approve', async (request, reply) => {
     const { id } = request.params
     const { approved, approval_note } = request.body
-    const approver_id = 1 // TODO: 从登录用户获取
+
+    let approver_id
+    try {
+      approver_id = getUserIdFromToken(request)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
 
     const connection = await pool.getConnection()
 

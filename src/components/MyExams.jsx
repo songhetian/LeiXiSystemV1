@@ -4,8 +4,13 @@ import api from '../api';
 import './MyExams.css';
 
 const MyExams = ({ onNavigate }) => {
+  // Generate a random ID for this instance to track mounts
+  const [instanceId] = useState(() => Math.random().toString(36).substr(2, 9));
+
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  console.log(`[MyExams ${instanceId}] Rendering. Loading: ${loading}, Exams: ${exams.length}`);
 
   // 状态筛选和分页
   const [statusFilter, setStatusFilter] = useState('all'); // all, ongoing, not_started, ended
@@ -13,27 +18,50 @@ const MyExams = ({ onNavigate }) => {
   const itemsPerPage = 6;
 
   useEffect(() => {
+    console.log(`[MyExams ${instanceId}] Mounted`);
     fetchMyExams();
+    return () => console.log(`[MyExams ${instanceId}] Unmounted`);
   }, []);
 
   const fetchMyExams = async () => {
     setLoading(true);
     try {
-      console.log('Fetching my exams from:', api.defaults.baseURL + '/my-exams');
-      const response = await api.get('/my-exams');
-      const data = response.data?.data;
+      const token = localStorage.getItem('token');
+      const url = api.defaults.baseURL + '/my-exams';
+      console.log('Fetching my exams using FETCH from:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ FETCH 收到响应 status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log('✅ FETCH 响应数据:', responseData);
+
+      const data = responseData.data;
       if (data && Array.isArray(data.exams)) {
+        console.log('✅ 设置考试列表，数量:', data.exams.length);
         setExams(data.exams);
       } else {
         console.warn('API 返回的数据格式不正确:', data);
         setExams([]);
       }
     } catch (error) {
-      console.error('获取我的考试失败:', error);
+      console.error('❌ 获取我的考试失败 (FETCH):', error);
       toast.error('获取我的考试失败');
       setExams([]);
     } finally {
       setLoading(false);
+      console.log('✅ Loading 设置为 false');
     }
   };
 
@@ -70,11 +98,52 @@ const MyExams = ({ onNavigate }) => {
     );
   };
 
+  const handleStartExam = async (planId, sourceType) => {
+    console.log(`[MyExams] handleStartExam called for plan: ${planId}`);
+    try {
+      setLoading(true);
+      // 使用 fetch 调用开始考试 API
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${api.defaults.baseURL}/assessment-results/start`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ plan_id: planId })
+      });
+
+      const data = await response.json();
+      console.log('[MyExams] Start exam response:', data);
+
+      if (response.ok && data.success) {
+        const resultId = data.data.result_id;
+        console.log(`[MyExams] Exam started, navigating to resultId: ${resultId}`);
+        onNavigate('exam-taking', { resultId, sourceType });
+      } else {
+        toast.error(data.message || '开始考试失败');
+      }
+    } catch (error) {
+      console.error('Failed to start exam:', error);
+      toast.error('开始考试失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getActionButton = (exam) => {
+    console.log(`[MyExams] getActionButton called for exam: ${exam.plan_id}, status: ${exam.exam_status}`);
+
     // 优先级1: 有进行中的考试且有答案 - 显示"继续答题"
     if (exam.has_in_progress) {
       return (
-        <button onClick={() => onNavigate('exam-taking', { resultId: exam.in_progress_result_id, sourceType: exam.source_type })} className="btn-primary">
+        <button
+          onClick={(e) => {
+            console.log('[MyExams] Continue button clicked', e);
+            onNavigate('exam-taking', { resultId: exam.in_progress_result_id, sourceType: exam.source_type });
+          }}
+          className="btn-primary"
+        >
           <span>✏️</span>
           继续答题
         </button>
@@ -84,7 +153,13 @@ const MyExams = ({ onNavigate }) => {
     // 优先级2: 有进行中的考试但没答案,或有剩余次数 - 显示"开始答题"
     if (exam.has_not_started || (exam.remaining_attempts > 0 && exam.exam_status === 'ongoing')) {
       return (
-        <button onClick={() => onNavigate('exam-taking', { resultId: exam.in_progress_result_id, sourceType: exam.source_type })} className="btn-primary">
+        <button
+          onClick={(e) => {
+            console.log('[MyExams] Start button clicked', e);
+            handleStartExam(exam.plan_id, exam.source_type);
+          }}
+          className="btn-primary"
+        >
           <span>▶️</span>
           开始答题
         </button>

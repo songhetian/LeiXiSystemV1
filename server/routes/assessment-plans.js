@@ -3,8 +3,11 @@ const jwt = require('jsonwebtoken')
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
+console.log('✅ assessment-plans.js 路由文件已加载')
+
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
+  console.log('✅ assessment-plans 路由已注册')
 
   // 创建考核计划
   // POST /api/assessment-plans
@@ -998,6 +1001,21 @@ module.exports = async function (fastify, opts) {
       const userId = decoded.id
       const currentTime = new Date()
 
+      // 首先获取用户的部门ID（移到循环外，避免重复查询）
+      const [userRows] = await pool.query(
+        'SELECT department_id FROM users WHERE id = ?',
+        [userId]
+      )
+
+      if (userRows.length === 0) {
+        return reply.code(404).send({
+          success: false,
+          message: '用户不存在'
+        })
+      }
+
+      const userDepartmentId = userRows[0].department_id
+
       // 获取所有考核计划
       const [allPlans] = await pool.query(
         `SELECT
@@ -1028,15 +1046,7 @@ module.exports = async function (fastify, opts) {
       // 筛选当前用户可参加的考试
       const myExams = []
 
-      console.log('=== 我的考试调试信息 ===')
-      console.log('用户ID:', userId)
-      console.log('查询到的计划总数:', allPlans.length)
-
       for (const plan of allPlans) {
-        console.log(`\n检查计划 ${plan.id}: ${plan.title}`)
-        console.log('计划状态:', plan.plan_status)
-        console.log('原始 target_departments:', plan.target_departments)
-
         // 解析 target_departments JSON
         let targetDepartmentIds = []
         if (plan.target_departments) {
@@ -1048,37 +1058,17 @@ module.exports = async function (fastify, opts) {
             if (!Array.isArray(targetDepartmentIds)) {
               targetDepartmentIds = []
             }
-            console.log('解析后的目标部门IDs:', targetDepartmentIds)
           } catch (error) {
-            console.error(`计划 ${plan.id} 的 target_departments 解析失败:`, error)
             continue
           }
         } else {
-          console.log('计划没有 target_departments 字段')
-        }
-
-        // 检查当前用户是否在目标部门中
-        // 首先获取用户的部门ID
-        const [userRows] = await pool.query(
-          'SELECT department_id FROM users WHERE id = ?',
-          [userId]
-        )
-
-        if (userRows.length === 0) {
-          console.log('用户不存在，跳过')
           continue
         }
-
-        const userDepartmentId = userRows[0].department_id
-        console.log('用户部门ID:', userDepartmentId)
 
         // 检查用户部门是否在目标部门列表中
         if (!targetDepartmentIds.includes(userDepartmentId)) {
-          console.log('用户部门不在目标部门列表中，跳过')
           continue
         }
-
-        console.log('✓ 用户部门匹配成功！')
 
         // 获取用户的考试记录
         const [resultRows] = await pool.query(
@@ -1168,7 +1158,7 @@ module.exports = async function (fastify, opts) {
             result_id: r.id,
             attempt_number: r.attempt_number,
             start_time: r.start_time,
-            submit_time: r.submit_time,
+          submit_time: r.submit_time,
             duration: r.duration,
             score: r.score ? parseFloat(r.score) : null,
             is_passed: r.is_passed === 1,
@@ -1179,18 +1169,22 @@ module.exports = async function (fastify, opts) {
 
       // 按考试状态和开始时间排序
       // 优先级：进行中 > 未开始 > 已结束
-      myExams.sort((a, b) => {
-        const statusPriority = { 'ongoing': 1, 'not_started': 2, 'ended': 3 }
-        const aPriority = statusPriority[a.exam_status] || 4
-        const bPriority = statusPriority[b.exam_status] || 4
+      try {
+        myExams.sort((a, b) => {
+          const statusPriority = { 'ongoing': 1, 'not_started': 2, 'ended': 3 }
+          const aPriority = statusPriority[a.exam_status] || 4
+          const bPriority = statusPriority[b.exam_status] || 4
 
-        if (aPriority !== bPriority) {
-          return aPriority - bPriority
-        }
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority
+          }
 
-        // 相同状态按开始时间排序（最近的在前）
-        return new Date(b.start_time) - new Date(a.start_time)
-      })
+          // 相同状态按开始时间排序（最近的在前）
+          return new Date(b.start_time) - new Date(a.start_time)
+        })
+      } catch (sortError) {
+        console.error('排序失败:', sortError)
+      }
 
       // 统计信息
       const statistics = {

@@ -7,9 +7,7 @@ import './index.css'
 import './styles/business-theme.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
     <ConfigProvider locale={zhCN}>
       <App />
-    </ConfigProvider>
-  </React.StrictMode>,
+    </ConfigProvider>,
 )

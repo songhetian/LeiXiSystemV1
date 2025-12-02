@@ -20,8 +20,10 @@ const MyExamList = () => {
   }, [filters]);
 
   const fetchMyExams = async () => {
+    console.log('Fetching my exams from:', `${axios.defaults.baseURL || 'http://localhost:3001'}/api/my-exams`);
     setLoading(true);
     try {
+      console.log('发送请求...');
       const response = await axios.get('/api/my-exams', {
         params: {
           status: filters.status,
@@ -30,12 +32,20 @@ const MyExamList = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      console.log('✅ 收到响应:', response);
+      console.log('响应数据:', response.data);
+      console.log('考试列表:', response.data.data.exams);
       setMyExams(response.data.data.exams);
+      console.log('✅ 考试列表已设置');
     } catch (error) {
+      console.error('❌ 请求失败:', error);
+      console.error('错误响应:', error.response);
+      console.error('错误消息:', error.message);
       message.error('获取我的考试列表失败');
       console.error('Failed to fetch my exams:', error);
     } finally {
       setLoading(false);
+      console.log('✅ Loading 状态已设置为 false');
     }
   };
 

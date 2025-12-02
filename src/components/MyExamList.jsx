@@ -35,18 +35,26 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
   }, [filteredMyExams, pageSize]);
 
   const fetchMyExams = async () => {
+
     setLoading(true);
     try {
+
       const response = await api.get('/my-exams');
+      console.log('✅ 收到响应:', response);
+      console.log('响应数据:', response.data);
       // Handle response structure: { success: true, data: { exams: [...] } }
       const examsData = response.data?.data?.exams || response.data?.data || [];
+      console.log('解析的考试数据:', examsData);
       setMyExams(Array.isArray(examsData) ? examsData : []);
+      console.log('✅ 考试列表已设置');
     } catch (error) {
-      console.error('获取我的考试列表失败:', error);
+      console.error('❌ 获取我的考试列表失败:', error);
+      console.error('错误详情:', error.response);
       toast.error('获取我的考试列表失败');
       setMyExams([]);
     } finally {
       setLoading(false);
+      console.log('✅ Loading 状态已设置为 false');
     }
   };
 

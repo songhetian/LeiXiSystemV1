@@ -119,6 +119,9 @@ module.exports = async function (fastify, opts) {
     const params = [];
     const conditions = [];
 
+    // Exclude soft-deleted cases
+    conditions.push('qc.deleted_at IS NULL');
+
     // 标签筛选需要JOIN
     if (tag) {
       query += ` INNER JOIN case_tags ct ON qc.id = ct.case_id`;
@@ -319,21 +322,142 @@ module.exports = async function (fastify, opts) {
     }
   });
 
-  // DELETE /api/quality/cases/:id - 删除案例
+  // DELETE /api/quality/cases/:id - 软删除案例
   fastify.delete('/api/quality/cases/:id', async (request, reply) => {
     const { id } = request.params;
 
     try {
-      const [result] = await pool.query('DELETE FROM quality_cases WHERE id = ?', [id]);
+      const [result] = await pool.query(
+        'UPDATE quality_cases SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
+        [id]
+      );
 
       if (result.affectedRows === 0) {
-        return reply.code(404).send({ success: false, message: '案例不存在' });
+        return reply.code(404).send({ success: false, message: '案例不存在或已删除' });
       }
 
-      return { success: true, message: '案例删除成功' };
+      return { success: true, message: '案例已移至回收站' };
     } catch (error) {
-      console.error('Error deleting case:', error);
+      console.error('Error soft deleting case:', error);
       return reply.code(500).send({ success: false, message: '删除案例失败' });
+    }
+  });
+
+  // GET /api/quality/cases/recycle-bin - 获取回收站案例
+  fastify.get('/api/quality/cases/recycle-bin', async (request, reply) => {
+    const { page = 1, pageSize = 20, search = '', category = '' } = request.query;
+    const offset = (page - 1) * pageSize;
+
+    try {
+      const params = [];
+      const conditions = [];
+
+      // Only show deleted cases
+      conditions.push('qc.deleted_at IS NOT NULL');
+
+      if (search) {
+        conditions.push('(qc.title LIKE ? OR qc.problem LIKE ? OR qc.solution LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      }
+
+      if (category) {
+        conditions.push('qc.category = ?');
+        params.push(category);
+      }
+
+      const whereClause = conditions.join(' AND ');
+
+      // Get total count
+      const [countResult] = await pool.query(
+        `SELECT COUNT(*) as total FROM quality_cases qc WHERE ${whereClause}`,
+        params
+      );
+      const total = countResult[0].total;
+
+      // Get paginated data
+      const [rows] = await pool.query(
+        `SELECT qc.*, u.real_name as creator_name
+         FROM quality_cases qc
+         LEFT JOIN users u ON qc.created_by = u.id
+         WHERE ${whereClause}
+         ORDER BY qc.deleted_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, parseInt(pageSize), parseInt(offset)]
+      );
+
+      return {
+        success: true,
+        data: rows,
+        pagination: {
+          page: parseInt(page),
+          pageSize: parseInt(pageSize),
+          total,
+          totalPages: Math.ceil(total / pageSize)
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching recycle bin:', error);
+      return reply.code(500).send({ success: false, message: '获取回收站失败' });
+    }
+  });
+
+  // POST /api/quality/cases/:id/restore - 恢复已删除案例
+  fastify.post('/api/quality/cases/:id/restore', async (request, reply) => {
+    const { id } = request.params;
+
+    try {
+      const [result] = await pool.query(
+        'UPDATE quality_cases SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL',
+        [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return reply.code(404).send({ success: false, message: '案例不存在或未删除' });
+      }
+
+      return { success: true, message: '案例已恢复' };
+    } catch (error) {
+      console.error('Error restoring case:', error);
+      return reply.code(500).send({ success: false, message: '恢复案例失败' });
+    }
+  });
+
+  // DELETE /api/quality/cases/recycle-bin/empty - 清空回收站
+  fastify.delete('/api/quality/cases/recycle-bin/empty', async (request, reply) => {
+    try {
+      const [result] = await pool.query(
+        'DELETE FROM quality_cases WHERE deleted_at IS NOT NULL'
+      );
+
+      if (result.affectedRows === 0) {
+        return { success: true, message: '回收站已为空' };
+      }
+
+      return { success: true, message: `已清空回收站，共删除 ${result.affectedRows} 条记录` };
+    } catch (error) {
+      console.error('Error emptying recycle bin:', error);
+      return reply.code(500).send({ success: false, message: '清空回收站失败' });
+    }
+  });
+
+  // DELETE /api/quality/cases/:id/permanent - 永久删除案例
+  fastify.delete('/api/quality/cases/:id/permanent', async (request, reply) => {
+    const { id } = request.params;
+
+    try {
+      const [result] = await pool.query(
+        'DELETE FROM quality_cases WHERE id = ? AND deleted_at IS NOT NULL',
+        [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return reply.code(404).send({ success: false, message: '案例不存在或未在回收站中' });
+      }
+
+      return { success: true, message: '案例已永久删除' };
+    } catch (error) {
+      console.error('Error permanently deleting case:', error);
+      return reply.code(500).send({ success: false, message: '永久删除案例失败' });
     }
   });
 

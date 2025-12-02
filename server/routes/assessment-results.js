@@ -1153,11 +1153,7 @@ module.exports = async function (fastify, opts) {
         userAnswersMap.set(String(row.question_id), row)
       })
 
-      console.log(`获取考试结果: resultId=${resultId}, 答案记录数=${userAnswersRows.length}`)
-      if (userAnswersRows.length > 0) {
-        console.log('第一条答案记录:', userAnswersRows[0])
-        console.log('答案Map键:', Array.from(userAnswersMap.keys()))
-      }
+      // 调试信息已移除
 
       // 获取试卷题目（从 exams 表 JSON 字段）
       const [examRows] = await pool.query(
@@ -1177,9 +1173,7 @@ module.exports = async function (fastify, opts) {
         }
       }
 
-      if (questions.length > 0) {
-        console.log('第一道题目ID:', questions[0].id, '类型:', typeof questions[0].id)
-      }
+      // 调试信息已移除
 
       // 格式化题目并附加用户答案
       const detailedQuestions = questions.map(q => {
@@ -1197,8 +1191,7 @@ module.exports = async function (fastify, opts) {
         const questionId = String(q.id)
         const userAns = userAnswersMap.get(questionId)
 
-        // 调试匹配情况
-        console.log(`题目 ${questionId} 匹配结果:`, !!userAns, userAns ? `答案: ${userAns.user_answer}` : '无答案')
+        // 调试信息已移除
 
         return {
           id: q.id,
@@ -1217,9 +1210,7 @@ module.exports = async function (fastify, opts) {
       const incorrectQuestions = detailedQuestions.filter(q => q.is_correct === 0)
       const pendingGradingQuestions = detailedQuestions.filter(q => q.is_correct === null)
 
-      if (detailedQuestions.length > 0) {
-        console.log('返回给前端的第一道题目详情:', detailedQuestions[0])
-      }
+      // 调试信息已移除
 
       return {
         success: true,
@@ -1484,11 +1475,14 @@ module.exports = async function (fastify, opts) {
           e.total_score as exam_total_score,
           e.pass_score,
           u.username as user_username,
-          u.email as user_email
+          u.real_name as user_real_name,
+          u.email as user_email,
+          d.name as user_department
         FROM assessment_results ar
         INNER JOIN assessment_plans ap ON ar.plan_id = ap.id
         INNER JOIN exams e ON ar.exam_id = e.id
         LEFT JOIN users u ON ar.user_id = u.id
+        LEFT JOIN departments d ON u.department_id = d.id
         ${whereString}
         ORDER BY ${validSortBy} ${validSortOrder}
         LIMIT ?, ?`,
@@ -1520,14 +1514,19 @@ module.exports = async function (fastify, opts) {
             exam_title: r.exam_title,
             user_id: r.user_id,
             user_username: r.user_username,
+            user_real_name: r.user_real_name,
             user_email: r.user_email,
+            user_department: r.user_department,
             attempt_number: r.attempt_number,
             start_time: r.start_time,
             submit_time: r.submit_time,
+            submitted_at: r.submit_time,
             duration: r.duration,
-            user_score: parseFloat(r.score),
+            score: parseFloat(r.score),
+            total_score: parseFloat(r.exam_total_score),
             exam_total_score: parseFloat(r.exam_total_score),
             pass_score: parseFloat(r.pass_score),
+            passed: r.is_passed === 1,
             is_passed: r.is_passed === 1,
             status: r.status
           }))
@@ -1867,6 +1866,104 @@ module.exports = async function (fastify, opts) {
         message: '获取答题详情失败',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       })
+    }
+  })
+  // 获取我的考试结果列表
+  // GET /api/my-exam-results
+  // 支持分页、搜索、筛选、排序
+  fastify.get('/api/my-exam-results', async (request, reply) => {
+    try {
+      // 验证用户身份
+      const token = request.headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' })
+      }
+
+      let decoded
+      try {
+        decoded = jwt.verify(token, JWT_SECRET)
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' })
+      }
+
+      const userId = decoded.id
+      const {
+        page = 1,
+        limit = 10,
+        search = '',
+        is_passed,
+        sort_by = 'submit_time',
+        order = 'desc'
+      } = request.query
+
+      const offset = (page - 1) * limit
+      const queryParams = [userId]
+      let whereClause = 'WHERE ar.user_id = ? AND (ar.status = "submitted" OR ar.status = "graded")'
+
+      if (search) {
+        whereClause += ' AND (e.title LIKE ? OR ap.title LIKE ?)'
+        queryParams.push(`%${search}%`, `%${search}%`)
+      }
+
+      if (is_passed !== undefined && is_passed !== '') {
+        whereClause += ' AND ar.is_passed = ?'
+        queryParams.push(is_passed === 'true' || is_passed === '1' ? 1 : 0)
+      }
+
+      // 允许的排序字段
+      const allowedSortFields = ['submit_time', 'score', 'duration']
+      const sortField = allowedSortFields.includes(sort_by) ? sort_by : 'submit_time'
+      const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC'
+
+      // 获取总数
+      const [countRows] = await pool.query(
+        `SELECT COUNT(*) as total
+         FROM assessment_results ar
+         LEFT JOIN exams e ON ar.exam_id = e.id
+         LEFT JOIN assessment_plans ap ON ar.plan_id = ap.id
+         ${whereClause}`,
+        queryParams
+      )
+      const total = countRows[0].total
+
+      // 获取列表数据
+      const [rows] = await pool.query(
+        `SELECT
+          ar.id,
+          ar.plan_id,
+          ar.exam_id,
+          ar.score,
+          ar.is_passed,
+          ar.status,
+          ar.start_time,
+          ar.submit_time,
+          ar.duration,
+          ar.attempt_number,
+          e.title as exam_title,
+          e.total_score as exam_total_score,
+          e.pass_score as exam_pass_score,
+          ap.title as plan_title
+         FROM assessment_results ar
+         LEFT JOIN exams e ON ar.exam_id = e.id
+         LEFT JOIN assessment_plans ap ON ar.plan_id = ap.id
+         ${whereClause}
+         ORDER BY ar.${sortField} ${sortOrder}
+         LIMIT ? OFFSET ?`,
+        [...queryParams, parseInt(limit), parseInt(offset)]
+      )
+
+      return {
+        success: true,
+        data: {
+          results: rows,
+          total,
+          page: parseInt(page),
+          total_pages: Math.ceil(total / limit)
+        }
+      }
+    } catch (error) {
+      console.error('获取我的考试结果失败:', error)
+      return reply.code(500).send({ success: false, message: '获取考试结果失败' })
     }
   })
 }

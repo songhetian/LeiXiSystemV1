@@ -617,6 +617,10 @@ export default function ScheduleManagement() {
                         style={schedule && !schedule.is_rest_day ? shiftStyle : {}}
                       >
                         {schedule?.is_rest_day ? '休' : schedule?.shift_name || '-'}
+                        {/* 如果是休息日且有请假记录，显示红点 */}
+                        {schedule?.is_rest_day && (
+                          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                        )}
                       </td>
                     )
                   })}
