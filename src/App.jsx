@@ -40,6 +40,8 @@ const ExamResult = lazy(() => import('./components/ExamResult'));
 const MyExams = lazy(() => import('./components/MyExams'));
 const MyExamResults = lazy(() => import('./components/MyExamResults'));
 const PersonalInfo = lazy(() => import('./components/PersonalInfo'));
+const MySchedule = lazy(() => import('./pages/Personal/MySchedule'));
+const MyNotifications = lazy(() => import('./pages/Personal/MyNotifications'));
 
 const CaseLibraryPage = lazy(() => import('./pages/CaseLibraryPage'));
 const CaseCategoryManagementPage = lazy(() => import('./pages/CaseCategoryManagementPage'));
@@ -81,6 +83,7 @@ const QualityTagManagement = lazy(() => import('./components/QualityTagManagemen
 const WeChatPage = lazy(() => import('./pages/Messaging').then(module => ({ default: module.WeChatPage })));
 const CreateGroupPage = lazy(() => import('./pages/Messaging').then(module => ({ default: module.CreateGroupPage })));
 import DatabaseCheck from './components/DatabaseCheck';
+import TopNavbar from './components/TopNavbar';
 
 function App() {
 
@@ -304,6 +307,10 @@ function App() {
       // 个人中心
       case 'personal-info':
         return <PersonalInfo />
+      case 'personal-schedule':
+        return <MySchedule />
+      case 'personal-notifications':
+        return <MyNotifications />
 
       default:
         return <NotFound />
@@ -324,10 +331,17 @@ function App() {
             user={user}
             onLogout={handleLogout}
           />
-          <main className="flex-1 overflow-auto bg-gray-50">
-            <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
-              {renderContent()}
-            </Suspense>
+          <main className="flex-1 bg-gray-50 flex flex-col">
+            <TopNavbar
+              activeTab={activeTab.name}
+              user={user}
+              onLogout={handleLogout}
+            />
+            <div className="flex-1 overflow-auto">
+              <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
+                {renderContent()}
+              </Suspense>
+            </div>
           </main>
           <ToastContainer
             position="top-right"

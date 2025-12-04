@@ -49,11 +49,14 @@ async function getUserPermissions(pool, userId, departmentIdFromToken) {
       viewableDepartmentIds.push(effectiveDepartmentId);
     }
 
+    // 去重
+    const uniqueViewableDepartmentIds = [...new Set(viewableDepartmentIds)];
+
     return {
       userId: user.id,
       username: user.username,
       departmentId: effectiveDepartmentId,
-      viewableDepartmentIds: viewableDepartmentIds, // 可查看的部门ID列表
+      viewableDepartmentIds: uniqueViewableDepartmentIds, // 可查看的部门ID列表
       canViewAllDepartments: canViewAllDepartments, // 是否可以查看所有部门
       roles: roles
     }

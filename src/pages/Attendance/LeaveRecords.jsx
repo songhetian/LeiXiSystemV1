@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { formatDate } from '../../utils/date'
+import { formatDateOnly } from '../../utils/dateUtils'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
@@ -12,6 +12,8 @@ export default function LeaveRecords({ onNavigate }) {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 })
   const [employee, setEmployee] = useState(null)
   const [user, setUser] = useState(null)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelRecordId, setCancelRecordId] = useState(null)
 
   useEffect(() => {
     const userStr = localStorage.getItem('user')
@@ -26,7 +28,7 @@ export default function LeaveRecords({ onNavigate }) {
     if (employee) {
       fetchRecords()
     }
-  }, [pagination.page, statusFilter, employee])
+  }, [pagination.page, pagination.limit, statusFilter, employee])
 
   const fetchEmployeeInfo = async (userId) => {
     try {
@@ -67,13 +69,20 @@ export default function LeaveRecords({ onNavigate }) {
     }
   }
 
-  const handleCancel = async (id) => {
-    if (!confirm('确定要撤销这个请假申请吗？')) return
+  const handleCancelClick = (id) => {
+    setCancelRecordId(id)
+    setShowCancelModal(true)
+  }
+
+  const handleCancelConfirm = async () => {
+    if (!cancelRecordId) return
 
     try {
-      const response = await axios.post(getApiUrl(`/api/leave/records/${id}/cancel`))
+      const response = await axios.post(getApiUrl(`/api/leave/records/${cancelRecordId}/cancel`))
       if (response.data.success) {
         toast.success('请假申请已撤销')
+        setShowCancelModal(false)
+        setCancelRecordId(null)
         fetchRecords()
       }
     } catch (error) {
@@ -101,7 +110,6 @@ export default function LeaveRecords({ onNavigate }) {
       annual: '年假',
       sick: '病假',
       personal: '事假',
-      compensatory: '调休',
       other: '其他'
     }
     return types[type] || type
@@ -152,82 +160,86 @@ export default function LeaveRecords({ onNavigate }) {
         </div>
       </div>
 
-      {/* 记录列表 */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* 记录列表 - 卡片布局 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">加载中...</div>
+          <div className="col-span-full p-8 text-center text-gray-500">加载中...</div>
         ) : records.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">暂无请假记录</div>
+          <div className="col-span-full p-8 text-center text-gray-500">暂无请假记录</div>
         ) : (
-          <div className="divide-y">
-            {records.map((record) => (
-              <div key={record.id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-lg font-semibold text-gray-800">
-                        {getLeaveTypeLabel(record.leave_type)}
-                      </span>
-                      {getStatusBadge(record.status)}
-                    </div>
-
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span>📅</span>
-                        <span>
-                          {formatDate(record.start_date)} 至 {formatDate(record.end_date)}
-                          （{record.days} 天）
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span>📝</span>
-                        <span>{record.reason}</span>
-                      </div>
-
-                      {record.approver_name && (
-                        <div className="flex items-center gap-2">
-                          <span>👤</span>
-                          <span>审批人：{record.approver_name}</span>
-                        </div>
-                      )}
-
-                      {record.approved_at && (
-                        <div className="flex items-center gap-2">
-                          <span>🕐</span>
-                          <span>审批时间：{formatDate(record.approved_at)}</span>
-                        </div>
-                      )}
-
-                      {record.approval_note && (
-                        <div className="flex items-center gap-2">
-                          <span>💬</span>
-                          <span>审批备注：{record.approval_note}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 操作按钮 */}
-                  <div className="ml-4">
-                    {record.status === 'pending' && (
-                      <button
-                        onClick={() => handleCancel(record.id)}
-                        className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        撤销
-                      </button>
-                    )}
-                  </div>
-                </div>
+          records.map((record) => (
+            <div key={record.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-5 border border-gray-100">
+              {/* 卡片头部 */}
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-xl font-bold text-gray-800">
+                  {getLeaveTypeLabel(record.leave_type)}
+                </span>
+                {getStatusBadge(record.status)}
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* 分页 */}
-        {pagination.total > 0 && (
-          <div className="px-6 py-4 border-t flex items-center justify-between">
+              {/* 卡片内容 */}
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <span>📅</span>
+                  <span>{formatDateOnly(record.start_date)} 至 {formatDateOnly(record.end_date)}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span>⏱️</span>
+                  <span className="font-medium text-blue-600">{record.days} 天</span>
+                  {record.used_conversion_days > 0 && (
+                    <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                      含转换假期 {record.used_conversion_days} 天
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5">📝</span>
+                  <span className="flex-1 line-clamp-2">{record.reason}</span>
+                </div>
+
+                {record.approver_name && (
+                  <div className="flex items-center gap-2">
+                    <span>👤</span>
+                    <span>{record.approver_name}</span>
+                  </div>
+                )}
+
+                {record.approved_at && (
+                  <div className="flex items-center gap-2">
+                    <span>🕐</span>
+                    <span>{formatDateOnly(record.approved_at)}</span>
+                  </div>
+                )}
+
+                {record.approval_note && (
+                  <div className="flex items-start gap-2 pt-2 border-t">
+                    <span className="mt-0.5">💬</span>
+                    <span className="flex-1 text-gray-700">{record.approval_note}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 操作按钮 */}
+              {record.status === 'pending' && (
+                <div className="mt-4 pt-3 border-t">
+                  <button
+                    onClick={() => handleCancelClick(record.id)}
+                    className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                  >
+                    撤销申请
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* 分页 */}
+      {pagination.total > 0 && (
+        <div className="bg-white rounded-lg shadow mt-4 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="text-sm text-gray-700">
                 共 {pagination.total} 条记录
@@ -266,8 +278,34 @@ export default function LeaveRecords({ onNavigate }) {
               </button>
             </div>
           </div>
-        )}
-      </div>
+      )}
+
+      {/* 撤销确认模态框 */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">确认撤销</h3>
+            <p className="text-gray-600 mb-6">确定要撤销这个请假申请吗？撤销后将无法恢复。</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCancelModal(false)
+                  setCancelRecordId(null)
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+              >
+                确认撤销
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

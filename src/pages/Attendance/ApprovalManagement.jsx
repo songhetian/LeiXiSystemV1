@@ -28,7 +28,7 @@ export default function ApprovalManagement() {
 
   useEffect(() => {
     fetchRecords()
-  }, [activeTab, pagination.page, filters])
+  }, [activeTab, pagination.page, pagination.limit, filters])
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -213,14 +213,9 @@ export default function ApprovalManagement() {
         approved,
         approval_note: ''
       })
+
       if (response.data.success) {
         toast.success(approved ? '✅ 审批通过' : '❌ 审批驳回')
-
-        // 如果是请假且审批通过，自动更新排班
-        if (approved && activeTab === 'leave') {
-          await updateScheduleForLeave(record)
-        }
-
         setShowConfirmModal(false)
         setConfirmAction(null)
         fetchRecords()

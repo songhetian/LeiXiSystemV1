@@ -196,11 +196,11 @@ module.exports = async function (fastify, opts) {
 
   // 创建班次
   fastify.post('/api/shifts', async (request, reply) => {
-    const { name, start_time, end_time, work_hours, late_threshold, early_threshold, is_active, department_id, description, color } = request.body
+    const { name, start_time, end_time, rest_duration, late_threshold, early_threshold, is_active, department_id, description, color } = request.body
 
     try {
       // 验证必填字段
-      if (!name || !start_time || !end_time || !work_hours) {
+      if (!name || !start_time || !end_time) {
         return reply.code(400).send({ success: false, message: '请填写完整信息' })
       }
 
@@ -232,11 +232,28 @@ module.exports = async function (fastify, opts) {
         }
       }
 
+      // Calculate work_hours based on start_time, end_time, and rest_duration
+      const [startHour, startMinute] = start_time.split(':').map(Number);
+      const [endHour, endMinute] = end_time.split(':').map(Number);
+
+      let totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+
+      // Handle overnight shifts (e.g., 22:00 - 06:00)
+      if (totalMinutes < 0) {
+        totalMinutes += 24 * 60; // Add 24 hours in minutes
+      }
+
+      const restMinutes = rest_duration ? parseInt(rest_duration) : 0;
+      const calculatedWorkHours = (totalMinutes - restMinutes) / 60;
+
+      // Ensure work_hours is not negative
+      const finalWorkHours = Math.max(0, calculatedWorkHours);
+
       const [result] = await pool.query(
         `INSERT INTO work_shifts
-        (name, start_time, end_time, work_hours, late_threshold, early_threshold, is_active, department_id, description, color)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [name, start_time, end_time, work_hours, late_threshold || 30, early_threshold || 30, is_active !== false ? 1 : 0, department_id || null, description || null, shiftColor]
+        (name, start_time, end_time, work_hours, rest_duration, late_threshold, early_threshold, is_active, department_id, description, color)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, start_time, end_time, finalWorkHours, restMinutes, late_threshold || 30, early_threshold || 30, is_active !== false ? 1 : 0, department_id || null, description || null, shiftColor]
       )
 
       return {
@@ -253,7 +270,7 @@ module.exports = async function (fastify, opts) {
   // 更新班次
   fastify.put('/api/shifts/:id', async (request, reply) => {
     const { id } = request.params
-    const { name, start_time, end_time, work_hours, late_threshold, early_threshold, is_active, department_id, description, color } = request.body
+    const { name, start_time, end_time, rest_duration, late_threshold, early_threshold, is_active, department_id, description, color } = request.body
 
     try {
       // 检查班次是否存在
@@ -279,18 +296,35 @@ module.exports = async function (fastify, opts) {
       }
 
       // 构建更新查询
+
+      // 自动计算工作时长
+      const [startHour, startMinute] = start_time.split(':').map(Number)
+      const [endHour, endMinute] = end_time.split(':').map(Number)
+
+      let totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute)
+
+      // 处理跨夜班次（例如 22:00 - 06:00）
+      if (totalMinutes < 0) {
+        totalMinutes += 24 * 60
+      }
+
+      const restMinutes = rest_duration ? parseInt(rest_duration) : 0
+      const calculatedWorkHours = (totalMinutes - restMinutes) / 60
+      const finalWorkHours = Math.max(0, calculatedWorkHours)
+
       let updateQuery = `UPDATE work_shifts SET
           name = ?,
           start_time = ?,
           end_time = ?,
           work_hours = ?,
+          rest_duration = ?,
           late_threshold = ?,
           early_threshold = ?,
           is_active = ?,
           department_id = ?,
           description = ?`
 
-      const updateParams = [name, start_time, end_time, work_hours, late_threshold, early_threshold, is_active ? 1 : 0, department_id || null, description || null]
+      const updateParams = [name, start_time, end_time, finalWorkHours, restMinutes, late_threshold, early_threshold, is_active ? 1 : 0, department_id || null, description || null]
 
       // 如果提供了颜色，更新颜色
       if (color) {

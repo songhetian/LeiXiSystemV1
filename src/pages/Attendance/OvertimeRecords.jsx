@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { formatDate } from '../../utils/date'
+import { formatDateOnly } from '../../utils/dateUtils'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
@@ -28,7 +28,7 @@ export default function OvertimeRecords({ onNavigate }) {
       fetchRecords()
       fetchStats()
     }
-  }, [pagination.page, statusFilter, employee])
+  }, [pagination.page, pagination.limit, statusFilter, employee])
 
   const fetchEmployeeInfo = async (userId) => {
     try {
@@ -84,20 +84,7 @@ export default function OvertimeRecords({ onNavigate }) {
     }
   }
 
-  const handleCompensate = async (id) => {
-    if (!confirm('确定要将此加班转换为调休吗？')) return
 
-    try {
-      const response = await axios.post(getApiUrl(`/api/overtime/records/${id}/compensate`))
-      if (response.data.success) {
-        toast.success('已转换为调休')
-        fetchRecords()
-        fetchStats()
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || '操作失败')
-    }
-  }
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -129,17 +116,17 @@ export default function OvertimeRecords({ onNavigate }) {
           <h1 className="text-2xl font-bold text-gray-800">加班记录</h1>
           <p className="text-gray-600 mt-1">查看您的加班申请历史</p>
         </div>
-        <a
-          href="/attendance/overtime/apply"
+        <button
+          onClick={() => onNavigate?.('/attendance/overtime/apply')}
           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
         >
           + 新建加班
-        </a>
+        </button>
       </div>
 
       {/* 统计卡片 */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-sm text-gray-600">总加班时长</div>
             <div className="text-2xl font-bold text-blue-600 mt-1">{stats.total_hours}h</div>
@@ -147,10 +134,6 @@ export default function OvertimeRecords({ onNavigate }) {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-sm text-gray-600">已调休时长</div>
             <div className="text-2xl font-bold text-green-600 mt-1">{stats.compensated_hours}h</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-600">可调休时长</div>
-            <div className="text-2xl font-bold text-orange-600 mt-1">{stats.remaining_hours}h</div>
           </div>
         </div>
       )}
@@ -181,73 +164,62 @@ export default function OvertimeRecords({ onNavigate }) {
         </div>
       </div>
 
-      {/* 记录列表 */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* 记录列表 - 卡片布局 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">加载中...</div>
+          <div className="col-span-full p-8 text-center text-gray-500">加载中...</div>
         ) : records.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">暂无加班记录</div>
+          <div className="col-span-full p-8 text-center text-gray-500">暂无加班记录</div>
         ) : (
-          <div className="divide-y">
-            {records.map((record) => (
-              <div key={record.id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-lg font-semibold text-gray-800">
-                        {formatDate(record.overtime_date)}
-                      </span>
-                      {getStatusBadge(record.status)}
-                      {record.is_compensated ? (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          已调休
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span>⏰</span>
-                        <span>
-                          {formatTime(record.start_time)} - {formatTime(record.end_time)}
-                          （{record.hours} 小时）
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span>📝</span>
-                        <span>{record.reason}</span>
-                      </div>
-
-                      {record.approver_name && (
-                        <div className="flex items-center gap-2">
-                          <span>👤</span>
-                          <span>审批人：{record.approver_name}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 操作按钮 */}
-                  <div className="ml-4">
-                    {record.status === 'approved' && !record.is_compensated && (
-                      <button
-                        onClick={() => handleCompensate(record.id)}
-                        className="px-4 py-2 text-sm bg-purple-500 text-white hover:bg-purple-600 rounded-lg transition-colors"
-                      >
-                        转调休
-                      </button>
-                    )}
-                  </div>
+          records.map((record) => (
+            <div key={record.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-5 border border-gray-100">
+              {/* 卡片头部 */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-bold text-gray-800">
+                    {formatDateOnly(record.overtime_date)}
+                  </span>
+                  {record.is_compensated && (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      已调休
+                    </span>
+                  )}
                 </div>
+                {getStatusBadge(record.status)}
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* 分页 */}
-        {pagination.total > 0 && (
-          <div className="px-6 py-4 border-t flex items-center justify-between">
+              {/* 卡片内容 */}
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <span>⏰</span>
+                  <span>
+                    {formatTime(record.start_time)} - {formatTime(record.end_time)}
+                    <span className="ml-1 font-medium text-blue-600">({record.hours} 小时)</span>
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5">📝</span>
+                  <span className="flex-1 line-clamp-2">{record.reason}</span>
+                </div>
+
+                {record.approver_name && (
+                  <div className="flex items-center gap-2">
+                    <span>👤</span>
+                    <span>{record.approver_name}</span>
+                  </div>
+                )}
+              </div>
+
+
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* 分页 */}
+      {pagination.total > 0 && (
+        <div className="bg-white rounded-lg shadow mt-4 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="text-sm text-gray-700">
                 共 {pagination.total} 条记录
@@ -286,8 +258,7 @@ export default function OvertimeRecords({ onNavigate }) {
               </button>
             </div>
           </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

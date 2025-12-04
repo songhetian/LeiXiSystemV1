@@ -2128,7 +2128,8 @@ CREATE TABLE `users` (
   `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '手机号码',
   `avatar` text COLLATE utf8mb4_unicode_ci COMMENT '头像(Base64或URL)',
   `department_id` int DEFAULT NULL COMMENT '所属部门ID',
-  `status` enum('active','inactive','pending') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '用户状态',
+  `status` enum('active','inactive','pending','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '用户状态',
+  `approval_note` text COLLATE utf8mb4_unicode_ci COMMENT '审批备注',
   `last_login` datetime DEFAULT NULL COMMENT '最后登录时间',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -2280,6 +2281,25 @@ CREATE TABLE `vacation_types` (
   KEY `idx_enabled` (`enabled`)
 ) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='假期类型表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `shift_schedules`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `shift_schedules` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `employee_id` int NOT NULL COMMENT '员工ID',
+  `shift_id` int DEFAULT NULL COMMENT '班次ID',
+  `schedule_date` date NOT NULL COMMENT '排班日期',
+  `is_rest_day` tinyint(1) DEFAULT '0' COMMENT '是否休息日',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_employee_date` (`employee_id`,`schedule_date`),
+  KEY `idx_shift_id` (`shift_id`),
+  KEY `idx_date` (`schedule_date`),
+  CONSTRAINT `fk_shift_schedules_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_shift_schedules_shift` FOREIGN KEY (`shift_id`) REFERENCES `work_shifts` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排班表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `work_shifts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -2289,6 +2309,7 @@ CREATE TABLE `work_shifts` (
   `start_time` time NOT NULL COMMENT '上班时间',
   `end_time` time NOT NULL COMMENT '下班时间',
   `work_hours` decimal(3,1) NOT NULL COMMENT '工作时长',
+  `rest_duration` int DEFAULT '60' COMMENT '休息时长（分钟）',
   `late_threshold` int DEFAULT '30' COMMENT '迟到阈值（分钟）',
   `early_threshold` int DEFAULT '30' COMMENT '早退阈值（分钟）',
   `is_active` tinyint(1) DEFAULT '1' COMMENT '是否启用',
@@ -2364,6 +2385,100 @@ INSERT INTO `employees` (`user_id`, `employee_no`, `position`, `hire_date`, `sta
 INSERT INTO `positions` (`name`, `department_id`, `description`, `requirements`, `responsibilities`, `salary_min`, `salary_max`, `level`, `status`, `sort_order`, `created_at`) VALUES
 ('系统管理员', @admin_dept_id, '系统最高管理职位，负责系统维护和管理', '熟悉系统管理，具备技术背景', '系统维护、用户管理、权限配置', 15000.00, 30000.00, 'expert', 'active', 1, NOW());
 
+-- ==========================================
+-- 额外的数据库迁移和更新
+-- ==========================================
+
+-- Migration 002: 添加软删除字段到案例表
+ALTER TABLE quality_cases ADD COLUMN IF NOT EXISTS deleted_at DATETIME DEFAULT NULL COMMENT '删除时间（软删除）';
+
+-- 添加索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_deleted_at ON quality_cases(deleted_at);
+
+-- Migration 002: 创建案例分类表
+CREATE TABLE IF NOT EXISTS case_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE COMMENT '分类名称',
+  description TEXT COMMENT '分类描述',
+  parent_id INT DEFAULT NULL COMMENT '父分类ID（支持多级分类）',
+  sort_order INT DEFAULT 0 COMMENT '排序权重',
+  is_active BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (parent_id) REFERENCES case_categories(id) ON DELETE SET NULL,
+  INDEX idx_parent (parent_id),
+  INDEX idx_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='案例分类表';
+
+-- 插入初始分类数据
+INSERT INTO case_categories (name, description, sort_order) VALUES
+('投诉处理', '客户投诉相关案例', 1),
+('业务咨询', '业务咨询相关案例', 2),
+('售后服务', '售后服务相关案例', 3),
+('VIP服务', 'VIP客户服务案例', 4),
+('危机处理', '危机处理相关案例', 5)
+ON DUPLICATE KEY UPDATE description = VALUES(description), sort_order = VALUES(sort_order);
+
+-- Migration 003: 添加审批备注字段到用户表
+-- 用于存储员工审核的拒绝原因
+ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_note TEXT NULL COMMENT '审批备注（拒绝原因）';
+
+
 -- 输出确认信息
 SELECT '数据库初始化完成' AS 'Status';
 SELECT '默认管理员账号: admin' AS 'Username', 'admin123' AS 'Password';
+
+-- 假期转换记录表
+DROP TABLE IF EXISTS `vacation_conversions`;
+CREATE TABLE `vacation_conversions` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '转换记录ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `employee_id` int NOT NULL COMMENT '员工ID',
+  `source_type` varchar(50) DEFAULT 'overtime' COMMENT '来源类型：overtime-加班',
+  `source_hours` decimal(10,2) DEFAULT NULL COMMENT '来源小时数（如加班时长）',
+  `converted_days` decimal(10,2) NOT NULL COMMENT '转换获得的天数',
+  `remaining_days` decimal(10,2) NOT NULL COMMENT '剩余可用天数',
+  `conversion_ratio` decimal(10,4) DEFAULT NULL COMMENT '转换比例',
+  `conversion_rule_id` int DEFAULT NULL COMMENT '使用的转换规则ID',
+  `notes` text COMMENT '备注',
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_employee` (`employee_id`),
+  KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='假期转换记录表';
+
+-- 假期转换使用记录表
+DROP TABLE IF EXISTS `conversion_usage_records`;
+CREATE TABLE `conversion_usage_records` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '使用记录ID',
+  `conversion_id` int NOT NULL COMMENT '转换记录ID',
+  `leave_record_id` int NOT NULL COMMENT '请假记录ID',
+  `used_days` decimal(10,2) NOT NULL COMMENT '使用天数',
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_conversion` (`conversion_id`),
+  KEY `idx_leave_record` (`leave_record_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='假期转换使用记录表';
+
+-- 为请假记录增加转换假期使用字段
+ALTER TABLE leave_records ADD COLUMN IF NOT EXISTS used_conversion_days DECIMAL(10,2) DEFAULT 0 COMMENT '使用的转换假期天数';
+
+-- 插入默认转换规则
+INSERT INTO conversion_rules (name, source_type, ratio, conversion_rate, enabled, description) VALUES
+('默认加班转换规则', 'overtime', 0.125, 0.125, 1, '8小时加班 = 1天假期')
+ON DUPLICATE KEY UPDATE name = VALUES(name);
+
+-- 为转换规则表增加缺失字段
+ALTER TABLE conversion_rules ADD COLUMN IF NOT EXISTS name VARCHAR(100) DEFAULT '转换规则' COMMENT '规则名称' AFTER id;
+ALTER TABLE conversion_rules ADD COLUMN IF NOT EXISTS description TEXT NULL COMMENT '规则描述';
+ALTER TABLE conversion_rules ADD COLUMN IF NOT EXISTS ratio DECIMAL(10,4) DEFAULT 0.125 COMMENT '转换比例' AFTER target_type;
+
+-- 插入默认转换规则
+INSERT INTO conversion_rules (name, source_type, target_type, ratio, conversion_rate, enabled, description)
+VALUES ('默认加班转换规则', 'overtime', NULL, 0.125, 0.125, 1, '8小时加班 = 1天假期')
+ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description);
+
+-- 移除转换规则表中不必要的字段
+ALTER TABLE conversion_rules DROP COLUMN IF EXISTS source_type;
+ALTER TABLE conversion_rules DROP COLUMN IF EXISTS target_type;

@@ -35,15 +35,41 @@ export default function AttendanceRecordsOptimized() {
     attendance_rate: 0
   })
   const [selectedMonth, setSelectedMonth] = useState(new Date())
-  const [employee] = useState({ id: 1, user_id: 1, name: '张三' })
+  const [employee, setEmployee] = useState(null)
+  const [user, setUser] = useState(null)
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
   useEffect(() => {
-    fetchRecords()
-  }, [pagination.page, filters, selectedMonth, viewMode])
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const userData = JSON.parse(userStr)
+      setUser(userData)
+      fetchEmployeeInfo(userData.id)
+    }
+  }, [])
+
+  const fetchEmployeeInfo = async (userId) => {
+    try {
+      const response = await axios.get(getApiUrl(`/api/employees/by-user/${userId}`))
+      if (response.data.success && response.data.data) {
+        setEmployee(response.data.data)
+      }
+    } catch (error) {
+      console.error('获取员工信息失败:', error)
+      toast.error('获取员工信息失败')
+    }
+  }
+
+  useEffect(() => {
+    if (employee) {
+      fetchRecords()
+    }
+  }, [pagination.page, pagination.limit, filters, selectedMonth, viewMode, employee])
 
   const fetchRecords = async () => {
+    if (!employee) return
+
     setLoading(true)
     try {
       // 如果是日历视图，自动设置日期范围为选中的月份
@@ -58,8 +84,15 @@ export default function AttendanceRecordsOptimized() {
       if (viewMode === 'calendar') {
         const year = selectedMonth.getFullYear()
         const month = selectedMonth.getMonth()
-        queryParams.start_date = new Date(year, month, 1).toISOString().split('T')[0]
-        queryParams.end_date = new Date(year, month + 1, 0).toISOString().split('T')[0]
+        // 使用本地时间构建日期字符串，避免时区问题
+        const startDateObj = new Date(year, month, 1)
+        const endDateObj = new Date(year, month + 1, 0)
+
+        queryParams.start_date = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, '0')}-${String(startDateObj.getDate()).padStart(2, '0')}`
+        queryParams.end_date = `${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`
+
+        // 增加限制以确保获取当月所有记录（考虑到可能有多条记录/天）
+        queryParams.limit = 200
       }
 
       const response = await axios.get(getApiUrl('/api/attendance/records'), {
@@ -69,9 +102,15 @@ export default function AttendanceRecordsOptimized() {
       if (response.data.success) {
         setRecords(response.data.data)
         setPagination(prev => ({ ...prev, ...response.data.pagination }))
-        calculateStats(response.data.data)
+        // 使用后端返回的统计数据
+        if (response.data.stats) {
+          setStats(response.data.stats)
+        } else {
+          calculateStats(response.data.data)
+        }
       }
     } catch (error) {
+      console.error('获取打卡记录失败:', error)
       toast.error('获取打卡记录失败')
     } finally {
       setLoading(false)
@@ -123,14 +162,20 @@ export default function AttendanceRecordsOptimized() {
         end_date = today.toISOString().split('T')[0]
         break
       case 'month':
-        start_date = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
-        end_date = today.toISOString().split('T')[0]
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+        start_date = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`
+        end_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
         break
       default:
         start_date = end_date = ''
     }
 
     setFilters({ ...filters, start_date, end_date })
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }
+
+  const handleStatusFilter = (status) => {
+    setFilters(prev => ({ ...prev, status }))
     setPagination(prev => ({ ...prev, page: 1 }))
   }
 
@@ -161,15 +206,17 @@ export default function AttendanceRecordsOptimized() {
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
-  
+
 
   const getStatusText = (status) => {
     const statusMap = {
       normal: '正常',
       late: '迟到',
       early: '早退',
+      early_leave: '早退',
       absent: '缺勤',
-      leave: '请假'
+      leave: '请假',
+      overtime: '加班'
     }
     return statusMap[status] || '未知'
   }
@@ -179,8 +226,10 @@ export default function AttendanceRecordsOptimized() {
       normal: { text: '正常', color: 'bg-green-100 text-green-800', icon: CheckCircleIcon },
       late: { text: '迟到', color: 'bg-red-100 text-red-800', icon: ExclamationCircleIcon },
       early: { text: '早退', color: 'bg-orange-100 text-orange-800', icon: ExclamationCircleIcon },
+      early_leave: { text: '早退', color: 'bg-orange-100 text-orange-800', icon: ExclamationCircleIcon },
       absent: { text: '缺勤', color: 'bg-gray-100 text-gray-800', icon: XCircleIcon },
-      leave: { text: '请假', color: 'bg-blue-100 text-blue-800', icon: ClockIcon }
+      leave: { text: '请假', color: 'bg-blue-100 text-blue-800', icon: ClockIcon },
+      overtime: { text: '加班', color: 'bg-purple-100 text-purple-800', icon: ClockIcon }
     }
     const badge = badges[status] || badges.normal
     const Icon = badge.icon
@@ -195,14 +244,14 @@ export default function AttendanceRecordsOptimized() {
 
   // 渲染统计卡片
   const renderStatsCards = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">总天数</div>
-            <div className="text-3xl font-bold mt-1">{stats.total_days}</div>
+            <div className="text-2xl font-bold mt-1">{stats.total_days}</div>
           </div>
-          <CalendarIcon className="w-10 h-10 opacity-50" />
+          <CalendarIcon className="w-8 h-8 opacity-50" />
         </div>
       </div>
 
@@ -210,20 +259,20 @@ export default function AttendanceRecordsOptimized() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">正常</div>
-            <div className="text-3xl font-bold mt-1">{stats.normal_count}</div>
+            <div className="text-2xl font-bold mt-1">{stats.normal_count}</div>
           </div>
-          <CheckCircleIcon className="w-10 h-10 opacity-50" />
+          <CheckCircleIcon className="w-8 h-8 opacity-50" />
         </div>
-        <div className="text-xs mt-2 opacity-90">出勤率 {stats.attendance_rate}%</div>
+        <div className="text-xs mt-1 opacity-90">出勤率 {stats.attendance_rate}%</div>
       </div>
 
       <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">迟到</div>
-            <div className="text-3xl font-bold mt-1">{stats.late_count}</div>
+            <div className="text-2xl font-bold mt-1">{stats.late_count}</div>
           </div>
-          <ExclamationCircleIcon className="w-10 h-10 opacity-50" />
+          <ExclamationCircleIcon className="w-8 h-8 opacity-50" />
         </div>
       </div>
 
@@ -231,9 +280,9 @@ export default function AttendanceRecordsOptimized() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">早退</div>
-            <div className="text-3xl font-bold mt-1">{stats.early_count}</div>
+            <div className="text-2xl font-bold mt-1">{stats.early_count}</div>
           </div>
-          <ExclamationCircleIcon className="w-10 h-10 opacity-50" />
+          <ExclamationCircleIcon className="w-8 h-8 opacity-50" />
         </div>
       </div>
 
@@ -241,21 +290,41 @@ export default function AttendanceRecordsOptimized() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">缺勤</div>
-            <div className="text-3xl font-bold mt-1">{stats.absent_count}</div>
+            <div className="text-2xl font-bold mt-1">{stats.absent_count}</div>
           </div>
-          <XCircleIcon className="w-10 h-10 opacity-50" />
+          <XCircleIcon className="w-8 h-8 opacity-50" />
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg shadow-lg p-4 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm opacity-90">请假</div>
+            <div className="text-2xl font-bold mt-1">{stats.leave_count}</div>
+          </div>
+          <ClockIcon className="w-8 h-8 opacity-50" />
         </div>
       </div>
 
       <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm opacity-90">平均工时</div>
-            <div className="text-3xl font-bold mt-1">{stats.avg_work_hours}</div>
+            <div className="text-sm opacity-90">加班</div>
+            <div className="text-2xl font-bold mt-1">{stats.overtime_count || 0}</div>
           </div>
-          <ClockIcon className="w-10 h-10 opacity-50" />
+          <ClockIcon className="w-8 h-8 opacity-50" />
         </div>
-        <div className="text-xs mt-2 opacity-90">小时/天</div>
+      </div>
+
+      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm opacity-90">工时</div>
+            <div className="text-2xl font-bold mt-1">{stats.avg_work_hours}</div>
+          </div>
+          <ClockIcon className="w-8 h-8 opacity-50" />
+        </div>
+        <div className="text-xs mt-1 opacity-90">小时/天</div>
       </div>
     </div>
   )
@@ -281,7 +350,23 @@ export default function AttendanceRecordsOptimized() {
 
     const getRecordForDay = (day) => {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      return records.find(r => r.record_date === dateStr)
+      return records.find(r => {
+        if (!r.record_date) return false
+
+        let recordDate
+        if (typeof r.record_date === 'string') {
+          // 如果是字符串，直接提取日期部分（YYYY-MM-DD 或 ISO 格式）
+          // 不要转换为 Date 对象，避免时区问题
+          recordDate = r.record_date.split('T')[0].split(' ')[0]
+        } else {
+          // 如果不是字符串（可能是 Date 对象），先转换为字符串再处理
+          // 注意：这种情况不应该发生，因为后端返回的应该是字符串
+          console.warn('record_date is not a string:', r.record_date, typeof r.record_date)
+          recordDate = String(r.record_date).split('T')[0].split(' ')[0]
+        }
+
+        return recordDate === dateStr
+      })
     }
 
     return (
@@ -379,8 +464,9 @@ export default function AttendanceRecordsOptimized() {
                   w-12 h-12 rounded-full flex items-center justify-center font-bold text-white
                   ${record.status === 'normal' ? 'bg-green-500' :
                     record.status === 'late' ? 'bg-red-500' :
-                    record.status === 'early' ? 'bg-orange-500' :
-                    record.status === 'leave' ? 'bg-blue-500' : 'bg-gray-500'}
+                    record.status === 'early' || record.status === 'early_leave' ? 'bg-orange-500' :
+                    record.status === 'leave' ? 'bg-blue-500' :
+                    record.status === 'overtime' ? 'bg-purple-500' : 'bg-gray-500'}
                 `}>
                   {new Date(record.record_date).getDate()}
                 </div>
@@ -392,49 +478,68 @@ export default function AttendanceRecordsOptimized() {
                   <div>
                       <div className="font-semibold text-lg text-gray-800">{formatDate(record.record_date)}</div>
                     <div className="text-sm text-gray-500 mt-1">
-                      工作时长: {record.work_hours ? `${record.work_hours}小时` : '未完成'}
+                      {record.type === 'leave' ? (
+                        <span>请假天数: {record.days}天</span>
+                      ) : (
+                        <span>工作时长: {record.work_hours ? `${record.work_hours}小时` : '未完成'}</span>
+                      )}
                     </div>
                   </div>
                   {getStatusBadge(record.status)}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {/* 上班打卡 */}
-                  <div className="flex items-center gap-3 bg-white rounded p-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 text-xl">↑</span>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">上班打卡</div>
-                      <div className="font-semibold text-gray-800">
-                        {formatDateTime(record.clock_in_time)}
+                {record.type === 'leave' ? (
+                  <div className="bg-white rounded p-3 border border-blue-100">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">类型:</span>
+                        <span className="ml-2 font-medium text-gray-800">{record.leave_type}</span>
                       </div>
-                      {record.clock_in_location && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          📍 {record.clock_in_location}
-                        </div>
-                      )}
+                      <div>
+                        <span className="text-gray-500">时间:</span>
+                        <span className="ml-2 font-medium text-gray-800">{record.start_date} 至 {record.end_date}</span>
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 上班打卡 */}
+                    <div className="flex items-center gap-3 bg-white rounded p-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600 text-xl">↑</span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">上班打卡</div>
+                        <div className="font-semibold text-gray-800">
+                          {formatDateTime(record.clock_in_time)}
+                        </div>
+                        {record.clock_in_location && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            📍 {record.clock_in_location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* 下班打卡 */}
-                  <div className="flex items-center gap-3 bg-white rounded p-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 text-xl">↓</span>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">下班打卡</div>
-                      <div className="font-semibold text-gray-800">
-                        {formatDateTime(record.clock_out_time)}
+                    {/* 下班打卡 */}
+                    <div className="flex items-center gap-3 bg-white rounded p-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 text-xl">↓</span>
                       </div>
-                      {record.clock_out_location && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          📍 {record.clock_out_location}
+                      <div>
+                        <div className="text-xs text-gray-500">下班打卡</div>
+                        <div className="font-semibold text-gray-800">
+                          {formatDateTime(record.clock_out_time)}
                         </div>
-                      )}
+                        {record.clock_out_location && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            📍 {record.clock_out_location}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {record.remark && (
                   <div className="mt-3 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-sm text-gray-700">
@@ -466,13 +571,13 @@ export default function AttendanceRecordsOptimized() {
                     日期
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    上班打卡
+                    类型
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    下班打卡
+                    时间/详情
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    工作时长
+                    时长
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     状态
@@ -488,8 +593,10 @@ export default function AttendanceRecordsOptimized() {
                     key={record.id}
                     className={`
                       hover:bg-gray-50 transition-colors
-                      ${record.status === 'late' || record.status === 'early' ? 'bg-red-50' : ''}
+                      ${record.status === 'late' || record.status === 'early' || record.status === 'early_leave' ? 'bg-red-50' : ''}
                       ${record.status === 'absent' ? 'bg-gray-100' : ''}
+                      ${record.type === 'leave' ? 'bg-blue-50' : ''}
+                      ${record.type === 'overtime' ? 'bg-purple-50' : ''}
                     `}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -499,45 +606,44 @@ export default function AttendanceRecordsOptimized() {
                           <div className="text-sm font-medium text-gray-900">
                             {formatDate(record.record_date)}
                           </div>
-                          
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                          <span className="text-green-600 text-sm">↑</span>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {formatDateTime(record.clock_in_time)}
-                          </div>
-                          {record.clock_in_location && (
-                            <div className="text-xs text-gray-500">📍 {record.clock_in_location}</div>
-                          )}
-                        </div>
-                      </div>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        record.type === 'attendance' ? 'bg-gray-100 text-gray-800' :
+                        record.type === 'leave' ? 'bg-blue-100 text-blue-800' :
+                        record.type === 'overtime' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {record.type === 'attendance' ? '考勤' :
+                         record.type === 'leave' ? '请假' :
+                         record.type === 'overtime' ? '加班' : '未知'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 text-sm">↓</span>
+                      {record.type === 'leave' ? (
+                        <div className="text-sm text-gray-900">
+                          {record.leave_type} ({record.days}天)
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {formatDateTime(record.clock_out_time)}
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-green-600 bg-green-50 px-1 rounded">上</span>
+                            <span className="text-sm text-gray-900">{formatDateTime(record.clock_in_time)}</span>
                           </div>
-                          {record.clock_out_location && (
-                            <div className="text-xs text-gray-500">📍 {record.clock_out_location}</div>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">下</span>
+                            <span className="text-sm text-gray-900">{formatDateTime(record.clock_out_time)}</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <ClockIcon className="w-5 h-5 text-gray-400" />
                         <span className="text-sm font-medium text-gray-900">
-                          {record.work_hours ? `${record.work_hours}h` : '--'}
+                          {record.type === 'leave' ? `${record.days}天` :
+                           record.work_hours ? `${record.work_hours}h` : '--'}
                         </span>
                       </div>
                     </td>
@@ -642,55 +748,79 @@ export default function AttendanceRecordsOptimized() {
             </div>
 
             {/* 打卡信息 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 上班打卡 */}
-              <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 text-2xl">↑</span>
+            {selectedRecord.type === 'leave' ? (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <h4 className="font-semibold text-blue-800 mb-2">请假详情</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-blue-600">开始时间</div>
+                    <div className="font-medium">{selectedRecord.start_date}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-600">上班打卡</div>
-                    <div className="text-xl font-bold text-gray-800">
-                      {formatDateTime(selectedRecord.clock_in_time)}
-                    </div>
+                    <div className="text-sm text-blue-600">结束时间</div>
+                    <div className="font-medium">{selectedRecord.end_date}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-blue-600">请假类型</div>
+                    <div className="font-medium">{selectedRecord.leave_type}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-blue-600">天数</div>
+                    <div className="font-medium">{selectedRecord.days}天</div>
                   </div>
                 </div>
-                {selectedRecord.clock_in_location && (
-                  <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>{selectedRecord.clock_in_location}</span>
-                  </div>
-                )}
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 上班打卡 */}
+                <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                      <span className="text-green-600 text-2xl">↑</span>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">上班打卡</div>
+                      <div className="text-xl font-bold text-gray-800">
+                        {formatDateTime(selectedRecord.clock_in_time)}
+                      </div>
+                    </div>
+                  </div>
+                  {selectedRecord.clock_in_location && (
+                    <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>{selectedRecord.clock_in_location}</span>
+                    </div>
+                  )}
+                </div>
 
-              {/* 下班打卡 */}
-              <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 text-2xl">↓</span>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">下班打卡</div>
-                    <div className="text-xl font-bold text-gray-800">
-                      {formatDateTime(selectedRecord.clock_out_time)}
+                {/* 下班打卡 */}
+                <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 text-2xl">↓</span>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">下班打卡</div>
+                      <div className="text-xl font-bold text-gray-800">
+                        {formatDateTime(selectedRecord.clock_out_time)}
+                      </div>
                     </div>
                   </div>
+                  {selectedRecord.clock_out_location && (
+                    <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>{selectedRecord.clock_out_location}</span>
+                    </div>
+                  )}
                 </div>
-                {selectedRecord.clock_out_location && (
-                  <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>{selectedRecord.clock_out_location}</span>
-                  </div>
-                )}
               </div>
-            </div>
+            )}
 
             {/* 备注信息 */}
             {selectedRecord.remark && (
@@ -764,6 +894,31 @@ export default function AttendanceRecordsOptimized() {
 
       {/* 统计卡片 */}
       {renderStatsCards()}
+
+      {/* 状态筛选按钮 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[
+          { id: 'all', name: '全部' },
+          { id: 'normal', name: '正常' },
+          { id: 'late', name: '迟到' },
+          { id: 'early', name: '早退' },
+          { id: 'absent', name: '缺勤' },
+          { id: 'leave', name: '请假' },
+          { id: 'overtime', name: '加班' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => handleStatusFilter(tab.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filters.status === tab.id
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            }`}
+          >
+            {tab.name}
+          </button>
+        ))}
+      </div>
 
       {/* 筛选器和视图切换 */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">

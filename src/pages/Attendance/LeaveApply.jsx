@@ -10,9 +10,12 @@ export default function LeaveApply() {
     start_date: '',
     end_date: '',
     reason: '',
-    attachments: []
+    attachments: [],
+    use_conversion: false,
+    conversion_days: 0
   })
   const [balance, setBalance] = useState(null)
+  const [conversionBalance, setConversionBalance] = useState(null)
   const [loading, setLoading] = useState(false)
   const [employee, setEmployee] = useState(null)
   const [user, setUser] = useState(null)
@@ -43,12 +46,18 @@ export default function LeaveApply() {
 
   const fetchBalance = async (employeeId) => {
     try {
-      // Use the new vacation balance API which includes overtime/converted leave
+      // 获取基础假期余额
       const response = await axios.get(getApiUrl('/api/vacation/balance'), {
         params: { employee_id: employeeId }
       })
       if (response.data.success) {
         setBalance(response.data.data)
+      }
+
+      // 获取转换假期余额
+      const conversionResponse = await axios.get(getApiUrl(`/api/vacation/conversion-balance/${employeeId}`))
+      if (conversionResponse.data.success) {
+        setConversionBalance(conversionResponse.data.data)
       }
     } catch (error) {
       console.error('获取请假余额失败:', error)
@@ -95,12 +104,19 @@ export default function LeaveApply() {
 
     setLoading(true)
     try {
-      const response = await axios.post(getApiUrl('/api/leave/apply'), {
+      const payload = {
         employee_id: employee.id,
         user_id: employee.user_id,
         ...formData,
         days
-      })
+      }
+
+      console.log('=== Frontend Submit Debug ===')
+      console.log('formData:', formData)
+      console.log('payload:', payload)
+      console.log('============================')
+
+      const response = await axios.post(getApiUrl('/api/leave/apply'), payload)
 
       if (response.data.success) {
         toast.success('请假申请提交成功')
@@ -111,7 +127,8 @@ export default function LeaveApply() {
           end_date: '',
           reason: '',
           attachments: [],
-          use_converted_leave: false
+          use_conversion: false,
+          conversion_days: 0
         })
         fetchBalance(employee.id)
       }
@@ -120,13 +137,32 @@ export default function LeaveApply() {
     } finally {
       setLoading(false)
     }
+
   }
+
+  // 监听日期和复选框变化，自动更新转换天数
+  useEffect(() => {
+    if (formData.use_conversion && conversionBalance) {
+      const days = calculateDays()
+      if (days > 0) {
+        const maxDays = Math.min(days, conversionBalance.remaining_days)
+        setFormData(prev => ({
+          ...prev,
+          conversion_days: maxDays
+        }))
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          conversion_days: 0
+        }))
+      }
+    }
+  }, [formData.start_date, formData.end_date, formData.use_conversion, conversionBalance])
 
   const leaveTypes = [
     { value: 'annual', label: '年假', icon: '🏖️' },
     { value: 'sick', label: '病假', icon: '🤒' },
     { value: 'personal', label: '事假', icon: '📋' },
-    { value: 'compensatory', label: '调休', icon: '🔄' },
     { value: 'other', label: '其他', icon: '📝' }
   ]
 
@@ -139,22 +175,80 @@ export default function LeaveApply() {
       </div>
 
       {/* 请假余额 */}
-      {balance && (
+      {conversionBalance && conversionBalance.remaining_days > 0 && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">请假余额</h2>
-          <div className="grid grid-cols-1 gap-4">
-            <div className="border rounded-lg p-6 bg-gradient-to-r from-purple-50 to-indigo-50">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-700 font-medium">加班转换假期</span>
-                <span className="text-3xl">🔄</span>
+          <h2 className="text-lg font-semibold mb-4">转换假期余额</h2>
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100 overflow-hidden">
+            <div className="p-4 border-b border-purple-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-purple-600">
+                  ✨
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">使用转换假期</h3>
+                  <p className="text-sm text-gray-500">
+                    可用余额: <span className="font-medium text-purple-600">{Math.floor(conversionBalance.remaining_days)}</span> 天
+                  </p>
+                </div>
               </div>
-              <div className="text-3xl font-bold text-purple-600 mb-2">
-                {balance.overtime_leave_remaining || 0} 天
-              </div>
-              <div className="text-sm text-gray-600">
-                可用于抵扣年假或调休
-              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={formData.use_conversion || false}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      use_conversion: e.target.checked
+                    }))
+                  }}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              </label>
             </div>
+
+            {formData.use_conversion && (
+              <div className="p-4 bg-white/50">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      抵扣天数
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max={Math.min(calculateDays(), conversionBalance.remaining_days)}
+                        step="0.5"
+                        value={formData.conversion_days}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          const maxDays = Math.min(calculateDays(), conversionBalance.remaining_days)
+                          setFormData(prev => ({
+                            ...prev,
+                            conversion_days: Math.min(value, maxDays)
+                          }))
+                        }}
+                        className="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-purple-500 focus:ring-purple-500 sm:text-sm py-2"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <span className="text-gray-500 sm:text-sm">天</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-6">
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!formData.use_conversion && (
+               <div className="px-6 py-4">
+                  <div className="text-sm text-gray-600">
+                    已转换 {Math.floor(conversionBalance.total_converted_days)} 天 · 已使用 {Math.floor(conversionBalance.used_days)} 天
+                  </div>
+               </div>
+            )}
           </div>
         </div>
       )}
@@ -167,7 +261,7 @@ export default function LeaveApply() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               请假类型 <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {leaveTypes.map((type) => (
                 <button
                   key={type.value}
@@ -184,21 +278,7 @@ export default function LeaveApply() {
               ))}
             </div>
 
-            {/* 自动转换假期选项 */}
-            {balance && balance.overtime_leave_remaining > 0 && (
-              <div className="mt-4 p-3 bg-purple-50 border border-purple-100 rounded-lg flex items-center">
-                <input
-                  type="checkbox"
-                  id="use_converted_leave"
-                  checked={formData.use_converted_leave || false}
-                  onChange={(e) => setFormData(prev => ({ ...prev, use_converted_leave: e.target.checked }))}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                />
-                <label htmlFor="use_converted_leave" className="ml-2 block text-sm text-gray-900">
-                  优先使用加班转换假期 (剩余 {balance.overtime_leave_remaining} 天)
-                </label>
-              </div>
-            )}
+
           </div>
 
           {/* 日期范围 */}
@@ -211,7 +291,15 @@ export default function LeaveApply() {
                 type="date"
                 required
                 value={formData.start_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                onChange={(e) => {
+                  const newStartDate = e.target.value
+                  setFormData(prev => ({
+                    ...prev,
+                    start_date: newStartDate,
+                    // 如果结束日期为空或小于新的开始日期，自动更新结束日期
+                    end_date: (!prev.end_date || prev.end_date < newStartDate) ? newStartDate : prev.end_date
+                  }))
+                }}
                 className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -222,6 +310,7 @@ export default function LeaveApply() {
               <input
                 type="date"
                 required
+                min={formData.start_date} // 限制最小日期为开始日期
                 value={formData.end_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
                 className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"

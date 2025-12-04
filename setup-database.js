@@ -19,7 +19,7 @@ const defaultConfig = {
     port: 3306,
     user: 'root',
     password: 'your_password',
-    database: 'leixin_customer_service'
+    database: 'leixin_customer_service_v1'
   },
   upload: {
     sharedDirectory: '',
@@ -57,8 +57,8 @@ function askDatabaseConfig() {
         readline.question('数据库密码 (默认: your_password): ', (password) => {
           defaultConfig.database.password = password || 'your_password';
 
-          readline.question('数据库名称 (默认: leixin_customer_service): ', (database) => {
-            defaultConfig.database.database = database || 'leixin_customer_service';
+          readline.question('数据库名称 (默认: leixin_customer_service_v1): ', (database) => {
+            defaultConfig.database.database = database || 'leixin_customer_service_v1';
 
             console.log('\n文件上传配置（可选）：\n');
             readline.question('共享上传目录路径 (可选，用于多电脑共享文件): ', (sharedDir) => {

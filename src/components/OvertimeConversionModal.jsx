@@ -1,110 +1,120 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Select, InputNumber, Button, Alert, Statistic, Row, Col, Spin, Descriptions, Space, Input } from 'antd';
-import { SwapOutlined, CalculatorOutlined, ClockCircleOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Modal, Form, InputNumber, Button, Alert, Statistic, Row, Col, Descriptions } from 'antd';
+import { SwapOutlined, CalculatorOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
 import { getApiBaseUrl } from '../utils/apiConfig';
 
-const { Option } = Select;
-
-const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, overtimeHours, defaultLeaveType }) => {
+const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, overtimeHours }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [calculating, setCalculating] = useState(false);
-  const [vacationTypes, setVacationTypes] = useState([]);
-  const [conversionRules, setConversionRules] = useState([]);
+  const [user, setUser] = useState(null);
+  const [activeRule, setActiveRule] = useState(null);
   const [calculationResult, setCalculationResult] = useState(null);
 
   useEffect(() => {
-    if (visible) {
-      loadVacationTypes();
-      loadConversionRules();
-      form.setFieldsValue({
-        overtime_hours: overtimeHours || 0,
-        target_type_id: defaultLeaveType?.id // 默认选中加班假类型
-      });
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
     }
-  }, [visible, overtimeHours, defaultLeaveType]);
+  }, []);
 
-  const loadVacationTypes = async () => {
+  useEffect(() => {
+    if (visible) {
+      loadActiveRule();
+    }
+  }, [visible]);
+
+  const loadActiveRule = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${getApiBaseUrl()}/vacation/types`, {
+      const response = await fetch(`${getApiBaseUrl()}/conversion-rules?source_type=overtime&enabled=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
-      if (result.success) {
-        setVacationTypes(result.data);
-      }
-    } catch (error) {
-      console.error('加载假期类型失败:', error);
-    }
-  };
 
-  const loadConversionRules = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${getApiBaseUrl()}/conversion-rules?source_type=overtime&enabled=true`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      const result = await response.json();
-      if (result.success) {
-        setConversionRules(result.data);
+      console.log('加载的转换规则:', result);
+
+      if (result.success && result.data.length > 0) {
+        const rule = result.data[0];
+        console.log('使用规则:', rule);
+        setActiveRule(rule);
+
+        if (overtimeHours) {
+          form.setFieldsValue({ overtime_hours: overtimeHours });
+          handleCalculate(overtimeHours, rule);
+        }
+      } else {
+        toast.error('未找到启用的转换规则，请联系管理员');
       }
     } catch (error) {
       console.error('加载转换规则失败:', error);
+      toast.error('加载转换规则失败');
     }
   };
 
-  const handleCalculate = async () => {
-    try {
-      const values = await form.validateFields(['overtime_hours', 'target_type_id']);
-      setCalculating(true);
+  const handleCalculate = (hours, rule) => {
+    if (!rule) rule = activeRule;
+    if (!rule || !hours) return;
 
-      const selectedType = vacationTypes.find(t => t.id === values.target_type_id);
-      const token = localStorage.getItem('token');
+    const ratio = parseFloat(rule.ratio || rule.conversion_rate || 0.125);
+    const hoursPerDay = Math.round(1 / ratio); // 例如：8小时/天
 
-      const params = new URLSearchParams({
-        source_hours: values.overtime_hours,
-        target_type_code: selectedType?.code || ''
-      });
+    // 计算可以转换成多少整天
+    const totalHours = parseFloat(hours);
+    const wholeDays = Math.floor(totalHours / hoursPerDay); // 例如：23 / 8 = 2天
 
-      const response = await fetch(
-        `${getApiBaseUrl()}/conversion-rules/calculate?${params}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+    // 计算实际需要转换的小时数（整天对应的小时）
+    const hoursToConvert = wholeDays * hoursPerDay; // 例如：2 * 8 = 16小时
 
-      const result = await response.json();
-      if (result.success) {
-        setCalculationResult(result.data);
-      } else {
-        toast.error(result.message || '计算失败');
-      }
-    } catch (error) {
-      console.error('计算转换结果失败:', error);
-      toast.error('计算失败');
-    } finally {
-      setCalculating(false);
-    }
+    // 计算剩余的小时数
+    const remainderHours = totalHours - hoursToConvert; // 例如：23 - 16 = 7小时
+
+    console.log('计算结果:', {
+      ratio,
+      totalHours,
+      hoursPerDay,
+      wholeDays,
+      hoursToConvert,
+      remainderHours
+    });
+
+    setCalculationResult({
+      converted_days: wholeDays,
+      conversion_ratio: ratio,
+      source_hours: hoursToConvert, // 实际转换的小时数
+      decimal_remainder: remainderHours, // 保留的小时数
+      rule_name: rule.name || '默认规则',
+      hours_per_day: hoursPerDay
+    });
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
 
+      if (!calculationResult) {
+        toast.error('请先计算转换结果');
+        return;
+      }
+
       Modal.confirm({
         title: '确认转换',
         content: (
           <div>
-            <p>确定要将 <strong>{values.overtime_hours} 小时</strong> 的加班时长转换为 <strong>{calculationResult?.converted_days} 天</strong> 的假期吗?</p>
-            <p style={{ color: '#8c8c8c', fontSize: '12px' }}>此操作不可撤销</p>
+            <p>确定要将 <strong>{calculationResult.source_hours} 小时</strong> 的加班时长转换为 <strong>{calculationResult.converted_days} 天</strong> 的假期吗?</p>
+            {calculationResult.decimal_remainder > 0 && (
+              <p style={{ color: '#ff9800', fontSize: '13px', marginTop: '8px' }}>
+                ⚠️ 剩余 <strong>{calculationResult.decimal_remainder} 小时</strong> 将保留在加班余额中
+              </p>
+            )}
+            <p style={{ color: '#8c8c8c', fontSize: '12px', marginTop: '4px' }}>转换后可在请假时选择使用</p>
           </div>
         ),
         onOk: async () => {
           setLoading(true);
           try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${getApiBaseUrl()}/vacation/overtime/convert`, {
+            const response = await fetch(`${getApiBaseUrl()}/vacation/convert-from-overtime`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -112,15 +122,20 @@ const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, over
               },
               body: JSON.stringify({
                 employee_id: employeeId,
-                overtime_hours: values.overtime_hours,
-                target_type_id: values.target_type_id,
-                conversion_rule_id: values.conversion_rule_id
+                user_id: user?.id,
+                overtime_hours: calculationResult.source_hours, // 使用取整后的小时数
+                notes: calculationResult.decimal_remainder > 0
+                  ? `从加班时长转换（原始: ${values.overtime_hours}h，保留: ${calculationResult.decimal_remainder.toFixed(1)}h）`
+                  : '从加班时长转换'
               })
             });
 
             const result = await response.json();
             if (result.success) {
-              toast.success(`成功转换 ${values.overtime_hours} 小时为 ${result.data.converted_days} 天假期!`);
+              const message = calculationResult.decimal_remainder > 0
+                ? `成功转换 ${calculationResult.source_hours} 小时为 ${result.data.converted_days} 天假期！剩余 ${calculationResult.decimal_remainder} 小时已保留`
+                : `成功转换 ${calculationResult.source_hours} 小时为 ${result.data.converted_days} 天假期！`;
+              toast.success(message);
               form.resetFields();
               setCalculationResult(null);
               onSuccess?.();
@@ -162,14 +177,6 @@ const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, over
           取消
         </Button>,
         <Button
-          key="calculate"
-          icon={<CalculatorOutlined />}
-          onClick={handleCalculate}
-          loading={calculating}
-        >
-          计算
-        </Button>,
-        <Button
           key="submit"
           type="primary"
           onClick={handleSubmit}
@@ -183,84 +190,57 @@ const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, over
     >
       <Alert
         message="转换说明"
-        description="将您的加班时长转换为假期额度。转换后,加班时长将被扣除,对应的假期额度将增加。"
+        description="将您的加班时长转换为通用假期天数。转换后，您可以在请假时选择使用这些假期。"
         type="info"
         showIcon
         style={{ marginBottom: '24px' }}
       />
 
+      {calculationResult && calculationResult.decimal_remainder > 0 && (
+        <Alert
+          message="提示"
+          description={`将转换 ${calculationResult.source_hours} 小时为 ${calculationResult.converted_days} 天假期，剩余 ${calculationResult.decimal_remainder} 小时将保留在加班余额中供下次转换使用。`}
+          type="warning"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
+      )}
+
+      {activeRule && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <div className="text-sm text-gray-700">
+            <strong>当前转换规则：</strong>{activeRule.name || '默认规则'}
+          </div>
+          <div className="text-sm text-blue-600 font-medium mt-1">
+            1 天 = {calculationResult?.hours_per_day || Math.round(1 / (activeRule.ratio || activeRule.conversion_rate || 0.125))} 小时
+          </div>
+        </div>
+      )}
+
       <Form
         form={form}
         layout="vertical"
         initialValues={{
-          overtime_hours: overtimeHours || 0,
-          target_type_id: defaultLeaveType?.id // 默认选中加班假类型
+          overtime_hours: overtimeHours || 0
         }}
       >
         <Form.Item
-          label="加班时长"
+          label="加班时长（小时）"
           name="overtime_hours"
           rules={[
             { required: true, message: '请输入加班时长' },
-            { type: 'number', min: 0, message: '加班时长必须大于0' }
+            { type: 'number', min: 0.1, message: '加班时长必须大于0' }
           ]}
         >
-          <Space.Compact style={{ width: '100%' }}>
-            <InputNumber
-              min={0}
-              step={0.5}
-              placeholder="请输入加班时长"
-              style={{ width: '100%' }}
-              readOnly={true}
-              disabled={true}
-            />
-            <Input addonAfter="小时" readOnly={true} disabled={true} />
-          </Space.Compact>
-        </Form.Item>
-
-        <Form.Item
-          label="目标假期类型"
-          name="target_type_id"
-          rules={[{ required: true, message: '请选择目标假期类型' }]}
-        >
-          <Select
-            placeholder="请选择目标假期类型"
-            showSearch
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-          >
-            {vacationTypes
-              .filter(type => type.code !== 'compensatory') // 过滤掉调休类型
-              .map(type => (
-                <Option key={type.id} value={type.id}>
-                  {type.name}
-                </Option>
-              ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label="转换规则"
-          name="conversion_rule_id"
-          rules={[{ required: false }]}
-        >
-          <Select
-            placeholder="请选择转换规则（可选）"
-            showSearch
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-            allowClear
-          >
-            {conversionRules.map(rule => (
-              <Option key={rule.id} value={rule.id}>
-                {rule.name || `规则-${rule.id}`} (比例: {rule.ratio || rule.conversion_rate})
-              </Option>
-            ))}
-          </Select>
+          <InputNumber
+            min={0}
+            step={1}
+            precision={1}
+            placeholder="请输入加班时长"
+            style={{ width: '100%' }}
+            addonAfter="小时"
+            disabled
+          />
         </Form.Item>
 
         {calculationResult && (
@@ -276,15 +256,21 @@ const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, over
               </Col>
               <Col span={12}>
                 <Statistic
-                  title="转换比例"
-                  value={calculationResult.conversion_ratio}
-                  precision={2}
+                  title="使用规则"
+                  value={calculationResult.rule_name}
+                  valueStyle={{ fontSize: '16px' }}
                 />
               </Col>
             </Row>
-            <Descriptions size="small" column={1} style={{ marginTop: '8px' }}>
-              <Descriptions.Item label="使用规则">
-                {calculationResult.rule_name || '默认规则'}
+            <Descriptions size="small" column={1} style={{ marginTop: '12px' }}>
+              <Descriptions.Item label="加班时长">
+                {calculationResult.source_hours} 小时
+              </Descriptions.Item>
+              <Descriptions.Item label="转换比例">
+                1 天 = {calculationResult.hours_per_day} 小时
+              </Descriptions.Item>
+              <Descriptions.Item label="计算结果">
+                {calculationResult.source_hours} 小时 ÷ {calculationResult.hours_per_day} = {calculationResult.converted_days} 天
               </Descriptions.Item>
             </Descriptions>
           </div>

@@ -27,39 +27,25 @@ module.exports = async function (fastify, opts) {
 
       // 已转换为假期的加班时长
       const [convertedHours] = await pool.query(
-        `SELECT COALESCE(SUM(oc.overtime_hours), 0) as converted_hours
-        FROM overtime_conversions oc
-        WHERE oc.employee_id = ?`,
+        `SELECT COALESCE(SUM(source_hours), 0) as converted_hours
+        FROM vacation_conversions
+        WHERE employee_id = ? AND source_type = 'overtime'`,
         [employee_id]
       );
 
-      // 计算已转换的假期天数 (基于转换规则)
+      // 获取最近的转换记录
       const [conversions] = await pool.query(
-        `SELECT oc.*, vt.code as target_type_code
-        FROM overtime_conversions oc
-        LEFT JOIN vacation_types vt ON oc.target_vacation_type_id = vt.id
-        WHERE oc.employee_id = ?
-        ORDER BY oc.created_at DESC`,
+        `SELECT vc.*, cr.name as rule_name
+        FROM vacation_conversions vc
+        LEFT JOIN conversion_rules cr ON vc.conversion_rule_id = cr.id
+        WHERE vc.employee_id = ? AND vc.source_type = 'overtime'
+        ORDER BY vc.created_at DESC`,
         [employee_id]
       );
 
       let convertedDays = 0;
       for (const conversion of conversions) {
-        // 获取转换规则
-        let conversionRatio = 1.0;
-        if (conversion.conversion_rule_id) {
-          const [rules] = await pool.query(
-            'SELECT ratio FROM conversion_rules WHERE id = ? AND enabled = TRUE',
-            [conversion.conversion_rule_id]
-          );
-          if (rules.length > 0) {
-            conversionRatio = parseFloat(rules[0].ratio);
-          }
-        }
-
-        // 计算转换天数 (加班小时 * 比例 / 8小时)
-        const days = (parseFloat(conversion.overtime_hours) * conversionRatio) / 8;
-        convertedDays += days;
+        convertedDays += parseFloat(conversion.converted_days);
       }
 
       const total = parseFloat(totalHours[0].total_hours);
@@ -72,7 +58,7 @@ module.exports = async function (fastify, opts) {
           total_hours: total,
           compensated_hours: compensated,
           converted_hours: converted,
-          remaining_hours: total - compensated - converted,
+          remaining_hours: total - converted,
           converted_days: parseFloat(convertedDays.toFixed(2)),
           conversions: conversions.slice(0, 5) // 最近5条转换记录
         }
@@ -90,7 +76,22 @@ module.exports = async function (fastify, opts) {
     try {
       const offset = (parseInt(page) - 1) * parseInt(limit);
       let query = `
-        SELECT *
+        SELECT
+          id,
+          employee_id,
+          user_id,
+          DATE_FORMAT(overtime_date, '%Y-%m-%d') as overtime_date,
+          start_time,
+          end_time,
+          hours,
+          reason,
+          status,
+          is_compensated,
+          approver_id,
+          approved_at,
+          approval_note,
+          created_at,
+          updated_at
         FROM overtime_records
         WHERE 1=1
       `;
@@ -163,8 +164,8 @@ module.exports = async function (fastify, opts) {
       }
 
       const [result] = await pool.query(
-        `INSERT INTO overtime_records 
-        (employee_id, user_id, overtime_date, start_time, end_time, hours, reason, status) 
+        `INSERT INTO overtime_records
+        (employee_id, user_id, overtime_date, start_time, end_time, hours, reason, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [employee_id, user_id, overtime_date, start_time, end_time, hours, reason || '', 'pending']
       );

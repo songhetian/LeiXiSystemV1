@@ -291,30 +291,121 @@ fastify.post('/api/upload/multiple', async (request, reply) => {
 
 // ==================== 认证 API ====================
 
-// 用户注册
-fastify.post('/api/auth/register', async (request, reply) => {
-  const { username, password, real_name, email, phone } = request.body
+// 检查用户名是否可用并提供建议
+fastify.post('/api/auth/check-username', async (request, reply) => {
+  const { username, realName } = request.body
 
   try {
     // 检查用户名是否已存在
     const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username])
-    if (existing.length > 0) {
+
+    if (existing.length === 0) {
+      return { available: true, suggestions: [] }
+    }
+
+    // 生成建议用户名（类似 Google）
+    const suggestions = []
+    const baseUsername = username.toLowerCase()
+    const currentYear = new Date().getFullYear()
+
+    // 建议1: 用户名 + 随机3位数字
+    suggestions.push(`${baseUsername}${Math.floor(100 + Math.random() * 900)}`)
+
+    // 建议2: 用户名 + 当前年份
+    suggestions.push(`${baseUsername}${currentYear}`)
+
+    // 建议3: 用户名 + 随机4位数字
+    suggestions.push(`${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`)
+
+    // 建议4: 如果有真实姓名，尝试姓+名首字母+数字
+    if (realName && realName.length >= 2) {
+      const pinyin = require('pinyin-pro')
+      const pinyinArray = pinyin.pinyin(realName, { toneType: 'none', type: 'array' })
+      if (pinyinArray.length >= 2) {
+        const firstNameInitial = pinyinArray[0][0]
+        const lastNameInitial = pinyinArray[pinyinArray.length - 1][0]
+        suggestions.push(`${firstNameInitial}${lastNameInitial}${Math.floor(10 + Math.random() * 90)}`)
+      }
+    }
+
+    // 建议5: 用户名 + "_" + 随机2位数字
+    suggestions.push(`${baseUsername}_${Math.floor(10 + Math.random() * 90)}`)
+
+    // 过滤掉已存在的建议
+    const uniqueSuggestions = []
+    for (const suggestion of suggestions) {
+      const [exists] = await pool.query('SELECT id FROM users WHERE username = ?', [suggestion])
+      if (exists.length === 0) {
+        uniqueSuggestions.push(suggestion)
+      }
+    }
+
+    return {
+      available: false,
+      suggestions: uniqueSuggestions.slice(0, 5) // 最多返回5个建议
+    }
+  } catch (error) {
+    console.error('检查用户名失败:', error)
+    return reply.code(500).send({ success: false, message: '检查用户名失败' })
+  }
+})
+
+// 用户注册
+fastify.post('/api/auth/register', async (request, reply) => {
+  const { username, password, real_name, email, phone, department_id } = request.body
+
+  try {
+    // 检查用户名是否已存在
+    const [existingUsername] = await pool.query('SELECT id FROM users WHERE username = ?', [username])
+    if (existingUsername.length > 0) {
       return reply.code(400).send({ success: false, message: '用户名已存在' })
+    }
+
+    // 检查邮箱是否已存在（仅当提供了邮箱时）
+    if (email && email.trim()) {
+      const [existingEmail] = await pool.query('SELECT id FROM users WHERE email = ?', [email])
+      if (existingEmail.length > 0) {
+        return reply.code(400).send({ success: false, message: '该邮箱已被注册' })
+      }
+    }
+
+    // 检查手机号是否已存在（仅当提供了手机号时）
+    if (phone && phone.trim()) {
+      const [existingPhone] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone])
+      if (existingPhone.length > 0) {
+        return reply.code(400).send({ success: false, message: '该手机号已被注册' })
+      }
     }
 
     // 加密密码
     const passwordHash = await bcrypt.hash(password, 10)
 
     // 注册用户
+    // 注意：如果 email 或 phone 为空字符串，将其转换为 null，避免唯一索引冲突（如果数据库有唯一索引且允许 NULL）
+    const emailToSave = email && email.trim() ? email : null;
+    const phoneToSave = phone && phone.trim() ? phone : null;
+
     const [result] = await pool.query(
-      'INSERT INTO users (username, password_hash, real_name, email, phone, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [username, passwordHash, real_name, email, phone, 'active']
+      'INSERT INTO users (username, password_hash, real_name, email, phone, department_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [username, passwordHash, real_name, emailToSave, phoneToSave, department_id || null, 'pending']
     )
 
     return { success: true, message: '注册成功', userId: result.insertId }
   } catch (error) {
     console.error('注册失败:', error)
-    return reply.code(500).send({ success: false, message: '注册失败' })
+
+    // 处理数据库约束错误
+    if (error.code === 'ER_DUP_ENTRY') {
+      if (error.sqlMessage.includes('uk_email')) {
+        return reply.code(400).send({ success: false, message: '该邮箱已被注册' })
+      } else if (error.sqlMessage.includes('uk_phone')) {
+        return reply.code(400).send({ success: false, message: '该手机号已被注册' })
+      } else if (error.sqlMessage.includes('username')) {
+        return reply.code(400).send({ success: false, message: '用户名已存在' })
+      }
+    }
+
+    return reply.code(500).send({ success: false, message: '注册失败，请稍后重试' })
   }
 })
 
@@ -1424,12 +1515,45 @@ fastify.post('/api/employees/batch-import', async (request, reply) => {
 // ==================== 员工审批 API ====================
 
 // 获取待审批的用户列表
+// 获取待审批的用户列表（支持分页和状态过滤）
 fastify.get('/api/users-pending', async (request, reply) => {
   try {
+    const { status = 'pending', page = 1, limit = 10 } = request.query;
+    const offset = (page - 1) * limit;
+
     // 获取用户权限
     const permissions = await extractUserPermissions(request, pool);
 
-    let query = `
+    // 构建基础查询
+    let baseQuery = `
+      FROM users u
+      LEFT JOIN departments d ON u.department_id = d.id
+      WHERE u.status = ?
+    `;
+    let params = [status];
+
+    // 应用部门权限过滤
+    // 注意：applyDepartmentFilter 会修改 query 和 params
+    // 我们需要先构建完整的 WHERE 子句，然后再应用权限过滤
+    // 这里稍微调整一下逻辑，先构建 WHERE 部分
+
+    // 临时构建一个完整的 SELECT 语句用于权限过滤函数处理
+    let tempQuery = `SELECT * ${baseQuery}`;
+    const filtered = applyDepartmentFilter(permissions, tempQuery, params, 'u.department_id');
+
+    // 从过滤后的查询中提取 WHERE 子句
+    // applyDepartmentFilter 会在 query 末尾追加 AND ...
+    // 我们需要提取出 WHERE 及其后面的所有内容
+    const whereIndex = filtered.query.indexOf('WHERE');
+    const whereClause = filtered.query.substring(whereIndex);
+    const finalParams = filtered.params;
+
+    // 查询总数
+    const [countResult] = await pool.query(`SELECT COUNT(*) as total FROM users u LEFT JOIN departments d ON u.department_id = d.id ${whereClause}`, finalParams);
+    const total = countResult[0].total;
+
+    // 查询数据
+    const query = `
       SELECT
         u.id,
         u.username,
@@ -1438,26 +1562,31 @@ fastify.get('/api/users-pending', async (request, reply) => {
         u.phone,
         u.department_id,
         u.created_at,
+        u.status,
+        u.approval_note,
         d.name as department_name
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
-      WHERE u.status = 'pending'
+      ${whereClause}
+      ORDER BY u.created_at DESC
+      LIMIT ? OFFSET ?
     `;
 
-    let params = [];
+    // 添加分页参数
+    const queryParams = [...finalParams, parseInt(limit), parseInt(offset)];
 
-    // 应用部门权限过滤
-    const filtered = applyDepartmentFilter(permissions, query, params, 'u.department_id');
-    query = filtered.query;
-    params = filtered.params;
+    const [rows] = await pool.query(query, queryParams);
 
-    query += ' ORDER BY u.created_at DESC';
-
-    const [rows] = await pool.query(query, params);
-    return rows;
+    return {
+      data: rows,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit)
+    };
   } catch (error) {
     console.error(error);
-    reply.code(500).send({ error: 'Failed to fetch pending users' });
+    reply.code(500).send({ error: 'Failed to fetch users list' });
   }
 });
 
@@ -1481,8 +1610,8 @@ fastify.post('/api/users/:id/approve', async (request, reply) => {
 
     // 更新用户状态为active
     await pool.query(
-      'UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?',
-      ['active', id]
+      'UPDATE users SET status = ?, approval_note = ?, updated_at = NOW() WHERE id = ?',
+      ['active', note || null, id]
     );
 
     // 检查是否已有员工记录
@@ -1543,8 +1672,8 @@ fastify.post('/api/users/:id/reject', async (request, reply) => {
 
   try {
     await pool.query(
-      'UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?',
-      ['inactive', id]
+      'UPDATE users SET status = ?, approval_note = ?, updated_at = NOW() WHERE id = ?',
+      ['rejected', note || null, id]
     );
 
     // 记录审批日志

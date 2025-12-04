@@ -178,53 +178,190 @@ module.exports = async function (fastify, opts) {
     const { employee_id, start_date, end_date, page = 1, limit = 20 } = request.query
 
     try {
-      const offset = (page - 1) * limit
-      let query = 'SELECT * FROM attendance_records WHERE employee_id = ?'
-      const params = [employee_id]
+      // 1. 获取考勤记录
+      let attendanceQuery = `
+        SELECT
+          id, user_id, employee_id,
+          DATE_FORMAT(record_date, '%Y-%m-%d') as record_date,
+          clock_in_time, clock_out_time,
+          work_hours, status, remark,
+          clock_in_location, clock_out_location
+        FROM attendance_records
+        WHERE employee_id = ?
+      `
+      const attendanceParams = [employee_id]
 
       if (start_date) {
-        query += ' AND record_date >= ?'
-        params.push(start_date)
+        attendanceQuery += ' AND record_date >= ?'
+        attendanceParams.push(start_date)
       }
 
       if (end_date) {
-        query += ' AND record_date <= ?'
-        params.push(end_date)
+        attendanceQuery += ' AND record_date <= ?'
+        attendanceParams.push(end_date)
       }
 
-      query += ' ORDER BY record_date DESC LIMIT ? OFFSET ?'
-      params.push(parseInt(limit), offset)
+      attendanceQuery += ' ORDER BY record_date DESC'
+      const [attendanceRecords] = await pool.query(attendanceQuery, attendanceParams)
 
-      const [records] = await pool.query(query, params)
-
-      // 获取总数
-      let countQuery = 'SELECT COUNT(*) as total FROM attendance_records WHERE employee_id = ?'
-      const countParams = [employee_id]
+      // 2. 获取请假记录
+      let leaveQuery = `
+        SELECT
+          id, employee_id, user_id,
+          DATE_FORMAT(start_date, '%Y-%m-%d') as start_date,
+          DATE_FORMAT(end_date, '%Y-%m-%d') as end_date,
+          days, leave_type, reason, status, created_at
+        FROM leave_records
+        WHERE employee_id = ? AND status = 'approved'
+      `
+      const leaveParams = [employee_id]
 
       if (start_date) {
-        countQuery += ' AND record_date >= ?'
-        countParams.push(start_date)
+        leaveQuery += ' AND end_date >= ?'
+        leaveParams.push(start_date)
       }
 
       if (end_date) {
-        countQuery += ' AND record_date <= ?'
-        countParams.push(end_date)
+        leaveQuery += ' AND start_date <= ?'
+        leaveParams.push(end_date)
       }
 
-      const [countResult] = await pool.query(countQuery, countParams)
+      const [leaveRecords] = await pool.query(leaveQuery, leaveParams)
+
+      // 3. 获取加班记录
+      let overtimeQuery = `
+        SELECT
+          id, employee_id, user_id,
+          DATE_FORMAT(overtime_date, '%Y-%m-%d') as overtime_date,
+          start_time, end_time, hours, reason, status, created_at
+        FROM overtime_records
+        WHERE employee_id = ? AND status = 'approved'
+      `
+      const overtimeParams = [employee_id]
+
+      if (start_date) {
+        overtimeQuery += ' AND overtime_date >= ?'
+        overtimeParams.push(start_date)
+      }
+
+      if (end_date) {
+        overtimeQuery += ' AND overtime_date <= ?'
+        overtimeParams.push(end_date)
+      }
+
+      const [overtimeRecords] = await pool.query(overtimeQuery, overtimeParams)
+
+      // 4. 格式化并合并数据
+      const formattedAttendance = attendanceRecords.map(r => ({
+        ...r,
+        type: 'attendance',
+        // 修复状态枚举: 数据库中可能是 'early_leave'，前端之前用的是 'early'
+        status: r.status === 'early_leave' ? 'early' : r.status
+      }))
+
+      const leaveTypeMap = {
+        sick: '病假',
+        annual: '年假',
+        personal: '事假',
+        maternity: '产假',
+        other: '其他'
+      }
+
+      const formattedLeaves = leaveRecords.map(r => ({
+        id: `leave_${r.id}`,
+        original_id: r.id,
+        employee_id: r.employee_id,
+        user_id: r.user_id,
+        record_date: r.start_date, // 使用开始日期作为记录日期
+        start_date: r.start_date,
+        end_date: r.end_date,
+        days: r.days, // 添加天数
+        type: 'leave',
+        status: 'leave',
+        leave_type: leaveTypeMap[r.leave_type] || r.leave_type, // 映射为中文
+        remark: `请假: ${leaveTypeMap[r.leave_type] || r.leave_type} (${r.days}天) - ${r.reason}`,
+        work_hours: 0
+      }))
+
+      const formattedOvertime = overtimeRecords.map(r => ({
+        id: `overtime_${r.id}`,
+        original_id: r.id,
+        employee_id: r.employee_id,
+        user_id: r.user_id,
+        record_date: r.overtime_date, // 使用加班日期
+        clock_in_time: r.start_time,
+        clock_out_time: r.end_time,
+        type: 'overtime',
+        status: 'overtime',
+        remark: `加班: ${r.hours}小时 - ${r.reason}`,
+        work_hours: parseFloat(r.hours)
+      }))
+
+      // 合并所有记录
+      let allRecords = [...formattedAttendance, ...formattedLeaves, ...formattedOvertime]
+
+      // 按日期降序排序
+      allRecords.sort((a, b) => new Date(b.record_date) - new Date(a.record_date))
+
+      // 5. 过滤状态 (如果在前端过滤也可以，但在后端过滤更高效且支持分页)
+      const { status } = request.query
+      let filteredRecords = allRecords
+
+      if (status && status !== 'all') {
+        filteredRecords = allRecords.filter(r => {
+          if (status === 'normal') return r.status === 'normal'
+          if (status === 'late') return r.status === 'late'
+          if (status === 'early') return r.status === 'early' || r.status === 'early_leave'
+          if (status === 'absent') return r.status === 'absent'
+          if (status === 'leave') return r.type === 'leave' // 请假记录都算作 leave 状态
+          if (status === 'overtime') return r.type === 'overtime' // 加班记录都算作 overtime 状态
+          return r.status === status
+        })
+      }
+
+      // 6. 计算统计数据 (基于所有符合条件的记录)
+      const stats = {
+        total_days: allRecords.length,
+        late_count: formattedAttendance.filter(r => r.status === 'late').length,
+        early_count: formattedAttendance.filter(r => r.status === 'early' || r.status === 'early_leave').length,
+        normal_count: formattedAttendance.filter(r => r.status === 'normal').length,
+        absent_count: formattedAttendance.filter(r => r.status === 'absent').length,
+        leave_count: formattedLeaves.length,
+        overtime_count: formattedOvertime.length,
+        total_work_hours: formattedAttendance.reduce((sum, r) => sum + (parseFloat(r.work_hours) || 0), 0) +
+                          formattedOvertime.reduce((sum, r) => sum + (parseFloat(r.work_hours) || 0), 0)
+      }
+
+      stats.avg_work_hours = stats.total_days > 0
+        ? (stats.total_work_hours / stats.total_days).toFixed(1)
+        : '0.0'
+
+      // 出勤率计算：正常出勤天数 / 总记录天数 (排除加班记录，因为加班通常在工作日或周末额外发生)
+      // 或者更简单的：正常打卡次数 / (正常+迟到+早退+缺勤)
+      const attendanceBase = stats.normal_count + stats.late_count + stats.early_count + stats.absent_count
+      stats.attendance_rate = attendanceBase > 0
+        ? ((stats.normal_count / attendanceBase) * 100).toFixed(1)
+        : '0.0'
+
+      // 7. 内存分页 (基于过滤后的记录)
+      const total = filteredRecords.length
+      const startIndex = (page - 1) * limit
+      const endIndex = startIndex + parseInt(limit)
+      const paginatedRecords = filteredRecords.slice(startIndex, endIndex)
 
       return {
         success: true,
-        data: records,
+        data: paginatedRecords,
+        stats: stats,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
+          total: total
         }
       }
     } catch (error) {
       console.error('获取打卡记录失败:', error)
-      return reply.code(500).send({ success: false, message: '获取失败' })
+      return reply.code(500).send({ success: false, message: '获取失败: ' + error.message })
     }
   })
 

@@ -1,10 +1,13 @@
 export const formatDate = (dateInput, includeTime = false) => {
   if (!dateInput) return '-'
 
-  // 如果是字符串且不包含时间部分，且不需要时间，直接返回日期部分
-  if (typeof dateInput === 'string' && !dateInput.includes('T') && !includeTime) {
+  // 如果是字符串，尝试直接提取日期部分（避免时区问题）
+  if (typeof dateInput === 'string') {
+    // 匹配 YYYY-MM-DD 格式（可能后面跟着时间）
     const m = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/)
-    if (m) return `${m[1]}-${m[2]}-${m[3]}`
+    if (m && !includeTime) {
+      return `${m[1]}-${m[2]}-${m[3]}`
+    }
   }
 
   const date = new Date(dateInput)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Select, Switch, message, Card, Space } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, Switch, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getApiBaseUrl } from '../utils/apiConfig';
 
@@ -25,7 +25,6 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
       });
       const data = await response.json();
       if (data.success) {
-        // 如果没有规则，自动创建默认规�?
         if (data.data.length === 0) {
           await createDefaultRule();
         } else {
@@ -51,16 +50,15 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: 'overtime转overtime_leave',
-          source_type: 'overtime',
-          target_type: 'overtime_leave',
-          ratio: 8,
+          name: '默认转换规则',
+          ratio: 0.125, // 8小时 = 1天
+          description: '8小时加班 = 1天假期',
           enabled: true
         })
       });
       const data = await response.json();
       if (data.success) {
-        message.success('已自动创建默认转换规则：8小时 = 1天加班假');
+        message.success('已自动创建默认转换规则：8小时 = 1天假期');
         loadRules();
       }
     } catch (error) {
@@ -69,19 +67,8 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
   };
 
   const handleSave = async (values) => {
-    // 表单验证
-    if (!values.source_type || !values.target_type) {
-      message.error('请选择来源类型和目标类型');
-      return;
-    }
-
-    if (!values.conversion_rate || values.conversion_rate <= 0) {
-      message.error('转换比例必须大于0');
-      return;
-    }
-
-    if (values.conversion_rate > 24) {
-      message.error('转换比例不能超过24小时');
+    if (!values.hours_per_day || values.hours_per_day <= 0) {
+      message.error('小时数必须大于0');
       return;
     }
 
@@ -93,11 +80,13 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
 
       const method = editingRule ? 'PUT' : 'POST';
 
-      // 转换字段名，不包含name字段
+      // 将小时数转换为比例：ratio = 1 / hours_per_day
+      const ratio = 1 / values.hours_per_day;
+
       const ruleData = {
-        source_type: values.source_type,
-        target_type: values.target_type,
-        ratio: values.conversion_rate,
+        name: values.name || '转换规则',
+        ratio: ratio,
+        description: values.description,
         enabled: values.enabled
       };
 
@@ -150,29 +139,23 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
 
   const columns = [
     {
-      title: '来源类型',
-      dataIndex: 'source_type',
-      key: 'source_type',
-      render: (text) => text === 'overtime' ? '加班时长' : text
-    },
-    {
-      title: '目标类型',
-      dataIndex: 'target_type',
-      key: 'target_type',
-      render: (text) => {
-        const typeMap = {
-          annual_leave: '年假',
-          overtime_leave: '加班假',
-          compensatory: '调休假'
-        };
-        return typeMap[text] || text;
-      }
+      title: '规则名称',
+      dataIndex: 'name',
+      key: 'name',
     },
     {
       title: '转换比例',
-      dataIndex: 'conversion_rate',
-      key: 'conversion_rate',
-      render: (rate) => `${rate} 小时 = 1 天`
+      dataIndex: 'ratio',
+      key: 'ratio',
+      render: (ratio) => {
+        const hoursPerDay = Math.round(1 / ratio);
+        return `1 天 = ${hoursPerDay} 小时`;
+      }
+    },
+    {
+      title: '说明',
+      dataIndex: 'description',
+      key: 'description',
     },
     {
       title: '状态',
@@ -180,7 +163,7 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
       key: 'enabled',
       render: (enabled) => (
         <span className={enabled ? 'text-green-600' : 'text-gray-400'}>
-          {enabled ? '启用' : '禁用'}
+          {enabled ? '✓ 启用' : '✗ 禁用'}
         </span>
       )
     },
@@ -194,10 +177,10 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
             icon={<EditOutlined />}
             onClick={() => {
               setEditingRule(record);
-              // Map server field 'conversion_rate' to form field 'conversion_rate'
+              // 将ratio转换为hours_per_day显示
               const formValues = {
                 ...record,
-                conversion_rate: record.conversion_rate
+                hours_per_day: Math.round(1 / record.ratio)
               };
               form.setFieldsValue(formValues);
               setModalVisible(true);
@@ -219,7 +202,7 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
       <div className="mb-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold text-gray-800">加班转换规则配置</h2>
-          <p className="text-gray-600 text-sm mt-1">配置加班时长转换为假期的规则</p>
+          <p className="text-gray-600 text-sm mt-1">配置加班时长转换为假期的规则（只能有一个规则启用）</p>
         </div>
         <Button
           type="primary"
@@ -227,11 +210,11 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
           onClick={() => {
             setEditingRule(null);
             form.resetFields();
-            form.setFieldsValue({ 
-              enabled: true, 
-              source_type: 'overtime', 
-              target_type: 'overtime_leave',
-              conversion_rate: 8
+            form.setFieldsValue({
+              name: '转换规则',
+              hours_per_day: 8,
+              description: '8小时加班 = 1天假期',
+              enabled: true
             });
             setModalVisible(true);
           }}
@@ -260,36 +243,38 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
           onFinish={handleSave}
         >
           <Form.Item
-            name="source_type"
-            label="来源类型"
-            rules={[{ required: true }]}
+            name="name"
+            label="规则名称"
+            rules={[{ required: true, message: '请输入规则名称' }]}
           >
-            <Select>
-              <Select.Option value="overtime">加班时长</Select.Option>
-            </Select>
+            <Input placeholder="例如：默认转换规则" />
           </Form.Item>
 
           <Form.Item
-            name="target_type"
-            label="目标类型"
-            rules={[{ required: true }]}
+            name="hours_per_day"
+            label="转换比例"
+            rules={[{ required: true, message: '请输入小时数' }]}
+            extra="输入多少小时等于1天假期"
           >
-            <Select>
-              <Select.Option value="annual_leave">年假</Select.Option>
-              <Select.Option value="overtime_leave">加班假</Select.Option>
-              <Select.Option value="compensatory">调休假</Select.Option>
-            </Select>
+            <InputNumber
+              min={1}
+              max={24}
+              step={0.5}
+              precision={1}
+              style={{ width: '100%' }}
+              placeholder="8"
+              addonAfter="小时 = 1天"
+            />
           </Form.Item>
 
           <Form.Item
-            name="conversion_rate"
-            label="转换比例 (多少小时 = 1天)"
-            rules={[{ required: true }]}
+            name="description"
+            label="规则说明"
           >
-            <Space.Compact style={{ width: '100%' }}>
-              <InputNumber min={1} max={24} precision={1} className="w-full" defaultValue={8} />
-              <Input defaultValue="小时" readOnly={true} disabled={true} />
-            </Space.Compact>
+            <Input.TextArea
+              rows={3}
+              placeholder="例如：8小时加班 = 1天假期"
+            />
           </Form.Item>
 
           <Form.Item
@@ -299,6 +284,15 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
           >
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
           </Form.Item>
+
+          <div className="text-sm text-gray-500 mt-2">
+            <p>💡 提示：</p>
+            <ul className="list-disc list-inside">
+              <li>启用新规则时，其他规则会自动禁用</li>
+              <li>输入小时数，系统自动计算转换比例</li>
+              <li>例如：输入 8，表示 8小时加班 = 1天假期</li>
+            </ul>
+          </div>
         </Form>
       </Modal>
     </>
@@ -313,7 +307,7 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
       title="转换规则设置"
       open={visible}
       onCancel={onClose}
-      width={800}
+      width={900}
       footer={null}
     >
       {content}

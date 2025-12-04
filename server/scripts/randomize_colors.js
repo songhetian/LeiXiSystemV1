@@ -5,7 +5,7 @@ const dbConfig = {
   host: 'localhost',
   user: 'tian',
   password: 'root',
-  database: 'leixin_customer_service',
+  database: 'leixin_customer_service_v1',
   port: 3306
 };
 

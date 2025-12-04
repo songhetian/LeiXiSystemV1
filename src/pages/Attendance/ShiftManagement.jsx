@@ -30,6 +30,7 @@ export default function ShiftManagement() {
     name: '',
     start_time: '',
     end_time: '',
+    rest_duration: 60,
     work_hours: 8,
     late_threshold: 30,
     early_threshold: 30,
@@ -113,11 +114,11 @@ export default function ShiftManagement() {
       name: '',
       start_time: '',
       end_time: '',
+      rest_duration: 60,
       work_hours: 8,
       late_threshold: 30,
       early_threshold: 30,
       is_active: true,
-
       department_id: '',
       description: '',
       color: '#3B82F6'
@@ -131,6 +132,7 @@ export default function ShiftManagement() {
       name: shift.name,
       start_time: shift.start_time,
       end_time: shift.end_time,
+      rest_duration: shift.rest_duration || 60,
       work_hours: shift.work_hours,
       late_threshold: shift.late_threshold,
       early_threshold: shift.early_threshold,
@@ -322,6 +324,12 @@ export default function ShiftManagement() {
                       <span>📊</span>
                       <span>工作时长：{shift.work_hours} 小时</span>
                     </div>
+                    {shift.rest_duration && (
+                      <div className="flex items-center gap-2">
+                        <span>☕</span>
+                        <span>休息时长：{shift.rest_duration} 分钟</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <span>⚠️</span>
                       <span>
@@ -412,8 +420,14 @@ export default function ShiftManagement() {
 
       {/* 编辑模态框 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-xl font-bold mb-4">
               {editingShift ? '编辑班次' : '新建班次'}
             </h2>
@@ -480,18 +494,40 @@ export default function ShiftManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    工作时长（小时） <span className="text-red-500">*</span>
+                    休息时长（分钟）
                   </label>
                   <input
                     type="number"
-                    required
-                    step="0.5"
                     min="0"
-                    max="24"
-                    value={formData.work_hours}
-             onChange={(e) => setFormData({ ...formData, work_hours: parseFloat(e.target.value) })}
+                    max="480"
+                    value={formData.rest_duration}
+                    onChange={(e) => {
+                      const restDuration = parseInt(e.target.value) || 0
+                      setFormData({ ...formData, rest_duration: restDuration })
+                    }}
                     className="w-full border rounded px-3 py-2"
+                    placeholder="例如：60"
                   />
+                  <p className="text-xs text-gray-500 mt-1">中午休息或其他休息时间，默认60分钟</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    工作时长（小时）
+                  </label>
+                  <div className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-700 font-semibold">
+                    {(() => {
+                      if (!formData.start_time || !formData.end_time) return '0.0'
+                      const [startHour, startMinute] = formData.start_time.split(':').map(Number)
+                      const [endHour, endMinute] = formData.end_time.split(':').map(Number)
+                      let totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute)
+                      if (totalMinutes < 0) totalMinutes += 24 * 60
+                      const restMinutes = formData.rest_duration || 0
+                      const workHours = Math.max(0, (totalMinutes - restMinutes) / 60)
+                      return workHours.toFixed(1)
+                    })()}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">自动计算：下班时间 - 上班时间 - 休息时长</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -535,9 +571,11 @@ export default function ShiftManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     班次颜色
                   </label>
+
+                  {/* 当前颜色和随机按钮 */}
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
@@ -545,9 +583,51 @@ export default function ShiftManagement() {
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                       className="h-10 w-20 p-1 rounded border cursor-pointer"
                     />
-                    <span className="text-sm text-gray-500">
-                      选择在排班表中显示的颜色
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // 鲜艳的随机颜色
+                        const vibrantColors = [
+                          '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+                          '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
+                          '#E74C3C', '#3498DB', '#9B59B6', '#1ABC9C', '#F39C12',
+                          '#E67E22', '#16A085', '#27AE60', '#2980B9', '#8E44AD',
+                          '#FF85A2', '#FFB6C1', '#87CEEB', '#98FB98', '#DDA0DD',
+                          '#F0E68C', '#B0E0E6', '#FFDAB9', '#E0BBE4', '#FFDFD3',
+                          '#FFD700', '#FF1493'
+                        ]
+                        const randomColor = vibrantColors[Math.floor(Math.random() * vibrantColors.length)]
+                        setFormData({ ...formData, color: randomColor })
+                      }}
+                      className="px-4 py-2 border-2 border-gray-300 hover:border-blue-400 rounded-lg shadow-sm hover:shadow-md transition-all text-white font-medium"
+                      style={{ backgroundColor: formData.color }}
+                    >
+                      随机
+                    </button>
+                  </div>
+
+                  {/* 鲜艳色系推荐 */}
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-600 mb-2">鲜艳色系推荐：</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(16, 1fr)', gap: '0.5rem' }}>
+                      {[
+                        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+                        '#F8B739', '#52B788', '#E74C3C', '#3498DB', '#9B59B6', '#1ABC9C', '#F39C12', '#E67E22',
+                        '#16A085', '#27AE60', '#2980B9', '#8E44AD', '#FF85A2', '#FFB6C1', '#87CEEB', '#98FB98',
+                        '#DDA0DD', '#F0E68C', '#B0E0E6', '#FFDAB9', '#E0BBE4', '#FFDFD3', '#FFD700', '#FF1493'
+                      ].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, color })}
+                          className={`h-8 w-8 rounded border-2 transition-all hover:scale-110 ${
+                            formData.color === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
 

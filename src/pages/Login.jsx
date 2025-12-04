@@ -3,6 +3,7 @@ import { toast } from 'react-toastify'
 import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 import { tokenManager } from '../utils/apiClient'
+import { pinyin } from 'pinyin-pro'
 
 const Login = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true)
@@ -11,13 +12,20 @@ const Login = ({ onLoginSuccess }) => {
     password: '',
     real_name: '',
     email: '',
-    phone: ''
+    phone: '',
+    department_id: ''
   })
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [sessionInfo, setSessionInfo] = useState(null)
   const [rememberPassword, setRememberPassword] = useState(false)
+  const [usernameSuggestions, setUsernameSuggestions] = useState([])
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false)
+  const [usernameAvailable, setUsernameAvailable] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [departments, setDepartments] = useState([])
 
   // 组件加载时，从localStorage读取记住的密码
   useEffect(() => {
@@ -40,6 +48,103 @@ const Login = ({ onLoginSuccess }) => {
       }
     }
   }, [])
+
+  // 获取部门列表
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.get(getApiUrl('/api/departments?forManagement=true'))
+        setDepartments(response.data || [])
+      } catch (error) {
+        console.error('获取部门列表失败:', error)
+      }
+    }
+    fetchDepartments()
+  }, [])
+
+  // 自动生成用户名（拼音）
+  useEffect(() => {
+    if (!isLogin && formData.real_name && formData.real_name.trim()) {
+      const pinyinUsername = pinyin(formData.real_name, { toneType: 'none', type: 'array' }).join('').toLowerCase()
+      setFormData(prev => ({ ...prev, username: pinyinUsername }))
+      // 自动检查用户名
+      checkUsername(pinyinUsername, formData.real_name)
+    }
+  }, [formData.real_name, isLogin])
+
+  // 检查用户名是否可用
+  const checkUsername = async (username, realName) => {
+    if (!username || username.trim().length === 0) {
+      setUsernameAvailable(null)
+      setUsernameSuggestions([])
+      return
+    }
+
+    setIsCheckingUsername(true)
+    try {
+      const response = await axios.post(getApiUrl('/api/auth/check-username'), {
+        username: username.trim(),
+        realName: realName || formData.real_name
+      })
+
+      if (response.data.available) {
+        setUsernameAvailable(true)
+        setUsernameSuggestions([])
+      } else {
+        setUsernameAvailable(false)
+        setUsernameSuggestions(response.data.suggestions || [])
+      }
+    } catch (error) {
+      console.error('检查用户名失败:', error)
+      setUsernameAvailable(null)
+      setUsernameSuggestions([])
+    } finally {
+      setIsCheckingUsername(false)
+    }
+  }
+
+  // 验证表单
+  const validateForm = () => {
+    const errors = {}
+
+    if (!isLogin) {
+      // 注册验证
+      if (!formData.real_name || formData.real_name.trim().length === 0) {
+        errors.real_name = '请输入真实姓名'
+      }
+      if (!formData.username || formData.username.trim().length === 0) {
+        errors.username = '请输入用户名'
+      } else if (usernameAvailable === false) {
+        errors.username = '用户名已存在，请选择建议或修改'
+      }
+      if (!formData.password || formData.password.length < 6) {
+        errors.password = '密码长度至少6位'
+      }
+      if (!formData.department_id) {
+        errors.department_id = '请选择部门'
+      }
+    } else {
+      // 登录验证
+      if (!formData.username) {
+        errors.username = '请输入用户名'
+      }
+      if (!formData.password) {
+        errors.password = '请输入密码'
+      }
+    }
+
+    setFieldErrors(errors)
+
+    // 如果有错误，显示第一个错误的toast
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0]
+      toast.error(firstError)
+      return false
+    }
+
+    return true
+  }
+
 
   // 执行登录
   const performLogin = async (forceLogin = false) => {
@@ -85,6 +190,12 @@ const Login = ({ onLoginSuccess }) => {
     setLoading(true)
     setErrorMessage('') // 清除之前的错误
 
+    // 表单验证
+    if (!validateForm()) {
+      setLoading(false)
+      return
+    }
+
     try {
       if (isLogin) {
         // 先检查是否有活跃会话
@@ -107,9 +218,9 @@ const Login = ({ onLoginSuccess }) => {
         const response = await axios.post(getApiUrl('/api/auth/register'), formData)
 
         if (response.data.success) {
-          toast.success('注册成功！请登录')
-          setIsLogin(true)
-          setFormData({ username: '', password: '', real_name: '', email: '', phone: '' })
+          setShowSuccessModal(true)
+          setFormData({ username: '', password: '', real_name: '', email: '', phone: '', department_id: '' })
+          setFieldErrors({})
         }
       }
     } catch (error) {
@@ -201,7 +312,13 @@ const Login = ({ onLoginSuccess }) => {
             登录
           </button>
           <button
-            onClick={() => setIsLogin(false)}
+            onClick={() => {
+              setIsLogin(false)
+              setFormData({ username: '', password: '', real_name: '', email: '', phone: '' })
+              setFieldErrors({})
+              setUsernameAvailable(null)
+              setUsernameSuggestions([])
+            }}
             className={`flex-1 py-2 rounded-lg transition-all ${
               !isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
             }`}
@@ -239,52 +356,106 @@ const Login = ({ onLoginSuccess }) => {
               <input
                 type="text"
                 value={formData.real_name}
-                onChange={(e) => setFormData({...formData, real_name: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onChange={(e) => {
+                  setFormData({...formData, real_name: e.target.value})
+                  setFieldErrors({...fieldErrors, real_name: ''})
+                }}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  fieldErrors.real_name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="请输入真实姓名"
-                required={!isLogin}
               />
+              {fieldErrors.real_name && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.real_name}</p>
+              )}
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="请输入用户名"
-              required
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => {
+                  setFormData({...formData, username: e.target.value})
+                  setFieldErrors({...fieldErrors, username: ''})
+                  if (!isLogin) {
+                    checkUsername(e.target.value, formData.real_name)
+                  }
+                }}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  fieldErrors.username ? 'border-red-500' :
+                  !isLogin && usernameAvailable === false ? 'border-red-500' :
+                  !isLogin && usernameAvailable === true ? 'border-green-500' :
+                  'border-gray-300'
+                }`}
+                placeholder="请输入用户名"
+              />
+              {!isLogin && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  {isCheckingUsername && (
+                    <div className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                  )}
+                  {!isCheckingUsername && usernameAvailable === true && (
+                    <span className="text-green-500 text-xl">✓</span>
+                  )}
+                  {!isCheckingUsername && usernameAvailable === false && (
+                    <span className="text-red-500 text-xl">✗</span>
+                  )}
+                </div>
+              )}
+            </div>
+            {fieldErrors.username && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
+            )}
+            {/* 用户名建议 */}
+            {!isLogin && usernameSuggestions.length > 0 && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 mb-2">该用户名已被使用，以下是建议：</p>
+                <div className="flex flex-wrap gap-2">
+                  {usernameSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setFormData({...formData, username: suggestion})
+                        checkUsername(suggestion, formData.real_name)
+                      }}
+                      className="px-3 py-1 bg-white border border-yellow-300 rounded-md text-sm text-gray-700 hover:bg-yellow-100 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
+
           {!isLogin && (
-            <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="请输入邮箱"
-                  required={!isLogin}
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">部门</label>
+                <select
+                  value={formData.department_id}
+                  onChange={(e) => {
+                    setFormData({...formData, department_id: e.target.value})
+                    setFieldErrors({...fieldErrors, department_id: ''})
+                  }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                    fieldErrors.department_id ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">请选择部门</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+                {fieldErrors.department_id && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.department_id}</p>
+                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">手机号</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="请输入手机号"
-                  required={!isLogin}
-                />
-              </div>
-            </>
           )}
 
           <div>
@@ -292,11 +463,18 @@ const Login = ({ onLoginSuccess }) => {
             <input
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              onChange={(e) => {
+                setFormData({...formData, password: e.target.value})
+                setFieldErrors({...fieldErrors, password: ''})
+              }}
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                fieldErrors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="请输入密码"
-              required
             />
+            {fieldErrors.password && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+            )}
           </div>
 
           {/* 记住密码选项 */}
@@ -411,6 +589,51 @@ const Login = ({ onLoginSuccess }) => {
                 className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '登录中...' : '确认登录'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 注册成功模态框 */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
+            <div className="text-center">
+              {/* 成功图标 */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+
+              {/* 标题 */}
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">注册成功！</h3>
+
+              {/* 说明文字 */}
+              <div className="mb-6 space-y-2">
+                <p className="text-gray-600">您的账号已成功提交注册申请</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <span className="font-semibold">📋 下一步：</span>
+                  </p>
+                  <ul className="text-sm text-blue-700 space-y-1 ml-4">
+                    <li>• 您的账号正在等待管理员审核</li>
+                    <li>• 审核通过后，您将可以登录系统</li>
+                    <li>• 请耐心等待，通常会在1个工作日内完成审核</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* 按钮 */}
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false)
+                  setIsLogin(true)
+                }}
+                className="w-full py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg"
+              >
+                好的，我知道了
               </button>
             </div>
           </div>

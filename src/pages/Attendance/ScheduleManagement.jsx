@@ -608,17 +608,15 @@ export default function ScheduleManagement() {
                         key={day}
                         onClick={() => handleCellClick(employee, day)}
                         className={`px-1.5 py-2 text-center border-r cursor-pointer transition-all ${
-                          schedule?.is_rest_day
-                            ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            : schedule
+                          schedule
                             ? 'hover:opacity-80 font-medium'
                             : 'hover:bg-blue-50'
                         }`}
-                        style={schedule && !schedule.is_rest_day ? shiftStyle : {}}
+                        style={schedule && schedule.color ? getShiftStyle(schedule.color) : {}}
                       >
-                        {schedule?.is_rest_day ? '休' : schedule?.shift_name || '-'}
+                        {schedule?.shift_name || '-'}
                         {/* 如果是休息日且有请假记录，显示红点 */}
-                        {schedule?.is_rest_day && (
+                        {(schedule?.is_rest_day == 1 || schedule?.is_rest_day === true) && (
                           <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                         )}
                       </td>
@@ -667,6 +665,9 @@ export default function ScheduleManagement() {
                   })}
                   className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
+                  {/* 休息选项 */}
+                  <option value="">休息（不排班）</option>
+
                   {/* 全公司通用班次 */}
                   {shifts.filter(s => !s.department_id).length > 0 && (
                     <optgroup label="━━ 全公司通用班次 ━━">
@@ -678,16 +679,34 @@ export default function ScheduleManagement() {
                     </optgroup>
                   )}
 
-                  {/* 部门专属班次 */}
-                  {shifts.filter(s => s.department_id).length > 0 && (
-                    <optgroup label="━━ 部门专属班次 ━━">
-                      {shifts.filter(s => s.department_id).map((shift) => (
-                        <option key={shift.id} value={shift.id}>
-                          {shift.name} ({shift.start_time} - {shift.end_time})
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
+                  {/* 部门专属班次 - 按部门分组 */}
+                  {(() => {
+                    const deptShifts = shifts.filter(s => s.department_id)
+                    if (deptShifts.length === 0) return null
+
+                    // 按部门分组
+                    const deptGroups = {}
+                    deptShifts.forEach(shift => {
+                      const deptKey = shift.department_name || `部门${shift.department_id}`
+                      if (!deptGroups[deptKey]) {
+                        deptGroups[deptKey] = []
+                      }
+                      deptGroups[deptKey].push(shift)
+                    })
+
+                    // 为每个部门创建一个 optgroup
+                    return Object.keys(deptGroups).map(deptName => (
+                      <optgroup key={deptName} label={`━━ ${deptName} ━━`}>
+                        {deptGroups[deptName].map(shift => (
+                          <option key={shift.id} value={shift.id}>
+                            {shift.name}
+                            {shift.department_name && !shift.name.includes(shift.department_name) ? ` (${shift.department_name})` : ''}
+                            {' '}({shift.start_time} - {shift.end_time})
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))
+                  })()}
                 </select>
               </div>
             </div>
@@ -761,6 +780,9 @@ export default function ScheduleManagement() {
                     onChange={(e) => setBatchData({ ...batchData, shift_id: e.target.value })}
                     className="w-full border rounded px-3 py-2"
                   >
+                    {/* 休息选项 */}
+                    <option value="">休息（不排班）</option>
+
                     {/* 全公司通用班次 */}
                     {shifts.filter(s => !s.department_id).length > 0 && (
                       <optgroup label="━━ 全公司通用班次 ━━">
@@ -777,7 +799,9 @@ export default function ScheduleManagement() {
                       <optgroup label="━━ 部门专属班次 ━━">
                         {shifts.filter(s => s.department_id).map((shift) => (
                           <option key={shift.id} value={shift.id}>
-                            {shift.name} ({shift.start_time} - {shift.end_time})
+                            {shift.name}
+                            {shift.department_name && !shift.name.includes(shift.department_name) ? ` (${shift.department_name})` : ''}
+                            {' '}({shift.start_time} - {shift.end_time})
                           </option>
                         ))}
                       </optgroup>

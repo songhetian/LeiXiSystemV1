@@ -67,11 +67,11 @@ module.exports = async function (fastify, opts) {
 
       // 获取总数
       const countQuery = query.replace(
-        'SELECT lr.*, u.username as employee_name, a.username as approver_name',
-        'SELECT COUNT(*) as total'
+        /SELECT[\s\S]*?FROM/i,
+        'SELECT COUNT(*) as total FROM'
       )
       const [countResult] = await pool.query(countQuery, params)
-      const total = countResult[0].total
+      const total = countResult[0]?.total || 0
 
       // 分页查询
       query += ' ORDER BY lr.created_at DESC LIMIT ? OFFSET ?'
@@ -274,6 +274,80 @@ module.exports = async function (fastify, opts) {
         WHERE id = ?`,
         [status, approver_id, approval_note || null, id]
       )
+
+      // 如果审批通过，自动更新排班为休息
+      if (approved) {
+        console.log('🔄 开始自动更新排班...')
+        try {
+          // 获取请假记录详情
+          const [leaveRecords] = await pool.query(
+            'SELECT employee_id, start_date, end_date FROM leave_records WHERE id = ?',
+            [id]
+          )
+          console.log('📋 请假记录:', leaveRecords)
+
+          if (leaveRecords.length > 0) {
+            const leave = leaveRecords[0]
+            console.log(`👤 员工ID: ${leave.employee_id}, 开始日期: ${leave.start_date}, 结束日期: ${leave.end_date}`)
+
+            // 查找"休息"班次（通过名称模糊匹配）
+            const [restShifts] = await pool.query(
+              "SELECT id, name FROM work_shifts WHERE name LIKE '%休%' AND is_active = 1 LIMIT 1"
+            )
+            console.log('🛏️ 休息班次查询结果:', restShifts)
+
+            if (restShifts.length > 0) {
+              const restShiftId = restShifts[0].id
+              console.log(`✅ 找到休息班次 ID: ${restShiftId}, 名称: ${restShifts[0].name}`)
+
+              // 计算日期范围
+              const startDate = new Date(leave.start_date)
+              const endDate = new Date(leave.end_date)
+              console.log(`📅 日期范围: ${startDate.toISOString()} 到 ${endDate.toISOString()}`)
+
+              let updateCount = 0
+              let createCount = 0
+
+              // 循环更新每一天的排班
+              for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0]
+                console.log(`  处理日期: ${dateStr}`)
+
+                // 检查是否已有排班记录
+                const [existing] = await pool.query(
+                  'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
+                  [leave.employee_id, dateStr]
+                )
+
+                if (existing.length > 0) {
+                  // 更新现有排班
+                  await pool.query(
+                    'UPDATE shift_schedules SET shift_id = ?, is_rest_day = 1 WHERE id = ?',
+                    [restShiftId, existing[0].id]
+                  )
+                  updateCount++
+                  console.log(`    ✏️ 更新排班记录 ID: ${existing[0].id}`)
+                } else {
+                  // 创建新排班记录
+                  await pool.query(
+                    'INSERT INTO shift_schedules (employee_id, shift_id, schedule_date, is_rest_day) VALUES (?, ?, ?, 1)',
+                    [leave.employee_id, restShiftId, dateStr]
+                  )
+                  createCount++
+                  console.log(`    ➕ 创建新排班记录`)
+                }
+              }
+
+              console.log(`✅ 已自动更新员工 ${leave.employee_id} 的排班为休息 (更新: ${updateCount}, 创建: ${createCount})`)
+            } else {
+              console.warn('⚠️ 未找到"休息"班次（is_rest_day=1），无法自动更新排班')
+            }
+          }
+        } catch (scheduleError) {
+          console.error('❌ 自动更新排班失败:', scheduleError)
+          // 不影响审批结果，只记录错误
+        }
+      }
 
       return {
         success: true,

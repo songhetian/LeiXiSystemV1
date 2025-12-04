@@ -146,7 +146,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
           setSearchQuery={setSearchQuery}
           clearSearch={clearSearch}
         />
-        <UserInfo user={user} onNavigate={setActiveTab} />
+
         <MainMenu
           menuItems={filteredMenuItems}
           activeTab={activeTab}
@@ -446,6 +446,8 @@ const allMenuItems = [
     icon: <UserOutlined />,
     children: [
       { id: 'personal-info', label: '个人信息', icon: <IdcardOutlined /> },
+      { id: 'personal-schedule', label: '我的排班', icon: <CalendarOutlined /> },
+      { id: 'personal-notifications', label: '我的通知', icon: <BellOutlined /> },
       { id: 'my-exam-results', label: '我的考试结果', icon: <FileTextOutlined /> },
     ],
   },

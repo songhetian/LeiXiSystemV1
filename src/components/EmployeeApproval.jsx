@@ -21,6 +21,8 @@ function EmployeeApproval() {
   })
 
   // 分页
+  const [statusFilter, setStatusFilter] = useState('pending')
+  const [totalUsers, setTotalUsers] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
@@ -31,18 +33,43 @@ function EmployeeApproval() {
   }, [])
 
   useEffect(() => {
+    fetchPendingUsers()
+  }, [currentPage, pageSize, statusFilter])
+
+  // 本地过滤仅用于关键词和日期，部门和状态由后端处理
+  useEffect(() => {
     filterUsers()
-  }, [searchFilters, pendingUsers, pageSize])
+  }, [searchFilters, pendingUsers])
 
   const fetchPendingUsers = async () => {
     try {
       setLoading(true)
-      const response = await fetch(getApiUrl('/api/users-pending'))
+      const token = localStorage.getItem('token')
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        limit: pageSize,
+        status: statusFilter
+      })
+
+      const response = await fetch(getApiUrl(`/api/users-pending?${queryParams}`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await response.json()
-      setPendingUsers(data)
-      setFilteredUsers(data)
+
+      if (data.data) {
+        setPendingUsers(data.data)
+        setFilteredUsers(data.data)
+        setTotalUsers(data.total)
+        setTotalPages(data.totalPages)
+      } else {
+        // 兼容旧格式（如果后端未更新）
+        setPendingUsers(Array.isArray(data) ? data : [])
+        setFilteredUsers(Array.isArray(data) ? data : [])
+      }
     } catch (error) {
-      toast.error('获取待审核用户失败')
+      toast.error('获取用户列表失败')
     } finally {
       setLoading(false)
     }
@@ -103,15 +130,10 @@ function EmployeeApproval() {
     setCurrentPage(1)
   }
 
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    return filteredUsers.slice(startIndex, endIndex)
-  }
 
   const handleViewDetail = (user) => {
     setSelectedUser(user)
-    setApprovalNote('')
+    setApprovalNote(user.approval_note || '')
     setIsDetailModalOpen(true)
   }
 
@@ -184,15 +206,50 @@ function EmployeeApproval() {
     <div className="p-8">
       <div className="bg-white rounded-xl shadow-md p-6">
         {/* 头部 */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">员工审核</h2>
-            <p className="text-gray-500 text-sm mt-1">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">员工审核</h1>
+
+        {/* 状态切换 Tabs */}
+        <div className="flex space-x-2">
+          <button
+            onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'pending'
+                ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            待审核
+          </button>
+          <button
+            onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'active'
+                ? 'bg-green-100 text-green-800 border-2 border-green-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            已通过
+          </button>
+          <button
+            onClick={() => { setStatusFilter('rejected'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'rejected'
+                ? 'bg-red-100 text-red-800 border-2 border-red-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            已拒绝
+          </button>
+        </div>
+      </div>
+
+      {/* 筛选区域 */}
+      {statusFilter === 'pending' && (
+        <p className="text-gray-500 text-sm mt-1">
               共 {filteredUsers.length} 个待审核用户
             </p>
-          </div>
-        </div>
-
+        )}
         {/* 搜索筛选区域 */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <input
@@ -258,8 +315,8 @@ function EmployeeApproval() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {getCurrentPageData().length > 0 ? (
-                getCurrentPageData().map((user, index) => (
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user, index) => (
                   <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
                     <td className="px-6 py-4 text-center">
                       <div>
@@ -282,9 +339,13 @@ function EmployeeApproval() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleViewDetail(user)}
-                        className="px-4 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
+                        className={`px-4 py-1.5 rounded-lg transition-colors text-sm text-white ${
+                          statusFilter === 'pending' ? 'bg-primary-500 hover:bg-primary-600' :
+                          statusFilter === 'active' ? 'bg-green-500 hover:bg-green-600' :
+                          'bg-red-500 hover:bg-red-600'
+                        }`}
                       >
-                        审核
+                        {statusFilter === 'pending' ? '审核' : '查看'}
                       </button>
                     </td>
                   </tr>
@@ -292,7 +353,8 @@ function EmployeeApproval() {
               ) : (
                 <tr>
                   <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                    暂无待审核用户
+                    {statusFilter === 'pending' ? '暂无待审核用户' :
+                     statusFilter === 'active' ? '暂无已通过用户' : '暂无已拒绝用户'}
                   </td>
                 </tr>
               )}
@@ -376,7 +438,7 @@ function EmployeeApproval() {
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        title="审核用户"
+        title={statusFilter === 'rejected' ? '拒绝详情' : statusFilter === 'active' ? '通过详情' : '审核用户'}
       >
         {selectedUser && (
           <div className="space-y-4">
@@ -411,38 +473,58 @@ function EmployeeApproval() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                审核备注
-              </label>
-              <textarea
-                value={approvalNote}
-                onChange={(e) => setApprovalNote(e.target.value)}
-                rows="3"
-                placeholder="请填写审核意见（拒绝时必填）"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
+            {/* 显示拒绝原因（仅在已拒绝状态下） */}
+            {statusFilter === 'rejected' && selectedUser.approval_note && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  拒绝原因
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                  {selectedUser.approval_note}
+                </div>
+              </div>
+            )}
+
+            {/* 显示审批备注输入框（仅在待审核状态下） */}
+            {statusFilter === 'pending' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  审核备注
+                </label>
+                <textarea
+                  value={approvalNote}
+                  onChange={(e) => setApprovalNote(e.target.value)}
+                  rows="3"
+                  placeholder="请填写审核意见（拒绝时必填）"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setIsDetailModalOpen(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                取消
+                {statusFilter === 'active' || statusFilter === 'rejected' ? '关闭' : '取消'}
               </button>
-              <button
-                onClick={handleReject}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
-                拒绝
-              </button>
-              <button
-                onClick={handleApprove}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-              >
-                通过
-              </button>
+
+              {statusFilter === 'pending' && (
+                <>
+                  <button
+                    onClick={handleReject}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                  >
+                    拒绝
+                  </button>
+                  <button
+                    onClick={handleApprove}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  >
+                    通过
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

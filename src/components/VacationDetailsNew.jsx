@@ -13,6 +13,7 @@ const VacationDetailsNew = () => {
   const [vacationBalances, setVacationBalances] = useState([])
   const [vacationTypes, setVacationTypes] = useState([])
   const [leaveRecords, setLeaveRecords] = useState([])
+  const [conversionBalance, setConversionBalance] = useState(null)
   const [overtimeStats, setOvertimeStats] = useState(null)
   const [employee, setEmployee] = useState(null)
   const [conversionModalVisible, setConversionModalVisible] = useState(false)
@@ -166,10 +167,22 @@ const VacationDetailsNew = () => {
       const overtimeData = await overtimeResponse.json()
       if (overtimeData.success) {
         setOvertimeStats(overtimeData.data)
-        // 更新总假期天数，加上加班转换的天数
-        if (overtimeData.data && overtimeData.data.converted_days) {
-          setTotalVacationDays(prev => prev + parseFloat(overtimeData.data.converted_days || 0))
+      }
+
+      // 获取转换假期余额
+      const conversionResponse = await fetch(
+        `${API_BASE_URL}/vacation/conversion-balance/${empData.data.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }
+      )
+      const conversionData = await conversionResponse.json()
+      if (conversionData.success) {
+        setConversionBalance(conversionData.data)
+        // 更新总假期天数，加上转换假期
+        setTotalVacationDays(prev => prev + parseFloat(conversionData.data.remaining_days || 0))
       }
 
     } catch (error) {
@@ -285,13 +298,30 @@ const VacationDetailsNew = () => {
       </div>
 
       {/* 总假期天数统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title={viewMode === 'month' ? `${selectedYear}年${selectedMonth}月假期余额` : "总假期余额"}
-          value={(viewMode === 'month' ? monthlyVacationDays : totalVacationDays).toFixed(1)}
-          subtitle={viewMode === 'month' ? `${selectedYear}年${selectedMonth}月可用假期` : "所有假期类型余额总和"}
+          value={
+            viewMode === 'month'
+              ? monthlyVacationDays.toFixed(1)
+              : (() => {
+                  const converted = Number(conversionBalance?.remaining_days ?? 0);
+                  const total = totalVacationDays;
+                  const base = Math.max(0, total - converted);
+                  return `${base.toFixed(1)} + ${converted.toFixed(1)}`;
+                })()
+          }
+          subtitle={viewMode === 'month' ? `${selectedYear}年${selectedMonth}月可用假期` : "基础假期 + 转换假期"}
           icon={Award}
           color="text-blue-600"
+        />
+
+        <StatCard
+          title="转换假期余额"
+          value={Number(conversionBalance?.remaining_days ?? 0).toFixed(1)}
+          subtitle={`已转换 ${Number(conversionBalance?.total_converted_days ?? 0).toFixed(1)} 天`}
+          icon={Award}
+          color="text-purple-600"
         />
 
         <StatCard
@@ -309,7 +339,7 @@ const VacationDetailsNew = () => {
             </div>
           }
           icon={Clock}
-          color="text-purple-600"
+          color="text-orange-600"
         />
 
         <StatCard
@@ -347,7 +377,12 @@ const VacationDetailsNew = () => {
                       {type.name} - {record.days} 天
                     </div>
                     <div className="text-sm text-gray-600">
-                      {record.start_date} 至 {record.end_date}
+                      {formatDate(record.start_date)} 至 {formatDate(record.end_date)}
+                      {record.used_conversion_days > 0 && (
+                        <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          含转换假期 {record.used_conversion_days} 天
+                        </span>
+                      )}
                     </div>
                     {record.reason && (
                       <div className="text-sm text-gray-500 mt-1">理由: {record.reason}</div>
@@ -410,14 +445,15 @@ const VacationDetailsNew = () => {
       </div>
 
       {/* 加班转换模态框 */}
-      {employee && (
+      {employee && conversionModalVisible && (
         <OvertimeConversionModal
           visible={conversionModalVisible}
           onClose={() => setConversionModalVisible(false)}
           onSuccess={loadData}
           employeeId={employee.id}
-          overtimeHours={overtimeStats?.remaining_hours}
-          defaultLeaveType={getDefaultOvertimeLeaveType()} // 默认选中加班假类型
+          overtimeHours={Number(overtimeStats?.remaining_hours || 0)}
+          defaultLeaveType={getDefaultOvertimeLeaveType()}
+          conversionRules={conversionRules}
         />
       )}
     </div>

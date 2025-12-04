@@ -356,7 +356,7 @@ const VacationDetails = () => {
                     - {record.days} 天
                   </div>
                   <div className="text-sm text-gray-600">
-                    {record.start_date} 至 {record.end_date}
+                    {formatDate(record.start_date)} 至 {formatDate(record.end_date)}
                   </div>
                   {record.reason && (
                     <div className="text-sm text-gray-500 mt-1">理由: {record.reason}</div>
