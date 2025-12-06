@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client'
+import { getApiUrl } from '../utils/apiConfig'
 
 /**
  * WebSocket管理器
@@ -30,11 +31,9 @@ class WebSocketManager {
 
     this.isConnecting = true
 
-    // 获取API地址
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://localhost:3001'
-      : `http://${window.location.hostname}:3001`
-
+    // 获取API地址 - 使用动态获取的方式而不是硬编码
+    const API_BASE_URL = getApiUrl('').replace('/api', '')
+    
     console.log(`🔌 [WebSocket] 正在连接到 ${API_BASE_URL}...`)
 
     this.socket = io(API_BASE_URL, {

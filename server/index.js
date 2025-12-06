@@ -23,9 +23,9 @@ fastify.register(require('./routes/quality-inspection-import-new'))
 
 // 注册 CORS
 fastify.register(cors, {
-  origin: '*',
+  origin: ['http://localhost:5173', 'http://192.168.2.31:5173', 'http://192.168.2.3:5173'],
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true
 })
 
@@ -411,16 +411,21 @@ fastify.post('/api/auth/register', async (request, reply) => {
 
 // 检查用户是否已有活跃会话
 fastify.post('/api/auth/check-session', async (request, reply) => {
+  console.log('收到 /api/auth/check-session 请求:', request.body);
   const { username } = request.body
 
   try {
+    console.log('查询用户会话信息:', username);
     // 查询用户的session_token
     const [users] = await pool.query(
       'SELECT id, session_token, session_created_at FROM users WHERE username = ?',
       [username]
     )
+    
+    console.log('查询结果:', users);
 
     if (users.length === 0) {
+      console.log('用户不存在');
       return { hasActiveSession: false }
     }
 
@@ -428,11 +433,13 @@ fastify.post('/api/auth/check-session', async (request, reply) => {
 
     // 如果有session_token，说明有活跃会话
     if (user.session_token) {
+      console.log('用户有session_token，验证有效性');
       // 验证token是否还有效
       try {
         jwt.verify(user.session_token, JWT_SECRET)
 
         // Token有效，返回会话信息
+        console.log('Token有效');
         return {
           hasActiveSession: true,
           sessionCreatedAt: user.session_created_at,
@@ -440,10 +447,12 @@ fastify.post('/api/auth/check-session', async (request, reply) => {
         }
       } catch (error) {
         // Token已过期，视为无活跃会话
+        console.log('Token已过期');
         return { hasActiveSession: false }
       }
     }
 
+    console.log('用户没有活跃会话');
     return { hasActiveSession: false }
   } catch (error) {
     console.error('检查会话失败:', error)

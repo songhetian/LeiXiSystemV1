@@ -12,9 +12,13 @@ INSERT INTO `memos` (`user_id`, `title`, `content`, `type`, `priority`, `target_
 (1, '技术部周会通知', '## 周会安排\n\n**时间**：本周五下午2点\n**地点**：会议室A\n**议题**：\n1. 项目进度汇报\n2. 技术难点讨论', 'department', 'high', 1, '2024-12-06 08:00:00'),
 (1, '代码规范更新', '请大家注意新的代码规范已发布，详见文档中心', 'department', 'normal', 1, '2024-12-05 16:00:00');
 
+-- 获取刚插入的部门备忘录ID
+SET @memo_id_1 = (SELECT id FROM memos WHERE title = '技术部周会通知' LIMIT 1);
+SET @memo_id_2 = (SELECT id FROM memos WHERE title = '代码规范更新' LIMIT 1);
+
 -- 3. 部门备忘录接收记录
 INSERT INTO `memo_recipients` (`memo_id`, `user_id`, `is_read`, `read_at`) VALUES
-(4, 2, 1, '2024-12-06 09:00:00'),
-(4, 3, 0, NULL),
-(5, 2, 1, '2024-12-05 17:00:00'),
-(5, 3, 0, NULL);
+(@memo_id_1, 2, 1, '2024-12-06 09:00:00'),
+(@memo_id_1, 3, 0, NULL),
+(@memo_id_2, 2, 1, '2024-12-05 17:00:00'),
+(@memo_id_2, 3, 0, NULL);

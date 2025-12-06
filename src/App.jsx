@@ -135,8 +135,11 @@ function App() {
   // 连接WebSocket
   const connectWebSocket = () => {
     console.log('🔌 正在连接WebSocket...')
-    wsManager.connect()
-
+    // 使用setTimeout确保WebSocket连接不会阻塞主流程
+    setTimeout(() => {
+      wsManager.connect()
+    }, 0)
+    
     // 初始化声音管理器（需要用户交互后才能初始化AudioContext）
     soundManager.init()
 
@@ -283,12 +286,12 @@ function App() {
   const handleLoginSuccess = (userData) => {
     setIsLoggedIn(true)
     setUser(userData)
-    // 登录成功后连接WebSocket
-    setTimeout(() => {
+    // 登录成功后连接WebSocket，但不阻塞主流程
+    Promise.resolve().then(() => {
       connectWebSocket()
       checkUnreadMemos()
       checkUnreadNotifications()
-    }, 500)
+    })
   }
 
   const handleLogout = React.useCallback(async () => {
@@ -449,47 +452,45 @@ function App() {
       case 'my-exams':
         return <MyExams onNavigate={handleSetActiveTab} />
       case 'my-exam-results':
-        return <MyExamResults onNavigate={handleSetActiveTab} />
+        return <MyExamResults onNavigate={handleSetActiveTab} />;
       case 'exam-results':
-        return <ExamResultsManagement onNavigate={handleSetActiveTab} />
+        return <ExamResultsManagement onNavigate={handleSetActiveTab} />;
       // 已移除拖拽组卷功能，创建试卷在试卷管理中进行
       case 'exam-taking':
         return <ExamTaking
           resultId={activeTab.params.resultId}
           sourceType={activeTab.params.sourceType}
           onExamEnd={(resultId) => handleSetActiveTab('exam-result', { resultId })}
-        />
+        />;
       case 'exam-result':
         return <ExamResult
           resultId={activeTab.params.resultId}
           sourceType={activeTab.params.sourceType}
           onBackToMyExams={() => handleSetActiveTab('my-exams')}
-        />
+        />;
       case 'assessment-management':
-        return <AssessmentManagement />
+        return <AssessmentManagement />;
 
       // 消息通知
       case 'notification-center':
-        return <NotificationCenter />
+        return <NotificationCenter />;
       case 'notification-sender':
-        return <NotificationSender />
+        return <NotificationSender />;
       case 'notification-settings': // New case for NotificationSettings
-        return <NotificationSettings />
+        return <NotificationSettings />;
 
       // 个人中心
       case 'personal-info':
-        return <PersonalInfo />
+        return <PersonalInfo />;
       case 'my-schedule':
-        return <MySchedule />
+        return <MySchedule />;
       case 'my-notifications':
-        return <MyNotifications unreadCount={unreadCount} setUnreadCount={setUnreadCount} />
+        return <MyNotifications unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       case 'my-memos':
-        return <MyMemos />
+        return <MyMemos />;
       case 'employee-memos':
-        return <EmployeeMemos />
-      case 'my-exam-results':
-        return <MyExamResults />
-
+        return <EmployeeMemos />;
+      
       // 系统管理
       case 'broadcast-management':
         return <BroadcastManagement />

@@ -52,7 +52,7 @@ export const getApiBaseUrl = () => {
   }
 
   // 3. 默认兜底
-  return 'http://192.168.110.83:3001/api';
+  return 'http://192.168.2.31:3001/api';
 }
 
 /**

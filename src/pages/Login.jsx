@@ -148,12 +148,17 @@ const Login = ({ onLoginSuccess }) => {
 
   // 执行登录
   const performLogin = async (forceLogin = false) => {
+    console.log('执行登录，forceLogin:', forceLogin);
     try {
       const response = await axios.post(getApiUrl('/api/auth/login'), {
         username: formData.username,
         password: formData.password,
         forceLogin
+      }, {
+        timeout: 10000 // 10秒超时
       })
+      
+      console.log('登录API响应:', response.data);
 
       if (response.data.success) {
         tokenManager.setToken(response.data.token, response.data.expiresIn || 3600)
@@ -181,53 +186,84 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess(response.data.user)
       }
     } catch (error) {
+      console.error('登录API错误:', error);
       throw error
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('.handleSubmit开始执行');
     setLoading(true)
     setErrorMessage('') // 清除之前的错误
-
+    
     // 表单验证
     if (!validateForm()) {
+      console.log('表单验证失败');
       setLoading(false)
       return
     }
+    
+    console.log('开始登录流程，用户名:', formData.username);
 
     try {
       if (isLogin) {
+        console.log('检查活跃会话');
         // 先检查是否有活跃会话
+        console.log('发送检查会话请求到:', getApiUrl('/api/auth/check-session'));
         const checkResponse = await axios.post(getApiUrl('/api/auth/check-session'), {
           username: formData.username
+        }, {
+          timeout: 10000 // 10秒超时
         })
+        
+        console.log('检查会话响应:', checkResponse.data);
 
         if (checkResponse.data.hasActiveSession) {
           // 有活跃会话，显示确认对话框
+          console.log('检测到活跃会话，显示确认对话框');
           setSessionInfo(checkResponse.data)
           setShowConfirmModal(true)
           setLoading(false)
           return
         }
 
+        console.log('没有活跃会话，直接登录');
         // 没有活跃会话，直接登录
         await performLogin(false)
+        // 确保在任何情况下都关闭loading状态
+        if (loading) {
+          setLoading(false)
+        }
       } else {
+        console.log('注册流程');
         // 注册
-        const response = await axios.post(getApiUrl('/api/auth/register'), formData)
+        const response = await axios.post(getApiUrl('/api/auth/register'), formData, {
+          timeout: 10000 // 10秒超时
+        })
+        
+        console.log('注册响应:', response.data);
 
         if (response.data.success) {
           setShowSuccessModal(true)
           setFormData({ username: '', password: '', real_name: '', email: '', phone: '', department_id: '' })
           setFieldErrors({})
         }
+        // 确保在任何情况下都关闭loading状态
+        if (loading) {
+          setLoading(false)
+        }
       }
     } catch (error) {
       console.error('登录/注册错误:', error)
-
-      // 详细的错误提示
-      if (error.response) {
+      // 添加更详细的错误信息
+      if (error.code === 'ECONNABORTED') {
+        console.error('请求超时');
+        toast.error('请求超时，请检查网络连接');
+      } else if (error.message === 'Network Error') {
+        console.error('网络错误');
+        toast.error('网络错误，请检查服务器是否运行');
+      } else if (error.response) {
         const status = error.response.status
         const message = error.response.data?.message
 
@@ -563,6 +599,10 @@ const Login = ({ onLoginSuccess }) => {
                   setLoading(true)
                   try {
                     await performLogin(true)
+                    // 确保在任何情况下都关闭loading状态
+                    if (loading) {
+                      setLoading(false)
+                    }
                   } catch (error) {
                     console.error('强制登录失败:', error)
                     setShowConfirmModal(false)

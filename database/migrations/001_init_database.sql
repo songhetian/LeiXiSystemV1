@@ -2390,10 +2390,18 @@ INSERT INTO `positions` (`name`, `department_id`, `description`, `requirements`,
 -- ==========================================
 
 -- Migration 002: 添加软删除字段到案例表
-ALTER TABLE quality_cases ADD COLUMN IF NOT EXISTS deleted_at DATETIME DEFAULT NULL COMMENT '删除时间（软删除）';
+-- 检查字段是否存在，避免重复添加
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'quality_cases' 
+                      AND COLUMN_NAME = 'deleted_at');
+SET @sql := IF(@column_exists = 0, "ALTER TABLE quality_cases ADD COLUMN deleted_at DATETIME DEFAULT NULL COMMENT '删除时间（软删除）'", 'SELECT ''Column already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 添加索引以提高查询性能
-CREATE INDEX IF NOT EXISTS idx_deleted_at ON quality_cases(deleted_at);
+CREATE INDEX idx_deleted_at ON quality_cases(deleted_at);
 
 -- Migration 002: 创建案例分类表
 CREATE TABLE IF NOT EXISTS case_categories (
@@ -2421,7 +2429,15 @@ ON DUPLICATE KEY UPDATE description = VALUES(description), sort_order = VALUES(s
 
 -- Migration 003: 添加审批备注字段到用户表
 -- 用于存储员工审核的拒绝原因
-ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_note TEXT NULL COMMENT '审批备注（拒绝原因）';
+-- 检查字段是否存在，避免重复添加
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'users' 
+                      AND COLUMN_NAME = 'approval_note');
+SET @sql := IF(@column_exists = 0, "ALTER TABLE users ADD COLUMN approval_note TEXT NULL COMMENT '审批备注（拒绝原因）'", 'SELECT ''Column already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 
 -- 输出确认信息
@@ -2462,27 +2478,69 @@ CREATE TABLE `conversion_usage_records` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='假期转换使用记录表';
 
 -- 为请假记录增加转换假期使用字段
-ALTER TABLE leave_records ADD COLUMN IF NOT EXISTS used_conversion_days DECIMAL(10,2) DEFAULT 0 COMMENT '使用的转换假期天数';
+-- 检查字段是否存在，避免重复添加
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'leave_records' 
+                      AND COLUMN_NAME = 'used_conversion_days');
+SET @sql := IF(@column_exists = 0, "ALTER TABLE leave_records ADD COLUMN used_conversion_days DECIMAL(10,2) DEFAULT 0 COMMENT '使用的转换假期天数'", 'SELECT ''Column already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 插入默认转换规则
-INSERT INTO conversion_rules (name, source_type, ratio, conversion_rate, enabled, description) VALUES
-('默认加班转换规则', 'overtime', 0.125, 0.125, 1, '8小时加班 = 1天假期')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+-- 先移除转换规则表中不必要的字段
+-- 检查字段是否存在再删除
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'conversion_rules' 
+                      AND COLUMN_NAME = 'source_type');
+SET @sql := IF(@column_exists > 0, 'ALTER TABLE conversion_rules DROP COLUMN source_type', 'SELECT ''Column does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'conversion_rules' 
+                      AND COLUMN_NAME = 'target_type');
+SET @sql := IF(@column_exists > 0, 'ALTER TABLE conversion_rules DROP COLUMN target_type', 'SELECT ''Column does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 为转换规则表增加缺失字段
-ALTER TABLE conversion_rules ADD COLUMN IF NOT EXISTS name VARCHAR(100) DEFAULT '转换规则' COMMENT '规则名称' AFTER id;
-ALTER TABLE conversion_rules ADD COLUMN IF NOT EXISTS description TEXT NULL COMMENT '规则描述';
-ALTER TABLE conversion_rules ADD COLUMN IF NOT EXISTS ratio DECIMAL(10,4) DEFAULT 0.125 COMMENT '转换比例' AFTER target_type;
+-- 检查字段是否存在，避免重复添加
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'conversion_rules' 
+                      AND COLUMN_NAME = 'name');
+SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN name VARCHAR(100) DEFAULT '转换规则' COMMENT '规则名称' AFTER id", 'SELECT ''Column already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 插入默认转换规则
-INSERT INTO conversion_rules (name, source_type, target_type, ratio, conversion_rate, enabled, description)
-VALUES ('默认加班转换规则', 'overtime', NULL, 0.125, 0.125, 1, '8小时加班 = 1天假期')
-ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description);
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'conversion_rules' 
+                      AND COLUMN_NAME = 'description');
+SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN description TEXT NULL COMMENT '规则描述'", 'SELECT ''Column already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 移除转换规则表中不必要的字段
-ALTER TABLE conversion_rules DROP COLUMN IF EXISTS source_type;
-ALTER TABLE conversion_rules DROP COLUMN IF EXISTS target_type;
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                      WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'conversion_rules' 
+                      AND COLUMN_NAME = 'ratio');
+SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN ratio DECIMAL(10,4) DEFAULT 0.125 COMMENT '转换比例'", 'SELECT ''Column already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
+-- 插入默认转换规则（在添加字段之后）
+INSERT INTO conversion_rules (name, ratio, conversion_rate, enabled, description) VALUES
+('默认加班转换规则', 0.125, 0.125, 1, '8小时加班 = 1天假期')
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description);
 
 -- ========================================
 -- 备忘录系统表结构
