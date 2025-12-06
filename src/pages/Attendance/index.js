@@ -11,7 +11,6 @@ export { default as DepartmentStats } from './DepartmentStats'
 
 export { default as ShiftManagement } from './ShiftManagement'
 export { default as ScheduleManagement } from './ScheduleManagement'
-export { default as Notifications } from './Notifications'
 export { default as SmartSchedule } from './SmartSchedule'
 export { default as ApprovalManagement } from './ApprovalManagement'
 export { default as AttendanceSettings } from './AttendanceSettings'

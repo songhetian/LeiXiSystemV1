@@ -3155,6 +3155,7 @@ fastify.register(require('./routes/vacation-settings'))
 fastify.register(require('./routes/holidays'))
 fastify.register(require('./routes/conversion-rules'))
 fastify.register(require('./routes/vacation-balance'))
+fastify.register(require('./routes/vacation-conversion'))
 fastify.register(require('./routes/compensatory-leave'))
 fastify.register(require('./routes/vacation-type-balances'))
 fastify.register(require('./routes/vacation-types'))
@@ -3170,28 +3171,47 @@ fastify.register(require('./routes/case-categories'))
 fastify.register(require('./routes/quality-cases'))
 fastify.register(require('./routes/quality-case-interactions'))
 
+// ==================== 通知管理路由 ====================
+fastify.register(require('./routes/notifications'))
+
+// ==================== 备忘录管理路由 ====================
+fastify.register(require('./routes/memos'))
+
+// ==================== 系统广播路由 ====================
+fastify.register(require('./routes/broadcasts'))
+
+const http = require('http')
+const { setupWebSocket } = require('./websocket')
+// 创建HTTP服务器
+const server = http.createServer(fastify.server)
+// 设置WebSocket
+const io = setupWebSocket(server)
+// 将io实例挂载到fastify，供其他路由使用
+fastify.decorate('io', io)
 const start = async () => {
   try {
     await initDatabase();
-    // 尝试多种绑定方式确保网络访问
-    await fastify.listen({ port: 3001, host: '0.0.0.0' });
-    console.log(`🚀 服务器启动成功！`);
-    console.log(`   本地访问: http://localhost:3001`);
-    if (dbConfigJson.upload && dbConfigJson.upload.publicUrl) {
-      console.log(`   公共访问: ${dbConfigJson.upload.publicUrl}`);
-    }
-    console.log(`   网络访问: http://[您的IP地址]:3001`);
+
+    // 先准备fastify（但不启动）
+    await fastify.ready()
+
+    // 使用HTTP服务器启动（包含WebSocket）
+    server.listen(3001, '0.0.0.0', (err) => {
+      if (err) {
+        console.error('❌ 服务器启动失败:', err);
+        process.exit(1);
+      }
+      console.log(`🚀 服务器启动成功！`);
+      console.log(`   本地访问: http://localhost:3001`);
+      if (dbConfigJson.upload && dbConfigJson.upload.publicUrl) {
+        console.log(`   公共访问: ${dbConfigJson.upload.publicUrl}`);
+      }
+      console.log(`   网络访问: http://[您的IP地址]:3001`);
+      console.log(`🔌 WebSocket服务已启动`);
+    });
   } catch (err) {
-    console.error('❌ 服务器启动失败:', err);
-    // 如果0.0.0.0失败，尝试绑定到所有接口
-    try {
-      await fastify.listen(3001);
-      console.log('🚀 服务器已启动 (备用模式)');
-    } catch (fallbackErr) {
-      fastify.log.error(fallbackErr);
-      process.exit(1);
-    }
+    console.error('❌ 服务器初始化失败:', err);
+    process.exit(1);
   }
 };
-
 start();

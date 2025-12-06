@@ -1,4 +1,5 @@
 // 请假管理 API
+const { toBeijingDate } = require('../utils/time')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
@@ -220,8 +221,16 @@ module.exports = async function (fastify, opts) {
         )
 
         // 如果使用了转换假期，扣减转换假期
+        console.log('=== 转换假期扣减开始 ===');
+        console.log('请假记录ID:', id);
+        console.log('员工ID:', leaveRecord.employee_id);
+        console.log('使用的转换假期天数(原始):', leaveRecord.used_conversion_days);
+        console.log('使用的转换假期天数(类型):', typeof leaveRecord.used_conversion_days);
+
         if (leaveRecord.used_conversion_days && parseFloat(leaveRecord.used_conversion_days) > 0) {
+          console.log('✅ 进入转换假期扣减逻辑');
           let remaining_to_use = parseFloat(leaveRecord.used_conversion_days);
+          console.log('需要扣减的天数:', remaining_to_use);
 
           // 获取所有可用的转换记录（按创建时间排序，先进先出）
           const [conversions] = await connection.query(
@@ -233,35 +242,65 @@ module.exports = async function (fastify, opts) {
             [leaveRecord.employee_id]
           );
 
+          console.log('查询到的可用转换记录数量:', conversions.length);
+          console.log('转换记录详情:', JSON.stringify(conversions, null, 2));
+
+          if (conversions.length === 0) {
+            console.error('❌ 错误：没有找到可用的转换假期记录！');
+            await connection.rollback();
+            connection.release();
+            return reply.code(400).send({
+              success: false,
+              message: '转换假期余额不足，无法完成审批'
+            });
+          }
+
           // 逐个扣减转换记录
+          let totalDeducted = 0;
           for (const conversion of conversions) {
             if (remaining_to_use <= 0) break;
 
             const available = parseFloat(conversion.remaining_days);
             const to_deduct = Math.min(available, remaining_to_use);
 
+            console.log(`处理转换记录 ID=${conversion.id}:`);
+            console.log(`  - 可用天数: ${available}`);
+            console.log(`  - 本次扣减: ${to_deduct}`);
+
             // 更新转换记录的剩余天数
-            await connection.query(
+            const [updateResult] = await connection.query(
               `UPDATE vacation_conversions
               SET remaining_days = remaining_days - ?
               WHERE id = ?`,
               [to_deduct, conversion.id]
             );
+            console.log(`  - 更新转换记录影响行数: ${updateResult.affectedRows}`);
 
             // 记录使用明细
-            await connection.query(
+            const [insertResult] = await connection.query(
               `INSERT INTO conversion_usage_records
               (conversion_id, leave_record_id, used_days)
               VALUES (?, ?, ?)`,
               [conversion.id, id, to_deduct]
             );
+            console.log(`  - 插入使用记录ID: ${insertResult.insertId}`);
 
             remaining_to_use -= to_deduct;
+            totalDeducted += to_deduct;
           }
 
-          // 如果余额不足，虽然已经扣减了所有可用余额，但可能还需要记录日志或警告
-          // 这里我们假设前端已经验证过余额，或者允许部分扣减（虽然逻辑上应该完全覆盖）
+          console.log('转换假期扣减完成:');
+          console.log('  - 总共扣减天数:', totalDeducted);
+          console.log('  - 剩余未扣减:', remaining_to_use);
+
+          if (remaining_to_use > 0.01) { // 允许小数精度误差
+            console.warn('⚠️ 警告：转换假期余额不足，还有', remaining_to_use, '天未能扣减');
+          }
+        } else {
+          console.log('❌ 未进入转换假期扣减逻辑');
+          console.log('原因: used_conversion_days 为空或为0');
         }
+        console.log('=== 转换假期扣减结束 ===');
 
         // 扣减基础假期余额（使用装饰器函数）
         if (fastify.deductLeaveBalance) {
@@ -316,13 +355,84 @@ module.exports = async function (fastify, opts) {
           }
         }
 
-        // 自动更新排班
-        if (fastify.updateScheduleForLeave) {
-          await fastify.updateScheduleForLeave(leaveRecord);
+        console.log('🔔🔔🔔 DEBUG: 到达通知创建代码块');
+        console.log('🔔🔔🔔 DEBUG: leaveRecord =', JSON.stringify(leaveRecord, null, 2));
+
+        // 发送通知给申请人（在排班更新之前）
+        try {
+          console.log('=== 开始创建请假审批通知 ===')
+          console.log('申请人user_id:', leaveRecord.user_id)
+          console.log('请假记录ID:', id)
+
+          if (!leaveRecord.user_id) {
+            console.error('❌ 错误：user_id 为空，无法创建通知')
+          } else {
+            // 使用统一的时间处理函数格式化日期
+            const startDateStr = toBeijingDate(leaveRecord.start_date);
+            const endDateStr = toBeijingDate(leaveRecord.end_date);
+
+            const [notificationResult] = await connection.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                leaveRecord.user_id,
+                'leave_approval',
+                '请假申请已通过',
+                `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`,
+                id,
+                'leave'
+              ]
+            )
+
+            console.log('✅ 通知创建成功，通知ID:', notificationResult.insertId)
+
+            // 🔔 实时推送通知（WebSocket）
+            if (fastify.io) {
+              const { sendNotificationToUser } = require('../websocket')
+              sendNotificationToUser(fastify.io, leaveRecord.user_id, {
+                id: notificationResult.insertId,
+                type: 'leave_approval',
+                title: '请假申请已通过',
+                content: `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`,
+                related_id: id,
+                related_type: 'leave',
+                created_at: new Date()
+              })
+            }
+          }
+          console.log('=== 请假审批通知创建完成 ===')
+        } catch (notificationError) {
+          console.error('❌ 创建通知失败:', notificationError)
+          console.error('错误详情:', notificationError.message)
+          console.error('错误堆栈:', notificationError.stack)
+          // 不抛出错误，允许审批继续完成
         }
 
+        console.log('🔔🔔🔔 DEBUG: 通知创建代码块执行完毕');
+
+        // 自动更新排班
+        console.log('📍 准备调用排班更新函数...')
+        try {
+          if (fastify.updateScheduleForLeave) {
+            await fastify.updateScheduleForLeave(leaveRecord);
+            console.log('📍 排班更新函数调用完成')
+          } else {
+            console.log('⚠️ 排班更新函数不存在')
+          }
+        } catch (scheduleError) {
+          console.error('❌ 排班更新出错:', scheduleError)
+          console.error('错误详情:', scheduleError.message)
+          // 不抛出错误，继续审批流程
+        }
+
+        console.log('💾 准备提交事务...')
         await connection.commit()
+        console.log('✅ 事务提交成功！')
+
         connection.release()
+        console.log('🔌 数据库连接已释放')
+
+        console.log('✅✅✅ 请假审批流程完成，准备返回结果')
 
         return {
           success: true,
@@ -345,12 +455,62 @@ module.exports = async function (fastify, opts) {
     const { approver_id, approval_note } = request.body
 
     try {
+      // 获取请假记录信息
+      const [leaveRecords] = await pool.query(
+        'SELECT user_id, start_date, end_date FROM leave_records WHERE id = ?',
+        [id]
+      )
+
+      if (leaveRecords.length === 0) {
+        return reply.code(404).send({ success: false, message: '请假记录不存在' })
+      }
+
       await pool.query(
         `UPDATE leave_records
         SET status = 'rejected', approver_id = ?, approved_at = NOW(), approval_note = ?
         WHERE id = ?`,
         [approver_id, approval_note || null, id]
       )
+
+      // 发送通知给申请人
+      try {
+        // 使用统一的时间处理函数格式化日期
+        const startDateStr = toBeijingDate(leaveRecords[0].start_date);
+        const endDateStr = toBeijingDate(leaveRecords[0].end_date);
+        const content = approval_note
+          ? `您的请假申请（${startDateStr} 至 ${endDateStr}）被拒绝：${approval_note}`
+          : `您的请假申请（${startDateStr} 至 ${endDateStr}）未通过审批`;
+
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            leaveRecords[0].user_id,
+            'leave_rejection',
+            '请假申请被拒绝',
+            content,
+            id,
+            'leave'
+          ]
+        )
+        console.log('✅ 拒绝通知创建成功');
+
+        // 🔔 实时推送通知（WebSocket）
+        if (fastify.io) {
+          const { sendNotificationToUser } = require('../websocket')
+          sendNotificationToUser(fastify.io, leaveRecords[0].user_id, {
+            type: 'leave_rejection',
+            title: '请假申请被拒绝',
+            content: content,
+            related_id: id,
+            related_type: 'leave',
+            created_at: new Date()
+          })
+        }
+      } catch (notificationError) {
+        console.error('❌ 创建拒绝通知失败:', notificationError);
+        // 不抛出错误，允许拒绝操作继续完成
+      }
 
       return {
         success: true,

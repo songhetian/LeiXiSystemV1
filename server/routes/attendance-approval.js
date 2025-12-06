@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const { toBeijingDate } = require('../utils/time')
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 module.exports = async function (fastify, opts) {
@@ -275,77 +276,147 @@ module.exports = async function (fastify, opts) {
         [status, approver_id, approval_note || null, id]
       )
 
-      // 如果审批通过，自动更新排班为休息
+      // 如果审批通过，创建通知并自动更新排班
       if (approved) {
-        console.log('🔄 开始自动更新排班...')
+        // 获取请假记录详情（包含user_id）
+        const [leaveRecords] = await pool.query(
+          'SELECT employee_id, user_id, start_date, end_date FROM leave_records WHERE id = ?',
+          [id]
+        )
+
+        if (leaveRecords.length > 0) {
+          const leave = leaveRecords[0]
+
+          // 1. 先创建通知
+          try {
+            console.log('=== 开始创建请假审批通知 ===')
+            console.log('申请人user_id:', leave.user_id)
+            console.log('请假记录ID:', id)
+
+            if (leave.user_id) {
+              const startDateStr = toBeijingDate(leave.start_date)
+              const endDateStr = toBeijingDate(leave.end_date)
+
+              await pool.query(
+                `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [
+                  leave.user_id,
+                  'leave_approval',
+                  '请假申请已通过',
+                  `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`,
+                  id,
+                  'leave'
+                ]
+              )
+              console.log('✅ 通知创建成功')
+            } else {
+              console.warn('⚠️ user_id 为空，跳过通知创建')
+            }
+          } catch (notificationError) {
+            console.error('❌ 创建通知失败:', notificationError)
+            // 不影响审批流程
+          }
+
+          // 2. 再更新排班
+          try {
+            console.log('🔄 开始自动更新排班...')
+            console.log('📋 请假记录:', leaveRecords)
+
+            if (leaveRecords.length > 0) {
+              const leave = leaveRecords[0]
+              console.log(`👤 员工ID: ${leave.employee_id}, 开始日期: ${leave.start_date}, 结束日期: ${leave.end_date}`)
+
+              // 查找"休息"班次（通过名称模糊匹配）
+              const [restShifts] = await pool.query(
+                "SELECT id, name FROM work_shifts WHERE name LIKE '%休%' AND is_active = 1 LIMIT 1"
+              )
+              console.log('🛏️ 休息班次查询结果:', restShifts)
+
+              if (restShifts.length > 0) {
+                const restShiftId = restShifts[0].id
+                console.log(`✅ 找到休息班次 ID: ${restShiftId}, 名称: ${restShifts[0].name}`)
+
+                // 计算日期范围
+                const startDate = new Date(leave.start_date)
+                const endDate = new Date(leave.end_date)
+                console.log(`📅 日期范围: ${startDate.toISOString()} 到 ${endDate.toISOString()}`)
+
+                let updateCount = 0
+                let createCount = 0
+
+                // 循环更新每一天的排班
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                  const dateStr = d.toISOString().split('T')[0]
+                  console.log(`  处理日期: ${dateStr}`)
+
+                  // 检查是否已有排班记录
+                  const [existing] = await pool.query(
+                    'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
+                    [leave.employee_id, dateStr]
+                  )
+
+                  if (existing.length > 0) {
+                    // 更新现有排班
+                    await pool.query(
+                      'UPDATE shift_schedules SET shift_id = ?, is_rest_day = 1 WHERE id = ?',
+                      [restShiftId, existing[0].id]
+                    )
+                    updateCount++
+                    console.log(`    ✏️ 更新排班记录 ID: ${existing[0].id}`)
+                  } else {
+                    // 创建新排班记录
+                    await pool.query(
+                      'INSERT INTO shift_schedules (employee_id, shift_id, schedule_date, is_rest_day) VALUES (?, ?, ?, 1)',
+                      [leave.employee_id, restShiftId, dateStr]
+                    )
+                    createCount++
+                    console.log(`    ➕ 创建新排班记录`)
+                  }
+                }
+
+                console.log(`✅ 已自动更新员工 ${leave.employee_id} 的排班为休息 (更新: ${updateCount}, 创建: ${createCount})`)
+              } else {
+                console.warn('⚠️ 未找到"休息"班次（is_rest_day=1），无法自动更新排班')
+              }
+            }
+          } catch (scheduleError) {
+            console.error('❌ 自动更新排班失败:', scheduleError)
+            // 不影响审批结果，只记录错误
+          }
+        }
+      } else {
+        // 审批拒绝，创建拒绝通知
         try {
-          // 获取请假记录详情
           const [leaveRecords] = await pool.query(
-            'SELECT employee_id, start_date, end_date FROM leave_records WHERE id = ?',
+            'SELECT user_id, start_date, end_date FROM leave_records WHERE id = ?',
             [id]
           )
-          console.log('📋 请假记录:', leaveRecords)
 
-          if (leaveRecords.length > 0) {
+          if (leaveRecords.length > 0 && leaveRecords[0].user_id) {
             const leave = leaveRecords[0]
-            console.log(`👤 员工ID: ${leave.employee_id}, 开始日期: ${leave.start_date}, 结束日期: ${leave.end_date}`)
+            const startDateStr = toBeijingDate(leave.start_date)
+            const endDateStr = toBeijingDate(leave.end_date)
+            const content = approval_note
+              ? `您的请假申请（${startDateStr} 至 ${endDateStr}）被拒绝：${approval_note}`
+              : `您的请假申请（${startDateStr} 至 ${endDateStr}）未通过审批`
 
-            // 查找"休息"班次（通过名称模糊匹配）
-            const [restShifts] = await pool.query(
-              "SELECT id, name FROM work_shifts WHERE name LIKE '%休%' AND is_active = 1 LIMIT 1"
+            await pool.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                leave.user_id,
+                'leave_rejection',
+                '请假申请被拒绝',
+                content,
+                id,
+                'leave'
+              ]
             )
-            console.log('🛏️ 休息班次查询结果:', restShifts)
-
-            if (restShifts.length > 0) {
-              const restShiftId = restShifts[0].id
-              console.log(`✅ 找到休息班次 ID: ${restShiftId}, 名称: ${restShifts[0].name}`)
-
-              // 计算日期范围
-              const startDate = new Date(leave.start_date)
-              const endDate = new Date(leave.end_date)
-              console.log(`📅 日期范围: ${startDate.toISOString()} 到 ${endDate.toISOString()}`)
-
-              let updateCount = 0
-              let createCount = 0
-
-              // 循环更新每一天的排班
-              for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                const dateStr = d.toISOString().split('T')[0]
-                console.log(`  处理日期: ${dateStr}`)
-
-                // 检查是否已有排班记录
-                const [existing] = await pool.query(
-                  'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
-                  [leave.employee_id, dateStr]
-                )
-
-                if (existing.length > 0) {
-                  // 更新现有排班
-                  await pool.query(
-                    'UPDATE shift_schedules SET shift_id = ?, is_rest_day = 1 WHERE id = ?',
-                    [restShiftId, existing[0].id]
-                  )
-                  updateCount++
-                  console.log(`    ✏️ 更新排班记录 ID: ${existing[0].id}`)
-                } else {
-                  // 创建新排班记录
-                  await pool.query(
-                    'INSERT INTO shift_schedules (employee_id, shift_id, schedule_date, is_rest_day) VALUES (?, ?, ?, 1)',
-                    [leave.employee_id, restShiftId, dateStr]
-                  )
-                  createCount++
-                  console.log(`    ➕ 创建新排班记录`)
-                }
-              }
-
-              console.log(`✅ 已自动更新员工 ${leave.employee_id} 的排班为休息 (更新: ${updateCount}, 创建: ${createCount})`)
-            } else {
-              console.warn('⚠️ 未找到"休息"班次（is_rest_day=1），无法自动更新排班')
-            }
+            console.log('✅ 拒绝通知创建成功')
           }
-        } catch (scheduleError) {
-          console.error('❌ 自动更新排班失败:', scheduleError)
-          // 不影响审批结果，只记录错误
+        } catch (notificationError) {
+          console.error('❌ 创建拒绝通知失败:', notificationError)
         }
       }
 
@@ -380,6 +451,81 @@ module.exports = async function (fastify, opts) {
         WHERE id = ?`,
         [status, approver_id, id]
       )
+
+      // 创建通知
+      try {
+        const [overtimeRecords] = await pool.query(
+          'SELECT user_id, overtime_date, start_time, end_time FROM overtime_records WHERE id = ?',
+          [id]
+        )
+
+        if (overtimeRecords.length > 0 && overtimeRecords[0].user_id) {
+          const overtime = overtimeRecords[0]
+          const dateStr = toBeijingDate(overtime.overtime_date)
+
+          if (approved) {
+            await pool.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                overtime.user_id,
+                'overtime_approval',
+                '加班申请已通过',
+                `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）已通过审批`,
+                id,
+                'overtime'
+              ]
+            )
+            console.log('✅ 加班审批通过通知创建成功')
+
+            // 🔔 实时推送通知（WebSocket）
+            if (fastify.io) {
+              const { sendNotificationToUser } = require('../websocket')
+              sendNotificationToUser(fastify.io, overtime.user_id, {
+                type: 'overtime_approval',
+                title: '加班申请已通过',
+                content: `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）已通过审批`,
+                related_id: id,
+                related_type: 'overtime',
+                created_at: new Date()
+              })
+            }
+          } else {
+            const content = approval_note
+              ? `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）被拒绝：${approval_note}`
+              : `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）未通过审批`
+
+            await pool.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                overtime.user_id,
+                'overtime_rejection',
+                '加班申请被拒绝',
+                content,
+                id,
+                'overtime'
+              ]
+            )
+            console.log('✅ 加班审批拒绝通知创建成功')
+
+            // 🔔 实时推送通知（WebSocket）
+            if (fastify.io) {
+              const { sendNotificationToUser } = require('../websocket')
+              sendNotificationToUser(fastify.io, overtime.user_id, {
+                type: 'overtime_rejection',
+                title: '加班申请被拒绝',
+                content: content,
+                related_id: id,
+                related_type: 'overtime',
+                created_at: new Date()
+              })
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.error('❌ 创建加班审批通知失败:', notificationError)
+      }
 
       return {
         success: true,
@@ -553,6 +699,50 @@ module.exports = async function (fastify, opts) {
             )
           }
         }
+      }
+
+      // 创建通知
+      try {
+        if (makeup.user_id) {
+          const dateStr = toBeijingDate(makeup.record_date)
+          const clockTypeText = makeup.clock_type === 'in' ? '上班' : '下班'
+
+          if (approved) {
+            await connection.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                makeup.user_id,
+                'makeup_approval',
+                '补卡申请已通过',
+                `您的补卡申请（${dateStr} ${clockTypeText}打卡）已通过审批`,
+                id,
+                'makeup'
+              ]
+            )
+            console.log('✅ 补卡审批通过通知创建成功')
+          } else {
+            const content = approval_note
+              ? `您的补卡申请（${dateStr} ${clockTypeText}打卡）被拒绝：${approval_note}`
+              : `您的补卡申请（${dateStr} ${clockTypeText}打卡）未通过审批`
+
+            await connection.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                makeup.user_id,
+                'makeup_rejection',
+                '补卡申请被拒绝',
+                content,
+                id,
+                'makeup'
+              ]
+            )
+            console.log('✅ 补卡审批拒绝通知创建成功')
+          }
+        }
+      } catch (notificationError) {
+        console.error('❌ 创建补卡审批通知失败:', notificationError)
       }
 
       await connection.commit()

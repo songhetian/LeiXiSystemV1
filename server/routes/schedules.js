@@ -1,5 +1,6 @@
 // 排班管理 API
 const { extractUserPermissions, applyDepartmentFilter } = require('../middleware/checkPermission')
+const { toBeijingDate } = require('../utils/time')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
@@ -199,15 +200,75 @@ module.exports = async function (fastify, opts) {
     const { shift_id, is_rest_day } = request.body
 
     try {
-      const [existing] = await pool.query('SELECT id FROM shift_schedules WHERE id = ?', [id])
+      // 获取原排班信息
+      const [existing] = await pool.query(
+        `SELECT ss.*, e.user_id, DATE_FORMAT(ss.schedule_date, '%Y-%m-%d') as schedule_date_formatted,
+         s1.name as old_shift_name, s2.name as new_shift_name
+         FROM shift_schedules ss
+         LEFT JOIN employees e ON ss.employee_id = e.id
+         LEFT JOIN work_shifts s1 ON ss.shift_id = s1.id
+         LEFT JOIN work_shifts s2 ON s2.id = ?
+         WHERE ss.id = ?`,
+        [shift_id, id]
+      )
+
       if (existing.length === 0) {
         return reply.code(404).send({ success: false, message: '排班不存在' })
       }
+
+      const oldSchedule = existing[0]
+
+      // 检查是否有实际变更
+      const hasChange = oldSchedule.shift_id !== shift_id ||
+                       (oldSchedule.is_rest_day ? 1 : 0) !== (is_rest_day ? 1 : 0)
 
       await pool.query(
         'UPDATE shift_schedules SET shift_id = ?, is_rest_day = ? WHERE id = ?',
         [shift_id || null, is_rest_day ? 1 : 0, id]
       )
+
+      // 如果有变更且有user_id，创建通知
+      if (hasChange && oldSchedule.user_id) {
+        try {
+          const oldInfo = oldSchedule.is_rest_day
+            ? '休息'
+            : (oldSchedule.old_shift_name || '未排班')
+          const newInfo = is_rest_day
+            ? '休息'
+            : (oldSchedule.new_shift_name || '未排班')
+
+          const dateStr = toBeijingDate(oldSchedule.schedule_date)
+
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              oldSchedule.user_id,
+              'schedule_change',
+              '排班变更通知',
+              `您在 ${dateStr} 的排班已变更：${oldInfo} → ${newInfo}`,
+              id,
+              'schedule'
+            ]
+          )
+          console.log('✅ 排班变更通知创建成功')
+
+          // 🔔 实时推送通知（WebSocket）
+          if (fastify.io) {
+            const { sendNotificationToUser } = require('../websocket')
+            sendNotificationToUser(fastify.io, oldSchedule.user_id, {
+              type: 'schedule_change',
+              title: '排班变更通知',
+              content: `您在 ${dateStr} 的排班已变更：${oldInfo} → ${newInfo}`,
+              related_id: id,
+              related_type: 'schedule',
+              created_at: new Date()
+            })
+          }
+        } catch (notificationError) {
+          console.error('❌ 创建排班变更通知失败:', notificationError)
+        }
+      }
 
       return {
         success: true,
@@ -331,6 +392,9 @@ module.exports = async function (fastify, opts) {
   })
   // 自动更新排班（供请假审批调用）
   fastify.decorate('updateScheduleForLeave', async function(leaveRecord) {
+    console.log('🔄 开始自动更新排班...');
+    console.log('📋 请假记录:', [leaveRecord]);
+
     const { employee_id, start_date, end_date, leave_type } = leaveRecord;
 
     // 计算日期范围内的所有日期
@@ -338,26 +402,40 @@ module.exports = async function (fastify, opts) {
     let currentDate = new Date(start_date);
     const end = new Date(end_date);
 
+    console.log('👤 员工ID:', employee_id, ', 开始日期:', currentDate, ', 结束日期:', end);
+
     while (currentDate <= end) {
       dates.push(new Date(currentDate).toISOString().split('T')[0]);
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    if (dates.length === 0) return;
+    if (dates.length === 0) {
+      console.log('⚠️ 没有需要更新的日期，跳过排班更新');
+      return; // 这里return是安全的，因为没有日期需要处理
+    }
 
     // 获取 "休息" 班次 ID (假设 getRestShift 已注册)
+    console.log('🛏️ 查询休息班次...');
     let restShiftId = null;
     if (fastify.getRestShift) {
        const restShift = await fastify.getRestShift();
+       console.log('🛏️ 休息班次查询结果:', [restShift]);
        restShiftId = restShift.id;
+       console.log('✅ 找到休息班次 ID:', restShiftId, ', 名称:', restShift.name);
     }
 
     // 批量更新排班
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
+    console.log('📅 日期范围:', start_date, '到', end_date);
+
     try {
+      let updatedCount = 0;
+      let createdCount = 0;
+
       for (const date of dates) {
+        console.log('  处理日期:', date);
         // 检查已有排班
         const [existing] = await connection.query(
           'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
@@ -365,28 +443,39 @@ module.exports = async function (fastify, opts) {
         );
 
         if (existing.length > 0) {
+          console.log('    🔄 更新现有排班记录');
           // 更新为休息，并标记为请假
           await connection.query(
              'UPDATE shift_schedules SET shift_id = ?, is_rest_day = 1 WHERE id = ?',
              [restShiftId, existing[0].id]
           );
+          updatedCount++;
         } else {
+          console.log('    ➕ 创建新排班记录');
           // 创建休息排班
           await connection.query(
             'INSERT INTO shift_schedules (employee_id, shift_id, schedule_date, is_rest_day) VALUES (?, ?, ?, 1)',
             [employee_id, restShiftId, date]
           );
+          createdCount++;
         }
       }
 
+      console.log('💾 排班更新：准备提交事务...')
       await connection.commit();
+      console.log('✅ 排班更新：事务提交成功')
+      console.log(`✅ 已自动更新员工 ${employee_id} 的排班为休息 (更新: ${updatedCount}, 创建: ${createdCount})`);
     } catch (error) {
       await connection.rollback();
-      console.error('自动更新排班失败:', error);
+      console.error('❌ 自动更新排班失败:', error);
       // 不抛出错误，以免影响审批流程
     } finally {
       connection.release();
+      console.log('🔌 排班更新：数据库连接已释放');
     }
+
+    console.log('✅ updateScheduleForLeave 函数执行完成，准备返回');
+    return; // 明确返回
   });
 
   // 删除今日排班（测试用）

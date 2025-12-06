@@ -2482,3 +2482,96 @@ ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description);
 -- 移除转换规则表中不必要的字段
 ALTER TABLE conversion_rules DROP COLUMN IF EXISTS source_type;
 ALTER TABLE conversion_rules DROP COLUMN IF EXISTS target_type;
+
+
+-- ========================================
+-- 备忘录系统表结构
+-- 创建时间：2025-12-05
+-- ========================================
+
+-- 1. 备忘录表
+DROP TABLE IF EXISTS `memos`;
+CREATE TABLE `memos` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL COMMENT '创建者用户ID',
+  `title` varchar(200) NOT NULL COMMENT '备忘录标题',
+  `content` text NOT NULL COMMENT '备忘录内容（Markdown格式）',
+  `type` enum('personal', 'department') DEFAULT 'personal' COMMENT '类型：personal=个人备忘录, department=部门备忘录',
+  `priority` enum('low', 'normal', 'high', 'urgent') DEFAULT 'normal' COMMENT '优先级',
+  `is_read` tinyint(1) DEFAULT 0 COMMENT '是否已读（仅个人备忘录使用）',
+  `target_department_id` int DEFAULT NULL COMMENT '目标部门ID（部门备忘录使用）',
+  `target_user_id` int DEFAULT NULL COMMENT '目标用户ID（部门备忘录指定用户时使用）',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL COMMENT '软删除时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_type` (`type`),
+  KEY `idx_is_read` (`is_read`),
+  KEY `idx_target_department` (`target_department_id`),
+  KEY `idx_target_user` (`target_user_id`),
+  KEY `idx_deleted_at` (`deleted_at`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备忘录表';
+
+-- 2. 备忘录接收记录表
+DROP TABLE IF EXISTS `memo_recipients`;
+CREATE TABLE `memo_recipients` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `memo_id` int NOT NULL COMMENT '备忘录ID',
+  `user_id` int NOT NULL COMMENT '接收者用户ID',
+  `is_read` tinyint(1) DEFAULT 0 COMMENT '是否已读',
+  `read_at` datetime DEFAULT NULL COMMENT '阅读时间',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_memo_user` (`memo_id`, `user_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_is_read` (`is_read`),
+  CONSTRAINT `fk_memo_recipients_memo` FOREIGN KEY (`memo_id`) REFERENCES `memos` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备忘录接收记录表';
+
+-- ========================================
+-- 系统广播功能表结构
+-- 创建时间：2025-12-06
+-- ========================================
+
+-- 1. 广播表
+DROP TABLE IF EXISTS `broadcasts`;
+CREATE TABLE `broadcasts` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `title` VARCHAR(200) NOT NULL COMMENT '广播标题',
+  `content` TEXT NOT NULL COMMENT '广播内容',
+  `type` ENUM('info', 'warning', 'success', 'error', 'announcement') DEFAULT 'info' COMMENT '广播类型',
+  `priority` ENUM('low', 'normal', 'high', 'urgent') DEFAULT 'normal' COMMENT '优先级',
+  `target_type` ENUM('all', 'department', 'role', 'individual') NOT NULL COMMENT '目标类型',
+  `target_departments` JSON COMMENT '目标部门ID列表',
+  `target_roles` JSON COMMENT '目标角色列表',
+  `target_users` JSON COMMENT '目标用户ID列表',
+  `creator_id` INT NOT NULL COMMENT '创建者ID',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `expires_at` TIMESTAMP NULL COMMENT '过期时间',
+  INDEX `idx_creator` (`creator_id`),
+  INDEX `idx_created` (`created_at`),
+  FOREIGN KEY (`creator_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统广播表';
+
+-- 2. 广播接收记录表
+DROP TABLE IF EXISTS `broadcast_recipients`;
+CREATE TABLE `broadcast_recipients` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `broadcast_id` INT NOT NULL COMMENT '广播ID',
+  `user_id` INT NOT NULL COMMENT '用户ID',
+  `is_read` BOOLEAN DEFAULT FALSE COMMENT '是否已读',
+  `read_at` TIMESTAMP NULL COMMENT '阅读时间',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  INDEX `idx_broadcast` (`broadcast_id`),
+  INDEX `idx_user` (`user_id`),
+  INDEX `idx_read` (`is_read`),
+  UNIQUE KEY `uk_broadcast_user` (`broadcast_id`, `user_id`),
+  FOREIGN KEY (`broadcast_id`) REFERENCES `broadcasts`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='广播接收记录表';
+
+-- ========================================
+-- 数据库初始化完成 - 包含所有表结构
+-- ========================================

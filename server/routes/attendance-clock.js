@@ -58,6 +58,26 @@ module.exports = async function (fastify, opts) {
         [employee_id, user_id, today, today, clockInTime, clockInTime, status]
       )
 
+      // 如果迟到，创建考勤异常通知
+      if (status === 'late') {
+        const lateMinutes = schedules.length > 0 && schedules[0].start_time
+          ? Math.floor((clockInTime - new Date(`${today} ${schedules[0].start_time}`)) / 60000)
+          : 0
+
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            user_id,
+            'attendance_abnormal',
+            '考勤异常提醒',
+            `您在 ${today} 上班打卡迟到了 ${lateMinutes} 分钟`,
+            result.insertId,
+            'attendance'
+          ]
+        )
+      }
+
       return {
         success: true,
         message: status === 'late' ? '打卡成功，但您迟到了' : '打卡成功',
@@ -135,6 +155,26 @@ module.exports = async function (fastify, opts) {
         WHERE id = ?`,
         [clockOutTime, workHours, status, records[0].id]
       )
+
+      // 如果早退，创建考勤异常通知
+      if (status === 'early') {
+        const earlyMinutes = schedules.length > 0 && schedules[0].end_time
+          ? Math.floor((new Date(`${today} ${schedules[0].end_time}`) - clockOutTime) / 60000)
+          : 0
+
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            user_id,
+            'attendance_abnormal',
+            '考勤异常提醒',
+            `您在 ${today} 下班打卡早退了 ${earlyMinutes} 分钟`,
+            records[0].id,
+            'attendance'
+          ]
+        )
+      }
 
       return {
         success: true,

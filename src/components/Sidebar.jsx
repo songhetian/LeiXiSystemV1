@@ -352,6 +352,7 @@ const allMenuItems = [
       { id: 'user-approval', label: '员工审核', icon: <CheckCircleOutlined /> },
       { id: 'user-reset-password', label: '重置密码', icon: <KeyOutlined /> },
       { id: 'user-permission', label: '权限管理', icon: <SafetyOutlined />, admin: true },
+      { id: 'employee-memos', label: '部门备忘录', icon: <BellOutlined />, admin: true },
     ],
   },
   {
@@ -448,6 +449,7 @@ const allMenuItems = [
       { id: 'personal-info', label: '个人信息', icon: <IdcardOutlined /> },
       { id: 'personal-schedule', label: '我的排班', icon: <CalendarOutlined /> },
       { id: 'personal-notifications', label: '我的通知', icon: <BellOutlined /> },
+      { id: 'personal-memos', label: '我的备忘录', icon: <FileTextOutlined /> },
       { id: 'my-exam-results', label: '我的考试结果', icon: <FileTextOutlined /> },
     ],
   },

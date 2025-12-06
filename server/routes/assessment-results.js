@@ -1017,6 +1017,30 @@ module.exports = async function (fastify, opts) {
         [submitTime, durationSeconds, totalScore, isPassed, newStatus, resultId]
       )
 
+      // 创建考试结果通知
+      try {
+        const notificationTitle = isPassed ? '考试通过' : '考试未通过'
+        const notificationContent = hasSubjectiveQuestions
+          ? `您的考试《${result.exam_title}》已提交，得分${totalScore}分（满分${result.total_score}分），部分题目待人工评分`
+          : `您的考试《${result.exam_title}》已完成，得分${totalScore}分（满分${result.total_score}分），${isPassed ? '恭喜通过！' : '未达到及格线'}`
+
+        await connection.query(
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            result.user_id,
+            'exam_result',
+            notificationTitle,
+            notificationContent,
+            resultId,
+            'assessment_result'
+          ]
+        )
+        console.log('✅ 考试结果通知创建成功')
+      } catch (notificationError) {
+        console.error('❌ 创建考试结果通知失败:', notificationError)
+      }
+
       // 提交成功后,为下一次考试创建新的 result_id
       // 这样下次点击"开始考试"时会显示"开始答题"而不是"继续答题"
       let nextResultId = null

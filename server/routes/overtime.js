@@ -212,11 +212,35 @@ module.exports = async function (fastify, opts) {
     const { approver_id, approval_note } = request.body;
 
     try {
+      // 获取加班记录信息
+      const [overtimeRecords] = await pool.query(
+        'SELECT user_id, overtime_date, hours FROM overtime_records WHERE id = ?',
+        [id]
+      );
+
+      if (overtimeRecords.length === 0) {
+        return reply.code(404).send({ success: false, message: '加班记录不存在' });
+      }
+
       await pool.query(
         `UPDATE overtime_records
         SET status = 'approved', approver_id = ?, approved_at = NOW(), approval_note = ?
         WHERE id = ?`,
         [approver_id, approval_note || null, id]
+      );
+
+      // 发送通知给申请人
+      await pool.query(
+        `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          overtimeRecords[0].user_id,
+          'overtime_approval',
+          '加班申请已通过',
+          `您的加班申请（${overtimeRecords[0].overtime_date}，${overtimeRecords[0].hours}小时）已通过审批`,
+          id,
+          'overtime'
+        ]
       );
 
       return {
@@ -235,11 +259,35 @@ module.exports = async function (fastify, opts) {
     const { approver_id, approval_note } = request.body;
 
     try {
+      // 获取加班记录信息
+      const [overtimeRecords] = await pool.query(
+        'SELECT user_id, overtime_date FROM overtime_records WHERE id = ?',
+        [id]
+      );
+
+      if (overtimeRecords.length === 0) {
+        return reply.code(404).send({ success: false, message: '加班记录不存在' });
+      }
+
       await pool.query(
         `UPDATE overtime_records
         SET status = 'rejected', approver_id = ?, approved_at = NOW(), approval_note = ?
         WHERE id = ?`,
         [approver_id, approval_note || null, id]
+      );
+
+      // 发送通知给申请人
+      await pool.query(
+        `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          overtimeRecords[0].user_id,
+          'overtime_approval',
+          '加班申请被拒绝',
+          approval_note || '您的加班申请未通过审批',
+          id,
+          'overtime'
+        ]
       );
 
       return {

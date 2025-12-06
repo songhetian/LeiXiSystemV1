@@ -43,7 +43,36 @@ function getBeijingNow() {
   return toBeijingTime(new Date())
 }
 
+/**
+ * 将日期转换为北京时间日期字符串（仅日期部分）
+ * @param {Date|string|number} date - 输入日期
+ * @returns {string} - 格式化后的日期字符串 'YYYY-MM-DD'
+ */
+function toBeijingDate(date) {
+  if (!date) return null
+
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return null
+
+  // 使用 Intl.DateTimeFormat 获取北京时间日期部件
+  const options = {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }
+
+  const formatter = new Intl.DateTimeFormat('zh-CN', options)
+  const parts = formatter.formatToParts(d)
+
+  const partMap = {}
+  parts.forEach(p => partMap[p.type] = p.value)
+
+  return `${partMap.year}-${partMap.month}-${partMap.day}`
+}
+
 module.exports = {
   toBeijingTime,
-  getBeijingNow
+  getBeijingNow,
+  toBeijingDate
 }

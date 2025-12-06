@@ -4,10 +4,11 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  HomeOutlined
+  HomeOutlined,
+  BellOutlined
 } from '@ant-design/icons';
 
-const TopNavbar = ({ activeTab, user, onLogout }) => {
+const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) => {
   // Menu items definition (copied from Sidebar for breadcrumb mapping)
   // Ideally this should be in a shared config file
   const menuItems = [
@@ -148,6 +149,22 @@ const TopNavbar = ({ activeTab, user, onLogout }) => {
 
       {/* Right: User Info & Logout */}
       <div className="flex items-center gap-6">
+        {/* 未读通知 */}
+        <div
+          className="relative cursor-pointer hover:opacity-80 transition-opacity"
+          title="通知"
+          onClick={() => onNavigate && onNavigate('my-notifications')}
+        >
+          <BellOutlined className="text-gray-600 text-xl" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 font-bold">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
+
+        <div className="h-8 w-px bg-gray-200"></div>
+
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium text-sm">
             {user?.real_name?.charAt(0) || <UserOutlined />}

@@ -151,6 +151,20 @@ module.exports = async function (fastify, opts) {
         }
       }
 
+      // 发送通知给申请人
+      await pool.query(
+        `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          makeup.user_id,
+          'makeup_approval',
+          '补卡申请已通过',
+          `您的补卡申请（${makeup.record_date} ${makeup.clock_type === 'in' ? '上班' : '下班'}）已通过审批`,
+          id,
+          'makeup'
+        ]
+      )
+
       return {
         success: true,
         message: '补卡审批通过，考勤记录已更新'
@@ -167,11 +181,35 @@ module.exports = async function (fastify, opts) {
     const { approver_id, approval_note } = request.body
 
     try {
+      // 获取补卡记录信息
+      const [makeupRecords] = await pool.query(
+        'SELECT user_id, record_date, clock_type FROM makeup_records WHERE id = ?',
+        [id]
+      )
+
+      if (makeupRecords.length === 0) {
+        return reply.code(404).send({ success: false, message: '补卡记录不存在' })
+      }
+
       await pool.query(
         `UPDATE makeup_records
         SET status = 'rejected', approver_id = ?, approved_at = NOW(), approval_note = ?
         WHERE id = ?`,
         [approver_id, approval_note || null, id]
+      )
+
+      // 发送通知给申请人
+      await pool.query(
+        `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          makeupRecords[0].user_id,
+          'makeup_approval',
+          '补卡申请被拒绝',
+          approval_note || '您的补卡申请未通过审批',
+          id,
+          'makeup'
+        ]
       )
 
       return {

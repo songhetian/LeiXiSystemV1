@@ -1,4 +1,6 @@
 // 调休申请管理 API
+const { toBeijingDate } = require('../utils/time')
+
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
 
@@ -361,11 +363,17 @@ module.exports = async function (fastify, opts) {
       }
 
       // 发送通知
-      await connection.query(
-        `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
-         VALUES (?, 'compensatory_approval', '调休申请已通过', ?, ?, 'compensatory_leave')`,
-        [requestData.user_id, `您的调休申请（${requestData.original_schedule_date}）已通过审批`, id]
-      )
+      try {
+        const dateStr = toBeijingDate(requestData.original_schedule_date || requestData.new_schedule_date)
+        await connection.query(
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+           VALUES (?, 'compensatory_approval', '调休申请已通过', ?, ?, 'compensatory_leave')`,
+          [requestData.user_id, `您的调休申请（${dateStr}）已通过审批`, id]
+        )
+        console.log('✅ 调休审批通过通知创建成功')
+      } catch (notificationError) {
+        console.error('❌ 创建调休审批通知失败:', notificationError)
+      }
 
       await connection.commit()
       connection.release()
@@ -411,18 +419,28 @@ module.exports = async function (fastify, opts) {
       )
 
       // 发送通知给申请人
-      await pool.query(
-        `INSERT INTO notifications (user_id, title, content, type, related_id, related_type)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          requestData.user_id,
-          '调休申请被拒绝',
-          approval_note || '您的调休申请未通过审批',
-          'approval',
-          id,
-          'compensatory_leave'
-        ]
-      )
+      try {
+        const dateStr = toBeijingDate(requestData.original_schedule_date || requestData.new_schedule_date)
+        const content = approval_note
+          ? `您的调休申请（${dateStr}）被拒绝：${approval_note}`
+          : `您的调休申请（${dateStr}）未通过审批`
+
+        await pool.query(
+          `INSERT INTO notifications (user_id, title, content, type, related_id, related_type)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            requestData.user_id,
+            '调休申请被拒绝',
+            content,
+            'compensatory_rejection',
+            id,
+            'compensatory_leave'
+          ]
+        )
+        console.log('✅ 调休审批拒绝通知创建成功')
+      } catch (notificationError) {
+        console.error('❌ 创建调休拒绝通知失败:', notificationError)
+      }
 
       return { success: true, message: '已拒绝申请' }
     } catch (error) {

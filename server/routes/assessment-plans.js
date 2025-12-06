@@ -1,5 +1,6 @@
 // 考核计划管理 API
 const jwt = require('jsonwebtoken')
+const { toBeijingTime } = require('../utils/time')
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
@@ -239,6 +240,52 @@ module.exports = async function (fastify, opts) {
           decoded.id // 设置 created_by 为当前用户
         ]
       )
+
+      // 为目标部门的所有用户创建考试通知
+      if (targetDepartmentIds.length > 0) {
+        const placeholders = targetDepartmentIds.map(() => '?').join(',')
+        const [targetUsers] = await pool.query(
+          `SELECT id FROM users WHERE department_id IN (${placeholders}) AND status = 'active'`,
+          targetDepartmentIds
+        )
+
+        // 批量创建通知
+        const startTimeStr = toBeijingTime(startTime)
+        const endTimeStr = toBeijingTime(endTime)
+
+        for (const user of targetUsers) {
+          try {
+            await pool.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                user.id,
+                'exam_notification',
+                '新考试通知',
+                `考试《${exam.title}》已发布，考试时间：${startTimeStr} 至 ${endTimeStr}`,
+                result.insertId,
+                'assessment_plan'
+              ]
+            )
+
+            // 🔔 实时推送通知（WebSocket）
+            if (fastify.io) {
+              const { sendNotificationToUser } = require('../websocket')
+              sendNotificationToUser(fastify.io, user.id, {
+                type: 'exam_notification',
+                title: '新考试通知',
+                content: `考试《${exam.title}》已发布，考试时间：${startTimeStr} 至 ${endTimeStr}`,
+                related_id: result.insertId,
+                related_type: 'assessment_plan',
+                created_at: new Date()
+              })
+            }
+          } catch (notificationError) {
+            console.error(`❌ 创建考试通知失败（用户ID: ${user.id}）:`, notificationError)
+          }
+        }
+        console.log(`✅ 考试通知创建完成，共${targetUsers.length}个用户`)
+      }
 
       return {
         success: true,

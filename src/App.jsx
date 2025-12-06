@@ -2,12 +2,15 @@ import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import { showNotificationToast } from './utils/notificationUtils';
 import 'react-toastify/dist/ReactToastify.css'
+import './styles/toast.css'
 import { useTokenVerification } from './hooks/useTokenVerification'
 import { getApiUrl } from './utils/apiConfig'
 import { tokenManager, apiPost } from './utils/apiClient'
 import { Spin } from 'antd'; // Import Spin for fallback
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFound from './pages/NotFound'
+import { wsManager } from './services/websocket'
+import { soundManager } from './utils/soundManager'
 
 // Lazy-loaded components
 const Login = lazy(() => import('./pages/Login'));
@@ -42,6 +45,9 @@ const MyExamResults = lazy(() => import('./components/MyExamResults'));
 const PersonalInfo = lazy(() => import('./components/PersonalInfo'));
 const MySchedule = lazy(() => import('./pages/Personal/MySchedule'));
 const MyNotifications = lazy(() => import('./pages/Personal/MyNotifications'));
+const MyMemos = lazy(() => import('./pages/Personal/MyMemos'));
+const EmployeeMemos = lazy(() => import('./pages/Employee/EmployeeMemos'));
+const UnreadMemoPopup = lazy(() => import('./components/UnreadMemoPopup'));
 
 const CaseLibraryPage = lazy(() => import('./pages/CaseLibraryPage'));
 const CaseCategoryManagementPage = lazy(() => import('./pages/CaseCategoryManagementPage'));
@@ -52,6 +58,8 @@ const CaseRecommendationPage = lazy(() => import('./pages/CaseRecommendationPage
 const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
 const NotificationSender = lazy(() => import('./components/NotificationSender'));
 const NotificationSettings = lazy(() => import('./components/NotificationSettings'));
+const BroadcastManagement = lazy(() => import('./pages/Admin/BroadcastManagement'));
+
 
 const LeaveRecords = lazy(() => import('./pages/Attendance').then(module => ({ default: module.LeaveRecords })));
 const OvertimeApply = lazy(() => import('./pages/Attendance').then(module => ({ default: module.OvertimeApply })));
@@ -90,6 +98,8 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState({ name: 'user-employee', params: {} })
+  const [showMemoPopup, setShowMemoPopup] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0) // 未读通知数
 
   useEffect(() => {
 
@@ -108,14 +118,177 @@ function App() {
     if (token && savedUser) {
       setIsLoggedIn(true)
       setUser(JSON.parse(savedUser))
+      // 登录后检查未读备忘录
+      checkUnreadMemos()
+      // 获取未读通知数
+      checkUnreadNotifications()
+      // 连接WebSocket
+      connectWebSocket()
+    }
+
+    // 清理函数
+    return () => {
+      wsManager.disconnect()
     }
   }, [])
 
+  // 连接WebSocket
+  const connectWebSocket = () => {
+    console.log('🔌 正在连接WebSocket...')
+    wsManager.connect()
+
+    // 初始化声音管理器（需要用户交互后才能初始化AudioContext）
+    soundManager.init()
+
+    // 监听新通知
+    const handleNotification = (notification) => {
+      console.log('📨 收到新通知:', notification)
+
+      // 🔔 播放提示音
+      soundManager.playNotification()
+
+      // 显示Toast提示
+      toast.info(
+        <div className="notification-toast-content">
+          <div className="notification-toast-icon">📨</div>
+          <div className="notification-toast-text">
+            <div className="notification-toast-title">{notification.title}</div>
+            <p className="notification-toast-message">{notification.content}</p>
+          </div>
+        </div>,
+        {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        }
+      )
+      // 📊 更新未读数
+      setUnreadCount(prev => prev + 1)
+    }
+
+    // 监听新备忘录
+    const handleMemo = (memo) => {
+      console.log('📝 收到新备忘录:', memo)
+
+      // 🔔 播放成功提示音
+      soundManager.playSuccess()
+
+      toast.success(
+        <div className="notification-toast-content">
+          <div className="notification-toast-icon">📝</div>
+          <div className="notification-toast-text">
+            <div className="notification-toast-title">新备忘录</div>
+            <p className="notification-toast-message">{memo.title}</p>
+          </div>
+        </div>,
+        {
+          position: 'top-right',
+          autoClose: 5000
+        }
+      )
+      // 刷新备忘录未读数
+      checkUnreadMemos()
+    }
+
+    // 监听系统广播
+    const handleBroadcast = (broadcast) => {
+      console.log('📣 收到系统广播:', broadcast)
+
+      // 🔔 根据类型播放不同声音
+      if (broadcast.type === 'warning' || broadcast.type === 'error') {
+        soundManager.playWarning()
+      } else {
+        soundManager.playNotification()
+      }
+
+      const typeConfig = {
+        info: { icon: '📢', method: toast.info },
+        warning: { icon: '⚠️', method: toast.warning },
+        success: { icon: '✅', method: toast.success },
+        error: { icon: '❌', method: toast.error },
+        announcement: { icon: '📣', method: toast.info }
+      }
+      const config = typeConfig[broadcast.type] || typeConfig.info
+      config.method(
+        <div className="notification-toast-content">
+          <div className="notification-toast-icon">{config.icon}</div>
+          <div className="notification-toast-text">
+            <div className="notification-toast-title">{broadcast.title}</div>
+            <p className="notification-toast-message">{broadcast.content}</p>
+          </div>
+        </div>,
+        {
+          position: 'bottom-right',
+          autoClose: 10000,
+          hideProgressBar: false,
+          className: 'broadcast-toast'
+        }
+      )
+    }
+
+    // 注册事件监听器
+    wsManager.on('notification', handleNotification)
+    wsManager.on('memo', handleMemo)
+    wsManager.on('broadcast', handleBroadcast)
+
+    // 监听未读数更新
+    wsManager.on('unread_count', (data) => {
+      console.log('📊 收到未读数更新:', data.count)
+      setUnreadCount(data.count)
+    })
+  }
+
+  // 检查未读备忘录
+  const checkUnreadMemos = async () => {
+    try {
+      const response = await fetch(getApiUrl('/api/memos/unread-count'), {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      const data = await response.json()
+      if (data.success && data.count > 0) {
+        // 延迟1秒显示弹窗，避免与其他初始化冲突
+        setTimeout(() => {
+          setShowMemoPopup(true)
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('检查未读备忘录失败:', error)
+    }
+  }
+
+  // 检查未读通知数
+  const checkUnreadNotifications = async () => {
+    try {
+      const response = await fetch(getApiUrl('/api/notifications/unread-count'), {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setUnreadCount(data.count || 0)
+        console.log('📊 初始未读通知数:', data.count)
+      }
+    } catch (error) {
+      console.error('获取未读通知数失败:', error)
+    }
+  }
 
 
   const handleLoginSuccess = (userData) => {
     setIsLoggedIn(true)
     setUser(userData)
+    // 登录成功后连接WebSocket
+    setTimeout(() => {
+      connectWebSocket()
+      checkUnreadMemos()
+      checkUnreadNotifications()
+    }, 500)
   }
 
   const handleLogout = React.useCallback(async () => {
@@ -202,12 +375,11 @@ function App() {
       case 'attendance-department':
         return <DepartmentStats />
 
+
       case 'attendance-shift':
         return <ShiftManagement />
       case 'attendance-schedule':
         return <ScheduleManagement />
-      case 'attendance-notifications':
-        return <Notifications />
       case 'attendance-smart-schedule':
         return <SmartSchedule />
       case 'attendance-approval':
@@ -307,10 +479,20 @@ function App() {
       // 个人中心
       case 'personal-info':
         return <PersonalInfo />
-      case 'personal-schedule':
+      case 'my-schedule':
         return <MySchedule />
-      case 'personal-notifications':
-        return <MyNotifications />
+      case 'my-notifications':
+        return <MyNotifications unreadCount={unreadCount} setUnreadCount={setUnreadCount} />
+      case 'my-memos':
+        return <MyMemos />
+      case 'employee-memos':
+        return <EmployeeMemos />
+      case 'my-exam-results':
+        return <MyExamResults />
+
+      // 系统管理
+      case 'broadcast-management':
+        return <BroadcastManagement />
 
       default:
         return <NotFound />
@@ -336,6 +518,8 @@ function App() {
               activeTab={activeTab.name}
               user={user}
               onLogout={handleLogout}
+              unreadCount={unreadCount}
+              onNavigate={handleSetActiveTab}
             />
             <div className="flex-1 overflow-auto">
               <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
@@ -356,6 +540,12 @@ function App() {
             theme="light"
             limit={3}
           />
+          {/* 未读备忘录弹窗 */}
+          {showMemoPopup && (
+            <Suspense fallback={null}>
+              <UnreadMemoPopup onClose={() => setShowMemoPopup(false)} />
+            </Suspense>
+          )}
         </div>
       </DatabaseCheck>
     </ErrorBoundary>

@@ -12,13 +12,24 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  XMarkIcon
+  XMarkIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline';
 
-export default function MyNotifications() {
+export default function MyNotifications({ unreadCount: propUnreadCount, setUnreadCount: propSetUnreadCount }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [localUnreadCount, setLocalUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // 使用传入的unreadCount或本地状态
+  const unreadCount = propUnreadCount !== undefined ? propUnreadCount : localUnreadCount;
+  const setUnreadCount = propSetUnreadCount || setLocalUnreadCount;
+
 
   // 筛选状态
   const [filters, setFilters] = useState({
@@ -42,28 +53,56 @@ export default function MyNotifications() {
 
   const userId = JSON.parse(localStorage.getItem('user') || '{}').id;
 
+  // Tab配置
+  const tabs = [
+    { id: 'all', label: '全部通知', icon: BellIcon },
+    { id: 'unread', label: '未读消息', icon: ExclamationCircleIcon, badge: unreadCount },
+    { id: 'system', label: '系统通知', icon: BellIcon },
+    { id: 'approval', label: '审批通知', icon: DocumentTextIcon },
+    { id: 'attendance', label: '考勤通知', icon: ClockIcon },
+    { id: 'exam', label: '考试通知', icon: CheckCircleIcon }
+  ];
+
+  // 根据Tab获取类型筛选
+  const getTypeFilterByTab = (tab) => {
+    switch (tab) {
+      case 'unread':
+        return { isRead: 'false' };
+      case 'system':
+        return { type: 'system' };
+      case 'approval':
+        return { type: 'leave_approval,overtime_approval,makeup_approval' };
+      case 'attendance':
+        return { type: 'clock_reminder,schedule_change,attendance_abnormal' };
+      case 'exam':
+        return { type: 'exam_notification,exam_result' };
+      default:
+        return {};
+    }
+  };
+
   useEffect(() => {
     if (userId) {
       loadNotifications();
       loadUnreadCount();
     }
-  }, [userId, pagination.page, filters]);
+  }, [userId, pagination.page, filters, activeTab]);
 
   const loadNotifications = async () => {
     setLoading(true);
     try {
+      const tabFilters = getTypeFilterByTab(activeTab);
       const params = {
         userId,
         page: pagination.page,
         pageSize: pagination.pageSize,
         search: filters.search || undefined,
-        type: filters.type || undefined,
-        isRead: filters.isRead || undefined,
+        type: filters.type || tabFilters.type || undefined,
+        isRead: filters.isRead || tabFilters.isRead || undefined,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined
       };
 
-      // 移除 undefined 参数
       Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
 
       const response = await axios.get(getApiUrl('/api/notifications'), { params });
@@ -96,14 +135,10 @@ export default function MyNotifications() {
   const markAsRead = async (id) => {
     try {
       await axios.put(getApiUrl(`/api/notifications/${id}/read`));
-
-      // 更新本地状态
       setNotifications(prev => prev.map(n =>
         n.id === id ? { ...n, is_read: true } : n
       ));
-
       loadUnreadCount();
-
       if (selectedNotification?.id === id) {
         setSelectedNotification(prev => ({ ...prev, is_read: true }));
       }
@@ -121,6 +156,25 @@ export default function MyNotifications() {
       toast.success('全部已读');
     } catch (error) {
       console.error('标记全部已读失败:', error);
+      toast.error('操作失败');
+    }
+  };
+
+  const markSelectedAsRead = async () => {
+    if (selectedIds.length === 0) {
+      toast.warning('请先选择通知');
+      return;
+    }
+    try {
+      await Promise.all(selectedIds.map(id =>
+        axios.put(getApiUrl(`/api/notifications/${id}/read`))
+      ));
+      loadNotifications();
+      loadUnreadCount();
+      setSelectedIds([]);
+      toast.success(`已标记 ${selectedIds.length} 条通知为已读`);
+    } catch (error) {
+      console.error('批量标记已读失败:', error);
       toast.error('操作失败');
     }
   };
@@ -143,6 +197,27 @@ export default function MyNotifications() {
     }
   };
 
+  const deleteSelected = async () => {
+    if (selectedIds.length === 0) {
+      toast.warning('请先选择通知');
+      return;
+    }
+    if (!window.confirm(`确定要删除选中的 ${selectedIds.length} 条通知吗？`)) return;
+
+    try {
+      await Promise.all(selectedIds.map(id =>
+        axios.delete(getApiUrl(`/api/notifications/${id}`))
+      ));
+      loadNotifications();
+      loadUnreadCount();
+      setSelectedIds([]);
+      toast.success(`已删除 ${selectedIds.length} 条通知`);
+    } catch (error) {
+      console.error('批量删除失败:', error);
+      toast.error('操作失败');
+    }
+  };
+
   const handleNotificationClick = (notification) => {
     setSelectedNotification(notification);
     setShowModal(true);
@@ -151,33 +226,82 @@ export default function MyNotifications() {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.length === notifications.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(notifications.map(n => n.id));
+    }
+  };
+
+  const handleSelectOne = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const setQuickDateFilter = (type) => {
+    const today = new Date();
+    const startDate = new Date();
+
+    switch (type) {
+      case 'today':
+        setFilters(prev => ({
+          ...prev,
+          startDate: today.toISOString().split('T')[0],
+          endDate: today.toISOString().split('T')[0]
+        }));
+        break;
+      case 'week':
+        startDate.setDate(today.getDate() - 7);
+        setFilters(prev => ({
+          ...prev,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: today.toISOString().split('T')[0]
+        }));
+        break;
+      case 'month':
+        startDate.setMonth(today.getMonth() - 1);
+        setFilters(prev => ({
+          ...prev,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: today.toISOString().split('T')[0]
+        }));
+        break;
+      default:
+        break;
+    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   const getIcon = (type) => {
     switch (type) {
-      case 'clock_reminder': return <ClockIcon className="w-6 h-6" />;
-      case 'leave_approval': return <DocumentTextIcon className="w-6 h-6" />;
-      case 'overtime_approval': return <ClockIcon className="w-6 h-6" />;
-      case 'makeup_approval': return <ClockIcon className="w-6 h-6" />;
-      case 'schedule_change': return <CalendarIcon className="w-6 h-6" />;
-      case 'attendance_abnormal': return <ExclamationCircleIcon className="w-6 h-6" />;
-      case 'exam_notification': return <DocumentTextIcon className="w-6 h-6" />;
-      case 'exam_result': return <CheckCircleIcon className="w-6 h-6" />;
-      case 'system': return <BellIcon className="w-6 h-6" />;
-      default: return <BellIcon className="w-6 h-6" />;
+      case 'clock_reminder': return <ClockIcon className="w-5 h-5" />;
+      case 'leave_approval': return <DocumentTextIcon className="w-5 h-5" />;
+      case 'overtime_approval': return <ClockIcon className="w-5 h-5" />;
+      case 'makeup_approval': return <ClockIcon className="w-5 h-5" />;
+      case 'schedule_change': return <CalendarIcon className="w-5 h-5" />;
+      case 'attendance_abnormal': return <ExclamationCircleIcon className="w-5 h-5" />;
+      case 'exam_notification': return <DocumentTextIcon className="w-5 h-5" />;
+      case 'exam_result': return <CheckCircleIcon className="w-5 h-5" />;
+      case 'system': return <BellIcon className="w-5 h-5" />;
+      default: return <BellIcon className="w-5 h-5" />;
     }
   };
 
   const getColorClass = (type) => {
     switch (type) {
-      case 'clock_reminder': return 'bg-gradient-to-br from-orange-100 to-amber-100 text-orange-600';
-      case 'leave_approval': return 'bg-gradient-to-br from-green-100 to-emerald-100 text-green-600';
-      case 'overtime_approval': return 'bg-gradient-to-br from-purple-100 to-violet-100 text-purple-600';
-      case 'makeup_approval': return 'bg-gradient-to-br from-cyan-100 to-sky-100 text-cyan-600';
-      case 'schedule_change': return 'bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600';
-      case 'attendance_abnormal': return 'bg-gradient-to-br from-red-100 to-rose-100 text-red-600';
-      case 'exam_notification': return 'bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600';
-      case 'exam_result': return 'bg-gradient-to-br from-teal-100 to-cyan-100 text-teal-600';
-      case 'system': return 'bg-gradient-to-br from-gray-100 to-slate-100 text-gray-600';
-      default: return 'bg-gradient-to-br from-gray-100 to-slate-100 text-gray-600';
+      case 'clock_reminder': return 'bg-orange-100 text-orange-600';
+      case 'leave_approval': return 'bg-green-100 text-green-600';
+      case 'overtime_approval': return 'bg-purple-100 text-purple-600';
+      case 'makeup_approval': return 'bg-cyan-100 text-cyan-600';
+      case 'schedule_change': return 'bg-blue-100 text-blue-600';
+      case 'attendance_abnormal': return 'bg-red-100 text-red-600';
+      case 'exam_notification': return 'bg-indigo-100 text-indigo-600';
+      case 'exam_result': return 'bg-teal-100 text-teal-600';
+      case 'system': return 'bg-gray-100 text-gray-600';
+      default: return 'bg-gray-100 text-gray-600';
     }
   };
 
@@ -208,193 +332,289 @@ export default function MyNotifications() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* 头部区域 */}
-      <div className="bg-white border-b border-gray-200 shadow-sm px-8 py-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-              <BellIcon className="w-8 h-8 text-white" />
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <BellIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">我的通知</h1>
-              <p className="text-gray-600 mt-1 text-lg">
-                您有 <span className="text-blue-600 font-bold text-xl">{unreadCount}</span> 条未读消息
+              <h1 className="text-2xl font-bold text-gray-900">通知中心</h1>
+              <p className="text-sm text-gray-600 mt-0.5">
+                共 <span className="font-semibold text-blue-600">{unreadCount}</span> 条未读消息
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
+            {selectedIds.length > 0 && (
+              <>
+                <button
+                  onClick={markSelectedAsRead}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  标记已读 ({selectedIds.length})
+                </button>
+                <button
+                  onClick={deleteSelected}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                >
+                  删除 ({selectedIds.length})
+                </button>
+              </>
+            )}
             <button
               onClick={markAllAsRead}
               disabled={unreadCount === 0}
-              className="px-5 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
             >
-              <CheckCircleIcon className="w-5 h-5" />
               全部已读
             </button>
             <button
               onClick={loadNotifications}
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 font-medium shadow-lg shadow-blue-200"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
             >
-              <ClockIcon className="w-5 h-5" />
               刷新
             </button>
           </div>
         </div>
+
+        {/* Tab导航 */}
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setPagination(prev => ({ ...prev, page: 1 }));
+                  setSelectedIds([]);
+                }}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                  ${activeTab === tab.id
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  }
+                `}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+                {tab.badge > 0 && (
+                  <span className={`
+                    px-2 py-0.5 rounded-full text-xs font-bold
+                    ${activeTab === tab.id ? 'bg-white text-blue-600' : 'bg-red-500 text-white'}
+                  `}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 筛选区域 */}
-      <div className="px-8 py-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-gray-700">
-              <FunnelIcon className="w-5 h-5" />
-              <span className="font-semibold text-lg">筛选条件</span>
-            </div>
-            {(filters.search || filters.type || filters.isRead || filters.startDate || filters.endDate) && (
-              <button
-                onClick={clearFilters}
-                className="px-4 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
-              >
-                <XMarkIcon className="w-4 h-4" />
-                清除筛选
-              </button>
-            )}
+      {/* 搜索和筛选区域 */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="flex items-center gap-3">
+          {/* 搜索框 */}
+          <div className="flex-1 relative">
+            <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="搜索通知标题或内容..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* 搜索框 */}
-            <div className="lg:col-span-2 relative">
-              <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="搜索通知标题或内容..."
-                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
-                value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              />
-            </div>
-
-            {/* 类型筛选 */}
-            <select
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all text-base font-medium"
-              value={filters.type}
-              onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+          {/* 快速日期筛选 */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setQuickDateFilter('today')}
+              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
-              <option value="">📋 全部类型</option>
-              <option value="leave_approval">📝 请假审批</option>
-              <option value="schedule_change">📅 排班变更</option>
-              <option value="exam_notification">📚 考试通知</option>
-              <option value="exam_result">🎓 考试成绩</option>
-              <option value="clock_reminder">⏰ 打卡提醒</option>
-              <option value="overtime_approval">🌙 加班审批</option>
-              <option value="makeup_approval">🔄 补卡审批</option>
-              <option value="attendance_abnormal">⚠️ 考勤异常</option>
-              <option value="system">🔔 系统通知</option>
-            </select>
-
-            {/* 状态筛选 */}
-            <select
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all text-base font-medium"
-              value={filters.isRead}
-              onChange={(e) => setFilters(prev => ({ ...prev, isRead: e.target.value }))}
+              今天
+            </button>
+            <button
+              onClick={() => setQuickDateFilter('week')}
+              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
-              <option value="">📊 全部状态</option>
-              <option value="false">🔴 未读</option>
-              <option value="true">✅ 已读</option>
-            </select>
+              本周
+            </button>
+            <button
+              onClick={() => setQuickDateFilter('month')}
+              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+            >
+              本月
+            </button>
+          </div>
 
-            {/* 日期范围 */}
-            <div className="flex gap-2">
+          {/* 高级筛选按钮 */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
+          >
+            <FunnelIcon className="w-4 h-4" />
+            筛选
+            {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* 高级筛选面板 */}
+        {showFilters && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="grid grid-cols-4 gap-3">
+              <select
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                value={filters.type}
+                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+              >
+                <option value="">全部类型</option>
+                <option value="leave_approval">请假审批</option>
+                <option value="overtime_approval">加班审批</option>
+                <option value="makeup_approval">补卡审批</option>
+                <option value="schedule_change">排班变更</option>
+                <option value="attendance_abnormal">考勤异常</option>
+                <option value="clock_reminder">打卡提醒</option>
+                <option value="exam_notification">考试通知</option>
+                <option value="exam_result">考试成绩</option>
+                <option value="system">系统通知</option>
+              </select>
+
+              <select
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                value={filters.isRead}
+                onChange={(e) => setFilters(prev => ({ ...prev, isRead: e.target.value }))}
+              >
+                <option value="">全部状态</option>
+                <option value="false">未读</option>
+                <option value="true">已读</option>
+              </select>
+
               <input
                 type="date"
-                placeholder="开始日期"
-                className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 value={filters.startDate}
                 onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
               />
+
               <input
                 type="date"
-                placeholder="结束日期"
-                className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 value={filters.endDate}
                 onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
               />
             </div>
-          </div>
 
-          {/* 筛选统计 */}
-          <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
-            <span>共找到 <span className="font-bold text-blue-600">{pagination.total}</span> 条通知</span>
-            {filters.isRead === 'false' && <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">仅显示未读</span>}
-            {filters.type && <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs font-medium">{getTypeName(filters.type)}</span>}
+            {(filters.search || filters.type || filters.isRead || filters.startDate || filters.endDate) && (
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-gray-600">
+                  找到 <span className="font-semibold text-blue-600">{pagination.total}</span> 条结果
+                </span>
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  清除筛选
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
+      {/* 批量操作栏 */}
+      {notifications.length > 0 && (
+        <div className="bg-white border-b border-gray-200 px-6 py-2">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === notifications.length && notifications.length > 0}
+                onChange={handleSelectAll}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">全选</span>
+            </label>
+            {selectedIds.length > 0 && (
+              <span className="text-sm text-gray-600">
+                已选择 <span className="font-semibold text-blue-600">{selectedIds.length}</span> 条
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 通知列表 */}
-      <div className="flex-1 overflow-auto px-8 pb-6">
+      <div className="flex-1 overflow-auto px-6 py-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-6 text-lg font-medium">加载中...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto"></div>
+              <p className="text-gray-600 mt-4 text-sm">加载中...</p>
             </div>
           </div>
         ) : notifications.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200 px-12">
-              <BellIcon className="w-20 h-20 text-gray-300 mx-auto mb-6" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">暂无通知</h3>
-              <p className="text-gray-500 text-lg">没有找到符合条件的通知消息</p>
-              {(filters.search || filters.type || filters.isRead || filters.startDate || filters.endDate) && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-6 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
-                >
-                  清除筛选条件
-                </button>
-              )}
+            <div className="text-center py-12">
+              <BellIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">暂无通知</h3>
+              <p className="text-gray-500">没有找到符合条件的通知消息</p>
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {notifications.map(notification => (
               <div
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
                 className={`
-                  group relative bg-white rounded-2xl p-5 border-2 transition-all cursor-pointer hover:shadow-xl hover:-translate-y-0.5
+                  group relative bg-white rounded-lg p-4 border transition-all cursor-pointer hover:shadow-md
                   ${notification.is_read
-                    ? 'border-gray-100 hover:border-gray-200'
-                    : 'border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 hover:border-blue-300'
+                    ? 'border-gray-200 hover:border-gray-300'
+                    : 'border-l-4 border-l-blue-500 border-t border-r border-b border-gray-200 bg-blue-50/30'
                   }
                 `}
               >
-                <div className="flex items-start gap-5">
+                <div className="flex items-start gap-4">
+                  {/* 复选框 */}
+                  <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(notification.id)}
+                      onChange={(e) => handleSelectOne(notification.id, e)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+
                   {/* 图标 */}
-                  <div className={`p-4 rounded-2xl shrink-0 shadow-md ${getColorClass(notification.type)}`}>
+                  <div className={`p-3 rounded-lg shrink-0 ${getColorClass(notification.type)}`}>
                     {getIcon(notification.type)}
                   </div>
 
                   {/* 内容 */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2 gap-4">
+                    <div className="flex items-start justify-between gap-4 mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`font-bold text-lg ${notification.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
+                        <h3 className={`font-semibold ${notification.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
                           {notification.title}
                         </h3>
                         {!notification.is_read && (
-                          <span className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-sm animate-pulse">
+                          <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
                             NEW
                           </span>
                         )}
-                        <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded">
                           {getTypeName(notification.type)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-500 whitespace-nowrap font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
                           {new Date(notification.created_at).toLocaleString('zh-CN', {
                             month: '2-digit',
                             day: '2-digit',
@@ -404,31 +624,17 @@ export default function MyNotifications() {
                         </span>
                         <button
                           onClick={(e) => deleteNotification(notification.id, e)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                           title="删除"
                         >
-                          <TrashIcon className="w-5 h-5" />
+                          <TrashIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
 
-                    <p className="text-gray-600 line-clamp-2 text-base leading-relaxed">
+                    <p className="text-gray-600 text-sm line-clamp-2">
                       {notification.content}
                     </p>
-
-                    {/* 底部信息 */}
-                    <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <ClockIcon className="w-4 h-4" />
-                        <span>{new Date(notification.created_at).toLocaleDateString('zh-CN')}</span>
-                      </div>
-                      {notification.is_read && (
-                        <div className="flex items-center gap-1 text-green-600">
-                          <CheckCircleIcon className="w-4 h-4" />
-                          <span>已读</span>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -439,41 +645,41 @@ export default function MyNotifications() {
 
       {/* 分页控件 */}
       {pagination.totalPages > 1 && (
-        <div className="bg-white border-t border-gray-200 px-8 py-4">
+        <div className="bg-white border-t border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              显示第 <span className="font-bold text-gray-900">{(pagination.page - 1) * pagination.pageSize + 1}</span> 到 <span className="font-bold text-gray-900">{Math.min(pagination.page * pagination.pageSize, pagination.total)}</span> 条，
-              共 <span className="font-bold text-blue-600">{pagination.total}</span> 条通知
+              显示第 <span className="font-semibold">{(pagination.page - 1) * pagination.pageSize + 1}</span> 到 <span className="font-semibold">{Math.min(pagination.page * pagination.pageSize, pagination.total)}</span> 条，
+              共 <span className="font-semibold text-blue-600">{pagination.total}</span> 条
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: 1 }))}
                 disabled={pagination.page === 1}
-                className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
               >
                 首页
               </button>
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                 disabled={pagination.page === 1}
-                className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
               >
                 上一页
               </button>
-              <div className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg">
+              <div className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-semibold text-sm">
                 {pagination.page} / {pagination.totalPages}
               </div>
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
                 disabled={pagination.page === pagination.totalPages}
-                className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
               >
                 下一页
               </button>
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.totalPages }))}
                 disabled={pagination.page === pagination.totalPages}
-                className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
               >
                 末页
               </button>
@@ -485,30 +691,30 @@ export default function MyNotifications() {
       {/* 详情模态框 */}
       {showModal && selectedNotification && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
             {/* 模态框头部 */}
-            <div className={`px-6 py-4 flex items-center justify-between ${getColorClass(selectedNotification.type).replace('text-', 'bg-').replace('100', '50')}`}>
+            <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full bg-white/50`}>
+                <div className={`p-2 rounded-lg ${getColorClass(selectedNotification.type)}`}>
                   {getIcon(selectedNotification.type)}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">{getTypeName(selectedNotification.type)}</h3>
-                  <p className="text-sm text-gray-600">{new Date(selectedNotification.created_at).toLocaleString('zh-CN')}</p>
+                  <p className="text-sm text-gray-500">{new Date(selectedNotification.created_at).toLocaleString('zh-CN')}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-black/5 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
+                <XMarkIcon className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
             {/* 模态框内容 */}
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">{selectedNotification.title}</h2>
-              <div className="prose prose-blue max-w-none text-gray-600 bg-gray-50 p-4 rounded-xl">
+              <div className="bg-gray-50 p-4 rounded-lg text-gray-700 leading-relaxed">
                 {selectedNotification.content}
               </div>
 
@@ -521,12 +727,12 @@ export default function MyNotifications() {
             </div>
 
             {/* 模态框底部 */}
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
               <button
                 onClick={() => deleteNotification(selectedNotification.id)}
                 className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
               >
-                <TrashIcon className="w-5 h-5" />
+                <TrashIcon className="w-4 h-4" />
                 删除
               </button>
               <button
