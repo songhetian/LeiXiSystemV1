@@ -210,7 +210,7 @@ export default function DepartmentStats() {
   }
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen p-6 bg-gray-50">
       {/* 头部 */}
       <div className="mb-6 flex items-center justify-between">
         <div>

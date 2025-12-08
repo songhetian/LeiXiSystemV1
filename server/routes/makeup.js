@@ -1,4 +1,7 @@
 // 补卡管理 API
+const { getNotificationTargets } = require('../utils/notificationHelper');
+const { findApprover } = require('../utils/approvalHelper');
+const { sendNotificationToUser } = require('../websocket');
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
@@ -25,6 +28,63 @@ module.exports = async function (fastify, opts) {
         VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
         [employee_id, user_id, record_date, clock_type, clock_time, reason]
       )
+
+      // 发送通知给审批人
+      try {
+        // 获取申请人的部门ID
+        const [applicantInfo] = await pool.query('SELECT department_id, real_name FROM users WHERE id = ?', [user_id])
+        const departmentId = applicantInfo[0]?.department_id
+        const applicantName = applicantInfo[0]?.real_name
+
+        // 1. 尝试查找部门主管作为审批人
+        const approver = await findApprover(pool, user_id, departmentId)
+
+        let targetUserIds = []
+
+        if (approver) {
+          targetUserIds.push(approver.id)
+        } else {
+          // 2. 回退策略
+          targetUserIds = await getNotificationTargets(pool, 'makeup_apply', {
+            departmentId,
+            applicantId: user_id
+          })
+        }
+
+        // 去重
+        targetUserIds = [...new Set(targetUserIds)]
+
+        if (targetUserIds.length > 0) {
+          const title = '新补卡申请'
+          const content = `${applicantName} 申请补卡 (${record_date} ${clock_type === 'in' ? '上班' : '下班'})`
+
+          // 批量插入通知
+          const values = targetUserIds.map(uid => [
+            uid, 'makeup_apply', title, content, result.insertId, 'makeup'
+          ])
+
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, content, related_id, related_type) VALUES ?`,
+            [values]
+          )
+
+          // 发送WebSocket通知
+          if (fastify.io) {
+            targetUserIds.forEach(uid => {
+              sendNotificationToUser(fastify.io, uid, {
+                type: 'makeup_apply',
+                title,
+                content,
+                related_id: result.insertId,
+                related_type: 'makeup',
+                created_at: new Date()
+              })
+            })
+          }
+        }
+      } catch (notifyError) {
+        console.error('发送补卡申请通知失败:', notifyError)
+      }
 
       return {
         success: true,
@@ -165,6 +225,65 @@ module.exports = async function (fastify, opts) {
         ]
       )
 
+      // 🔔 实时推送通知（WebSocket）
+      if (fastify.io) {
+        const { sendNotificationToUser } = require('../websocket')
+        sendNotificationToUser(fastify.io, makeup.user_id, {
+          type: 'makeup_approval',
+          title: '补卡申请已通过',
+          content: `您的补卡申请（${makeup.record_date} ${makeup.clock_type === 'in' ? '上班' : '下班'}）已通过审批`,
+          related_id: id,
+          related_type: 'makeup',
+          created_at: new Date()
+        })
+      }
+
+      // 🔄 自动更新排班（如果适用）
+      try {
+        console.log('🔄 开始自动更新排班...')
+        console.log('📋 补卡记录:', makeup)
+
+        // 查找"休息"班次（通过名称模糊匹配）
+        const [restShifts] = await pool.query(
+          "SELECT id, name FROM work_shifts WHERE name LIKE '%休%' AND is_active = 1 LIMIT 1"
+        )
+        console.log('🛏️ 休息班次查询结果:', restShifts)
+
+        if (restShifts.length > 0) {
+          const restShiftId = restShifts[0].id
+          console.log(`✅ 找到休息班次 ID: ${restShiftId}, 名称: ${restShifts[0].name}`)
+
+          // 检查是否已有排班记录
+          const [existing] = await pool.query(
+            'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
+            [makeup.employee_id, makeup.record_date]
+          )
+
+          if (existing.length > 0) {
+            // 更新现有排班
+            await pool.query(
+              'UPDATE shift_schedules SET shift_id = ?, is_rest_day = 1 WHERE id = ?',
+              [restShiftId, existing[0].id]
+            )
+            console.log(`    ✏️ 更新排班记录 ID: ${existing[0].id}`)
+          } else {
+            // 创建新排班记录
+            await pool.query(
+              'INSERT INTO shift_schedules (employee_id, shift_id, schedule_date, is_rest_day) VALUES (?, ?, ?, 1)',
+              [makeup.employee_id, restShiftId, makeup.record_date]
+            )
+            console.log(`    ➕ 创建新排班记录`)
+          }
+
+          console.log(`✅ 已自动更新员工 ${makeup.employee_id} 的排班为休息`)
+        } else {
+          console.warn('⚠️ 未找到"休息"班次，无法自动更新排班')
+        }
+      } catch (scheduleError) {
+        console.error('❌ 自动更新排班失败:', scheduleError)
+        // 不影响审批结果，只记录错误
+      }
+
       return {
         success: true,
         message: '补卡审批通过，考勤记录已更新'
@@ -204,13 +323,26 @@ module.exports = async function (fastify, opts) {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           makeupRecords[0].user_id,
-          'makeup_approval',
+          'makeup_rejection',
           '补卡申请被拒绝',
           approval_note || '您的补卡申请未通过审批',
           id,
           'makeup'
         ]
       )
+
+      // 🔔 实时推送拒绝通知（WebSocket）
+      if (fastify.io) {
+        const { sendNotificationToUser } = require('../websocket')
+        sendNotificationToUser(fastify.io, makeupRecords[0].user_id, {
+          type: 'makeup_rejection',
+          title: '补卡申请被拒绝',
+          content: approval_note || '您的补卡申请未通过审批',
+          related_id: id,
+          related_type: 'makeup',
+          created_at: new Date()
+        })
+      }
 
       return {
         success: true,

@@ -6,11 +6,13 @@ import './styles/toast.css'
 import { useTokenVerification } from './hooks/useTokenVerification'
 import { getApiUrl } from './utils/apiConfig'
 import { tokenManager, apiPost } from './utils/apiClient'
+import { clearPermissions } from './utils/permission'
 import { Spin } from 'antd'; // Import Spin for fallback
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFound from './pages/NotFound'
 import { wsManager } from './services/websocket'
 import { soundManager } from './utils/soundManager'
+import { PermissionProvider, usePermission } from './contexts/PermissionContext'
 
 // Lazy-loaded components
 const Login = lazy(() => import('./pages/Login'));
@@ -24,7 +26,8 @@ const EmployeeManagement = lazy(() => import('./components/EmployeeManagement'))
 const EmployeeChanges = lazy(() => import('./components/EmployeeChanges'));
 const EmployeeApproval = lazy(() => import('./components/EmployeeApproval'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
-const PermissionManagement = lazy(() => import('./components/PermissionManagement'));
+const RoleManagement = lazy(() => import('./pages/System/RoleManagement'));
+const UserRoleManagement = lazy(() => import('./pages/System/UserRoleManagement'));
 const KnowledgeManagement = lazy(() => import('./components/KnowledgeManagement'));
 const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
 const KnowledgeFolderView = lazy(() => import('./components/KnowledgeFolderView'));
@@ -90,6 +93,7 @@ const PlatformShopManagement = lazy(() => import('./components/PlatformShopManag
 const QualityTagManagement = lazy(() => import('./components/QualityTagManagement'));
 const WeChatPage = lazy(() => import('./pages/Messaging').then(module => ({ default: module.WeChatPage })));
 const CreateGroupPage = lazy(() => import('./pages/Messaging').then(module => ({ default: module.CreateGroupPage })));
+const BroadcastList = lazy(() => import('./pages/Messaging').then(module => ({ default: module.BroadcastList })));
 import DatabaseCheck from './components/DatabaseCheck';
 import TopNavbar from './components/TopNavbar';
 
@@ -126,10 +130,10 @@ function App() {
       connectWebSocket()
     }
 
-    // 清理函数
-    return () => {
-      wsManager.disconnect()
-    }
+    // 清理函数 - 不再断开WebSocket连接
+    // return () => {
+    //   wsManager.disconnect()
+    // }
   }, [])
 
   // 连接WebSocket
@@ -139,7 +143,7 @@ function App() {
     setTimeout(() => {
       wsManager.connect()
     }, 0)
-    
+
     // 初始化声音管理器（需要用户交互后才能初始化AudioContext）
     soundManager.init()
 
@@ -160,12 +164,28 @@ function App() {
           </div>
         </div>,
         {
-          position: 'top-right',
-          autoClose: 5000,
+          position: 'bottom-right',
+          autoClose: 10000,
           hideProgressBar: false,
-          closeOnClick: true,
+          closeOnClick: false,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
+          containerId: 'notification-toast',
+          onClick: () => {
+            console.log('🔔 点击通知:', notification);
+            // 根据通知类型跳转到相应页面
+            if (['leave', 'overtime', 'makeup'].includes(notification.related_type) ||
+                ['leave_approval', 'leave_rejection', 'overtime_approval', 'overtime_rejection', 'makeup_approval', 'makeup_rejection'].includes(notification.type)) {
+              handleSetActiveTab('attendance-approval');
+            } else if (notification.type === 'system_broadcast') {
+              handleSetActiveTab('messaging-broadcast');
+            } else if (notification.type === 'schedule_update' || notification.related_type === 'schedule') {
+              handleSetActiveTab('my-schedule');
+            } else if (notification.type === 'role_assignment' || notification.related_type === 'user_role') {
+              handleSetActiveTab('user-role-management');
+            }
+          },
+          className: 'cursor-pointer'
         }
       )
       // 📊 更新未读数
@@ -188,8 +208,10 @@ function App() {
           </div>
         </div>,
         {
-          position: 'top-right',
-          autoClose: 5000
+          position: 'bottom-right',
+          autoClose: 10000,
+          closeOnClick: false,
+          containerId: 'notification-toast'
         }
       )
       // 刷新备忘录未读数
@@ -227,10 +249,19 @@ function App() {
           position: 'bottom-right',
           autoClose: 10000,
           hideProgressBar: false,
-          className: 'broadcast-toast'
+          closeOnClick: false,
+          className: 'broadcast-toast',
+          onClick: () => handleSetActiveTab('messaging-broadcast'),
+          containerId: 'notification-toast'
         }
       )
     }
+
+    // 清除旧的监听器，防止重复注册
+    wsManager.removeAllListeners('notification')
+    wsManager.removeAllListeners('memo')
+    wsManager.removeAllListeners('broadcast')
+    wsManager.removeAllListeners('unread_count')
 
     // 注册事件监听器
     wsManager.on('notification', handleNotification)
@@ -286,6 +317,8 @@ function App() {
   const handleLoginSuccess = (userData) => {
     setIsLoggedIn(true)
     setUser(userData)
+    // 登录成功后清除旧的权限缓存
+    clearPermissions()
     // 登录成功后连接WebSocket，但不阻塞主流程
     Promise.resolve().then(() => {
       connectWebSocket()
@@ -344,8 +377,9 @@ function App() {
       case 'user-reset-password':
         return <ResetPassword />
       case 'user-permission':
-        return <PermissionManagement />
-
+        return <RoleManagement />
+      case 'user-role-management':
+        return <UserRoleManagement />
       // 组织架构
       case 'org-department':
         return <DepartmentManagement />
@@ -357,6 +391,8 @@ function App() {
         return <WeChatPage />
       case 'messaging-create-group':
         return <CreateGroupPage />
+      case 'messaging-broadcast':
+        return <BroadcastList />
 
       // 考勤管理
       case 'attendance-home':
@@ -482,15 +518,15 @@ function App() {
       // 个人中心
       case 'personal-info':
         return <PersonalInfo />;
-      case 'my-schedule':
+      case 'personal-schedule':
         return <MySchedule />;
       case 'my-notifications':
-        return <MyNotifications unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
+        return <MyNotifications />;
       case 'my-memos':
         return <MyMemos />;
       case 'employee-memos':
         return <EmployeeMemos />;
-      
+
       // 系统管理
       case 'broadcast-management':
         return <BroadcastManagement />
@@ -507,47 +543,64 @@ function App() {
   return (
     <ErrorBoundary>
       <DatabaseCheck>
-        <div className="flex h-screen bg-gray-50">
-          <Sidebar
-            activeTab={activeTab.name}
-            setActiveTab={handleSetActiveTab}
-            user={user}
-            onLogout={handleLogout}
-          />
-          <main className="flex-1 bg-gray-50 flex flex-col">
-            <TopNavbar
+        <PermissionProvider>
+          <div className="flex h-screen bg-gray-50">
+            <Sidebar
               activeTab={activeTab.name}
+              setActiveTab={handleSetActiveTab}
               user={user}
               onLogout={handleLogout}
-              unreadCount={unreadCount}
-              onNavigate={handleSetActiveTab}
             />
-            <div className="flex-1 overflow-auto">
-              <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
-                {renderContent()}
+            <main className="flex-1 bg-gray-50 flex flex-col">
+              <TopNavbar
+                activeTab={activeTab.name}
+                user={user}
+                onLogout={handleLogout}
+                unreadCount={unreadCount}
+                onNavigate={handleSetActiveTab}
+              />
+              <div className="flex-1 overflow-auto">
+                <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
+                  {renderContent()}
+                </Suspense>
+              </div>
+            </main>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="light"
+              limit={3}
+            />
+            <ToastContainer
+              position="bottom-right"
+              autoClose={10000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick={false}
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="light"
+              limit={3}
+              containerId="notification-toast"
+              enableMultiContainer
+            />
+            {/* 未读备忘录弹窗 */}
+            {showMemoPopup && (
+              <Suspense fallback={null}>
+                <UnreadMemoPopup onClose={() => setShowMemoPopup(false)} />
               </Suspense>
-            </div>
-          </main>
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-            limit={3}
-          />
-          {/* 未读备忘录弹窗 */}
-          {showMemoPopup && (
-            <Suspense fallback={null}>
-              <UnreadMemoPopup onClose={() => setShowMemoPopup(false)} />
-            </Suspense>
-          )}
-        </div>
+            )}
+          </div>
+        </PermissionProvider>
       </DatabaseCheck>
     </ErrorBoundary>
   )

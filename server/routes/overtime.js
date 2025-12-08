@@ -1,5 +1,8 @@
 // 加班管理 API
 const { getBeijingNow } = require('../utils/time');
+const { getNotificationTargets } = require('../utils/notificationHelper');
+const { findApprover } = require('../utils/approvalHelper');
+const { sendNotificationToUser } = require('../websocket');
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql;
@@ -170,6 +173,71 @@ module.exports = async function (fastify, opts) {
         [employee_id, user_id, overtime_date, start_time, end_time, hours, reason || '', 'pending']
       );
 
+      // 发送通知给审批人
+      try {
+        // 获取申请人的部门ID
+        const [applicantInfo] = await pool.query('SELECT department_id, real_name FROM users WHERE id = ?', [user_id]);
+        const departmentId = applicantInfo[0]?.department_id;
+        const applicantName = applicantInfo[0]?.real_name;
+
+        // 格式化日期
+        const overtimeDateObj = new Date(overtime_date);
+        const formattedOvertimeDate = overtimeDateObj.toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+
+        // 1. 尝试查找部门主管作为审批人
+        const approver = await findApprover(pool, user_id, departmentId);
+
+        let targetUserIds = [];
+
+        if (approver) {
+          targetUserIds.push(approver.id);
+        } else {
+          // 2. 回退策略
+          targetUserIds = await getNotificationTargets(pool, 'overtime_apply', {
+            departmentId,
+            applicantId: user_id
+          });
+        }
+
+        // 去重
+        targetUserIds = [...new Set(targetUserIds)];
+
+        if (targetUserIds.length > 0) {
+          const title = '新加班申请';
+          const content = `${applicantName} 申请加班 ${hours} 小时 (${formattedOvertimeDate})`;
+
+          // 批量插入通知
+          const values = targetUserIds.map(uid => [
+            uid, 'overtime_apply', title, content, result.insertId, 'overtime'
+          ]);
+
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, content, related_id, related_type) VALUES ?`,
+            [values]
+          );
+
+          // 发送WebSocket通知
+          if (fastify.io) {
+            targetUserIds.forEach(uid => {
+              sendNotificationToUser(fastify.io, uid, {
+                type: 'overtime_apply',
+                title,
+                content,
+                related_id: result.insertId,
+                related_type: 'overtime',
+                created_at: new Date()
+              });
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.error('发送加班申请通知失败:', notifyError);
+      }
+
       return {
         success: true,
         message: '申请成功',
@@ -222,6 +290,14 @@ module.exports = async function (fastify, opts) {
         return reply.code(404).send({ success: false, message: '加班记录不存在' });
       }
 
+      // 格式化日期
+      const overtimeDate = new Date(overtimeRecords[0].overtime_date);
+      const formattedDate = overtimeDate.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+
       await pool.query(
         `UPDATE overtime_records
         SET status = 'approved', approver_id = ?, approved_at = NOW(), approval_note = ?
@@ -237,11 +313,24 @@ module.exports = async function (fastify, opts) {
           overtimeRecords[0].user_id,
           'overtime_approval',
           '加班申请已通过',
-          `您的加班申请（${overtimeRecords[0].overtime_date}，${overtimeRecords[0].hours}小时）已通过审批`,
+          `您的加班申请（${formattedDate}，${overtimeRecords[0].hours}小时）已通过审批`,
           id,
           'overtime'
         ]
       );
+
+      // 🔔 实时推送通知给申请人（WebSocket）
+      if (fastify.io) {
+        const { sendNotificationToUser } = require('../websocket')
+        sendNotificationToUser(fastify.io, overtimeRecords[0].user_id, {
+          type: 'overtime_approval',
+          title: '加班申请已通过',
+          content: `您的加班申请（${formattedDate}，${overtimeRecords[0].hours}小时）已通过审批`,
+          related_id: id,
+          related_type: 'overtime',
+          created_at: new Date()
+        })
+      }
 
       return {
         success: true,
@@ -269,6 +358,14 @@ module.exports = async function (fastify, opts) {
         return reply.code(404).send({ success: false, message: '加班记录不存在' });
       }
 
+      // 格式化日期
+      const overtimeDate = new Date(overtimeRecords[0].overtime_date);
+      const formattedDate = overtimeDate.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+
       await pool.query(
         `UPDATE overtime_records
         SET status = 'rejected', approver_id = ?, approved_at = NOW(), approval_note = ?
@@ -282,13 +379,26 @@ module.exports = async function (fastify, opts) {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           overtimeRecords[0].user_id,
-          'overtime_approval',
+          'overtime_rejection',
           '加班申请被拒绝',
-          approval_note || '您的加班申请未通过审批',
+          approval_note || `您的加班申请（${formattedDate}）未通过审批`,
           id,
           'overtime'
         ]
       );
+
+      // 🔔 实时推送通知给申请人（WebSocket）
+      if (fastify.io) {
+        const { sendNotificationToUser } = require('../websocket')
+        sendNotificationToUser(fastify.io, overtimeRecords[0].user_id, {
+          type: 'overtime_rejection',
+          title: '加班申请被拒绝',
+          content: approval_note || `您的加班申请（${formattedDate}）未通过审批`,
+          related_id: id,
+          related_type: 'overtime',
+          created_at: new Date()
+        })
+      }
 
       return {
         success: true,

@@ -390,7 +390,7 @@ export default function AttendanceHome({ onNavigate }) {
   const isRestDay = todaySchedule && todaySchedule.shift_id == restShiftId
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="min-h-screen p-6 bg-gray-50">
       {/* 头部 */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">考勤打卡</h1>

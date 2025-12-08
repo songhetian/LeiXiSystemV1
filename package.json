@@ -51,6 +51,7 @@
     "emoji-mart": "^5.6.0",
     "exceljs": "^4.4.0",
     "fastify": "^4.25.0",
+    "framer-motion": "^12.23.25",
     "jsonwebtoken": "^9.0.2",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.554.0",

@@ -1,5 +1,8 @@
 // 请假管理 API
 const { toBeijingDate } = require('../utils/time')
+const { getNotificationTargets } = require('../utils/notificationHelper')
+const { findApprover } = require('../utils/approvalHelper')
+const { sendNotificationToUser } = require('../websocket')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
@@ -66,6 +69,66 @@ module.exports = async function (fastify, opts) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
         [employee_id, user_id, leave_type, start_date, end_date, days, reason, attachmentsJson, usedConversionDays]
       )
+
+      // 发送通知给审批人（部门主管）
+      try {
+        // 获取申请人的部门ID
+        const [applicantInfo] = await pool.query('SELECT department_id, real_name FROM users WHERE id = ?', [user_id])
+        const departmentId = applicantInfo[0]?.department_id
+        const applicantName = applicantInfo[0]?.real_name
+
+        // 1. 尝试查找部门主管作为审批人
+        const approver = await findApprover(pool, user_id, departmentId)
+
+        let targetUserIds = []
+
+        if (approver) {
+          targetUserIds.push(approver.id)
+        } else {
+          // 2. 如果找不到部门主管，回退到使用 notification_settings (通常配置为超级管理员或部门管理员角色)
+          // 注意：如果配置的是'部门管理员'角色但没有找到具体的主管用户，getNotificationTargets 可能会返回所有拥有该角色的用户
+          targetUserIds = await getNotificationTargets(pool, 'leave_apply', {
+            departmentId,
+            applicantId: user_id
+          })
+        }
+
+        // 去重
+        targetUserIds = [...new Set(targetUserIds)]
+
+        if (targetUserIds.length > 0) {
+          const startDateStr = toBeijingDate(start_date)
+          const endDateStr = toBeijingDate(end_date)
+          const title = '新请假申请'
+          const content = `${applicantName} 申请请假 ${days} 天 (${startDateStr} 至 ${endDateStr})`
+
+          // 批量插入通知
+          const values = targetUserIds.map(uid => [
+            uid, 'leave_apply', title, content, result.insertId, 'leave'
+          ])
+
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, content, related_id, related_type) VALUES ?`,
+            [values]
+          )
+
+          // 发送WebSocket通知
+          if (fastify.io) {
+            targetUserIds.forEach(uid => {
+              sendNotificationToUser(fastify.io, uid, {
+                type: 'leave_apply',
+                title,
+                content,
+                related_id: result.insertId,
+                related_type: 'leave',
+                created_at: new Date()
+              })
+            })
+          }
+        }
+      } catch (notifyError) {
+        console.error('发送请假申请通知失败:', notifyError)
+      }
 
       return {
         success: true,
@@ -370,33 +433,44 @@ module.exports = async function (fastify, opts) {
             // 使用统一的时间处理函数格式化日期
             const startDateStr = toBeijingDate(leaveRecord.start_date);
             const endDateStr = toBeijingDate(leaveRecord.end_date);
+            const title = '请假申请已通过'
+            const content = `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`
+
+            // 获取目标用户（通常是申请人，但也可能配置了其他人）
+            const targetUserIds = await getNotificationTargets(pool, 'leave_approval', {
+              applicantId: leaveRecord.user_id,
+              departmentId: null // 审批通过通常不需要部门上下文，除非要通知部门其他人
+            })
+
+            // 确保申请人总是收到通知（如果配置中没有包含申请人，这里强制添加，或者完全依赖配置）
+            // 这里我们完全依赖配置，但默认配置应该包含申请人
+            // 为了安全起见，如果列表为空，我们至少通知申请人
+            if (targetUserIds.length === 0) targetUserIds.push(leaveRecord.user_id)
+
+            // 批量插入通知
+            const values = targetUserIds.map(uid => [
+              uid, 'leave_approval', title, content, id, 'leave'
+            ])
 
             const [notificationResult] = await connection.query(
-              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
-               VALUES (?, ?, ?, ?, ?, ?)`,
-              [
-                leaveRecord.user_id,
-                'leave_approval',
-                '请假申请已通过',
-                `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`,
-                id,
-                'leave'
-              ]
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type) VALUES ?`,
+              [values]
             )
 
-            console.log('✅ 通知创建成功，通知ID:', notificationResult.insertId)
+            console.log('✅ 通知创建成功')
 
             // 🔔 实时推送通知（WebSocket）
             if (fastify.io) {
-              const { sendNotificationToUser } = require('../websocket')
-              sendNotificationToUser(fastify.io, leaveRecord.user_id, {
-                id: notificationResult.insertId,
-                type: 'leave_approval',
-                title: '请假申请已通过',
-                content: `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`,
-                related_id: id,
-                related_type: 'leave',
-                created_at: new Date()
+              targetUserIds.forEach(uid => {
+                sendNotificationToUser(fastify.io, uid, {
+                  id: notificationResult.insertId, // 注意：批量插入时 insertId 是第一个ID，这里简化处理可能不准确，但不影响推送显示
+                  type: 'leave_approval',
+                  title,
+                  content,
+                  related_id: id,
+                  related_type: 'leave',
+                  created_at: new Date()
+                })
               })
             }
           }
@@ -477,34 +551,40 @@ module.exports = async function (fastify, opts) {
         // 使用统一的时间处理函数格式化日期
         const startDateStr = toBeijingDate(leaveRecords[0].start_date);
         const endDateStr = toBeijingDate(leaveRecords[0].end_date);
+        const title = '请假申请被拒绝'
         const content = approval_note
           ? `您的请假申请（${startDateStr} 至 ${endDateStr}）被拒绝：${approval_note}`
           : `您的请假申请（${startDateStr} 至 ${endDateStr}）未通过审批`;
 
+        // 获取目标用户
+        const targetUserIds = await getNotificationTargets(pool, 'leave_rejection', {
+          applicantId: leaveRecords[0].user_id
+        })
+
+        if (targetUserIds.length === 0) targetUserIds.push(leaveRecords[0].user_id)
+
+        // 批量插入
+        const values = targetUserIds.map(uid => [
+          uid, 'leave_rejection', title, content, id, 'leave'
+        ])
+
         await pool.query(
-          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            leaveRecords[0].user_id,
-            'leave_rejection',
-            '请假申请被拒绝',
-            content,
-            id,
-            'leave'
-          ]
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type) VALUES ?`,
+          [values]
         )
         console.log('✅ 拒绝通知创建成功');
 
         // 🔔 实时推送通知（WebSocket）
         if (fastify.io) {
-          const { sendNotificationToUser } = require('../websocket')
-          sendNotificationToUser(fastify.io, leaveRecords[0].user_id, {
-            type: 'leave_rejection',
-            title: '请假申请被拒绝',
-            content: content,
-            related_id: id,
-            related_type: 'leave',
-            created_at: new Date()
+          targetUserIds.forEach(uid => {
+            sendNotificationToUser(fastify.io, uid, {
+              type: 'leave_rejection',
+              title,
+              content,
+              related_id: id,
+              related_type: 'leave',
+              created_at: new Date()
+            })
           })
         }
       } catch (notificationError) {
@@ -529,7 +609,7 @@ module.exports = async function (fastify, opts) {
     try {
       // 只能撤销待审批的请假
       const [records] = await pool.query(
-        'SELECT status FROM leave_records WHERE id = ?',
+        'SELECT status, user_id, start_date, end_date FROM leave_records WHERE id = ?',
         [id]
       )
 
@@ -537,7 +617,9 @@ module.exports = async function (fastify, opts) {
         return reply.code(404).send({ success: false, message: '请假记录不存在' })
       }
 
-      if (records[0].status !== 'pending') {
+      const leave = records[0]
+
+      if (leave.status !== 'pending') {
         return reply.code(400).send({ success: false, message: '只能撤销待审批的请假' })
       }
 
@@ -545,6 +627,54 @@ module.exports = async function (fastify, opts) {
         'UPDATE leave_records SET status = \'cancelled\' WHERE id = ?',
         [id]
       )
+
+      // 发送撤销通知给部门管理员
+      try {
+        const startDateStr = toBeijingDate(leave.start_date)
+        const endDateStr = toBeijingDate(leave.end_date)
+
+        // 获取申请人信息
+        const [users] = await pool.query('SELECT real_name, department_id FROM users WHERE id = ?', [leave.user_id])
+        const applicantName = users[0]?.real_name || '未知用户'
+        const departmentId = users[0]?.department_id
+
+        const title = '请假申请已撤销'
+        const content = `${applicantName} 撤销了请假申请（${startDateStr} 至 ${endDateStr}）`
+
+        // 获取目标用户 (部门管理员)
+        const targetUserIds = await getNotificationTargets(pool, 'leave_cancel', {
+          departmentId,
+          applicantId: leave.user_id
+        })
+
+        if (targetUserIds.length > 0) {
+          // 批量插入通知
+          const values = targetUserIds.map(uid => [
+            uid, 'leave_cancel', title, content, id, 'leave'
+          ])
+
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, content, related_id, related_type) VALUES ?`,
+            [values]
+          )
+
+          // 发送WebSocket通知
+          if (fastify.io) {
+            targetUserIds.forEach(uid => {
+              sendNotificationToUser(fastify.io, uid, {
+                type: 'leave_cancel',
+                title,
+                content,
+                related_id: id,
+                related_type: 'leave',
+                created_at: new Date()
+              })
+            })
+          }
+        }
+      } catch (notifyError) {
+        console.error('发送撤销通知失败:', notifyError)
+      }
 
       return {
         success: true,

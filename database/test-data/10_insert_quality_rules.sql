@@ -1,7 +1,6 @@
 -- 插入质检规则测试数据
 -- 这个脚本会插入默认的质检规则
 
-USE leixin_customer_service;
 
 -- 获取一个有效的用户ID
 SET @admin_user_id = (SELECT id FROM users WHERE username = 'admin' LIMIT 1);

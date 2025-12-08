@@ -56,18 +56,42 @@ module.exports = async function (fastify, opts) {
       )
 
       // 发送通知给审批人（获取部门主管）
-      const [supervisors] = await pool.query(
-        `SELECT u.id, u.real_name
-         FROM users u
-         INNER JOIN user_roles ur ON u.id = ur.user_id
-         INNER JOIN roles r ON ur.role_id = r.id
-         WHERE u.department_id = (SELECT department_id FROM users WHERE id = ?)
-         AND r.name LIKE '%主管%'
+      // 首先尝试通过is_department_manager字段查找部门主管
+      let supervisors = [];
+      console.log('🔍 查找部门主管 - 申请人ID:', user_id);
+
+      const [directSupervisors] = await pool.query(
+        `SELECT id, real_name
+         FROM users
+         WHERE department_id = (SELECT department_id FROM users WHERE id = ?)
+         AND is_department_manager = 1
          LIMIT 1`,
         [user_id]
-      )
+      );
+
+      console.log('📋 通过is_department_manager找到的主管:', directSupervisors);
+
+      if (directSupervisors.length > 0) {
+        supervisors = directSupervisors;
+      } else {
+        // 如果没有通过is_department_manager找到，则尝试通过角色查找
+        console.log('🔄 通过角色查找部门主管');
+        const [roleSupervisors] = await pool.query(
+          `SELECT u.id, u.real_name
+           FROM users u
+           INNER JOIN user_roles ur ON u.id = ur.user_id
+           INNER JOIN roles r ON ur.role_id = r.id
+           WHERE u.department_id = (SELECT department_id FROM users WHERE id = ?)
+           AND r.name LIKE '%主管%'
+           LIMIT 1`,
+          [user_id]
+        );
+        console.log('📋 通过角色找到的主管:', roleSupervisors);
+        supervisors = roleSupervisors;
+      }
 
       if (supervisors.length > 0) {
+        // 发送通知给审批人（即使是申请人自己也要发送通知）
         await pool.query(
           `INSERT INTO notifications (user_id, title, content, type, related_id, related_type)
            VALUES (?, ?, ?, ?, ?, ?)`,
@@ -80,6 +104,19 @@ module.exports = async function (fastify, opts) {
             'compensatory_leave'
           ]
         )
+
+        // 🔔 实时推送通知给审批人（WebSocket）
+        if (fastify.io) {
+          const { sendNotificationToUser } = require('../websocket')
+          sendNotificationToUser(fastify.io, supervisors[0].id, {
+            type: 'compensatory_apply',
+            title: '新的调休申请待审批',
+            content: `员工申请调休，请及时审批`,
+            related_id: result.insertId,
+            related_type: 'compensatory_leave',
+            created_at: new Date()
+          })
+        }
       }
 
       return {
@@ -263,7 +300,7 @@ module.exports = async function (fastify, opts) {
     // 内部调用 list 逻辑太麻烦，直接复制逻辑或者让前端改。
     // 这里简单起见，直接返回 list 的结果，假设前端会改。
     // 但为了保险，我还是保留这个 endpoint，复用 list 的查询逻辑。
-    // 实际上，上面的 list 已经覆盖了 pending 的功能。
+    // 但实际上，上面的 list 已经覆盖了 pending 的功能。
     // 如果前端还没改，调用 pending 会走到这里。
     // 我将直接复制 list 的逻辑，或者让 list 处理 pending。
     // 为了避免代码重复，我建议前端改为调用 list。
@@ -320,8 +357,8 @@ module.exports = async function (fastify, opts) {
         if (requestData.original_schedule_date) {
           console.log('Deleting original schedule:', requestData.original_schedule_date)
           await connection.query(
-            'DELETE FROM schedules WHERE user_id = ? AND schedule_date = ?',
-            [requestData.user_id, requestData.original_schedule_date]
+            'DELETE FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
+            [requestData.employee_id, requestData.original_schedule_date]
           )
         }
 
@@ -341,19 +378,19 @@ module.exports = async function (fastify, opts) {
 
           // 检查新日期是否已有排班
           const [existing] = await connection.query(
-            'SELECT id FROM schedules WHERE user_id = ? AND schedule_date = ?',
-            [requestData.user_id, requestData.new_schedule_date]
+            'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
+            [requestData.employee_id, requestData.new_schedule_date]
           )
 
           if (existing.length === 0) {
             await connection.query(
-              'INSERT INTO schedules (user_id, schedule_date, shift_id, status) VALUES (?, ?, ?, ?)',
-              [requestData.user_id, requestData.new_schedule_date, requestData.new_shift_id, 'normal']
+              'INSERT INTO shift_schedules (employee_id, schedule_date, shift_id, is_rest_day) VALUES (?, ?, ?, ?)',
+              [requestData.employee_id, requestData.new_schedule_date, requestData.new_shift_id, 0]
             )
           } else {
             await connection.query(
-              'UPDATE schedules SET shift_id = ? WHERE user_id = ? AND schedule_date = ?',
-              [requestData.new_shift_id, requestData.user_id, requestData.new_schedule_date]
+              'UPDATE shift_schedules SET shift_id = ? WHERE employee_id = ? AND schedule_date = ?',
+              [requestData.new_shift_id, requestData.employee_id, requestData.new_schedule_date]
             )
           }
         } else if (requestData.new_schedule_date && !requestData.new_shift_id) {
@@ -371,6 +408,19 @@ module.exports = async function (fastify, opts) {
           [requestData.user_id, `您的调休申请（${dateStr}）已通过审批`, id]
         )
         console.log('✅ 调休审批通过通知创建成功')
+
+        // 🔔 实时推送通知（WebSocket）
+        if (fastify.io) {
+          const { sendNotificationToUser } = require('../websocket')
+          sendNotificationToUser(fastify.io, requestData.user_id, {
+            type: 'compensatory_approval',
+            title: '调休申请已通过',
+            content: `您的调休申请（${dateStr}）已通过审批`,
+            related_id: id,
+            related_type: 'compensatory_leave',
+            created_at: new Date()
+          })
+        }
       } catch (notificationError) {
         console.error('❌ 创建调休审批通知失败:', notificationError)
       }
@@ -438,6 +488,19 @@ module.exports = async function (fastify, opts) {
           ]
         )
         console.log('✅ 调休审批拒绝通知创建成功')
+
+        // 🔔 实时推送拒绝通知（WebSocket）
+        if (fastify.io) {
+          const { sendNotificationToUser } = require('../websocket')
+          sendNotificationToUser(fastify.io, requestData.user_id, {
+            type: 'compensatory_rejection',
+            title: '调休申请被拒绝',
+            content: content,
+            related_id: id,
+            related_type: 'compensatory_leave',
+            created_at: new Date()
+          })
+        }
       } catch (notificationError) {
         console.error('❌ 创建调休拒绝通知失败:', notificationError)
       }

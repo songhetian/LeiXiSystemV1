@@ -27,15 +27,28 @@ async function getUserPermissions(pool, userId, departmentIdFromToken) {
     // 检查用户是否是超级管理员
     const canViewAllDepartments = roles.some(r => r.name === '超级管理员')
 
-    // 获取用户角色可以查看的所有部门ID
-    const [roleDepartments] = await pool.query(`
-      SELECT DISTINCT rd.department_id
-      FROM role_departments rd
-      INNER JOIN user_roles ur ON rd.role_id = ur.role_id
-      WHERE ur.user_id = ?
-    `, [userId])
+    // 优先检查用户个人部门权限
+    let viewableDepartmentIds = [];
+    const [userDepartments] = await pool.query(`
+      SELECT DISTINCT ud.department_id
+      FROM user_departments ud
+      WHERE ud.user_id = ?
+    `, [userId]);
 
-    const viewableDepartmentIds = roleDepartments.map(rd => rd.department_id)
+    // 如果用户有个人部门权限，使用个人权限
+    if (userDepartments.length > 0) {
+      viewableDepartmentIds = userDepartments.map(ud => ud.department_id);
+    } else {
+      // 否则使用角色部门权限
+      const [roleDepartments] = await pool.query(`
+        SELECT DISTINCT rd.department_id
+        FROM role_departments rd
+        INNER JOIN user_roles ur ON rd.role_id = ur.role_id
+        WHERE ur.user_id = ?
+      `, [userId])
+
+      viewableDepartmentIds = roleDepartments.map(rd => rd.department_id)
+    }
 
     // 优先使用JWT中的部门ID，如果没有则使用数据库中的部门ID
     const effectiveDepartmentId = departmentIdFromToken || user.department_id;
@@ -105,6 +118,13 @@ function applyDepartmentFilter(permissions, query, params, departmentField = 'u.
     canViewAllDepartments: permissions.canViewAllDepartments,
     viewableDepartmentIds: permissions.viewableDepartmentIds
   })
+
+  // 如果是超级管理员，可以查看所有部门的数据
+  if (permissions.canViewAllDepartments) {
+    console.log('[applyDepartmentFilter] Super admin, allowing all data')
+    // 不添加额外的过滤条件，允许查看所有数据
+    return { query, params }
+  }
 
   // 严格根据 viewableDepartmentIds 过滤
   // 即使是超级管理员，也必须配置了可查看的部门才能查看

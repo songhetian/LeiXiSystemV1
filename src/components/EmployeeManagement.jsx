@@ -3,6 +3,7 @@ import { toast } from 'react-toastify'
 import Modal from './Modal'
 import EmployeeDetail from './EmployeeDetail'
 import EmployeeBatchOperations from './EmployeeBatchOperations'
+import UserDepartmentModal from './UserDepartmentModal'  // 添加这一行
 import { getApiUrl } from '../utils/apiConfig'
 
 function EmployeeManagement() {
@@ -21,6 +22,9 @@ function EmployeeManagement() {
   const [viewingEmp, setViewingEmp] = useState(null)
   const [deletingEmp, setDeletingEmp] = useState(null)
   const [statusChangingEmp, setStatusChangingEmp] = useState(null)
+  const [isManagerModalOpen, setIsManagerModalOpen] = useState(false)
+  const [managerChangingEmp, setManagerChangingEmp] = useState(null)
+  const [managerChangeValue, setManagerChangeValue] = useState(false)
   const [loading, setLoading] = useState(true)
   const [statusChangeData, setStatusChangeData] = useState({
     newStatus: '',
@@ -34,6 +38,10 @@ function EmployeeManagement() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
+
+  // 员工部门权限状态
+  const [isUserDepartmentModalOpen, setIsUserDepartmentModalOpen] = useState(false);
+  const [selectedUserForDepartment, setSelectedUserForDepartment] = useState(null);
 
   // 搜索条件
   const [searchFilters, setSearchFilters] = useState({
@@ -62,7 +70,8 @@ function EmployeeManagement() {
     education: '',
     skills: '',
     remark: '',
-    role_id: '' // 修改为单个角色ID
+    role_id: '', // 修改为单个角色ID
+    is_department_manager: false // 新增部门主管标识
   })
   const [avatarPreview, setAvatarPreview] = useState('')
 
@@ -354,6 +363,15 @@ function EmployeeManagement() {
           })
         }
 
+        // 更新部门主管标识
+        if (userId) {
+          await fetch(getApiUrl(`/api/users/${userId}/department-manager`), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isDepartmentManager: formData.is_department_manager })
+          })
+        }
+
         toast.success(editingEmp ? '员工更新成功' : '员工创建成功')
         setIsModalOpen(false)
         fetchEmployees()
@@ -365,38 +383,44 @@ function EmployeeManagement() {
   }
 
   const handleEdit = async (emp) => {
-    setEditingEmp(emp)
-
-    // 获取用户的角色
-    let userRoles = []
     try {
-      const response = await fetch(getApiUrl(`/api/users/${emp.user_id}/roles`))
-      userRoles = await response.json()
-    } catch (error) {
-      console.error('获取用户角色失败')
-    }
+      // 获取用户的角色信息
+      const token = localStorage.getItem('token')
+      const roleResponse = await fetch(getApiUrl(`/api/users/${emp.user_id}/roles`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const roleData = await roleResponse.json()
+      const userRoles = roleData.success ? roleData.data : []
 
-    setFormData({
-      employee_no: emp.employee_no,
-      real_name: emp.real_name,
-      email: emp.email || '',
-      phone: emp.phone || '',
-      department_id: emp.department_id || '',
-      position: emp.position || '',
-      hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
-      rating: emp.rating || 3,
-      status: emp.status,
-      avatar: emp.avatar || '',
-      emergency_contact: emp.emergency_contact || '',
-      emergency_phone: emp.emergency_phone || '',
-      address: emp.address || '',
-      education: emp.education || '',
-      skills: emp.skills || '',
-      remark: emp.remark || '',
-      role_id: userRoles.length > 0 ? userRoles[0].id : ''
-    })
-    setAvatarPreview(emp.avatar || '')
-    setIsModalOpen(true)
+      setEditingEmp(emp)
+      setFormData({
+        employee_no: emp.employee_no || '',
+        real_name: emp.real_name || '',
+        email: emp.email || '',
+        phone: emp.phone || '',
+        department_id: emp.department_id || '',
+        position: emp.position || '',
+        hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
+        rating: emp.rating || 3,
+        status: emp.status || 'active',
+        avatar: emp.avatar || '',
+        emergency_contact: emp.emergency_contact || '',
+        emergency_phone: emp.emergency_phone || '',
+        address: emp.address || '',
+        education: emp.education || '',
+        skills: emp.skills || '',
+        remark: emp.remark || '',
+        role_id: userRoles.length > 0 ? userRoles[0].id : '',
+        is_department_manager: emp.is_department_manager === 1 || emp.is_department_manager === true
+      })
+      setAvatarPreview(emp.avatar || '')
+      setIsModalOpen(true)
+    } catch (error) {
+      console.error('获取员工角色信息失败:', error)
+      toast.error('获取员工信息失败')
+    }
   }
 
   const handleDeleteClick = (emp) => {
@@ -496,6 +520,43 @@ function EmployeeManagement() {
     }
   }
 
+  const handleManagerClick = (emp) => {
+    setManagerChangingEmp(emp)
+    setManagerChangeValue(emp.is_department_manager === 1 || emp.is_department_manager === true)
+    setIsManagerModalOpen(true)
+  }
+
+  const handleManagerChangeConfirm = async () => {
+    if (!managerChangingEmp || !managerChangingEmp.user_id) {
+      toast.error('无法获取用户ID')
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(getApiUrl(`/api/users/${managerChangingEmp.user_id}/department-manager`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isDepartmentManager: managerChangeValue })
+      })
+
+      if (response.ok) {
+        toast.success('部门主管状态更新成功')
+        setIsManagerModalOpen(false)
+        setManagerChangingEmp(null)
+        fetchEmployees()
+      } else {
+        toast.error('更新失败')
+      }
+    } catch (error) {
+      console.error('更新部门主管状态失败:', error)
+      toast.error('更新失败')
+    }
+  }
+
   const handleViewDetail = (emp) => {
     setViewingEmp(emp)
     setIsDetailOpen(true)
@@ -550,10 +611,10 @@ function EmployeeManagement() {
       education: '',
       skills: '',
       remark: '',
-      role_id: ''
+      role_id: '',
+      is_department_manager: false
     })
     setAvatarPreview('')
-    setEditingEmp(null)
   }
 
   const renderRating = (rating) => {
@@ -587,6 +648,18 @@ function EmployeeManagement() {
       </div>
     );
   }
+
+  // 处理员工部门权限管理
+  const handleManageUserDepartments = (user) => {
+    setSelectedUserForDepartment(user);
+    setIsUserDepartmentModalOpen(true);
+  };
+
+  // 员工部门权限设置成功回调
+  const handleUserDepartmentSuccess = () => {
+    // 可以在这里添加刷新逻辑或其他操作
+    toast.success('员工部门权限设置成功');
+  };
 
   return (
     <div className="p-8">
@@ -718,6 +791,8 @@ function EmployeeManagement() {
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">评级</th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">评级</th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门主管</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</th>
               </tr>
@@ -764,6 +839,26 @@ function EmployeeManagement() {
                       <span className="text-sm text-gray-700 font-medium">{renderRating(emp.rating)}</span>
                     </td>
                     <td className="px-3 py-2 text-center">
+                      <span className="text-sm text-gray-700 font-medium">{renderRating(emp.rating)}</span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <div
+                        onClick={() => handleManagerClick(emp)}
+                        className="cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors inline-block"
+                        title="点击修改部门主管状态"
+                      >
+                        {emp.is_department_manager ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                            是
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                            否
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
                       <div className="flex justify-center">
                         <span
                           onClick={() => handleStatusClick(emp)}
@@ -779,6 +874,15 @@ function EmployeeManagement() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleManageUserDepartments(emp)}
+                          className="p-1.5 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                          title="部门权限"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </button>
                         <button
                           onClick={() => handleEdit(emp)}
                           className="p-1.5 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
@@ -799,6 +903,7 @@ function EmployeeManagement() {
                         </button>
                       </div>
                     </td>
+
                   </tr>
                 ))
               )}
@@ -1295,6 +1400,70 @@ function EmployeeManagement() {
           </div>
         </div>
       </Modal>
+      {/* 部门主管设置模态框 */}
+      <Modal
+        isOpen={isManagerModalOpen}
+        onClose={() => setIsManagerModalOpen(false)}
+        title="设置部门主管"
+        size="small"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsManagerModalOpen(false)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleManagerChangeConfirm}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              确认
+            </button>
+          </div>
+        }
+      >
+        <div className="p-4">
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-2xl font-bold text-gray-600 mb-2">
+              {managerChangingEmp?.avatar ? (
+                <img src={managerChangingEmp.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                managerChangingEmp?.real_name?.charAt(0)
+              )}
+            </div>
+          </div>
+          <h3 className="text-center text-lg font-medium text-gray-900 mb-1">{managerChangingEmp?.real_name}</h3>
+          <p className="text-center text-sm text-gray-500 mb-6">{managerChangingEmp?.department_name} - {managerChangingEmp?.position}</p>
+
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-gray-700 font-medium">设为部门主管</span>
+              <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out">
+                <input
+                  type="checkbox"
+                  className="peer absolute w-0 h-0 opacity-0"
+                  checked={managerChangeValue}
+                  onChange={(e) => setManagerChangeValue(e.target.checked)}
+                />
+                <span className="block w-12 h-6 bg-gray-300 rounded-full shadow-inner peer-checked:bg-primary-600 transition-colors duration-300"></span>
+                <span className="absolute block w-4 h-4 mt-1 ml-1 bg-white rounded-full shadow inset-y-0 left-0 peer-checked:translate-x-6 transition-transform duration-300"></span>
+              </div>
+            </label>
+            <p className="text-xs text-gray-500 mt-2">
+              设置为部门主管后，该员工将拥有审批本部门员工考勤申请的权限。
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 用户部门管理模态框 */}
+      <UserDepartmentModal
+        isOpen={isUserDepartmentModalOpen}
+        onClose={() => setIsUserDepartmentModalOpen(false)}
+        user={selectedUserForDepartment}
+        onSuccess={handleUserDepartmentSuccess}
+      />
     </div>
   )
 }

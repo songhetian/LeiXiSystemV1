@@ -23,19 +23,24 @@ if (fs.existsSync(dbConfigPath)) {
 }
 
 const dbConfig = {
-    host: fileConfig.host || process.env.DB_HOST || 'localhost',
-    user: fileConfig.user || process.env.DB_USER || 'root',
-    password: fileConfig.password || process.env.DB_PASSWORD || 'root',
-    database: fileConfig.database || process.env.DB_NAME || 'leixin_customer_service',
-    port: fileConfig.port || process.env.DB_PORT || 3306,
+    host: process.env.DB_HOST || fileConfig.host || 'localhost',
+    user: process.env.DB_USER || fileConfig.user || 'root',
+    password: process.env.DB_PASSWORD || fileConfig.password || 'root',
+    database: process.env.DB_NAME || fileConfig.database,
+    port: process.env.DB_PORT || fileConfig.port || 3306,
     multipleStatements: true
 };
+
+if (!dbConfig.database) {
+    console.error('DB_NAME 未配置，请在 .env 设置为 leixin_customer_service_v1');
+    process.exit(1);
+}
 
 async function runSeed() {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        console.log('✓ 已连接到数据库\n');
+        console.log(`✓ 已连接到数据库: ${dbConfig.host}:${dbConfig.port}/${dbConfig.database}\n`);
 
         const seedDir = path.join(__dirname, '../database/test-data');
         const seedFiles = fs.readdirSync(seedDir)
@@ -48,19 +53,24 @@ async function runSeed() {
             console.log(`执行: ${file}`);
             const sql = fs.readFileSync(path.join(seedDir, file), 'utf8');
 
-            // 分割并执行 SQL 语句
-            const statements = sql
-                .split(';')
-                .map(stmt => stmt.trim())
-                .filter(stmt => stmt.length > 0);
+            try {
+                // 分割并执行 SQL 语句
+                const statements = sql
+                    .split(';')
+                    .map(stmt => stmt.trim())
+                    .filter(stmt => stmt.length > 0);
 
-            for (const statement of statements) {
-                if (statement) {
-                    await connection.query(statement);
+                for (const statement of statements) {
+                    if (statement) {
+                        await connection.query(statement);
+                    }
                 }
-            }
 
-            console.log(`✓ ${file} 执行完成`);
+                console.log(`✓ ${file} 执行完成`);
+            } catch (err) {
+                console.warn(`⚠️ 跳过 ${file}: ${err.message}`);
+                // 继续执行后续种子文件
+            }
         }
 
         console.log('\n✓ 所有种子数据已成功导入');

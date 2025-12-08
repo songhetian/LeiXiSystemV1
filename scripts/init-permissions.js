@@ -29,11 +29,34 @@ const permissions = [
   { code: 'employee:edit', name: '编辑员工', resource: 'employee', action: 'edit', module: 'employee', description: '编辑员工档案' },
   { code: 'employee:delete', name: '删除员工', resource: 'employee', action: 'delete', module: 'employee', description: '删除员工档案' },
 
+  // 组织架构
+  { code: 'department:view', name: '查看部门', resource: 'department', action: 'view', module: 'organization', description: '查看部门信息' },
+  { code: 'department:manage', name: '管理部门', resource: 'department', action: 'manage', module: 'organization', description: '管理各部门信息' },
+  { code: 'position:view', name: '查看职位', resource: 'position', action: 'view', module: 'organization', description: '查看职位信息' },
+  { code: 'position:manage', name: '管理职位', resource: 'position', action: 'manage', module: 'organization', description: '管理各职位信息' },
+
+  // 信息系统
+  { code: 'messaging:chat', name: '聊天功能', resource: 'messaging', action: 'chat', module: 'messaging', description: '使用聊天功能' },
+  { code: 'messaging:broadcast:view', name: '查看广播', resource: 'broadcast', action: 'view', module: 'messaging', description: '查看系统广播' },
+  { code: 'messaging:broadcast:manage', name: '管理广播', resource: 'broadcast', action: 'manage', module: 'messaging', description: '管理系统广播' },
+
   // 考勤管理
   { code: 'attendance:view', name: '查看考勤', resource: 'attendance', action: 'view', module: 'attendance', description: '查看考勤记录' },
   { code: 'attendance:edit', name: '编辑考勤', resource: 'attendance', action: 'edit', module: 'attendance', description: '补卡/修改考勤' },
   { code: 'attendance:approve', name: '审批考勤', resource: 'attendance', action: 'approve', module: 'attendance', description: '审批考勤申请' },
   { code: 'schedule:manage', name: '排班管理', resource: 'schedule', action: 'manage', module: 'attendance', description: '管理排班' },
+
+  // 假期管理
+  { code: 'vacation:record:view', name: '查看假期记录', resource: 'vacation', action: 'view', module: 'vacation', description: '查看假期申请记录' },
+  { code: 'vacation:record:apply', name: '申请假期', resource: 'vacation', action: 'apply', module: 'vacation', description: '提交假期申请' },
+  { code: 'vacation:approval:manage', name: '审批假期', resource: 'vacation', action: 'approve', module: 'vacation', description: '审批假期申请' },
+  { code: 'vacation:config:manage', name: '假期配置', resource: 'vacation', action: 'config', module: 'vacation', description: '管理假期配置' },
+
+  // 质检管理
+  { code: 'quality:session:view', name: '查看会话', resource: 'session', action: 'view', module: 'quality', description: '查看质检会话' },
+  { code: 'quality:session:score', name: '评分会话', resource: 'session', action: 'score', module: 'quality', description: '对会话进行评分' },
+  { code: 'quality:rule:manage', name: '管理规则', resource: 'rule', action: 'manage', module: 'quality', description: '管理质检规则' },
+  { code: 'quality:report:view', name: '查看报告', resource: 'report', action: 'view', module: 'quality', description: '查看质检报告' },
 
   // 知识库
   { code: 'knowledge:view', name: '查看知识库', resource: 'knowledge', action: 'view', module: 'knowledge', description: '查看知识库文章' },
@@ -41,6 +64,12 @@ const permissions = [
   { code: 'knowledge:edit', name: '编辑文章', resource: 'knowledge', action: 'edit', module: 'knowledge', description: '编辑文章' },
   { code: 'knowledge:delete', name: '删除文章', resource: 'knowledge', action: 'delete', module: 'knowledge', description: '删除文章' },
   { code: 'knowledge:audit', name: '审核文章', resource: 'knowledge', action: 'audit', module: 'knowledge', description: '审核文章发布' },
+
+  // 考核系统
+  { code: 'assessment:plan:view', name: '查看考核计划', resource: 'plan', action: 'view', module: 'assessment', description: '查看考核计划' },
+  { code: 'assessment:plan:manage', name: '管理考核计划', resource: 'plan', action: 'manage', module: 'assessment', description: '管理考核计划' },
+  { code: 'assessment:result:view', name: '查看考核结果', resource: 'result', action: 'view', module: 'assessment', description: '查看考核结果' },
+  { code: 'assessment:config:manage', name: '考核配置', resource: 'config', action: 'manage', module: 'assessment', description: '管理考核配置' },
 
   // 培训考核
   { code: 'exam:view', name: '查看考试', resource: 'exam', action: 'view', module: 'training', description: '查看考试列表' },
@@ -119,7 +148,9 @@ async function initPermissions() {
       await connection.query('DELETE FROM role_permissions WHERE role_id = ?', [managerRoleId]);
       const managerPermCodes = [
         'employee:view', 'attendance:view', 'attendance:approve', 'schedule:manage',
-        'knowledge:view', 'knowledge:create', 'exam:view', 'exam:grade'
+        'knowledge:view', 'knowledge:create', 'exam:view', 'exam:grade',
+        'department:view', 'position:view', 'messaging:chat',
+        'vacation:record:view', 'quality:session:view', 'assessment:plan:view'
       ];
       for (const code of managerPermCodes) {
         if (permMap[code]) {
@@ -134,7 +165,8 @@ async function initPermissions() {
     if (employeeRoleId) {
       await connection.query('DELETE FROM role_permissions WHERE role_id = ?', [employeeRoleId]);
       const empPermCodes = [
-        'knowledge:view', 'exam:view'
+        'knowledge:view', 'exam:view', 'messaging:chat',
+        'vacation:record:view', 'assessment:plan:view'
       ];
       for (const code of empPermCodes) {
         if (permMap[code]) {

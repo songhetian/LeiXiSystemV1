@@ -81,21 +81,14 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
     }
   };
 
-  useEffect(() => {
-    if (userId) {
-      loadNotifications();
-      loadUnreadCount();
-    }
-  }, [userId, pagination.page, filters, activeTab]);
-
   const loadNotifications = async () => {
     setLoading(true);
     try {
       const tabFilters = getTypeFilterByTab(activeTab);
       const params = {
-        userId,
         page: pagination.page,
-        pageSize: pagination.pageSize,
+        limit: pagination.pageSize,
+        userId,
         search: filters.search || undefined,
         type: filters.type || tabFilters.type || undefined,
         isRead: filters.isRead || tabFilters.isRead || undefined,
@@ -108,11 +101,16 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
       const response = await axios.get(getApiUrl('/api/notifications'), { params });
 
       if (response.data && response.data.success) {
-        setNotifications(response.data.data || []);
+        const notificationData = (response.data.data || []).map(item => ({
+          ...item,
+          is_read: item.is_read === 1 || item.is_read === true
+        }));
+
+        setNotifications(notificationData);
         setPagination(prev => ({
           ...prev,
           total: response.data.pagination?.total || 0,
-          totalPages: Math.ceil((response.data.pagination?.total || 0) / prev.pageSize)
+          totalPages: response.data.pagination?.totalPages || 0
         }));
       }
     } catch (error) {
@@ -122,6 +120,14 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (userId) {
+      loadNotifications();
+      loadUnreadCount();
+      setLoading(false);
+    }
+  }, [userId, pagination.page, filters, activeTab]);
 
   const loadUnreadCount = async () => {
     try {

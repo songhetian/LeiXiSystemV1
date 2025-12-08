@@ -19,7 +19,35 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/attendance/leave/records', async (request, reply) => {
     const { page = 1, limit = 10, status, start_date, end_date, employee_id } = request.query
 
+    let currentUserId
     try {
+      currentUserId = getUserIdFromToken(request)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
+
+    try {
+      // 获取当前用户信息（角色和部门）
+      const [currentUser] = await pool.query(
+        `SELECT u.id, u.department_id, u.is_department_manager,
+         GROUP_CONCAT(r.name) as role_names
+         FROM users u
+         LEFT JOIN user_roles ur ON u.id = ur.user_id
+         LEFT JOIN roles r ON ur.role_id = r.id
+         WHERE u.id = ?
+         GROUP BY u.id`,
+        [currentUserId]
+      )
+
+      if (currentUser.length === 0) {
+        return reply.code(404).send({ success: false, message: '用户不存在' })
+      }
+
+      const user = currentUser[0]
+      const roleNames = user.role_names ? user.role_names.split(',') : []
+      const isSuperAdmin = roleNames.includes('超级管理员')
+      const isDeptManager = user.is_department_manager === 1 || user.is_department_manager === true
+
       const offset = (page - 1) * limit
       let query = `
         SELECT
@@ -38,6 +66,7 @@ module.exports = async function (fastify, opts) {
           lr.approval_note,
           lr.created_at,
           u.username as employee_name,
+          u.department_id,
           a.username as approver_name
         FROM leave_records lr
         LEFT JOIN users u ON lr.user_id = u.id
@@ -45,6 +74,19 @@ module.exports = async function (fastify, opts) {
         WHERE 1=1
       `
       const params = []
+
+      // 权限过滤
+      if (!isSuperAdmin) {
+        if (isDeptManager) {
+          // 部门主管只能看自己部门的（或者自己审批的）
+          query += ' AND (u.department_id = ? OR lr.approver_id = ?)'
+          params.push(user.department_id, currentUserId)
+        } else {
+          // 普通用户只能看自己的
+          query += ' AND lr.user_id = ?'
+          params.push(currentUserId)
+        }
+      }
 
       if (employee_id) {
         query += ' AND lr.employee_id = ?'
@@ -100,7 +142,35 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/attendance/overtime/records', async (request, reply) => {
     const { page = 1, limit = 10, status, start_date, end_date, employee_id } = request.query
 
+    let currentUserId
     try {
+      currentUserId = getUserIdFromToken(request)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
+
+    try {
+      // 获取当前用户信息（角色和部门）
+      const [currentUser] = await pool.query(
+        `SELECT u.id, u.department_id, u.is_department_manager,
+         GROUP_CONCAT(r.name) as role_names
+         FROM users u
+         LEFT JOIN user_roles ur ON u.id = ur.user_id
+         LEFT JOIN roles r ON ur.role_id = r.id
+         WHERE u.id = ?
+         GROUP BY u.id`,
+        [currentUserId]
+      )
+
+      if (currentUser.length === 0) {
+        return reply.code(404).send({ success: false, message: '用户不存在' })
+      }
+
+      const user = currentUser[0]
+      const roleNames = user.role_names ? user.role_names.split(',') : []
+      const isSuperAdmin = roleNames.includes('超级管理员')
+      const isDeptManager = user.is_department_manager === 1 || user.is_department_manager === true
+
       const offset = (page - 1) * limit
       let query = `
         SELECT
@@ -117,6 +187,7 @@ module.exports = async function (fastify, opts) {
           or_table.approved_at,
           or_table.created_at,
           u.username as employee_name,
+          u.department_id,
           a.username as approver_name
         FROM overtime_records or_table
         LEFT JOIN users u ON or_table.user_id = u.id
@@ -124,6 +195,19 @@ module.exports = async function (fastify, opts) {
         WHERE 1=1
       `
       const params = []
+
+      // 权限过滤
+      if (!isSuperAdmin) {
+        if (isDeptManager) {
+          // 部门主管只能看自己部门的（或者自己审批的）
+          query += ' AND (u.department_id = ? OR or_table.approver_id = ?)'
+          params.push(user.department_id, currentUserId)
+        } else {
+          // 普通用户只能看自己的
+          query += ' AND or_table.user_id = ?'
+          params.push(currentUserId)
+        }
+      }
 
       if (employee_id) {
         query += ' AND or_table.employee_id = ?'
@@ -179,7 +263,35 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/attendance/makeup/records', async (request, reply) => {
     const { page = 1, limit = 10, status, start_date, end_date, employee_id } = request.query
 
+    let currentUserId
     try {
+      currentUserId = getUserIdFromToken(request)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
+
+    try {
+      // 获取当前用户信息（角色和部门）
+      const [currentUser] = await pool.query(
+        `SELECT u.id, u.department_id, u.is_department_manager,
+         GROUP_CONCAT(r.name) as role_names
+         FROM users u
+         LEFT JOIN user_roles ur ON u.id = ur.user_id
+         LEFT JOIN roles r ON ur.role_id = r.id
+         WHERE u.id = ?
+         GROUP BY u.id`,
+        [currentUserId]
+      )
+
+      if (currentUser.length === 0) {
+        return reply.code(404).send({ success: false, message: '用户不存在' })
+      }
+
+      const user = currentUser[0]
+      const roleNames = user.role_names ? user.role_names.split(',') : []
+      const isSuperAdmin = roleNames.includes('超级管理员')
+      const isDeptManager = user.is_department_manager === 1 || user.is_department_manager === true
+
       const offset = (page - 1) * limit
       let query = `
         SELECT
@@ -196,6 +308,7 @@ module.exports = async function (fastify, opts) {
           mr.approval_note,
           mr.created_at,
           u.username as employee_name,
+          u.department_id,
           a.username as approver_name
         FROM makeup_records mr
         LEFT JOIN users u ON mr.user_id = u.id
@@ -203,6 +316,19 @@ module.exports = async function (fastify, opts) {
         WHERE 1=1
       `
       const params = []
+
+      // 权限过滤
+      if (!isSuperAdmin) {
+        if (isDeptManager) {
+          // 部门主管只能看自己部门的（或者自己审批的）
+          query += ' AND (u.department_id = ? OR mr.approver_id = ?)'
+          params.push(user.department_id, currentUserId)
+        } else {
+          // 普通用户只能看自己的
+          query += ' AND mr.user_id = ?'
+          params.push(currentUserId)
+        }
+      }
 
       if (employee_id) {
         query += ' AND mr.employee_id = ?'
@@ -310,6 +436,19 @@ module.exports = async function (fastify, opts) {
                 ]
               )
               console.log('✅ 通知创建成功')
+
+              // 🔔 实时推送通知（WebSocket）
+              if (fastify.io) {
+                const { sendNotificationToUser } = require('../websocket')
+                sendNotificationToUser(fastify.io, leave.user_id, {
+                  type: 'leave_approval',
+                  title: '请假申请已通过',
+                  content: `您的请假申请（${startDateStr} 至 ${endDateStr}）已通过审批`,
+                  related_id: id,
+                  related_type: 'leave',
+                  created_at: new Date()
+                })
+              }
             } else {
               console.warn('⚠️ user_id 为空，跳过通知创建')
             }
@@ -414,6 +553,19 @@ module.exports = async function (fastify, opts) {
               ]
             )
             console.log('✅ 拒绝通知创建成功')
+
+            // 🔔 实时推送拒绝通知（WebSocket）
+            if (fastify.io) {
+              const { sendNotificationToUser } = require('../websocket')
+              sendNotificationToUser(fastify.io, leave.user_id, {
+                type: 'leave_rejection',
+                title: '请假申请被拒绝',
+                content: content,
+                related_id: id,
+                related_type: 'leave',
+                created_at: new Date()
+              })
+            }
           }
         } catch (notificationError) {
           console.error('❌ 创建拒绝通知失败:', notificationError)
@@ -435,14 +587,28 @@ module.exports = async function (fastify, opts) {
     const { id } = request.params
     const { approved, approval_note } = request.body
 
-    let approver_id
+    let currentUserId
     try {
-      approver_id = getUserIdFromToken(request)
+      currentUserId = getUserIdFromToken(request)
     } catch (error) {
       return reply.code(401).send({ success: false, message: '未登录' })
     }
 
     try {
+      // 权限检查
+      const { getUserPermissions } = require('../utils/permission')
+      const permissions = await getUserPermissions(pool, currentUserId)
+      const hasManagePermission = permissions.includes('attendance:approval:manage')
+
+      // 同时也检查是否为部门主管 (兼容旧逻辑)
+      const [user] = await pool.query('SELECT is_department_manager FROM users WHERE id = ?', [currentUserId])
+      const isDeptManager = user[0]?.is_department_manager === 1 || user[0]?.is_department_manager === true
+
+      if (!hasManagePermission && !isDeptManager) {
+        return reply.code(403).send({ success: false, message: '无权审批' })
+      }
+
+      const approver_id = currentUserId
       const status = approved ? 'approved' : 'rejected'
 
       await pool.query(
@@ -542,13 +708,32 @@ module.exports = async function (fastify, opts) {
     const { id } = request.params
     const { approved, approval_note } = request.body
 
-    let approver_id
+    let currentUserId
     try {
-      approver_id = getUserIdFromToken(request)
+      currentUserId = getUserIdFromToken(request)
     } catch (error) {
       return reply.code(401).send({ success: false, message: '未登录' })
     }
 
+    // 权限检查
+    try {
+      const { getUserPermissions } = require('../utils/permission')
+      const permissions = await getUserPermissions(pool, currentUserId)
+      const hasManagePermission = permissions.includes('attendance:approval:manage')
+
+      // 同时也检查是否为部门主管 (兼容旧逻辑)
+      const [user] = await pool.query('SELECT is_department_manager FROM users WHERE id = ?', [currentUserId])
+      const isDeptManager = user[0]?.is_department_manager === 1 || user[0]?.is_department_manager === true
+
+      if (!hasManagePermission && !isDeptManager) {
+        return reply.code(403).send({ success: false, message: '无权审批' })
+      }
+    } catch (error) {
+      console.error('权限检查失败:', error)
+      return reply.code(500).send({ success: false, message: '系统错误' })
+    }
+
+    const approver_id = currentUserId
     const connection = await pool.getConnection()
 
     try {

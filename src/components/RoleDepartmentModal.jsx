@@ -39,7 +39,12 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
   const fetchRoleDepartments = async () => {
     setLoading(true)
     try {
-      const response = await fetch(getApiUrl(`/api/roles/${role.id}/departments`))
+      const token = localStorage.getItem('token')
+      const response = await fetch(getApiUrl(`/api/roles/${role.id}/departments`), {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -71,9 +76,13 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
   const handleSave = async () => {
     setSaving(true)
     try {
+      const token = localStorage.getItem('token')
       const response = await fetch(getApiUrl(`/api/roles/${role.id}/departments`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
         body: JSON.stringify({ department_ids: selectedDepartments })
       })
 
@@ -81,6 +90,27 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
 
       if (result.success) {
         toast.success(`部门权限设置成功，共 ${result.count} 个部门`)
+
+        // 刷新当前用户的权限信息
+        try {
+          const refreshResponse = await fetch(getApiUrl('/api/auth/permissions'), {
+            headers: {
+              ...(token && { Authorization: `Bearer ${token}` })
+            }
+          });
+
+          const refreshResult = await refreshResponse.json();
+          if (refreshResult.success && refreshResult.data) {
+            // 更新本地存储的权限信息
+            localStorage.setItem('userPermissions', JSON.stringify(refreshResult.data));
+            localStorage.setItem('permissions', JSON.stringify(refreshResult.data.permissions || []));
+            localStorage.setItem('permissionDetails', JSON.stringify(refreshResult.data));
+          }
+        } catch (refreshError) {
+          console.error('刷新权限信息失败:', refreshError);
+        }
+
+        // 先调用onSuccess再关闭模态框，避免页面跳转
         onSuccess?.()
         onClose()
       } else {

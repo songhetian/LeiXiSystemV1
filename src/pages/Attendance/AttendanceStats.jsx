@@ -89,7 +89,7 @@ export default function AttendanceStats() {
   }
 
   return (
-    <div className="p-3 max-w-7xl mx-auto">
+    <div className="min-h-screen p-6 bg-gray-50">
       <div className="mb-3">
         <h1 className="text-xl font-bold text-gray-800">我的考勤统计</h1>
         <p className="text-sm text-gray-600">查看个人考勤数据</p>

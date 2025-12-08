@@ -15,19 +15,23 @@ const pump = util.promisify(pipeline)
 // 显式指定 .env 文件路径以确保正确加载
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
+// 注册 CORS
+fastify.register(cors, {
+  origin: true, // 允许所有来源，解决开发环境IP变动导致的连接问题
+  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+})
+
 // 引入权限中间件
 const { extractUserPermissions, applyDepartmentFilter } = require('./middleware/checkPermission')
 
 // 注册质检导入路由
 fastify.register(require('./routes/quality-inspection-import-new'))
-
-// 注册 CORS
-fastify.register(cors, {
-  origin: ['http://localhost:5173', 'http://192.168.2.31:5173', 'http://192.168.2.3:5173'],
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
-})
+// 注册通知设置路由
+fastify.register(require('./routes/notification-settings'))
+// 注册用户管理路由
+fastify.register(require('./routes/user-management'))
 
 // 注册文件上传
 // 注意：multipart 只处理 multipart/form-data，不影响 application/json
@@ -421,7 +425,7 @@ fastify.post('/api/auth/check-session', async (request, reply) => {
       'SELECT id, session_token, session_created_at FROM users WHERE username = ?',
       [username]
     )
-    
+
     console.log('查询结果:', users);
 
     if (users.length === 0) {
@@ -1186,6 +1190,7 @@ fastify.get('/api/employees', async (request, reply) => {
         u.phone,
         u.avatar,
         u.department_id,
+        u.is_department_manager,
         d.name as department_name
       FROM employees e
       LEFT JOIN users u ON e.user_id = u.id
@@ -2949,97 +2954,7 @@ fastify.post('/api/knowledge/articles/search', async (request, reply) => {
 
 
 
-// ==================== 角色部门权限管理 API ====================
-
-// 获取角色的部门权限列表
-fastify.get('/api/roles/:id/departments', async (request, reply) => {
-  const { id } = request.params;
-  try {
-    const [rows] = await pool.query(`
-      SELECT d.*
-      FROM departments d
-      INNER JOIN role_departments rd ON d.id = rd.department_id
-      WHERE rd.role_id = ?
-      ORDER BY d.sort_order, d.id
-    `, [id]);
-    return { success: true, data: rows };
-  } catch (error) {
-    console.error('获取角色部门权限失败:', error);
-    reply.code(500).send({ success: false, error: 'Failed to fetch role departments' });
-  }
-});
-
-// 为角色添加部门权限
-fastify.post('/api/roles/:id/departments', async (request, reply) => {
-  const { id } = request.params;
-  const { department_id } = request.body;
-  try {
-    await pool.query(
-      'INSERT IGNORE INTO role_departments (role_id, department_id) VALUES (?, ?)',
-      [id, department_id]
-    );
-    return { success: true, message: '部门权限添加成功' };
-  } catch (error) {
-    console.error('添加角色部门权限失败:', error);
-    reply.code(500).send({ success: false, error: 'Failed to add department permission' });
-  }
-});
-
-// 批量设置角色的部门权限
-fastify.put('/api/roles/:id/departments', async (request, reply) => {
-  const { id } = request.params;
-  const { department_ids } = request.body; // 部门ID数组
-
-  try {
-    const connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    try {
-      // 1. 删除该角色的所有部门权限
-      await connection.query('DELETE FROM role_departments WHERE role_id = ?', [id]);
-
-      // 2. 批量添加新的部门权限
-      if (department_ids && department_ids.length > 0) {
-        const values = department_ids.map(deptId => [id, deptId]);
-        await connection.query(
-          'INSERT INTO role_departments (role_id, department_id) VALUES ?',
-          [values]
-        );
-      }
-
-      await connection.commit();
-      connection.release();
-
-      return {
-        success: true,
-        message: '部门权限设置成功',
-        count: department_ids?.length || 0
-      };
-    } catch (error) {
-      await connection.rollback();
-      connection.release();
-      throw error;
-    }
-  } catch (error) {
-    console.error('批量设置角色部门权限失败:', error);
-    reply.code(500).send({ success: false, error: 'Failed to update department permissions' });
-  }
-});
-
-// 移除角色的部门权限
-fastify.delete('/api/roles/:roleId/departments/:departmentId', async (request, reply) => {
-  const { roleId, departmentId } = request.params;
-  try {
-    await pool.query(
-      'DELETE FROM role_departments WHERE role_id = ? AND department_id = ?',
-      [roleId, departmentId]
-    );
-    return { success: true, message: '部门权限移除成功' };
-  } catch (error) {
-    console.error(error);
-    reply.code(500).send({ error: 'Failed to remove permission' });
-  }
-});
+// （角色部门权限相关路由已移动至 routes/permissions.js，避免重复注册）
 
 // 获取用户列表（包含角色信息）
 fastify.get('/api/users-with-roles', async (request, reply) => {
@@ -3142,6 +3057,9 @@ fastify.register(require('./routes/smart-schedule'));
 // ==================== 职位管理路由 ====================
 fastify.register(require('./routes/positions'))
 
+// ==================== 员工管理路由 ====================
+
+
 // ==================== 权限管理路由 ====================
 fastify.register(require('./routes/permissions'))
 
@@ -3189,28 +3107,27 @@ fastify.register(require('./routes/memos'))
 // ==================== 系统广播路由 ====================
 fastify.register(require('./routes/broadcasts'))
 
-const http = require('http')
 const { setupWebSocket } = require('./websocket')
-// 创建HTTP服务器
-const server = http.createServer(fastify.server)
-// 设置WebSocket
-const io = setupWebSocket(server)
+
+// 设置WebSocket - 直接使用 fastify.server (它是 Node.js http.Server 实例)
+const io = setupWebSocket(fastify.server)
 // 将io实例挂载到fastify，供其他路由使用
 fastify.decorate('io', io)
+
 const start = async () => {
   try {
     await initDatabase();
 
-    // 先准备fastify（但不启动）
+    // 先准备fastify
     await fastify.ready()
 
-    // 使用HTTP服务器启动（包含WebSocket）
-    server.listen(3001, '0.0.0.0', (err) => {
+    // 启动服务器
+    fastify.listen({ port: 3001, host: '0.0.0.0' }, (err, address) => {
       if (err) {
         console.error('❌ 服务器启动失败:', err);
         process.exit(1);
       }
-      console.log(`🚀 服务器启动成功！`);
+      console.log(`🚀 服务器启动成功！监听地址: ${address}`);
       console.log(`   本地访问: http://localhost:3001`);
       if (dbConfigJson.upload && dbConfigJson.upload.publicUrl) {
         console.log(`   公共访问: ${dbConfigJson.upload.publicUrl}`);

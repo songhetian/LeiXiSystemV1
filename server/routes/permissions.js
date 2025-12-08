@@ -1,6 +1,25 @@
+const { requirePermission } = require('../middleware/auth')
+
 const permissionRoutes = async (fastify, options) => {
+  const connInit = await fastify.mysql.getConnection();
+  try {
+    await connInit.query(`
+      CREATE TABLE IF NOT EXISTS permission_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        permission_ids TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+  } finally {
+    connInit.release();
+  }
   // Get all roles with their permissions
-  fastify.get('/api/roles', async (request, reply) => {
+  fastify.get('/api/roles', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
     const connection = await fastify.mysql.getConnection();
     try {
       const [roles] = await connection.query('SELECT id, name, description, level, is_system, created_at, updated_at FROM roles ORDER BY id');
@@ -23,7 +42,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Get all available permissions
-  fastify.get('/api/permissions', async (request, reply) => {
+  fastify.get('/api/permissions', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
     const connection = await fastify.mysql.getConnection();
     try {
       const [permissions] = await connection.query('SELECT * FROM permissions ORDER BY module, code');
@@ -34,7 +55,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Create a new role
-  fastify.post('/api/roles', async (request, reply) => {
+  fastify.post('/api/roles', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { name, description, permissionIds } = request.body;
     const connection = await fastify.mysql.getConnection();
     try {
@@ -65,7 +88,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Update role permissions
-  fastify.put('/api/roles/:id', async (request, reply) => {
+  fastify.put('/api/roles/:id', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { id } = request.params;
     const { name, description, permissionIds } = request.body;
     const connection = await fastify.mysql.getConnection();
@@ -100,7 +125,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Get users with their roles
-  fastify.get('/api/users/roles', async (request, reply) => {
+  fastify.get('/api/users/roles', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
     const connection = await fastify.mysql.getConnection();
     try {
       const [users] = await connection.query(`
@@ -127,7 +154,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Get roles for a specific user
-  fastify.get('/api/users/:id/roles', async (request, reply) => {
+  fastify.get('/api/users/:id/roles', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
     const { id } = request.params;
     const connection = await fastify.mysql.getConnection();
     try {
@@ -146,7 +175,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Add a role to a user
-  fastify.post('/api/users/:id/roles', async (request, reply) => {
+  fastify.post('/api/users/:id/roles', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { id } = request.params;
     const { role_id } = request.body;
     const connection = await fastify.mysql.getConnection();
@@ -173,7 +204,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Remove a role from a user
-  fastify.delete('/api/users/:id/roles/:roleId', async (request, reply) => {
+  fastify.delete('/api/users/:id/roles/:roleId', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { id, roleId } = request.params;
     const connection = await fastify.mysql.getConnection();
     try {
@@ -193,7 +226,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Update user roles (batch update)
-  fastify.put('/api/users/:id/roles', async (request, reply) => {
+  fastify.put('/api/users/:id/roles', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { id } = request.params;
     const { roleIds } = request.body;
     const connection = await fastify.mysql.getConnection();
@@ -213,6 +248,37 @@ const permissionRoutes = async (fastify, options) => {
       }
 
       await connection.commit();
+
+      // 🔔 发送实时通知给用户
+      try {
+        // 获取用户信息
+        const [users] = await fastify.mysql.query('SELECT id, username, real_name FROM users WHERE id = ?', [id]);
+        if (users.length > 0) {
+          const user = users[0];
+
+          // 获取角色名称
+          if (roleIds && roleIds.length > 0) {
+            const [roles] = await fastify.mysql.query('SELECT name FROM roles WHERE id IN (?)', [roleIds]);
+            const roleNames = roles.map(r => r.name).join(', ');
+
+            // 发送WebSocket通知
+            if (fastify.io) {
+              const { sendNotificationToUser } = require('../websocket');
+              sendNotificationToUser(fastify.io, id, {
+                type: 'role_assignment',
+                title: '角色变更通知',
+                content: `您的角色已更新为: ${roleNames}`,
+                related_id: id,
+                related_type: 'user_role',
+                created_at: new Date()
+              });
+            }
+          }
+        }
+      } catch (notifyError) {
+        console.error('发送角色变更通知失败:', notifyError);
+      }
+
       return { success: true, message: '用户角色更新成功' };
     } catch (error) {
       await connection.rollback();
@@ -222,8 +288,50 @@ const permissionRoutes = async (fastify, options) => {
     }
   });
 
+  // Delete role
+  fastify.delete('/api/roles/:id', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 检查是否为系统角色
+      const [roleRows] = await connection.query('SELECT is_system FROM roles WHERE id = ?', [id]);
+      if (roleRows.length > 0 && roleRows[0].is_system === 1) {
+        await connection.rollback();
+        return reply.code(403).send({ success: false, message: '不能删除系统角色' });
+      }
+
+      // 删除角色相关的所有关联数据
+      await connection.query('DELETE FROM user_roles WHERE role_id = ?', [id]);
+      await connection.query('DELETE FROM role_permissions WHERE role_id = ?', [id]);
+      await connection.query('DELETE FROM role_departments WHERE role_id = ?', [id]);
+
+      // 删除角色本身
+      const [result] = await connection.query('DELETE FROM roles WHERE id = ?', [id]);
+
+      await connection.commit();
+
+      if (result.affectedRows > 0) {
+        return { success: true, message: '角色删除成功' };
+      } else {
+        return { success: false, message: '角色不存在' };
+      }
+    } catch (error) {
+      await connection.rollback();
+      console.error('删除角色失败:', error);
+      return reply.code(500).send({ success: false, message: '删除角色失败' });
+    } finally {
+      connection.release();
+    }
+  });
+
   // Get role permissions
-  fastify.get('/api/roles/:id/permissions', async (request, reply) => {
+  fastify.get('/api/roles/:id/permissions', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
     const { id } = request.params;
     const connection = await fastify.mysql.getConnection();
     try {
@@ -242,7 +350,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Add permission to role
-  fastify.post('/api/roles/:id/permissions', async (request, reply) => {
+  fastify.post('/api/roles/:id/permissions', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { id } = request.params;
     const { permission_id } = request.body;
     const connection = await fastify.mysql.getConnection();
@@ -271,8 +381,10 @@ const permissionRoutes = async (fastify, options) => {
     }
   });
 
-  // Remove permission from role
-  fastify.delete('/api/roles/:id/permissions/:permissionId', async (request, reply) => {
+  // Delete permission from role
+  fastify.delete('/api/roles/:id/permissions/:permissionId', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
     const { id, permissionId } = request.params;
     const connection = await fastify.mysql.getConnection();
     try {
@@ -295,7 +407,9 @@ const permissionRoutes = async (fastify, options) => {
   });
 
   // Get audit logs
-  fastify.get('/api/permissions/audit-logs', async (request, reply) => {
+  fastify.get('/api/permissions/audit-logs', {
+    preHandler: requirePermission('system:log:view')
+  }, async (request, reply) => {
     const { page = 1, limit = 20, employee_id, operation_type } = request.query;
     const offset = (page - 1) * limit;
 
@@ -348,6 +462,322 @@ const permissionRoutes = async (fastify, options) => {
       connection.release();
     }
   });
+
+  // ==================== 角色部门权限管理 ====================
+  // 获取角色的部门权限列表
+  fastify.get('/api/roles/:id/departments', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      const [rows] = await connection.query(
+        `SELECT d.*
+         FROM departments d
+         INNER JOIN role_departments rd ON d.id = rd.department_id
+         WHERE rd.role_id = ?
+         ORDER BY d.sort_order, d.id`,
+        [id]
+      );
+      return { success: true, data: rows };
+    } catch (error) {
+      console.error('获取角色部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to fetch role departments' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // 为角色添加部门权限
+  fastify.post('/api/roles/:id/departments', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { department_id } = request.body;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.query(
+        'INSERT IGNORE INTO role_departments (role_id, department_id) VALUES (?, ?)',
+        [id, department_id]
+      );
+      return { success: true, message: '部门权限添加成功' };
+    } catch (error) {
+      console.error('添加角色部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to add department permission' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // 批量设置角色的部门权限
+  fastify.put('/api/roles/:id/departments', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { department_ids } = request.body;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.query('DELETE FROM role_departments WHERE role_id = ?', [id]);
+
+      if (Array.isArray(department_ids) && department_ids.length > 0) {
+        const values = department_ids.map(deptId => [id, deptId]);
+        await connection.query(
+          'INSERT INTO role_departments (role_id, department_id) VALUES ?',
+          [values]
+        );
+      }
+
+      await connection.commit();
+      return { success: true, message: '部门权限设置成功', count: department_ids?.length || 0 };
+    } catch (error) {
+      await connection.rollback();
+      console.error('批量设置角色部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to update department permissions' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // 移除角色的部门权限
+  fastify.delete('/api/roles/:roleId/departments/:departmentId', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { roleId, departmentId } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.query(
+        'DELETE FROM role_departments WHERE role_id = ? AND department_id = ?',
+        [roleId, departmentId]
+      );
+      return { success: true, message: '部门权限移除成功' };
+    } catch (error) {
+      console.error('移除角色部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to remove department permission' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // ==================== 员工部门权限管理 ====================
+  // 获取员工的部门权限列表
+  fastify.get('/api/users/:id/departments', {
+    preHandler: requirePermission('user:employee:view')  // 修改权限代码
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      const [rows] = await connection.query(
+        `SELECT d.*
+         FROM departments d
+         INNER JOIN user_departments ud ON d.id = ud.department_id
+         WHERE ud.user_id = ?
+         ORDER BY d.sort_order, d.id`,
+        [id]
+      );
+      return { success: true, data: rows };
+    } catch (error) {
+      console.error('获取员工部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to fetch user departments' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // 为员工添加部门权限
+  fastify.post('/api/users/:id/departments', {
+    preHandler: requirePermission('user:employee:manage')  // 修改权限代码
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { department_id } = request.body;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.query(
+        'INSERT IGNORE INTO user_departments (user_id, department_id) VALUES (?, ?)',
+        [id, department_id]
+      );
+      return { success: true, message: '部门权限添加成功' };
+    } catch (error) {
+      console.error('添加员工部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to add department permission' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // 批量设置员工的部门权限
+  fastify.put('/api/users/:id/departments', {
+    preHandler: requirePermission('user:employee:manage')  // 修改权限代码
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { department_ids } = request.body;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.query('DELETE FROM user_departments WHERE user_id = ?', [id]);
+
+      if (Array.isArray(department_ids) && department_ids.length > 0) {
+        const values = department_ids.map(deptId => [id, deptId]);
+        await connection.query(
+          'INSERT INTO user_departments (user_id, department_id) VALUES ?',
+          [values]
+        );
+      }
+
+      await connection.commit();
+      return { success: true, message: '部门权限设置成功', count: department_ids?.length || 0 };
+    } catch (error) {
+      await connection.rollback();
+      console.error('批量设置员工部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to update department permissions' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // 移除员工的部门权限
+  fastify.delete('/api/users/:userId/departments/:departmentId', {
+    preHandler: requirePermission('user:employee:manage')  // 修改权限代码
+  }, async (request, reply) => {
+    const { userId, departmentId } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.query(
+        'DELETE FROM user_departments WHERE user_id = ? AND department_id = ?',
+        [userId, departmentId]
+      );
+      return { success: true, message: '部门权限移除成功' };
+    } catch (error) {
+      console.error('移除员工部门权限失败:', error);
+      return reply.code(500).send({ success: false, error: 'Failed to remove department permission' });
+    } finally {
+      connection.release();
+    }
+  });
+
+  fastify.get('/api/permission-templates', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
+    const connection = await fastify.mysql.getConnection();
+    try {
+      const [rows] = await connection.query('SELECT id, name, description, permission_ids, created_at, updated_at FROM permission_templates ORDER BY id DESC');
+      return { success: true, data: rows.map(r => ({ ...r, permission_ids: JSON.parse(r.permission_ids) })) };
+    } finally {
+      connection.release();
+    }
+  });
+
+  fastify.get('/api/permission-templates/:id', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      const [rows] = await connection.query('SELECT id, name, description, permission_ids, created_at, updated_at FROM permission_templates WHERE id = ?', [id]);
+      if (rows.length === 0) return reply.code(404).send({ success: false, message: 'Not found' });
+      const r = rows[0];
+      return { success: true, data: { ...r, permission_ids: JSON.parse(r.permission_ids) } };
+    } finally {
+      connection.release();
+    }
+  });
+
+  fastify.post('/api/permission-templates', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { name, description, permission_ids } = request.body;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      const [result] = await connection.query('INSERT INTO permission_templates (name, description, permission_ids) VALUES (?, ?, ?)', [name, description || null, JSON.stringify(permission_ids || [])]);
+      return { success: true, id: result.insertId };
+    } finally {
+      connection.release();
+    }
+  });
+
+  fastify.put('/api/permission-templates/:id', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { name, description, permission_ids } = request.body;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.query('UPDATE permission_templates SET name = ?, description = ?, permission_ids = ? WHERE id = ?', [name, description || null, JSON.stringify(permission_ids || []), id]);
+      return { success: true };
+    } finally {
+      connection.release();
+    }
+  });
+
+  fastify.delete('/api/permission-templates/:id', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.query('DELETE FROM permission_templates WHERE id = ?', [id]);
+      return { success: true };
+    } finally {
+      connection.release();
+    }
+  });
+
+  // Get users assigned to a role
+  fastify.get('/api/roles/:id/users', {
+    preHandler: requirePermission('system:role:view')
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const connection = await fastify.mysql.getConnection();
+    try {
+      const [users] = await connection.query(`
+        SELECT u.id, u.username, u.real_name, u.email, u.phone, u.status, u.department_id, d.name as department_name
+        FROM users u
+        LEFT JOIN departments d ON u.department_id = d.id
+        INNER JOIN user_roles ur ON u.id = ur.user_id
+        WHERE ur.role_id = ?
+        ORDER BY u.real_name
+      `, [id]);
+
+      return { success: true, data: users };
+    } finally {
+      connection.release();
+    }
+  });
+
+  // Update users assigned to a role (batch update)
+  fastify.put('/api/roles/:id/users', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const { id } = request.params;  // role id
+    const { userIds } = request.body;  // array of user ids
+    const connection = await fastify.mysql.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Delete existing user-role assignments for this role
+      await connection.query('DELETE FROM user_roles WHERE role_id = ?', [id]);
+
+      // Insert new user-role assignments
+      if (userIds && userIds.length > 0) {
+        const values = userIds.map(uid => [uid, id]);
+        await connection.query(
+          'INSERT INTO user_roles (user_id, role_id) VALUES ?',
+          [values]
+        );
+      }
+
+      await connection.commit();
+      return { success: true, message: '角色用户分配更新成功' };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  });
+
 };
 
 module.exports = permissionRoutes;

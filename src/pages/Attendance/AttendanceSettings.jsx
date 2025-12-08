@@ -79,7 +79,7 @@ export default function AttendanceSettings() {
 
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="min-h-screen p-6 bg-gray-50">
       {/* 头部 */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">考勤设置</h1>

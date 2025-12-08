@@ -6,12 +6,7 @@ import SimpleMDE from 'react-simplemde-editor'
 import 'easymde/dist/easymde.min.css'
 import './MyMemos.css'
 
-const getApiUrl = (path) => {
-  const API_BASE_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3001'
-    : `http://${window.location.hostname}:3001`
-  return `${API_BASE_URL}${path}`
-}
+import { getApiUrl } from '../../utils/apiConfig'
 
 const MyMemos = () => {
   const [memos, setMemos] = useState([])

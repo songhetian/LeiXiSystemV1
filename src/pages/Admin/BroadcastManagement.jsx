@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { getApiUrl } from '../../utils/apiConfig'
+import { Table, Button, Modal, Form, Input, Select, Tag, message, Card, Space, Tooltip } from 'antd'
+import {
+  SoundOutlined,
+  PlusOutlined,
+  UserOutlined,
+  TeamOutlined,
+  ApartmentOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  NotificationOutlined
+} from '@ant-design/icons'
 import './BroadcastManagement.css'
+
+const { Option } = Select
+const { TextArea } = Input
 
 const BroadcastManagement = () => {
   const [broadcasts, setBroadcasts] = useState([])
   const [loading, setLoading] = useState(false)
-  const [showModal, setShowModal] = useState(false)
+  const [modalVisible, setModalVisible] = useState(false)
   const [departments, setDepartments] = useState([])
   const [employees, setEmployees] = useState([])
-
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    type: 'info',
-    priority: 'normal',
-    targetType: 'all',
-    targetDepartments: [],
-    targetRoles: [],
-    targetUsers: [],
-    expiresAt: ''
-  })
+  const [submitting, setSubmitting] = useState(false)
+  const [form] = Form.useForm()
 
   const token = localStorage.getItem('token')
 
@@ -41,7 +47,7 @@ const BroadcastManagement = () => {
       }
     } catch (error) {
       console.error('加载广播列表失败:', error)
-      showToast('加载失败', 'error')
+      message.error('加载广播列表失败')
     } finally {
       setLoading(false)
     }
@@ -73,20 +79,14 @@ const BroadcastManagement = () => {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    if (!formData.title || !formData.content) {
-      showToast('请填写标题和内容', 'error')
-      return
-    }
-
+  const handleSubmit = async (values) => {
+    setSubmitting(true)
     try {
       const payload = {
-        ...formData,
-        targetDepartments: formData.targetType === 'department' ? JSON.stringify(formData.targetDepartments) : null,
-        targetRoles: formData.targetType === 'role' ? JSON.stringify(formData.targetRoles) : null,
-        targetUsers: formData.targetType === 'individual' ? JSON.stringify(formData.targetUsers) : null
+        ...values,
+        targetDepartments: values.targetType === 'department' ? JSON.stringify(values.targetDepartments) : null,
+        targetRoles: values.targetType === 'role' ? JSON.stringify(values.targetRoles) : null,
+        targetUsers: values.targetType === 'individual' ? JSON.stringify(values.targetUsers) : null
       }
 
       const response = await axios.post(getApiUrl('/api/broadcasts'), payload, {
@@ -94,281 +94,289 @@ const BroadcastManagement = () => {
       })
 
       if (response.data.success) {
-        showToast(`广播发送成功！已发送给 ${response.data.data.recipientCount} 人`, 'success')
-        setShowModal(false)
-        resetForm()
+        message.success(`广播发送成功！已发送给 ${response.data.data.recipientCount} 人`)
+        setModalVisible(false)
+        form.resetFields()
         loadBroadcasts()
       }
     } catch (error) {
       console.error('发送广播失败:', error)
-      showToast(error.response?.data?.message || '发送失败', 'error')
+      message.error(error.response?.data?.message || '发送失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      content: '',
-      type: 'info',
-      priority: 'normal',
-      targetType: 'all',
-      targetDepartments: [],
-      targetRoles: [],
-      targetUsers: [],
-      expiresAt: ''
-    })
-  }
-
-  const showToast = (message, type = 'info') => {
-    // 简单的提示实现
-    alert(message)
-  }
-
   const typeOptions = [
-    { value: 'info', label: '信息', icon: '📢' },
-    { value: 'warning', label: '警告', icon: '⚠️' },
-    { value: 'success', label: '成功', icon: '✅' },
-    { value: 'error', label: '错误', icon: '❌' },
-    { value: 'announcement', label: '公告', icon: '📣' }
+    { value: 'info', label: '信息', icon: <InfoCircleOutlined style={{ color: '#1890ff' }} /> },
+    { value: 'warning', label: '警告', icon: <WarningOutlined style={{ color: '#faad14' }} /> },
+    { value: 'success', label: '成功', icon: <CheckCircleOutlined style={{ color: '#52c41a' }} /> },
+    { value: 'error', label: '错误', icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> },
+    { value: 'announcement', label: '公告', icon: <NotificationOutlined style={{ color: '#722ed1' }} /> }
   ]
 
   const priorityOptions = [
-    { value: 'low', label: '低' },
-    { value: 'normal', label: '普通' },
-    { value: 'high', label: '高' },
-    { value: 'urgent', label: '紧急' }
+    { value: 'low', label: '低', color: 'default' },
+    { value: 'normal', label: '普通', color: 'blue' },
+    { value: 'high', label: '高', color: 'orange' },
+    { value: 'urgent', label: '紧急', color: 'red' }
   ]
 
   const targetTypeOptions = [
-    { value: 'all', label: '全体员工' },
-    { value: 'department', label: '指定部门' },
-    { value: 'role', label: '指定角色' },
-    { value: 'individual', label: '指定个人' }
+    { value: 'all', label: '全体员工', icon: <TeamOutlined /> },
+    { value: 'department', label: '指定部门', icon: <ApartmentOutlined /> },
+    { value: 'role', label: '指定角色', icon: <UserOutlined /> },
+    { value: 'individual', label: '指定个人', icon: <UserOutlined /> }
   ]
 
   const roleOptions = ['超级管理员', '部门管理员', '普通员工']
 
+  const columns = [
+    {
+      title: '标题',
+      dataIndex: 'title',
+      key: 'title',
+      render: (text, record) => (
+        <Space>
+          {typeOptions.find(t => t.value === record.type)?.icon}
+          <span style={{ fontWeight: 500 }}>{text}</span>
+        </Space>
+      )
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => {
+        const option = typeOptions.find(t => t.value === type)
+        return <Tag>{option?.label || type}</Tag>
+      }
+    },
+    {
+      title: '优先级',
+      dataIndex: 'priority',
+      key: 'priority',
+      render: (priority) => {
+        const option = priorityOptions.find(p => p.value === priority)
+        return <Tag color={option?.color}>{option?.label || priority}</Tag>
+      }
+    },
+    {
+      title: '目标',
+      dataIndex: 'target_type',
+      key: 'target_type',
+      render: (type) => targetTypeOptions.find(t => t.value === type)?.label || type
+    },
+    {
+      title: '接收/已读',
+      key: 'stats',
+      render: (_, record) => (
+        <Tooltip title={`接收: ${record.recipient_count} / 已读: ${record.read_count}`}>
+          <Tag color="blue">{record.read_count} / {record.recipient_count}</Tag>
+        </Tooltip>
+      )
+    },
+    {
+      title: '发送时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (text) => new Date(text).toLocaleString('zh-CN')
+    }
+  ]
+
   return (
-    <div className="broadcast-management">
-      <div className="page-header">
-        <h2>📣 系统广播管理</h2>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
-          + 发送广播
-        </button>
-      </div>
+    <div className="p-6">
+      <Card
+        title={
+          <Space>
+            <SoundOutlined />
+            <span>系统广播管理</span>
+          </Space>
+        }
+        extra={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
+            发送广播
+          </Button>
+        }
+        bordered={false}
+      >
+        <Table
+          columns={columns}
+          dataSource={broadcasts}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `共 ${total} 条`,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            position: ['bottomRight']
+          }}
+        />
+      </Card>
 
-      {loading ? (
-        <div className="loading">加载中...</div>
-      ) : (
-        <div className="broadcasts-list">
-          {broadcasts.length === 0 ? (
-            <div className="empty-state">
-              <p>暂无广播记录</p>
-            </div>
-          ) : (
-            <table className="broadcasts-table">
-              <thead>
-                <tr>
-                  <th>标题</th>
-                  <th>类型</th>
-                  <th>优先级</th>
-                  <th>目标</th>
-                  <th>接收人数</th>
-                  <th>已读人数</th>
-                  <th>发送时间</th>
-                </tr>
-              </thead>
-              <tbody>
-                {broadcasts.map(broadcast => (
-                  <tr key={broadcast.id}>
-                    <td>{broadcast.title}</td>
-                    <td>
-                      <span className={`type-badge type-${broadcast.type}`}>
-                        {typeOptions.find(t => t.value === broadcast.type)?.label}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`priority-badge priority-${broadcast.priority}`}>
-                        {priorityOptions.find(p => p.value === broadcast.priority)?.label}
-                      </span>
-                    </td>
-                    <td>{targetTypeOptions.find(t => t.value === broadcast.target_type)?.label}</td>
-                    <td>{broadcast.recipient_count}</td>
-                    <td>{broadcast.read_count}</td>
-                    <td>{new Date(broadcast.created_at).toLocaleString('zh-CN')}</td>
-                  </tr>
+      <Modal
+        title={
+          <Space>
+            <SoundOutlined />
+            <span>发送系统广播</span>
+          </Space>
+        }
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={{
+            type: 'info',
+            priority: 'normal',
+            targetType: 'all'
+          }}
+        >
+          <Form.Item
+            name="title"
+            label="标题"
+            rules={[{ required: true, message: '请输入广播标题' }]}
+          >
+            <Input placeholder="请输入广播标题" maxLength={50} showCount />
+          </Form.Item>
+
+          <Form.Item
+            name="content"
+            label="内容"
+            rules={[{ required: true, message: '请输入广播内容' }]}
+          >
+            <TextArea placeholder="请输入广播内容" rows={4} maxLength={500} showCount />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item name="type" label="类型">
+              <Select>
+                {typeOptions.map(option => (
+                  <Option key={option.value} value={option.value}>
+                    <Space>
+                      {option.icon}
+                      {option.label}
+                    </Space>
+                  </Option>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+              </Select>
+            </Form.Item>
 
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>发送系统广播</h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
-            </div>
+            <Form.Item name="priority" label="优先级">
+              <Select>
+                {priorityOptions.map(option => (
+                  <Option key={option.value} value={option.value}>
+                    <Tag color={option.color}>{option.label}</Tag>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>标题 *</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    placeholder="请输入广播标题"
-                    required
-                  />
-                </div>
+          <Form.Item name="targetType" label="发送目标">
+            <Select onChange={() => {
+              // Reset dependent fields when target type changes
+              form.setFieldsValue({
+                targetDepartments: [],
+                targetRoles: [],
+                targetUsers: []
+              })
+            }}>
+              {targetTypeOptions.map(option => (
+                <Option key={option.value} value={option.value}>
+                  <Space>
+                    {option.icon}
+                    {option.label}
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-                <div className="form-group">
-                  <label>内容 *</label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData({...formData, content: e.target.value})}
-                    placeholder="请输入广播内容"
-                    rows="4"
-                    required
-                  />
-                </div>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.targetType !== currentValues.targetType}
+          >
+            {({ getFieldValue }) => {
+              const targetType = getFieldValue('targetType')
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>类型</label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value})}
-                    >
-                      {typeOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.icon} {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>优先级</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                    >
-                      {priorityOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>发送目标</label>
-                  <select
-                    value={formData.targetType}
-                    onChange={(e) => setFormData({...formData, targetType: e.target.value})}
+              if (targetType === 'department') {
+                return (
+                  <Form.Item
+                    name="targetDepartments"
+                    label="选择部门"
+                    rules={[{ required: true, message: '请选择部门' }]}
                   >
-                    {targetTypeOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {formData.targetType === 'department' && (
-                  <div className="form-group">
-                    <label>选择部门</label>
-                    <select
-                      multiple
-                      value={formData.targetDepartments}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value))
-                        setFormData({...formData, targetDepartments: selected})
-                      }}
-                      size="5"
-                    >
+                    <Select mode="multiple" placeholder="请选择部门" optionFilterProp="children">
                       {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
+                        <Option key={dept.id} value={dept.id}>{dept.name}</Option>
                       ))}
-                    </select>
-                    <small>按住Ctrl可多选</small>
-                  </div>
-                )}
+                    </Select>
+                  </Form.Item>
+                )
+              }
 
-                {formData.targetType === 'role' && (
-                  <div className="form-group">
-                    <label>选择角色</label>
-                    <select
-                      multiple
-                      value={formData.targetRoles}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => option.value)
-                        setFormData({...formData, targetRoles: selected})
-                      }}
-                      size="3"
-                    >
+              if (targetType === 'role') {
+                return (
+                  <Form.Item
+                    name="targetRoles"
+                    label="选择角色"
+                    rules={[{ required: true, message: '请选择角色' }]}
+                  >
+                    <Select mode="multiple" placeholder="请选择角色">
                       {roleOptions.map(role => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
+                        <Option key={role} value={role}>{role}</Option>
                       ))}
-                    </select>
-                    <small>按住Ctrl可多选</small>
-                  </div>
-                )}
+                    </Select>
+                  </Form.Item>
+                )
+              }
 
-                {formData.targetType === 'individual' && (
-                  <div className="form-group">
-                    <label>选择员工</label>
-                    <select
-                      multiple
-                      value={formData.targetUsers}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value))
-                        setFormData({...formData, targetUsers: selected})
-                      }}
-                      size="8"
+              if (targetType === 'individual') {
+                return (
+                  <Form.Item
+                    name="targetUsers"
+                    label="选择员工"
+                    rules={[{ required: true, message: '请选择员工' }]}
+                  >
+                    <Select
+                      mode="multiple"
+                      placeholder="请选择员工"
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      }
                     >
                       {employees.map(emp => (
-                        <option key={emp.id} value={emp.id}>
+                        <Option key={emp.user_id} value={emp.user_id}>
                           {emp.real_name} ({emp.username})
-                        </option>
+                        </Option>
                       ))}
-                    </select>
-                    <small>按住Ctrl可多选</small>
-                  </div>
-                )}
+                    </Select>
+                  </Form.Item>
+                )
+              }
 
-                <div className="form-group">
-                  <label>过期时间（可选）</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.expiresAt}
-                    onChange={(e) => setFormData({...formData, expiresAt: e.target.value})}
-                  />
-                  <small>留空表示永不过期</small>
-                </div>
-              </div>
+              return null
+            }}
+          </Form.Item>
 
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
-                  取消
-                </button>
-                <button type="submit" className="btn-primary">
-                  发送广播
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          <Form.Item className="flex justify-end mb-0">
+            <Space>
+              <Button onClick={() => setModalVisible(false)}>取消</Button>
+              <Button type="primary" htmlType="submit" loading={submitting}>
+                发送广播
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

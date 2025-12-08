@@ -9,6 +9,8 @@ export const getUserPermissions = () => {
     return permissionsStr ? JSON.parse(permissionsStr) : []
   } catch (error) {
     console.error('获取权限列表失败:', error)
+    // 出错时清除损坏的权限数据
+    localStorage.removeItem('permissions')
     return []
   }
 }
@@ -52,6 +54,8 @@ export const getPermissionDetails = () => {
     return detailsStr ? JSON.parse(detailsStr) : null
   } catch (error) {
     console.error('获取权限详情失败:', error)
+    // 出错时清除损坏的权限详情数据
+    localStorage.removeItem('permissionDetails')
     return null
   }
 }
@@ -74,6 +78,7 @@ export const savePermissions = (permissionData) => {
 export const clearPermissions = () => {
   localStorage.removeItem('permissions')
   localStorage.removeItem('permissionDetails')
+  localStorage.removeItem('userPermissions')
 }
 
 /**

@@ -24,20 +24,21 @@ INSERT INTO `broadcasts` (`title`, `content`, `type`, `priority`, `target_type`,
 ('个人提醒', '您的年度考核报告需要在本周五前提交，请及时完成。', 'warning', 'urgent', 'individual', CONCAT('[', @manager_user_id, ',', @service_user_id, ']'), @admin_user_id, '2024-12-06 12:00:00');
 
 -- 5. 广播接收记录
+SET @b1 = (SELECT id FROM broadcasts WHERE title = '系统维护通知' LIMIT 1);
+SET @b2 = (SELECT id FROM broadcasts WHERE title = '新功能上线' LIMIT 1);
+SET @b3 = (SELECT id FROM broadcasts WHERE title = '技术分享会' LIMIT 1);
+SET @b4 = (SELECT id FROM broadcasts WHERE title = '管理员培训通知' LIMIT 1);
+SET @b5 = (SELECT id FROM broadcasts WHERE title = '个人提醒' LIMIT 1);
+
 INSERT INTO `broadcast_recipients` (`broadcast_id`, `user_id`, `is_read`, `read_at`) VALUES
--- 全体广播1的接收记录
-(1, @admin_user_id, 1, '2024-12-06 10:05:00'),
-(1, @manager_user_id, 1, '2024-12-06 10:10:00'),
-(1, @service_user_id, 0, NULL),
--- 全体广播2的接收记录
-(2, @admin_user_id, 1, '2024-12-05 15:30:00'),
-(2, @manager_user_id, 1, '2024-12-05 16:00:00'),
-(2, @service_user_id, 1, '2024-12-05 17:00:00'),
--- 部门广播的接收记录（技术部员工）
-(3, @manager_user_id, 1, '2024-12-06 09:30:00'),
-(3, @service_user_id, 0, NULL),
--- 角色广播的接收记录（管理员）
-(4, @admin_user_id, 1, '2024-12-06 11:15:00'),
--- 个人广播的接收记录
-(5, @manager_user_id, 0, NULL),
-(5, @service_user_id, 0, NULL);
+(@b1, @admin_user_id, 1, '2024-12-06 10:05:00'),
+(@b1, @manager_user_id, 1, '2024-12-06 10:10:00'),
+(@b1, @service_user_id, 0, NULL),
+(@b2, @admin_user_id, 1, '2024-12-05 15:30:00'),
+(@b2, @manager_user_id, 1, '2024-12-05 16:00:00'),
+(@b2, @service_user_id, 1, '2024-12-05 17:00:00'),
+(@b3, @manager_user_id, 1, '2024-12-06 09:30:00'),
+(@b3, @service_user_id, 0, NULL),
+(@b4, @admin_user_id, 1, '2024-12-06 11:15:00'),
+(@b5, @manager_user_id, 0, NULL),
+(@b5, @service_user_id, 0, NULL);

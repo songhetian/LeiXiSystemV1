@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   UserOutlined,
   LogoutOutlined,
@@ -7,8 +7,10 @@ import {
   HomeOutlined,
   BellOutlined
 } from '@ant-design/icons';
+import NotificationDropdown from './NotificationDropdown';
 
 const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) => {
+  const [showNotifications, setShowNotifications] = useState(false);
   // Menu items definition (copied from Sidebar for breadcrumb mapping)
   // Ideally this should be in a shared config file
   const menuItems = [
@@ -21,6 +23,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
         { id: 'user-approval', label: '员工审核' },
         { id: 'user-reset-password', label: '重置密码' },
         { id: 'user-permission', label: '权限管理' },
+        { id: 'user-role-management', label: '角色分配' },
       ],
     },
     {
@@ -150,16 +153,36 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
       {/* Right: User Info & Logout */}
       <div className="flex items-center gap-6">
         {/* 未读通知 */}
-        <div
-          className="relative cursor-pointer hover:opacity-80 transition-opacity"
-          title="通知"
-          onClick={() => onNavigate && onNavigate('my-notifications')}
-        >
-          <BellOutlined className="text-gray-600 text-xl" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 font-bold">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+        <div className="relative">
+          <div
+            className="relative cursor-pointer hover:opacity-80 transition-opacity"
+            title="通知"
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
+            <BellOutlined className="text-gray-600 text-xl" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
+
+          {showNotifications && (
+            <NotificationDropdown
+              onClose={() => setShowNotifications(false)}
+              onNavigate={onNavigate}
+              onUpdateUnread={(count) => {
+                // If TopNavbar has a way to update parent state, we could call it here.
+                // But unreadCount is passed as prop.
+                // Ideally, TopNavbar should have a callback to update unread count if it's managed in App.jsx.
+                // For now, we rely on the prop, but the dropdown also fetches its own count.
+                // The dropdown's internal count update won't reflect here unless we lift state up or trigger a refresh.
+                // Since App.jsx manages unreadCount via websocket/polling, it should eventually sync.
+                // However, marking as read in dropdown should ideally update the badge immediately.
+                // We can't easily update the prop from here without a callback prop from App.jsx.
+                // Let's assume App.jsx handles the source of truth.
+              }}
+            />
           )}
         </div>
 

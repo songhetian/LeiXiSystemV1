@@ -18,18 +18,24 @@ module.exports = async function (fastify, opts) {
 
   // 辅助函数：检查用户权限
   const checkBroadcastPermission = async (userId) => {
-    const [users] = await pool.query(
-      'SELECT role, department_id FROM users WHERE id = ?',
-      [userId]
-    )
+    const { getUserPermissions } = require('../utils/permission')
+    const permissions = await getUserPermissions(pool, userId)
 
-    if (users.length === 0) {
-      throw new Error('用户不存在')
+    // 1. 检查是否有广播管理权限 (RBAC)
+    if (permissions.includes('messaging:broadcast:manage')) {
+      return true
     }
 
-    const user = users[0]
-    // 超级管理员或部门管理员可以发送广播
-    return user.role === '超级管理员' || user.role === '部门管理员'
+    // 2. 兼容旧逻辑：检查是否为部门管理员角色
+    const [roles] = await pool.query(
+      `SELECT r.name
+       FROM roles r
+       JOIN user_roles ur ON r.id = ur.role_id
+       WHERE ur.user_id = ?`,
+      [userId]
+    )
+    const roleNames = roles.map(r => r.name)
+    return roleNames.includes('部门管理员')
   }
 
   // 辅助函数：获取目标用户列表
@@ -57,14 +63,36 @@ module.exports = async function (fastify, opts) {
       if (roles.length > 0) {
         const placeholders = roles.map(() => '?').join(',')
         const [users] = await pool.query(
-          `SELECT id FROM users WHERE role IN (${placeholders}) AND status = "active"`,
+          `SELECT DISTINCT u.id
+           FROM users u
+          JOIN user_roles ur ON u.id = ur.user_id
+           JOIN roles r ON ur.role_id = r.id
+           WHERE r.name IN (${placeholders}) AND u.status = "active"`,
           roles
         )
         userIds = users.map(u => u.id)
       }
     } else if (targetType === 'individual') {
-      // 指定个人
-      userIds = JSON.parse(targetUsers || '[]')
+      const parsedUserIds = JSON.parse(targetUsers || '[]')
+      if (parsedUserIds.length > 0) {
+        const placeholders = parsedUserIds.map(() => '?').join(',')
+        const [validUsers] = await pool.query(
+          `SELECT id FROM users WHERE id IN (${placeholders}) AND status = "active"`,
+          parsedUserIds
+        )
+        userIds = validUsers.map(u => u.id)
+
+        if (userIds.length === 0) {
+          const [mapped] = await pool.query(
+            `SELECT u.id
+             FROM employees e
+             JOIN users u ON e.user_id = u.id
+             WHERE e.id IN (${placeholders}) AND u.status = "active"`,
+            parsedUserIds
+          )
+          userIds = mapped.map(m => m.id)
+        }
+      }
     }
 
     return userIds
@@ -106,13 +134,22 @@ module.exports = async function (fastify, opts) {
 
       // 获取用户部门（用于部门管理员权限限制）
       const [userInfo] = await pool.query(
-        'SELECT department_id, role FROM users WHERE id = ?',
+        'SELECT department_id FROM users WHERE id = ?',
         [user.id]
       )
       const creatorDepartmentId = userInfo[0]?.department_id
 
+      const [roles] = await pool.query(
+        `SELECT r.name
+         FROM roles r
+         JOIN user_roles ur ON r.id = ur.role_id
+         WHERE ur.user_id = ?`,
+        [user.id]
+      )
+      const userRoles = roles.map(r => r.name)
+
       // 如果是部门管理员，只能向本部门发送
-      if (userInfo[0]?.role === '部门管理员' && targetType === 'department') {
+      if (userRoles.includes('部门管理员') && !userRoles.includes('超级管理员') && targetType === 'department') {
         const departments = JSON.parse(targetDepartments || '[]')
         if (!departments.includes(creatorDepartmentId)) {
           return reply.code(403).send({
@@ -326,6 +363,13 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/broadcasts/created', async (request, reply) => {
     try {
       const user = getUserFromToken(request)
+
+      // 检查权限
+      const hasPermission = await checkBroadcastPermission(user.id)
+      if (!hasPermission) {
+        return reply.code(403).send({ success: false, message: '无权访问' })
+      }
+
       const { page = 1, limit = 20 } = request.query
 
       const offset = (page - 1) * limit

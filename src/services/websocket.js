@@ -33,7 +33,7 @@ class WebSocketManager {
 
     // 获取API地址 - 使用动态获取的方式而不是硬编码
     const API_BASE_URL = getApiUrl('').replace('/api', '')
-    
+
     console.log(`🔌 [WebSocket] 正在连接到 ${API_BASE_URL}...`)
 
     this.socket = io(API_BASE_URL, {
@@ -144,6 +144,8 @@ class WebSocketManager {
       this.socket = null
       this.isConnecting = false
     }
+    // 不再清除所有监听器，防止重复注册问题
+    // this.listeners.clear()
   }
 
   /**
@@ -201,6 +203,16 @@ class WebSocketManager {
       if (index > -1) {
         callbacks.splice(index, 1)
       }
+    }
+  }
+
+  /**
+   * 移除指定事件的所有监听器
+   * @param {string} event - 事件名称
+   */
+  removeAllListeners(event) {
+    if (this.listeners.has(event)) {
+      this.listeners.delete(event)
     }
   }
 

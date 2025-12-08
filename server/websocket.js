@@ -14,7 +14,7 @@ const userConnections = new Map()
 function setupWebSocket(server) {
   const io = socketIO(server, {
     cors: {
-      origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://192.168.2.31:5173', 'http://192.168.2.3:5173'],
+      origin: true, // 允许所有来源
       credentials: true,
       methods: ['GET', 'POST']
     },

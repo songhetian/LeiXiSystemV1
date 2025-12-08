@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import axios from '../../utils/axiosConfig'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
-
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ApprovalManagement() {
   const [activeTab, setActiveTab] = useState('leave')
@@ -14,6 +14,7 @@ export default function ApprovalManagement() {
   const [viewMode, setViewMode] = useState('card') // card, list
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null) // { record, approved }
+  const [currentUser, setCurrentUser] = useState(null)
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -25,6 +26,13 @@ export default function ApprovalManagement() {
     start_date: '',
     end_date: ''
   })
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      setCurrentUser(JSON.parse(userStr))
+    }
+  }, [])
 
   useEffect(() => {
     fetchRecords()
@@ -54,7 +62,6 @@ export default function ApprovalManagement() {
 
       const response = await axios.get(getApiUrl(endpoint), { params })
 
-      // 成功获取数据（即使是空数组也是成功）
       if (response.data.success) {
         setRecords(response.data.data || [])
         setPagination(prev => ({
@@ -62,47 +69,17 @@ export default function ApprovalManagement() {
           total: response.data.pagination?.total || 0
         }))
       } else {
-        // 后端明确返回失败
         setRecords([])
         setPagination(prev => ({ ...prev, total: 0 }))
         toast.error(response.data.message || '获取记录失败')
       }
     } catch (error) {
       console.error('获取记录错误:', error)
-
-      // 只在真正的错误时才提示（排除 404 和网络超时等情况）
-      if (error.response) {
-        // 有响应，但状态码不是 2xx
-        if (error.response.status === 404) {
-          // 404 通常表示没有数据，不报错
-          setRecords([])
-          setPagination(prev => ({ ...prev, total: 0 }))
-        } else if (error.response.status >= 500) {
-          // 服务器错误
-          toast.error('服务器错误，请稍后重试')
-          setRecords([])
-          setPagination(prev => ({ ...prev, total: 0 }))
-        } else if (error.response.status === 401) {
-          // 未授权（已由 axios 拦截器处理）
-          setRecords([])
-          setPagination(prev => ({ ...prev, total: 0 }))
-        } else {
-          // 其他客户端错误
-          toast.error(error.response.data?.message || '获取记录失败')
-          setRecords([])
-          setPagination(prev => ({ ...prev, total: 0 }))
-        }
-      } else if (error.request) {
-        // 请求已发出但没有收到响应（网络问题）
-        toast.error('网络连接失败，请检查网络')
-        setRecords([])
-        setPagination(prev => ({ ...prev, total: 0 }))
-      } else {
-        // 其他错误
+      if (error.response && error.response.status !== 404) {
         toast.error('获取记录失败')
-        setRecords([])
-        setPagination(prev => ({ ...prev, total: 0 }))
       }
+      setRecords([])
+      setPagination(prev => ({ ...prev, total: 0 }))
     } finally {
       setLoading(false)
     }
@@ -112,37 +89,6 @@ export default function ApprovalManagement() {
     setSelectedRecord(record)
     setApprovalNote('')
     setShowModal(true)
-  }
-
-  // 辅助函数：更新排班为休息
-  const updateScheduleForLeave = async (record) => {
-    if (activeTab !== 'leave' || !record.start_date || !record.end_date) return
-
-    try {
-      const startDate = new Date(record.start_date)
-      const endDate = new Date(record.end_date)
-      const schedules = []
-
-      // 循环日期范围
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0]
-        schedules.push({
-          employee_id: record.employee_id,
-          shift_id: null, // 休息
-          schedule_date: dateStr,
-          is_rest_day: true
-        })
-      }
-
-      // 批量更新排班
-      if (schedules.length > 0) {
-        await axios.post(getApiUrl('/api/schedules/batch'), { schedules })
-        console.log('排班已自动更新为休息')
-      }
-    } catch (error) {
-      console.error('自动更新排班失败:', error)
-      toast.warning('审批通过，但自动更新排班失败，请手动检查排班')
-    }
   }
 
   const handleSubmitApproval = async (approved) => {
@@ -169,12 +115,6 @@ export default function ApprovalManagement() {
 
       if (response.data.success) {
         toast.success(approved ? '✅ 审批通过' : '❌ 审批驳回')
-
-        // 如果是请假且审批通过，自动更新排班
-        if (approved && activeTab === 'leave') {
-          await updateScheduleForLeave(selectedRecord)
-        }
-
         setShowModal(false)
         fetchRecords()
       }
@@ -183,13 +123,11 @@ export default function ApprovalManagement() {
     }
   }
 
-  // 快速审批 - 打开确认模态框
   const handleQuickApproval = (record, approved) => {
     setConfirmAction({ record, approved })
     setShowConfirmModal(true)
   }
 
-  // 执行快速审批
   const executeQuickApproval = async () => {
     if (!confirmAction) return
 
@@ -227,14 +165,14 @@ export default function ApprovalManagement() {
 
   const getStatusBadge = (status) => {
     const badges = {
-      pending: { text: '待审批', color: 'bg-yellow-100 text-yellow-800' },
-      approved: { text: '已通过', color: 'bg-green-100 text-green-800' },
-      rejected: { text: '已驳回', color: 'bg-red-100 text-red-800' },
-      cancelled: { text: '已取消', color: 'bg-gray-100 text-gray-600' }
+      pending: { text: '待审批', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+      approved: { text: '已通过', color: 'bg-green-100 text-green-800 border-green-200' },
+      rejected: { text: '已驳回', color: 'bg-red-100 text-red-800 border-red-200' },
+      cancelled: { text: '已取消', color: 'bg-gray-100 text-gray-600 border-gray-200' }
     }
     const badge = badges[status] || badges.pending
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.color}`}>
+      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.color}`}>
         {badge.text}
       </span>
     )
@@ -252,618 +190,406 @@ export default function ApprovalManagement() {
     return types[type] || type
   }
 
-  // 卡片视图 - 请假记录
-  const renderLeaveCardView = (record) => (
-    <div key={record.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-gray-800 text-lg">
-              {record.employee_name || `员工 #${record.employee_id}`}
-            </span>
-            {getStatusBadge(record.status)}
-            <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
-              {getLeaveTypeName(record.leave_type)}
-            </span>
-            {record.status === 'approved' && (
-              <span className="ml-1 w-2 h-2 bg-red-500 rounded-full" title="已通过"></span>
-            )}
+  const renderCard = (record) => {
+    const isPending = record.status === 'pending'
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+              {record.employee_name ? record.employee_name.charAt(0) : '?'}
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{record.employee_name || `员工 #${record.employee_id}`}</h3>
+              <p className="text-xs text-gray-500">{record.created_at?.substring(0, 16).replace('T', ' ')}</p>
+            </div>
           </div>
-          <div className="text-sm text-gray-600 mb-2">
-            📅 {record.start_date?.substring(0, 10) || record.start_date} 至 {record.end_date?.substring(0, 10) || record.end_date}
-            <span className="ml-2 font-medium text-blue-600">({record.days}天)</span>
-          </div>
-          <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-            💬 {record.reason}
-          </div>
-        </div>
-        {record.status === 'pending' && (
-          <div className="flex gap-2 ml-4">
-            <button
-              onClick={() => handleQuickApproval(record, true)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
-              title="快速通过"
-            >
-              ✓ 通过
-            </button>
-            <button
-              onClick={() => handleQuickApproval(record, false)}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
-              title="快速驳回"
-            >
-              ✗ 驳回
-            </button>
-            <button
-              onClick={() => handleApprove(record)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors"
-              title="详细审批"
-            >
-              📝
-            </button>
-          </div>
-        )}
-      </div>
-      {record.approval_note && (
-        <div className="text-sm text-gray-600 bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
-          <span className="font-medium">审批意见：</span>
-          {record.approval_note}
-        </div>
-      )}
-      <div className="text-xs text-gray-500 mt-2">
-        🕐 申请时间：{record.created_at?.substring(0, 19).replace('T', ' ')}
-      </div>
-    </div>
-  )
-
-  // 列表视图 - 请假记录
-  const renderLeaveListView = (record) => (
-    <tr key={record.id} className="hover:bg-gray-50">
-      <td className="px-4 py-3 border-b">
-        <div className="font-medium text-gray-800">{record.employee_name || `员工 #${record.employee_id}`}</div>
-        <div className="text-xs text-gray-500">{getLeaveTypeName(record.leave_type)}</div>
-      </td>
-      <td className="px-4 py-3 border-b text-sm">
-        <div>{record.start_date?.substring(0, 10)}</div>
-        <div className="text-xs text-gray-500">至 {record.end_date?.substring(0, 10)}</div>
-      </td>
-      <td className="px-4 py-3 border-b text-center">
-        <span className="font-medium text-blue-600">{record.days}天</span>
-      </td>
-      <td className="px-4 py-3 border-b text-sm max-w-xs truncate" title={record.reason}>
-        {record.reason}
-      </td>
-      <td className="px-4 py-3 border-b text-center">
-        <div className="flex items-center justify-center gap-1">
           {getStatusBadge(record.status)}
-          {record.status === 'approved' && (
-            <span className="w-2 h-2 bg-red-500 rounded-full" title="已通过"></span>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          {activeTab === 'leave' && (
+            <>
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="w-20 text-gray-400">请假类型</span>
+                <span className="font-medium text-gray-800">{getLeaveTypeName(record.leave_type)}</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="w-20 text-gray-400">时间范围</span>
+                <span>{record.start_date?.substring(0, 10)} 至 {record.end_date?.substring(0, 10)}</span>
+                <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs font-medium">{record.days}天</span>
+              </div>
+            </>
           )}
-        </div>
-      </td>
-      <td className="px-4 py-3 border-b">
-        {record.status === 'pending' ? (
-          <div className="flex gap-1 justify-center">
-            <button
-              onClick={() => handleQuickApproval(record, true)}
-              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs"
-              title="通过"
-            >
-              ✓
-            </button>
-            <button
-              onClick={() => handleQuickApproval(record, false)}
-              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
-              title="驳回"
-            >
-              ✗
-            </button>
-            <button
-              onClick={() => handleApprove(record)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
-              title="详细"
-            >
-              📝
-            </button>
+          {activeTab === 'overtime' && (
+            <>
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="w-20 text-gray-400">加班日期</span>
+                <span className="font-medium text-gray-800">{record.overtime_date}</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="w-20 text-gray-400">时间范围</span>
+                <span>{record.start_time?.substring(11, 16)} - {record.end_time?.substring(11, 16)}</span>
+                <span className="ml-2 px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded text-xs font-medium">{record.hours}小时</span>
+              </div>
+            </>
+          )}
+          {activeTab === 'makeup' && (
+            <>
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="w-20 text-gray-400">补卡日期</span>
+                <span className="font-medium text-gray-800">{record.record_date}</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="w-20 text-gray-400">补卡时间</span>
+                <span>{record.clock_time?.substring(11, 16)}</span>
+                <span className="ml-2 px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-xs font-medium">
+                  {record.clock_type === 'in' ? '上班卡' : '下班卡'}
+                </span>
+              </div>
+            </>
+          )}
+          <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+            <span className="text-gray-400 mr-2">原因:</span>
+            {record.reason}
           </div>
-        ) : (
-          <span className="text-xs text-gray-400">-</span>
-        )}
-      </td>
-    </tr>
-  )
+        </div>
 
-  // 卡片视图 - 加班记录
-  const renderOvertimeCardView = (record) => (
-    <div key={record.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-gray-800 text-lg">
-              {record.employee_name || `员工 #${record.employee_id}`}
-            </span>
-            {getStatusBadge(record.status)}
-          </div>
-          <div className="text-sm text-gray-600 mb-2">
-            📅 {record.overtime_date}
-            <span className="ml-2">⏰ {record.start_time?.substring(11, 16)} - {record.end_time?.substring(11, 16)}</span>
-            <span className="ml-2 font-medium text-orange-600">({record.hours}小时)</span>
-          </div>
-          <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-            💬 {record.reason}
-          </div>
-        </div>
-        {record.status === 'pending' && (
-          <div className="flex gap-2 ml-4">
+        {isPending && (
+          <div className="flex gap-3 pt-2 border-t border-gray-100">
             <button
               onClick={() => handleQuickApproval(record, true)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium"
+              className="flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 py-2 rounded-lg text-sm font-medium transition-colors"
             >
-              ✓ 通过
+              通过
             </button>
             <button
               onClick={() => handleQuickApproval(record, false)}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium"
+              className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 py-2 rounded-lg text-sm font-medium transition-colors"
             >
-              ✗ 驳回
+              驳回
             </button>
             <button
               onClick={() => handleApprove(record)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm"
+              className="px-4 bg-gray-50 text-gray-600 hover:bg-gray-100 py-2 rounded-lg text-sm font-medium transition-colors"
             >
-              📝
+              详情
             </button>
           </div>
         )}
-      </div>
-      {record.approval_note && (
-        <div className="text-sm text-gray-600 bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
-          <span className="font-medium">审批意见：</span>
-          {record.approval_note}
-        </div>
-      )}
-      <div className="text-xs text-gray-500 mt-2">
-        🕐 申请时间：{record.created_at?.substring(0, 19).replace('T', ' ')}
-      </div>
-    </div>
-  )
-
-  // 卡片视图 - 补卡记录
-  const renderMakeupCardView = (record) => (
-    <div key={record.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-gray-800 text-lg">
-              {record.employee_name || `员工 #${record.employee_id}`}
-            </span>
-            {getStatusBadge(record.status)}
-            <span className="text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded">
-              {record.clock_type === 'in' ? '上班卡' : '下班卡'}
-            </span>
-          </div>
-          <div className="text-sm text-gray-600 mb-2">
-            📅 {record.record_date}
-            <span className="ml-2">⏰ {record.clock_time?.substring(11, 19)}</span>
-          </div>
-          <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-            💬 {record.reason}
-          </div>
-        </div>
-        {record.status === 'pending' && (
-          <div className="flex gap-2 ml-4">
-            <button
-              onClick={() => handleQuickApproval(record, true)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium"
-            >
-              ✓ 通过
-            </button>
-            <button
-              onClick={() => handleQuickApproval(record, false)}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium"
-            >
-              ✗ 驳回
-            </button>
-            <button
-              onClick={() => handleApprove(record)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm"
-            >
-              📝
-            </button>
-          </div>
-        )}
-      </div>
-      {record.approval_note && (
-        <div className="text-sm text-gray-600 bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
-          <span className="font-medium">审批意见：</span>
-          {record.approval_note}
-        </div>
-      )}
-      <div className="text-xs text-gray-500 mt-2">
-        🕐 申请时间：{record.created_at?.substring(0, 19).replace('T', ' ')}
-      </div>
-    </div>
-  )
+      </motion.div>
+    )
+  }
 
   return (
-    <div className="p-6">
-      {/* 头部 */}
-      <div className="mb-6 flex items-center justify-between">
+    <div className="min-h-screen p-8 bg-gray-50 flex flex-col">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">考勤审批</h1>
-          <p className="text-gray-600 mt-1">快速审批员工的请假、加班和补卡申请</p>
+          <h1 className="text-3xl font-bold text-gray-900">审批管理</h1>
+          <p className="text-gray-500 mt-2">
+            {currentUser?.is_department_manager ? '管理您部门的考勤申请' : '管理所有考勤申请'}
+          </p>
         </div>
-        {/* 视图切换 */}
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+        <div className="flex bg-white rounded-xl p-1 shadow-sm border border-gray-100">
           <button
             onClick={() => setViewMode('card')}
-            className={`px-4 py-2 rounded transition-colors ${
-              viewMode === 'card'
-                ? 'bg-white text-blue-600 shadow'
-                : 'text-gray-600 hover:text-gray-800'
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'card' ? 'bg-blue-50 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
-            title="卡片视图"
           >
-            🎴 卡片
+            卡片视图
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded transition-colors ${
-              viewMode === 'list'
-                ? 'bg-white text-blue-600 shadow'
-                : 'text-gray-600 hover:text-gray-800'
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'list' ? 'bg-blue-50 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
-            title="列表视图"
           >
-            📋 列表
+            列表视图
           </button>
         </div>
       </div>
 
-      {/* 标签页和筛选 */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="border-b">
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab('leave')}
-              className={`px-6 py-3 font-medium ${
-                activeTab === 'leave'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              📝 请假申请
-            </button>
-            <button
-              onClick={() => setActiveTab('overtime')}
-              className={`px-6 py-3 font-medium ${
-                activeTab === 'overtime'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              ⏰ 加班申请
-            </button>
-            <button
-              onClick={() => setActiveTab('makeup')}
-              className={`px-6 py-3 font-medium ${
-                activeTab === 'makeup'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              🔄 补卡申请
-            </button>
-          </div>
-        </div>
-
-        {/* 筛选栏 */}
-        <div className="p-4 border-b bg-gray-50">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="">全部</option>
-                <option value="pending">待审批</option>
-                <option value="approved">已通过</option>
-                <option value="rejected">已驳回</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
-              <input
-                type="date"
-                value={filters.start_date}
-                onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-                className="w-full border rounded px-3 py-2"
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-gray-200 mb-8">
+        {['leave', 'overtime', 'makeup'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`pb-4 px-2 text-sm font-medium transition-all relative ${
+              activeTab === tab ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab === 'leave' && '请假申请'}
+            {tab === 'overtime' && '加班申请'}
+            {tab === 'makeup' && '补卡申请'}
+            {activeTab === tab && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
-              <input
-                type="date"
-                value={filters.end_date}
-                onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-                className="w-full border rounded px-3 py-2"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => setFilters({ status: 'pending', start_date: '', end_date: '' })}
-                className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-              >
-                重置
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 记录列表 */}
-        <div className="p-4">
-          {loading ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <div className="mt-2">加载中...</div>
-            </div>
-          ) : records.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-4xl mb-2">📭</div>
-              <div>暂无记录</div>
-            </div>
-          ) : viewMode === 'card' ? (
-            <div className="space-y-4">
-              {activeTab === 'leave' && records.map(renderLeaveCardView)}
-              {activeTab === 'overtime' && records.map(renderOvertimeCardView)}
-              {activeTab === 'makeup' && records.map(renderMakeupCardView)}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">员工</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                      {activeTab === 'leave' ? '请假时间' : activeTab === 'overtime' ? '加班日期' : '补卡日期'}
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                      {activeTab === 'leave' ? '天数' : activeTab === 'overtime' ? '时长' : '类型'}
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">原因</th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">状态</th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeTab === 'leave' && records.map(renderLeaveListView)}
-                  {/* 加班和补卡的列表视图类似，这里省略 */}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* 分页 */}
-          {pagination.total > pagination.limit && (
-            <div className="mt-6 flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-gray-600">
-                共 {pagination.total} 条记录，第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                  disabled={pagination.page === 1}
-                  className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  上一页
-                </button>
-                <button
-                  onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  下一页
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* 审批模态框（详细审批时使用） */}
-      {showModal && selectedRecord && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">详细审批</h2>
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">状态</label>
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            className="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="pending">待审批</option>
+            <option value="approved">已通过</option>
+            <option value="rejected">已驳回</option>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">开始日期</label>
+          <input
+            type="date"
+            value={filters.start_date}
+            onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+            className="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">结束日期</label>
+          <input
+            type="date"
+            value={filters.end_date}
+            onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+            className="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <button
+          onClick={() => setFilters({ status: 'pending', start_date: '', end_date: '' })}
+          className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-medium transition-colors"
+        >
+          重置
+        </button>
+      </div>
 
-            <div className="mb-4 p-4 bg-gray-50 rounded">
-              <div className="text-sm space-y-2">
-                <div>
-                  <span className="font-medium">申请人：</span>
-                  {selectedRecord.employee_name || `员工 #${selectedRecord.employee_id}`}
-                </div>
-                {activeTab === 'leave' && (
-                  <>
-                    <div>
-                      <span className="font-medium">请假类型：</span>
-                      {getLeaveTypeName(selectedRecord.leave_type)}
+      {/* Content */}
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        </div>
+      ) : records.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
+          <div className="text-5xl mb-4">📭</div>
+          <h3 className="text-lg font-medium text-gray-900">暂无申请记录</h3>
+          <p className="text-gray-500 mt-1">当前没有需要处理的审批申请</p>
+        </div>
+      ) : viewMode === 'card' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence>
+            {records.map((record) => (
+              <React.Fragment key={record.id}>
+                {renderCard(record)}
+              </React.Fragment>
+            ))}
+          </AnimatePresence>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请人</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型/时间</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">详情</th>
+                <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {records.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs mr-3">
+                        {record.employee_name ? record.employee_name.charAt(0) : '?'}
+                      </div>
+                      <div className="text-sm font-medium text-gray-900">{record.employee_name}</div>
                     </div>
-                    <div>
-                      <span className="font-medium">请假时间：</span>
-                      {selectedRecord.start_date?.substring(0, 10)} 至 {selectedRecord.end_date?.substring(0, 10)} ({selectedRecord.days}天)
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {activeTab === 'leave' && getLeaveTypeName(record.leave_type)}
+                      {activeTab === 'overtime' && '加班'}
+                      {activeTab === 'makeup' && (record.clock_type === 'in' ? '上班补卡' : '下班补卡')}
                     </div>
-                    <div>
-                      <span className="font-medium">请假原因：</span>
-                      {selectedRecord.reason}
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {activeTab === 'leave' && `${record.start_date?.substring(5)} - ${record.end_date?.substring(5)}`}
+                      {activeTab === 'overtime' && record.overtime_date}
+                      {activeTab === 'makeup' && record.record_date}
                     </div>
-                  </>
-                )}
-                {activeTab === 'overtime' && (
-                  <>
-                    <div>
-                      <span className="font-medium">加班日期：</span>
-                      {selectedRecord.overtime_date}
-                    </div>
-                    <div>
-                      <span className="font-medium">加班时长：</span>
-                      {selectedRecord.hours}小时
-                    </div>
-                    <div>
-                      <span className="font-medium">加班原因：</span>
-                      {selectedRecord.reason}
-                    </div>
-                  </>
-                )}
-                {activeTab === 'makeup' && (
-                  <>
-                    <div>
-                      <span className="font-medium">补卡日期：</span>
-                      {selectedRecord.record_date}
-                    </div>
-                    <div>
-                      <span className="font-medium">补卡类型：</span>
-                      {selectedRecord.clock_type === 'in' ? '上班卡' : '下班卡'}
-                    </div>
-                    <div>
-                      <span className="font-medium">补卡原因：</span>
-                      {selectedRecord.reason}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                审批意见（可选）
-              </label>
-              <textarea
-                value={approvalNote}
-                onChange={(e) => setApprovalNote(e.target.value)}
-                className="w-full border rounded px-3 py-2"
-                rows="3"
-                placeholder="填写审批意见..."
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleSubmitApproval(true)}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-medium"
-              >
-                ✓ 通过
-              </button>
-              <button
-                onClick={() => handleSubmitApproval(false)}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-medium"
-              >
-                ✗ 驳回
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded font-medium"
-              >
-                取消
-              </button>
-            </div>
-          </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-500 max-w-xs truncate">{record.reason}</div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {getStatusBadge(record.status)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-sm font-medium">
+                    {record.status === 'pending' && (
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleQuickApproval(record, true)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          通过
+                        </button>
+                        <button
+                          onClick={() => handleQuickApproval(record, false)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          驳回
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* 快速审批确认模态框 */}
-      {showConfirmModal && confirmAction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="text-center">
-              {/* 图标 */}
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4"
-                   style={{ backgroundColor: confirmAction.approved ? '#dcfce7' : '#fee2e2' }}>
-                <span className="text-4xl">
-                  {confirmAction.approved ? '✓' : '✗'}
-                </span>
-              </div>
+      {/* Pagination */}
+      {pagination.total > pagination.limit && (
+        <div className="mt-8 flex justify-center gap-2">
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+            disabled={pagination.page === 1}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <span className="px-4 py-2 text-sm text-gray-600 flex items-center">
+            第 {pagination.page} 页 / 共 {Math.ceil(pagination.total / pagination.limit)} 页
+          </span>
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+            disabled={pagination.page * pagination.limit >= pagination.total}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
+      )}
 
-              {/* 标题 */}
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                {confirmAction.approved ? '确认通过申请' : '确认驳回申请'}
-              </h3>
-
-              {/* 申请信息 */}
-              <div className="text-sm text-gray-600 mb-6 bg-gray-50 p-4 rounded">
-                <div className="mb-2">
-                  <span className="font-medium">申请人：</span>
-                  {confirmAction.record.employee_name || `员工 #${confirmAction.record.employee_id}`}
+      {/* Detail Modal */}
+      {showModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900">审批详情</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-500 text-sm">申请人</span>
+                  <span className="font-medium text-gray-900">{selectedRecord.employee_name}</span>
                 </div>
-                {activeTab === 'leave' && (
-                  <>
-                    <div className="mb-2">
-                      <span className="font-medium">请假类型：</span>
-                      {getLeaveTypeName(confirmAction.record.leave_type)}
-                    </div>
-                    <div>
-                      <span className="font-medium">请假时间：</span>
-                      {confirmAction.record.start_date?.substring(0, 10)} 至 {confirmAction.record.end_date?.substring(0, 10)} ({confirmAction.record.days}天)
-                    </div>
-                  </>
-                )}
-                {activeTab === 'overtime' && (
-                  <>
-                    <div className="mb-2">
-                      <span className="font-medium">加班日期：</span>
-                      {confirmAction.record.overtime_date}
-                    </div>
-                    <div>
-                      <span className="font-medium">加班时长：</span>
-                      {confirmAction.record.hours}小时
-                    </div>
-                  </>
-                )}
-                {activeTab === 'makeup' && (
-                  <>
-                    <div className="mb-2">
-                      <span className="font-medium">补卡日期：</span>
-                      {confirmAction.record.record_date}
-                    </div>
-                    <div>
-                      <span className="font-medium">补卡类型：</span>
-                      {confirmAction.record.clock_type === 'in' ? '上班卡' : '下班卡'}
-                    </div>
-                  </>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500 text-sm">申请时间</span>
+                  <span className="font-medium text-gray-900">{selectedRecord.created_at?.substring(0, 16).replace('T', ' ')}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-3">
+                  <p className="text-gray-500 text-sm mb-1">申请原因</p>
+                  <p className="text-gray-900">{selectedRecord.reason}</p>
+                </div>
               </div>
 
-              {/* 提示信息 */}
-              <p className="text-sm text-gray-500 mb-6">
-                {confirmAction.approved
-                  ? '此操作将通过该申请，是否继续？'
-                  : '此操作将驳回该申请，是否继续？'}
-              </p>
-
-              {/* 按钮 */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowConfirmModal(false)
-                    setConfirmAction(null)
-                  }}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded font-medium transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={executeQuickApproval}
-                  className={`flex-1 text-white py-2 px-4 rounded font-medium transition-colors ${
-                    confirmAction.approved
-                      ? 'bg-green-500 hover:bg-green-600'
-                      : 'bg-red-500 hover:bg-red-600'
-                  }`}
-                >
-                  {confirmAction.approved ? '确认通过' : '确认驳回'}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">审批意见</label>
+                <textarea
+                  value={approvalNote}
+                  onChange={(e) => setApprovalNote(e.target.value)}
+                  className="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows="3"
+                  placeholder="请输入审批意见（可选）..."
+                />
               </div>
             </div>
-          </div>
+            <div className="p-6 bg-gray-50 flex gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-white transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => handleSubmitApproval(false)}
+                className="flex-1 px-4 py-2.5 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-colors"
+              >
+                驳回
+              </button>
+              <button
+                onClick={() => handleSubmitApproval(true)}
+                className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 transition-all"
+              >
+                通过
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && confirmAction && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center"
+          >
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              confirmAction.approved ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+            }`}>
+              <span className="text-3xl">{confirmAction.approved ? '✓' : '✕'}</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              确认{confirmAction.approved ? '通过' : '驳回'}?
+            </h3>
+            <p className="text-gray-500 mb-6">
+              您确定要{confirmAction.approved ? '通过' : '驳回'} {confirmAction.record.employee_name} 的申请吗？
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={executeQuickApproval}
+                className={`flex-1 px-4 py-2.5 text-white font-medium rounded-xl shadow-lg transition-all ${
+                  confirmAction.approved
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                    : 'bg-red-600 hover:bg-red-700 shadow-red-200'
+                }`}
+              >
+                确认
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

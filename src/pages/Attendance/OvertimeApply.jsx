@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
-
+import { motion } from 'framer-motion'
+import { DatePicker, TimePicker, Input } from 'antd';
+import dayjs from 'dayjs';
+import locale from 'antd/es/date-picker/locale/zh_CN';
 
 export default function OvertimeApply() {
   const [formData, setFormData] = useState({
@@ -14,6 +17,46 @@ export default function OvertimeApply() {
   const [loading, setLoading] = useState(false)
   const [employee, setEmployee] = useState(null)
   const [user, setUser] = useState(null)
+  const [approver, setApprover] = useState(null)
+
+  // Helper to handle date change
+  const handleDateChange = (date, dateString, field) => {
+    setFormData(prev => ({ ...prev, [field]: dateString }));
+  };
+
+  // Helper to handle time change
+  const handleTimeChange = (time, timeString, field) => {
+    setFormData(prev => ({ ...prev, [field]: timeString }));
+  };
+
+  // 快捷选择今天
+  const selectToday = () => {
+    const today = dayjs();
+    const dateString = today.format('YYYY-MM-DD');
+    setFormData(prev => ({
+      ...prev,
+      overtime_date: dateString
+    }));
+  };
+
+  // 快捷选择明天
+  const selectTomorrow = () => {
+    const tomorrow = dayjs().add(1, 'day');
+    const dateString = tomorrow.format('YYYY-MM-DD');
+    setFormData(prev => ({
+      ...prev,
+      overtime_date: dateString
+    }));
+  };
+
+  // 快捷时间选择
+  const setTimeRange = (start, end) => {
+    setFormData(prev => ({
+      ...prev,
+      start_time: start,
+      end_time: end
+    }));
+  };
 
   useEffect(() => {
     const userStr = localStorage.getItem('user')
@@ -21,6 +64,7 @@ export default function OvertimeApply() {
       const userData = JSON.parse(userStr)
       setUser(userData)
       fetchEmployeeInfo(userData.id)
+      fetchApprover(userData.id)
     }
   }, [])
 
@@ -35,6 +79,17 @@ export default function OvertimeApply() {
     } catch (error) {
       console.error('获取员工信息失败:', error)
       toast.error('获取员工信息失败')
+    }
+  }
+
+  const fetchApprover = async (userId) => {
+    try {
+      const response = await axios.get(getApiUrl(`/api/users/${userId}/approver`))
+      if (response.data.success) {
+        setApprover(response.data.data)
+      }
+    } catch (error) {
+      console.error('获取审批人失败:', error)
     }
   }
 
@@ -55,6 +110,11 @@ export default function OvertimeApply() {
       return
     }
 
+    if (!formData.overtime_date) {
+      toast.error('请选择加班日期')
+      return
+    }
+
     const hours = calculateHours()
     if (hours <= 0) {
       toast.error('结束时间必须晚于开始时间')
@@ -72,6 +132,7 @@ export default function OvertimeApply() {
         overtime_date: formData.overtime_date,
         start_time,
         end_time,
+        hours,
         reason: formData.reason
       })
 
@@ -92,112 +153,192 @@ export default function OvertimeApply() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      {/* 头部 */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">加班申请</h1>
-        <p className="text-gray-600 mt-1">提交您的加班申请</p>
+    <div className="min-h-screen p-8 bg-gray-50">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">加班申请</h1>
+        <p className="text-gray-500 mt-2">提交您的加班申请，系统将自动通知审批人</p>
       </div>
 
-      {/* 申请表单 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <form onSubmit={handleSubmit}>
-          {/* 加班日期 */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              加班日期 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              required
-              value={formData.overtime_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, overtime_date: e.target.value }))}
-              className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
+        {/* 左侧：申请表单 */}
+        <div className="flex-1">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+              {/* 加班日期 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">加班日期</label>
+                {/* 快捷选择按钮 */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={selectToday}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    今天
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectTomorrow}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    明天
+                  </button>
+                </div>
+                <DatePicker
+                  className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
+                  onChange={(date, dateString) => handleDateChange(date, dateString, 'overtime_date')}
+                  locale={locale}
+                  placeholder="选择日期"
+                  value={formData.overtime_date ? dayjs(formData.overtime_date) : null}
+                  disabledDate={(current) => {
+                    // 不能选择今天之前的日期
+                    return current && current < dayjs().startOf('day');
+                  }}
+                  format="YYYY-MM-DD"
+                  allowClear
+                />
+              </div>
 
-          {/* 时间范围 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                开始时间 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                required
-                value={formData.start_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                结束时间 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                required
-                value={formData.end_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
-                className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+              {/* 时间范围 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">开始时间</label>
+                  <TimePicker
+                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
+                    onChange={(time, timeString) => handleTimeChange(time, timeString, 'start_time')}
+                    format="HH:mm"
+                    placeholder="选择时间"
+                    value={formData.start_time ? dayjs(formData.start_time, 'HH:mm') : null}
+                    minuteStep={30}
+                    allowClear
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">结束时间</label>
+                  <TimePicker
+                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
+                    onChange={(time, timeString) => handleTimeChange(time, timeString, 'end_time')}
+                    format="HH:mm"
+                    placeholder="选择时间"
+                    value={formData.end_time ? dayjs(formData.end_time, 'HH:mm') : null}
+                    minuteStep={30}
+                    allowClear
+                  />
+                </div>
+              </div>
 
-          {/* 加班时长 */}
-          {formData.start_time && formData.end_time && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">加班时长：</span>
-                <span className="text-2xl font-bold text-blue-600">{calculateHours()} 小时</span>
+              {/* 快捷时间选择 */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTimeRange('18:00', '20:00')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  18:00-20:00 (2小时)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeRange('18:00', '21:00')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  18:00-21:00 (3小时)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeRange('18:00', '22:00')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  18:00-22:00 (4小时)
+                </button>
+              </div>
+
+              {/* 加班时长 */}
+              {formData.start_time && formData.end_time && (
+                <div className="p-4 bg-orange-50 rounded-xl flex items-center justify-between">
+                  <span className="text-orange-700 font-medium">预计加班时长</span>
+                  <span className="text-2xl font-bold text-orange-600">{calculateHours()} <span className="text-sm font-normal text-orange-500">小时</span></span>
+                </div>
+              )}
+
+              {/* 加班原因 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">加班原因</label>
+                <Input.TextArea
+                  rows={4}
+                  value={formData.reason}
+                  onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="请详细说明加班原因和工作内容..."
+                  className="rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow resize-none"
+                  showCount
+                  maxLength={200}
+                />
               </div>
             </div>
+
+            {/* 提交按钮 */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="px-6 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {loading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                {loading ? '提交中...' : '提交申请'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* 右侧：信息面板 */}
+        <div className="space-y-6">
+          {/* 审批人信息 */}
+          {approver && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+            >
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">审批人信息</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-medium">{approver.real_name?.charAt(0)}</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{approver.real_name}</p>
+                  <p className="text-sm text-gray-500">{approver.position || '部门主管'}</p>
+                </div>
+              </div>
+            </motion.div>
           )}
 
-          {/* 加班原因 */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              加班原因 <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              required
-              rows={4}
-              value={formData.reason}
-              onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-              placeholder="请详细说明加班原因和工作内容..."
-              className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          {/* 申请说明 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">申请说明</h3>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 mt-0.5">•</span>
+                <span>加班时间需晚于正常下班时间</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 mt-0.5">•</span>
+                <span>加班时长将计入调休或加班费结算</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 mt-0.5">•</span>
+                <span>审批通过后方可生效</span>
+              </li>
+            </ul>
           </div>
-
-          {/* 提交按钮 */}
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '提交中...' : '提交申请'}
-            </button>
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              取消
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* 注意事项 */}
-      <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 className="font-semibold text-yellow-800 mb-2">📌 注意事项</h3>
-        <ul className="text-sm text-yellow-700 space-y-1">
-          <li>• 加班需提前申请或事后24小时内补申请</li>
-          <li>• 请如实填写加班时间和原因</li>
-          <li>• 加班时长将计入调休余额</li>
-          <li>• 加班需经主管审批通过</li>
-        </ul>
+        </div>
       </div>
     </div>
   )

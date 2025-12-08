@@ -4,12 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './UnreadMemoPopup.css'
 
-const getApiUrl = (path) => {
-  const API_BASE_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3001'
-    : `http://${window.location.hostname}:3001`
-  return `${API_BASE_URL}${path}`
-}
+import { getApiUrl } from '../utils/apiConfig'
 
 const UnreadMemoPopup = ({ onClose }) => {
   const [unreadMemos, setUnreadMemos] = useState([])

@@ -95,7 +95,7 @@ export const getApiUrl = (path) => {
   const baseUrl = getApiBaseUrl();
   // 如果path已经包含/api，则移除baseUrl中的/api
   if (path.startsWith('/api/')) {
-    return baseUrl.replace('/api', '') + path;
+    return baseUrl.replace(/\/api$/, '') + path;
   }
   // 如果path不以/开头，添加/
   if (!path.startsWith('/')) {
@@ -113,7 +113,7 @@ export async function getApiUrlAsync(path) {
   const baseUrl = await getApiBaseUrlAsync();
   // 如果path已经包含/api，则移除baseUrl中的/api
   if (path.startsWith('/api/')) {
-    return baseUrl.replace('/api', '') + path;
+    return baseUrl.replace(/\/api$/, '') + path;
   }
   // 如果path不以/开头，添加/
   if (!path.startsWith('/')) {
