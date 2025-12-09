@@ -2,11 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import SimpleMDE from 'react-simplemde-editor'
-import 'easymde/dist/easymde.min.css'
 import './MyMemos.css'
 
 import { getApiUrl } from '../../utils/apiConfig'
+import { wsManager } from '../../services/websocket'
 
 const MyMemos = () => {
   const [memos, setMemos] = useState([])
@@ -39,20 +38,29 @@ const MyMemos = () => {
 
   const userId = localStorage.getItem('userId')
 
-  // SimpleMDE配置 - 使用useMemo避免重新创建
-  const editorOptions = useMemo(() => ({
-    spellChecker: false,
-    placeholder: '请输入内容，支持Markdown格式...',
-    toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', '|', 'preview', 'side-by-side', 'fullscreen'],
-    autosave: {
-      enabled: false
-    },
-    status: false
-  }), [])
+  // 处理WebSocket新备忘录事件
+  const handleNewMemo = (memo) => {
+    console.log('收到新备忘录:', memo)
+    // 重新加载备忘录列表以显示新备忘录
+    loadMemos()
+  }
+
+  // 组件挂载时添加WebSocket事件监听器
+  useEffect(() => {
+    // 注册事件监听器
+    wsManager.on('memo', handleNewMemo)
+
+    // 清理函数 - 组件卸载时移除监听器
+    return () => {
+      wsManager.off('memo', handleNewMemo)
+    }
+  }, [])
+
+  // 移除SimpleMDE配置
 
   // 处理内容变化 - 使用useCallback避免重新创建
-  const handleContentChange = useCallback((value) => {
-    setFormData(prev => ({ ...prev, content: value }))
+  const handleContentChange = useCallback((e) => {
+    setFormData(prev => ({ ...prev, content: e.target.value }))
   }, [])
 
   useEffect(() => {
@@ -357,11 +365,13 @@ const MyMemos = () => {
               </div>
 
               <div className="form-group">
-                <label>内容（支持Markdown）</label>
-                <SimpleMDE
+                <label>内容</label>
+                <textarea
                   value={formData.content}
                   onChange={handleContentChange}
-                  options={editorOptions}
+                  placeholder="请输入内容..."
+                  className="form-textarea"
+                  rows="10"
                 />
               </div>
             </div>

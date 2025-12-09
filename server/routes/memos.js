@@ -505,6 +505,41 @@ module.exports = async function (fastify, opts) {
       await connection.commit()
       connection.release()
 
+      // 实时推送功能 - 获取WebSocket实例并发送通知
+      try {
+        const { sendMemoToUser } = require('../websocket')
+        const io = fastify.io
+
+        // 构造备忘录对象用于推送
+        const memoForPush = {
+          id: memoId,
+          title: title,
+          content: content,
+          type: 'department',
+          priority: priority,
+          created_at: new Date().toISOString()
+        }
+
+        // 向所有目标用户推送备忘录
+        let successCount = 0
+        let failCount = 0
+
+        targetUsers.forEach(user => {
+          try {
+            sendMemoToUser(io, user.id, memoForPush)
+            successCount++
+          } catch (userPushError) {
+            console.error(`向用户 ${user.id} 推送备忘录失败:`, userPushError)
+            failCount++
+          }
+        })
+
+        console.log(`📝 [WebSocket] 备忘录推送完成 - 成功: ${successCount}, 失败: ${failCount}, 总计: ${targetUsers.length}`)
+      } catch (pushError) {
+        console.error('实时推送备忘录失败:', pushError)
+        // 不影响主流程，继续执行
+      }
+
       return {
         success: true,
         message: '备忘录发送成功',

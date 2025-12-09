@@ -119,15 +119,8 @@ function applyDepartmentFilter(permissions, query, params, departmentField = 'u.
     viewableDepartmentIds: permissions.viewableDepartmentIds
   })
 
-  // 如果是超级管理员，可以查看所有部门的数据
-  if (permissions.canViewAllDepartments) {
-    console.log('[applyDepartmentFilter] Super admin, allowing all data')
-    // 不添加额外的过滤条件，允许查看所有数据
-    return { query, params }
-  }
-
+  // 不再特殊处理超级管理员，所有用户都遵循相同的部门权限规则
   // 严格根据 viewableDepartmentIds 过滤
-  // 即使是超级管理员，也必须配置了可查看的部门才能查看
   if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
     console.log(`[applyDepartmentFilter] Filtering by viewableDepartmentIds: ${permissions.viewableDepartmentIds.join(',')}`)
     const placeholders = permissions.viewableDepartmentIds.map(() => '?').join(',')

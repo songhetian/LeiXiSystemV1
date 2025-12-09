@@ -20,7 +20,18 @@ fastify.register(cors, {
   origin: true, // 允许所有来源，解决开发环境IP变动导致的连接问题
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Content-Type']
+})
+
+// 设置默认响应头确保UTF-8编码
+fastify.addHook('onSend', async (request, reply, payload) => {
+  if (!reply.getHeader('Content-Type')) {
+    reply.header('Content-Type', 'application/json; charset=utf-8')
+  } else if (reply.getHeader('Content-Type')?.includes('application/json')) {
+    reply.header('Content-Type', 'application/json; charset=utf-8')
+  }
+  return payload
 })
 
 // 引入权限中间件
@@ -1163,7 +1174,7 @@ fastify.post('/api/departments/:id/restore', async (request, reply) => {
 // 获取员工列表
 fastify.get('/api/employees', async (request, reply) => {
   try {
-    const { includeDeleted } = request.query;
+    const { includeDeleted, department_id } = request.query;
     const { extractUserPermissions, applyDepartmentFilter } = require('./middleware/checkPermission');
 
     // 获取用户权限
@@ -1203,6 +1214,12 @@ fastify.get('/api/employees', async (request, reply) => {
     // 默认不显示已删除的员工
     if (includeDeleted !== 'true') {
       query += ' AND e.status != "deleted"';
+    }
+
+    // 如果指定了部门ID，则按部门过滤
+    if (department_id) {
+      query += ' AND u.department_id = ?';
+      params.push(department_id);
     }
 
     // 应用部门权限过滤
@@ -3033,6 +3050,83 @@ fastify.get('/api/users/:id/has-permission/:code', async (request, reply) => {
   } catch (error) {
     console.error(error);
     reply.code(500).send({ error: 'Failed to check permission' });
+  }
+});
+
+// 获取用户的详细权限信息（包括角色和部门权限）
+fastify.get('/api/users/:id/permissions-detail', async (request, reply) => {
+  const { id } = request.params;
+  try {
+    // 获取用户基本信息
+    const [users] = await pool.query('SELECT id, username, real_name, department_id FROM users WHERE id = ?', [id]);
+    if (users.length === 0) {
+      return reply.code(404).send({ success: false, message: '用户不存在' });
+    }
+    const user = users[0];
+
+    // 获取用户角色
+    const [roles] = await pool.query(`
+      SELECT r.id, r.name, r.description, r.level, r.is_system
+      FROM roles r
+      INNER JOIN user_roles ur ON r.id = ur.role_id
+      WHERE ur.user_id = ?
+      ORDER BY r.level DESC, r.id
+    `, [id]);
+
+    // 获取用户权限（通过角色）
+    const [permissions] = await pool.query(`
+      SELECT DISTINCT p.*
+      FROM permissions p
+      INNER JOIN role_permissions rp ON p.id = rp.permission_id
+      INNER JOIN user_roles ur ON rp.role_id = ur.role_id
+      WHERE ur.user_id = ?
+      ORDER BY p.module, p.id
+    `, [id]);
+
+    // 获取用户个人部门权限
+    const [userDepartments] = await pool.query(`
+      SELECT DISTINCT d.*
+      FROM departments d
+      INNER JOIN user_departments ud ON d.id = ud.department_id
+      WHERE ud.user_id = ?
+      ORDER BY d.sort_order, d.id
+    `, [id]);
+
+    // 获取用户角色部门权限
+    const [roleDepartments] = await pool.query(`
+      SELECT DISTINCT d.*
+      FROM departments d
+      INNER JOIN role_departments rd ON d.id = rd.department_id
+      INNER JOIN user_roles ur ON rd.role_id = ur.role_id
+      WHERE ur.user_id = ?
+      ORDER BY d.sort_order, d.id
+    `, [id]);
+
+    // 检查是否是超级管理员
+    const isAdmin = roles.some(r => r.name === '超级管理员');
+
+    // 构建权限详情对象
+    const permissionDetails = {
+      user: {
+        id: user.id,
+        username: user.username,
+        real_name: user.real_name,
+        department_id: user.department_id
+      },
+      roles: roles,
+      permissions: permissions.map(p => p.code),
+      permissionObjects: permissions,
+      userDepartments: userDepartments,
+      roleDepartments: roleDepartments,
+      isAdmin: isAdmin,
+      // 合并用户个人部门权限和角色部门权限，去重
+      viewableDepartments: [...new Map([...userDepartments, ...roleDepartments].map(item => [item.id, item])).values()]
+    };
+
+    return { success: true, data: permissionDetails };
+  } catch (error) {
+    console.error(error);
+    reply.code(500).send({ success: false, error: 'Failed to fetch user permission details' });
   }
 });
 

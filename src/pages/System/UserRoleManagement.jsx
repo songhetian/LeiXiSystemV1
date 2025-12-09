@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Card, Tag, Space, Modal, Select, message, DatePicker } from 'antd';
-import { UserOutlined, TeamOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Button, Card, Tag, Space, Modal, Select, message } from 'antd';
+import { UserOutlined, TeamOutlined, ReloadOutlined, EyeOutlined, LockOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPut, apiPost } from '../../utils/apiClient';
-import dayjs from 'dayjs';
+// 导入部门权限模态框组件
+import UserDepartmentModal from '../../components/UserDepartmentModal';
 
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 const UserRoleManagement = () => {
   const [users, setUsers] = useState([]);
@@ -17,11 +17,14 @@ const UserRoleManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRoles, setSelectedRoles] = useState([]);
 
+  // 部门权限状态
+  const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
+  const [selectedUserForDepartment, setSelectedUserForDepartment] = useState(null);
+
   // 搜索状态
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchDepartment, setSearchDepartment] = useState('');
   const [searchRole, setSearchRole] = useState('');
-  const [searchDateRange, setSearchDateRange] = useState([]);
 
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
@@ -57,9 +60,33 @@ const UserRoleManagement = () => {
     try {
       const response = await apiGet('/api/roles');
       if (response.success) {
-        setRoles(response.data);
+        const rolesData = response.data || [];
+        const rolesWithDepartments = await Promise.all(
+          rolesData.map(async (role) => {
+            try {
+              const deptResponse = await apiGet(`/api/roles/${role.id}/departments`);
+              if (deptResponse.success) {
+                return { ...role, departments: deptResponse.data };
+              }
+            } catch (e) {}
+            return { ...role, departments: [] };
+          })
+        );
+        setRoles(rolesWithDepartments);
       } else if (Array.isArray(response)) {
-        setRoles(response);
+        const rolesData = response || [];
+        const rolesWithDepartments = await Promise.all(
+          rolesData.map(async (role) => {
+            try {
+              const deptResponse = await apiGet(`/api/roles/${role.id}/departments`);
+              if (deptResponse.success) {
+                return { ...role, departments: deptResponse.data };
+              }
+            } catch (e) {}
+            return { ...role, departments: [] };
+          })
+        );
+        setRoles(rolesWithDepartments);
       }
     } catch (error) {
       console.error('获取角色列表失败:', error);
@@ -107,6 +134,19 @@ const UserRoleManagement = () => {
     setSelectedRoles(roleIds);
   };
 
+  // 处理员工部门权限管理
+  const handleManageUserDepartments = (user) => {
+    setSelectedUserForDepartment(user);
+    setIsDepartmentModalOpen(true);
+  };
+
+  // 员工部门权限设置成功回调
+  const handleUserDepartmentSuccess = () => {
+    // 可以在这里添加刷新逻辑或其他操作
+    message.success('员工部门权限设置成功');
+    fetchUsers(); // 刷新用户列表
+  };
+
   // 过滤用户
   const filteredUsers = users.filter(user => {
     // 关键词搜索
@@ -132,12 +172,6 @@ const UserRoleManagement = () => {
       if (!hasRole) return false;
     }
 
-    // 时间范围搜索（基于创建时间或其他时间字段）
-    if (searchDateRange && searchDateRange.length === 2) {
-      // 这里可以根据需要添加时间过滤逻辑
-      // 由于用户对象中可能没有直接的时间字段，我们可以跳过这个过滤
-    }
-
     return true;
   });
 
@@ -151,7 +185,7 @@ const UserRoleManagement = () => {
             <UserOutlined className="text-blue-500" />
           </div>
           <div>
-            <div className="font-medium">{record.real_name}</div>
+            <div className="font-medium text-gray-900">{record.real_name}</div>
             <div className="text-sm text-gray-500">@{record.username}</div>
           </div>
         </div>
@@ -161,7 +195,9 @@ const UserRoleManagement = () => {
       title: '部门',
       dataIndex: 'department_name',
       key: 'department_name',
-      render: (text) => text || '未分配',
+      render: (text) => (
+        <span className="text-gray-600">{text || '未分配'}</span>
+      ),
     },
     {
       title: '角色',
@@ -177,7 +213,7 @@ const UserRoleManagement = () => {
               ))}
             </Space>
           ) : (
-            <span className="text-gray-400">未分配角色</span>
+            <span className="text-gray-400 text-sm">未分配角色</span>
           )}
         </div>
       ),
@@ -185,14 +221,28 @@ const UserRoleManagement = () => {
     {
       title: '操作',
       key: 'action',
+      width: 200,
       render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<TeamOutlined />}
-          onClick={() => handleManageRoles(record)}
-        >
-          分配角色
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="small"
+            type="primary"
+            ghost
+            icon={<TeamOutlined />}
+            onClick={() => handleManageRoles(record)}
+            className="flex items-center"
+          >
+            分配角色
+          </Button>
+          <Button
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleManageUserDepartments(record)}
+            className="flex items-center"
+          >
+            部门权限
+          </Button>
+        </div>
       ),
     },
   ];
@@ -271,91 +321,136 @@ const UserRoleManagement = () => {
   };
 
   return (
-    <div className="p-8">
-      <div className="bg-white rounded-xl shadow-md p-6">
+    <div className="p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {/* 头部 */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">员工角色管理</h2>
-            <p className="text-gray-500 text-sm mt-1">共 {filteredUsers.length} 名员工</p>
+            <h2 className="text-2xl font-bold text-gray-900">员工角色管理</h2>
+            <p className="text-gray-500 text-sm mt-1">管理员工的角色分配和部门权限</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button icon={<ReloadOutlined />} onClick={fetchUsers}>刷新</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={fetchUsers}
+              className="flex items-center"
+            >
+              刷新
+            </Button>
+          </div>
+        </div>
+
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+            <div className="text-blue-800 font-medium">总员工数</div>
+            <div className="text-2xl font-bold text-blue-900 mt-1">{filteredUsers.length}</div>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+            <div className="text-purple-800 font-medium">已选员工</div>
+            <div className="text-2xl font-bold text-purple-900 mt-1">{selectedUserIds.length}</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+            <div className="text-green-800 font-medium">角色数量</div>
+            <div className="text-2xl font-bold text-green-900 mt-1">{roles.length}</div>
           </div>
         </div>
 
         {/* 搜索筛选区 */}
         <div className="mb-6">
-          <Card size="small" className="rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">关键词搜索</label>
-              <input
-                type="text"
-                placeholder="姓名/用户名/邮箱/手机"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-              />
-            </div>
+          <Card size="small" className="rounded-lg border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">关键词搜索</label>
+                <input
+                  type="text"
+                  placeholder="姓名/用户名/邮箱/手机"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">部门筛选</label>
-              <select
-                value={searchDepartment}
-                onChange={(e) => setSearchDepartment(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-              >
-                <option value="">全部部门</option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">部门筛选</label>
+                <select
+                  value={searchDepartment}
+                  onChange={(e) => setSearchDepartment(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  <option value="">全部部门</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">角色筛选</label>
-              <select
-                value={searchRole}
-                onChange={(e) => setSearchRole(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-              >
-                <option value="">全部角色</option>
-                {roles.map(role => (
-                  <option key={role.id} value={role.id}>{role.name}</option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">角色筛选</label>
+                <select
+                  value={searchRole}
+                  onChange={(e) => setSearchRole(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  <option value="">全部角色</option>
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">时间范围</label>
-              <RangePicker
-                className="w-full"
-                value={searchDateRange}
-                onChange={(dates) => setSearchDateRange(dates)}
-                format="YYYY-MM-DD"
-                placeholder={['开始日期', '结束日期']}
-              />
+            <div className="flex justify-end mt-4">
+              <Space>
+                <Button
+                  onClick={() => {
+                    setSearchKeyword('');
+                    setSearchDepartment('');
+                    setSearchRole('');
+                  }}
+                >
+                  重置筛选
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={fetchUsers}
+                >
+                  应用筛选
+                </Button>
+              </Space>
             </div>
-          </div>
-          <div className="flex justify-end mt-4">
-            <Space>
-              <Button onClick={() => { setSearchKeyword(''); setSearchDepartment(''); setSearchRole(''); setSearchDateRange([]); }}>重置筛选</Button>
-              <Button type="primary" onClick={fetchUsers}>应用筛选</Button>
-            </Space>
-          </div>
           </Card>
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm text-gray-600">已选 {selectedUserIds.length} / {filteredUsers.length}</div>
-          <Space>
-            <Button type="primary" disabled={selectedUserIds.length === 0} onClick={() => setIsBatchAssignOpen(true)}>批量分配角色</Button>
-            <Button danger disabled={selectedUserIds.length === 0} onClick={() => setIsBatchRemoveOpen(true)}>批量移除角色</Button>
+        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="text-sm text-gray-600">
+            已选 {selectedUserIds.length} / {filteredUsers.length} 名员工
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="primary"
+              disabled={selectedUserIds.length === 0}
+              onClick={() => setIsBatchAssignOpen(true)}
+              className="flex items-center"
+            >
+              <TeamOutlined className="mr-1" />
+              批量分配角色
+            </Button>
+            <Button
+              danger
+              disabled={selectedUserIds.length === 0}
+              onClick={() => setIsBatchRemoveOpen(true)}
+              className="flex items-center"
+            >
+              <LockOutlined className="mr-1" />
+              批量移除角色
+            </Button>
             {isProcessingBatch && (
-              <span className="text-sm text-gray-600">处理中 {batchProgress.done} / {batchProgress.total}</span>
+              <span className="text-sm text-gray-600 flex items-center">
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></span>
+                处理中 {batchProgress.done} / {batchProgress.total}
+              </span>
             )}
-          </Space>
+          </div>
         </div>
 
         <Table
@@ -366,8 +461,11 @@ const UserRoleManagement = () => {
           rowSelection={{ selectedRowKeys: selectedUserIds, onChange: setSelectedUserIds, preserveSelectedRowKeys: true }}
           pagination={{
             pageSize: 10,
-            showSizeChanger: false,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`
           }}
+          scroll={{ x: 'max-content' }}
         />
       </div>
 
@@ -403,7 +501,7 @@ const UserRoleManagement = () => {
             </Select>
           </div>
 
-          <div className="mt-6 p-3 bg-blue-50 rounded-lg">
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-start">
               <span className="text-blue-500 text-lg mr-2">ℹ️</span>
               <div>
@@ -428,7 +526,9 @@ const UserRoleManagement = () => {
       >
         <div className="py-4">
           <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">为选中的 {selectedUserIds.length} 名员工分配一个角色：</p>
+            <p className="text-sm text-gray-600 mb-2">
+              为选中的 <span className="font-semibold text-gray-900">{selectedUserIds.length}</span> 名员工分配一个角色：
+            </p>
             <Select
               placeholder="选择要分配的角色"
               value={batchAssignRoleId}
@@ -443,7 +543,13 @@ const UserRoleManagement = () => {
           </div>
           <div className="flex justify-end gap-3">
             <Button onClick={() => setIsBatchAssignOpen(false)}>取消</Button>
-            <Button type="primary" onClick={handleBatchAssignRoles} disabled={isProcessingBatch || !batchAssignRoleId}>保存</Button>
+            <Button
+              type="primary"
+              onClick={handleBatchAssignRoles}
+              disabled={isProcessingBatch || !batchAssignRoleId}
+            >
+              保存
+            </Button>
           </div>
         </div>
       </Modal>
@@ -457,15 +563,34 @@ const UserRoleManagement = () => {
       >
         <div className="py-4">
           <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">将从选中的 {selectedUserIds.length} 名员工移除全部角色。</p>
-            <div className="p-3 bg-red-50 text-red-700 text-xs rounded">此操作会清空所选员工的所有角色，请谨慎执行。</div>
+            <p className="text-sm text-gray-600 mb-2">
+              将从选中的 <span className="font-semibold text-gray-900">{selectedUserIds.length}</span> 名员工移除全部角色。
+            </p>
+            <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200">
+              此操作会清空所选员工的所有角色，请谨慎执行。
+            </div>
           </div>
           <div className="flex justify-end gap-3">
             <Button onClick={() => setIsBatchRemoveOpen(false)}>取消</Button>
-            <Button type="primary" danger onClick={handleBatchRemoveRoles} disabled={isProcessingBatch}>移除</Button>
+            <Button
+              type="primary"
+              danger
+              onClick={handleBatchRemoveRoles}
+              disabled={isProcessingBatch}
+            >
+              移除
+            </Button>
           </div>
         </div>
       </Modal>
+
+      {/* 部门权限模态框 */}
+      <UserDepartmentModal
+        isOpen={isDepartmentModalOpen}
+        onClose={() => setIsDepartmentModalOpen(false)}
+        onSuccess={handleUserDepartmentSuccess}
+        user={selectedUserForDepartment}
+      />
     </div>
   );
 };

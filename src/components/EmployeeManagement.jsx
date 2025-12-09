@@ -221,19 +221,33 @@ function EmployeeManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const token = localStorage.getItem('token')
-      // 移除 forManagement=true，使用正常的部门权限过滤
-      const response = await fetch(getApiUrl('/api/departments'), {
+      const token = localStorage.getItem('token');
+      // 使用带权限控制的部门列表接口
+      const response = await fetch(getApiUrl('/api/departments/list'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
-      })
-      const data = await response.json()
-      setDepartments(data.filter(d => d.status === 'active'))
+      });
+      const result = await response.json();
+      console.log('获取部门列表结果:', result);
+      if (result.success) {
+        setDepartments(result.data.filter(d => d.status === 'active'));
+      } else {
+        // 如果/api/departments/list不可用，回退到普通端点
+        const fallbackResponse = await fetch(getApiUrl('/api/departments'), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const fallbackData = await fallbackResponse.json();
+        setDepartments(Array.isArray(fallbackData) ? fallbackData.filter(d => d.status === 'active') : []);
+      }
     } catch (error) {
-      console.error('获取部门列表失败')
+      console.error('获取部门列表失败:', error);
+      // 出错时设置为空数组或默认值
+      setDepartments([]);
     }
-  }
+  };
 
   const fetchPositions = async () => {
     try {
@@ -651,14 +665,17 @@ function EmployeeManagement() {
 
   // 处理员工部门权限管理
   const handleManageUserDepartments = (user) => {
+    console.log('打开员工部门权限管理:', user);
     setSelectedUserForDepartment(user);
     setIsUserDepartmentModalOpen(true);
   };
 
   // 员工部门权限设置成功回调
   const handleUserDepartmentSuccess = () => {
-    // 可以在这里添加刷新逻辑或其他操作
+    console.log('员工部门权限设置成功');
     toast.success('员工部门权限设置成功');
+    // 刷新员工列表
+    fetchEmployees();
   };
 
   return (

@@ -665,8 +665,8 @@ export default function ScheduleManagement() {
                   })}
                   className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {/* 休息选项 */}
-                  <option value="">休息（不排班）</option>
+                  {/* 未排班选项 */}
+                  <option value="">未排班</option>
 
                   {/* 全公司通用班次 */}
                   {shifts.filter(s => !s.department_id).length > 0 && (
@@ -780,9 +780,8 @@ export default function ScheduleManagement() {
                     onChange={(e) => setBatchData({ ...batchData, shift_id: e.target.value })}
                     className="w-full border rounded px-3 py-2"
                   >
-                    {/* 休息选项 */}
-                    <option value="">休息（不排班）</option>
-
+                    {/* 未排班选项 */}
+                    <option value="">未排班</option>
                     {/* 全公司通用班次 */}
                     {shifts.filter(s => !s.department_id).length > 0 && (
                       <optgroup label="━━ 全公司通用班次 ━━">

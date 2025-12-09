@@ -618,16 +618,24 @@ module.exports = async function (fastify, opts) {
         [status, approver_id, id]
       )
 
-      // 创建通知
-      try {
-        const [overtimeRecords] = await pool.query(
-          'SELECT user_id, overtime_date, start_time, end_time FROM overtime_records WHERE id = ?',
-          [id]
-        )
+  // 创建通知
+  try {
+    const [overtimeRecords] = await pool.query(
+      'SELECT user_id, overtime_date, start_time, end_time FROM overtime_records WHERE id = ?',
+      [id]
+    )
 
-        if (overtimeRecords.length > 0 && overtimeRecords[0].user_id) {
-          const overtime = overtimeRecords[0]
-          const dateStr = toBeijingDate(overtime.overtime_date)
+    if (overtimeRecords.length > 0 && overtimeRecords[0].user_id) {
+      const overtime = overtimeRecords[0]
+      const dateStr = toBeijingDate(overtime.overtime_date)
+      const formatHM = (dt) => {
+        const d = new Date(dt)
+        if (isNaN(d.getTime())) return ''
+        const pad = (n) => String(n).padStart(2, '0')
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+      }
+      const startHM = formatHM(overtime.start_time)
+      const endHM = formatHM(overtime.end_time)
 
           if (approved) {
             await pool.query(
@@ -637,7 +645,7 @@ module.exports = async function (fastify, opts) {
                 overtime.user_id,
                 'overtime_approval',
                 '加班申请已通过',
-                `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）已通过审批`,
+                `您的加班申请（${dateStr} ${startHM}-${endHM}）已通过审批`,
                 id,
                 'overtime'
               ]
@@ -650,7 +658,7 @@ module.exports = async function (fastify, opts) {
               sendNotificationToUser(fastify.io, overtime.user_id, {
                 type: 'overtime_approval',
                 title: '加班申请已通过',
-                content: `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）已通过审批`,
+                content: `您的加班申请（${dateStr} ${startHM}-${endHM}）已通过审批`,
                 related_id: id,
                 related_type: 'overtime',
                 created_at: new Date()
@@ -658,8 +666,8 @@ module.exports = async function (fastify, opts) {
             }
           } else {
             const content = approval_note
-              ? `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）被拒绝：${approval_note}`
-              : `您的加班申请（${dateStr} ${overtime.start_time}-${overtime.end_time}）未通过审批`
+              ? `您的加班申请（${dateStr} ${startHM}-${endHM}）被拒绝：${approval_note}`
+              : `您的加班申请（${dateStr} ${startHM}-${endHM}）未通过审批`
 
             await pool.query(
               `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)

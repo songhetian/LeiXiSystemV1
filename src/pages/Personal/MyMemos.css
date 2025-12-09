@@ -342,37 +342,28 @@
   font-family: inherit;
 }
 
-/* Markdown编辑器样式调整 */
-.EasyMDEContainer {
-  margin-top: 10px;
-}
-
-.EasyMDEContainer .CodeMirror {
-  min-height: 300px;
+/* 文本域样式增强 */
+.form-textarea {
+  min-height: 200px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
+  font-family: inherit;
+  padding: 12px;
+  resize: vertical;
+  transition: all 0.2s;
+  background: white;
+  box-sizing: border-box;
 }
 
-.EasyMDEContainer .CodeMirror:focus-within {
+.form-textarea:focus {
+  outline: none;
   border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
-.EasyMDEContainer .editor-toolbar {
-  border: 1px solid #d1d5db;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  background: #f8f9fa;
-}
-
-.EasyMDEContainer .editor-toolbar button {
-  color: #6b7280 !important;
-}
-
-.EasyMDEContainer .editor-toolbar button:hover,
-.EasyMDEContainer .editor-toolbar button.active {
-  background: #e5e7eb !important;
-  border-color: #d1d5db !important;
+.form-textarea::placeholder {
+  color: #9ca3af;
 }
 
 /* 备忘录详情样式 */
@@ -391,6 +382,7 @@
 .memo-detail-content {
   line-height: 1.8;
   color: #2c3e50;
+  white-space: pre-wrap;
 }
 
 .memo-detail-content h1,

@@ -2,11 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import SimpleMDE from 'react-simplemde-editor'
-import 'easymde/dist/easymde.min.css'
 import './EmployeeMemos.css'
 
 import { getApiUrl } from '../../utils/apiConfig'
+import { wsManager } from '../../services/websocket'
 
 // 从JWT token中解码获取用户信息
 const decodeToken = (token) => {
@@ -61,6 +60,24 @@ const EmployeeMemos = () => {
   })
 
   const token = localStorage.getItem('token')
+
+  // 处理WebSocket新备忘录事件
+  const handleNewMemo = (memo) => {
+    console.log('收到新备忘录:', memo)
+    // 重新加载备忘录列表以显示新备忘录
+    loadMemos()
+  }
+
+  // 组件挂载时添加WebSocket事件监听器
+  useEffect(() => {
+    // 注册事件监听器
+    wsManager.on('memo', handleNewMemo)
+
+    // 清理函数 - 组件卸载时移除监听器
+    return () => {
+      wsManager.off('memo', handleNewMemo)
+    }
+  }, [])
 
   // 从JWT token中获取用户信息
   const userInfo = useMemo(() => {
@@ -149,6 +166,11 @@ const EmployeeMemos = () => {
   }
 
   const loadEmployees = async (departmentId) => {
+    if (!departmentId) {
+      setEmployees([])
+      return
+    }
+
     try {
       const response = await axios.get(getApiUrl('/api/employees'), {
         params: { department_id: departmentId },
@@ -156,12 +178,19 @@ const EmployeeMemos = () => {
           'Authorization': `Bearer ${token}`
         }
       })
-      if (response.data.success) {
-        setEmployees(response.data.data)
+
+      // 检查响应数据结构
+      if (Array.isArray(response.data)) {
+        setEmployees(response.data)
+      } else if (response.data.success) {
+        setEmployees(response.data.data || [])
+      } else {
+        setEmployees([])
       }
     } catch (error) {
       console.error('加载员工列表失败:', error)
       console.error('错误详情:', error.response?.data)
+      setEmployees([])
     }
   }
 
@@ -194,10 +223,17 @@ const EmployeeMemos = () => {
     }
 
     try {
-      await axios.post(getApiUrl('/api/memos/department'), formData, {
+      // 确保内容使用UTF-8编码并清理首尾空格
+      const requestData = {
+        ...formData,
+        title: formData.title.trim(),
+        content: formData.content.trim()
+      };
+
+      await axios.post(getApiUrl('/api/memos/department'), requestData, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json; charset=utf-8'
         }
       })
       showModal('成功', '备忘录发送成功', 'success')
@@ -256,7 +292,7 @@ const EmployeeMemos = () => {
       <div className="page-header">
         <h2>员工备忘录管理</h2>
         <button className="btn-primary" onClick={handleCreate}>
-          <i className="fas fa-paper-plane"></i> 发送备忘录
+          发送备忘录
         </button>
       </div>
 
@@ -359,7 +395,7 @@ const EmployeeMemos = () => {
       {/* 创建备忘录模态框 */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>发送备忘录</h3>
               <button className="close-btn" onClick={() => setShowCreateModal(false)}>×</button>
@@ -373,6 +409,8 @@ const EmployeeMemos = () => {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="请输入标题"
+                  className="form-input"
+                  autoFocus
                 />
               </div>
 
@@ -381,6 +419,7 @@ const EmployeeMemos = () => {
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  className="form-select"
                 >
                   <option value="low">低</option>
                   <option value="normal">普通</option>
@@ -401,7 +440,6 @@ const EmployeeMemos = () => {
                       targetUserId: ''
                     })}
                   >
-                    <i className="fas fa-users"></i>
                     <span>整个部门</span>
                   </button>
                   <button
@@ -409,21 +447,13 @@ const EmployeeMemos = () => {
                     className={`toggle-btn ${formData.sendMode === 'individual' ? 'active' : ''}`}
                     onClick={() => setFormData({ ...formData, sendMode: 'individual' })}
                   >
-                    <i className="fas fa-user"></i>
                     <span>指定员工</span>
                   </button>
                 </div>
               </div>
 
               <div className="form-group">
-                <label>
-                  目标部门 *
-                  {formData.sendMode === 'department' && (
-                    <span style={{ fontWeight: 'normal', color: '#94a3b8', marginLeft: '8px' }}>
-                      (将发送给该部门所有员工)
-                    </span>
-                  )}
-                </label>
+                <label>目标部门 *</label>
                 <select
                   value={formData.targetDepartmentId}
                   onChange={(e) => setFormData({
@@ -431,6 +461,7 @@ const EmployeeMemos = () => {
                     targetDepartmentId: e.target.value,
                     targetUserId: ''
                   })}
+                  className="form-select"
                 >
                   <option value="">请选择部门</option>
                   {departments.map(dept => (
@@ -452,6 +483,7 @@ const EmployeeMemos = () => {
                     value={formData.targetUserId}
                     onChange={(e) => setFormData({ ...formData, targetUserId: e.target.value })}
                     disabled={!formData.targetDepartmentId}
+                    className="form-select"
                   >
                     <option value="">
                       {!formData.targetDepartmentId ? '请先选择部门' : '请选择员工'}
@@ -478,15 +510,13 @@ const EmployeeMemos = () => {
               )}
 
               <div className="form-group">
-                <label>内容（支持Markdown）*</label>
-                <SimpleMDE
+                <label>内容 *</label>
+                <textarea
                   value={formData.content}
-                  onChange={(value) => setFormData({ ...formData, content: value })}
-                  options={{
-                    spellChecker: false,
-                    placeholder: '请输入内容，支持Markdown格式...',
-                    toolbar: ['bold', 'italic', 'heading', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', '|', 'preview', 'side-by-side', 'fullscreen']
-                  }}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  placeholder="请输入内容..."
+                  className="form-textarea"
+                  rows="8"
                 />
               </div>
             </div>
@@ -494,7 +524,7 @@ const EmployeeMemos = () => {
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setShowCreateModal(false)}>取消</button>
               <button className="btn-primary" onClick={handleSend}>
-                <i className="fas fa-paper-plane"></i> 发送
+                发送
               </button>
             </div>
           </div>
