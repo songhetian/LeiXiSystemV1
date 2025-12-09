@@ -2563,40 +2563,40 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- 插入默认部门
 INSERT INTO `departments` (`name`, `description`, `status`, `sort_order`) VALUES
-('管理�?, '公司管理层部门，负责公司整体运营和战略规�?, 'active', 1),
-('客服�?, '客户服务部门，负责处理客户咨询和售后服务', 'active', 2),
-('技术部', '技术研发部门，负责系统开发和技术支�?, 'active', 3),
-('质检�?, '质量检查部门，负责客服质量监控和评�?, 'active', 4),
-('运营�?, '运营管理部门，负责业务运营和数据分析', 'active', 5)
+('管理部', '公司管理层部门，负责公司整体运营和战略规划', 'active', 1),
+('客服部', '客户服务部门，负责处理客户咨询和售后服务', 'active', 2),
+('技术部', '技术研发部门，负责系统开发和技术支持', 'active', 3),
+('质检部', '质量检查部门，负责客服质量监控和评估', 'active', 4),
+('运营部', '运营管理部门，负责业务运营和数据分析', 'active', 5)
 ON DUPLICATE KEY UPDATE `name` = `name`;
 
 -- 插入默认角色
 INSERT INTO `roles` (`name`, `description`, `level`, `is_system`) VALUES
-('超级管理�?, '系统最高权限角色，拥有所有功能的访问和管理权�?, 100, 1),
+('超级管理员', '系统最高权限角色，拥有所有功能的访问和管理权限', 100, 1),
 ('部门经理', '部门管理角色，负责部门日常管理和人员调配', 80, 0),
 ('客服专员', '客户服务角色，负责处理客户咨询和问题解决', 50, 0),
-('质检�?, '质量检查角色，负责客服质量评估和监�?, 60, 0),
+('质检员', '质量检查角色，负责客服质量评估和监督', 60, 0),
 ('运营专员', '运营管理角色，负责业务运营和数据分析', 50, 0),
-('普通员�?, '普通员工权�?, 3, 0)
+('普通员工', '普通员工权限', 3, 0)
 ON DUPLICATE KEY UPDATE `name` = `name`;
 
--- 插入默认管理员用�?(密码: admin123)
+-- 插入默认管理员用户(密码: admin123)
 INSERT INTO `users` (`username`, `password_hash`, `real_name`, `email`, `status`, `is_department_manager`) VALUES
-('admin', '$2b$10$kjCCNMqQEWZ13vV76MXKK.OktCVrxp0OFePS8fZmTx4MMVH4v16aW', '系统管理�?, 'admin@example.com', 'active', 1)
+('admin', '$2b$10$kjCCNMqQEWZ13vV76MXKK.OktCVrxp0OFePS8fZmTx4MMVH4v16aW', '系统管理员', 'admin@example.com', 'active', 1)
 ON DUPLICATE KEY UPDATE `username` = `username`;
 
--- 为管理员用户分配超级管理员角�?
+-- 为管理员用户分配超级管理员角色
 INSERT INTO `user_roles` (`user_id`, `role_id`)
 SELECT u.id, r.id
 FROM users u, roles r
-WHERE u.username = 'admin' AND r.name = '超级管理�?
+WHERE u.username = 'admin' AND r.name = '超级管理员'
 ON DUPLICATE KEY UPDATE `user_id` = `user_id`;
 
 -- 为普通员工角色分配默认可查看部门
 INSERT INTO `role_departments` (`role_id`, `department_id`)
 SELECT r.id, d.id
 FROM roles r, departments d
-WHERE r.name = '普通员�? AND d.name IN ('管理�?, '客服�?)
+WHERE r.name = '普通员工' AND d.name IN ('管理部', '客服部')
 ON DUPLICATE KEY UPDATE `role_id` = `role_id`;
 
 -- ============================================================
@@ -2649,7 +2649,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE role_permissions;
 TRUNCATE TABLE permissions;
 
--- 2. 插入所有系统权�?
+-- 2. 插入所有系统权限
 INSERT INTO permissions (name, code, resource, action, module, description) VALUES
 -- 系统管理 (System)
 ('查看角色', 'system:role:view', 'role', 'view', 'system', '查看角色列表'),
@@ -2657,59 +2657,59 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('查看日志', 'system:log:view', 'log', 'view', 'system', '查看系统操作日志'),
 
 -- 员工管理 (User)
-('查看员工', 'user:employee:view', 'employee', 'view', 'user', '查看员工列表及详�?),
-('管理员工', 'user:employee:manage', 'employee', 'manage', 'user', '新增、编辑、删除员�?),
-('员工审核', 'user:audit:manage', 'audit', 'manage', 'user', '审核新注册员�?),
+('查看员工', 'user:employee:view', 'employee', 'view', 'user', '查看员工列表及详情'),
+('管理员工', 'user:employee:manage', 'employee', 'manage', 'user', '新增、编辑、删除员工'),
+('员工审核', 'user:audit:manage', 'audit', 'manage', 'user', '审核新注册员工'),
 ('重置密码', 'user:security:reset_password', 'security', 'reset_password', 'user', '重置员工密码'),
-('部门备忘', 'user:memo:manage', 'memo', 'manage', 'user', '管理部门备忘�?),
+('部门备忘', 'user:memo:manage', 'memo', 'manage', 'user', '管理部门备忘录'),
 
 -- 组织架构 (Organization)
 ('查看部门', 'org:department:view', 'department', 'view', 'organization', '查看部门架构'),
-('管理部门', 'org:department:manage', 'department', 'manage', 'organization', '新增、编辑、删除部�?),
+('管理部门', 'org:department:manage', 'department', 'manage', 'organization', '新增、编辑、删除部门'),
 ('查看职位', 'org:position:view', 'position', 'view', 'organization', '查看职位列表'),
-('管理职位', 'org:position:manage', 'position', 'manage', 'organization', '新增、编辑、删除职�?),
+('管理职位', 'org:position:manage', 'position', 'manage', 'organization', '新增、编辑、删除职位'),
 
 -- 信息系统 (Messaging)
 ('查看广播', 'messaging:broadcast:view', 'broadcast', 'view', 'messaging', '查看系统广播'),
-('发布广播', 'messaging:broadcast:manage', 'broadcast', 'manage', 'messaging', '发布、管理系统广�?),
+('发布广播', 'messaging:broadcast:manage', 'broadcast', 'manage', 'messaging', '发布、管理系统广播'),
 ('通知设置', 'messaging:config:manage', 'config', 'manage', 'messaging', '配置系统通知规则'),
 
 -- 考勤管理 (Attendance)
 ('查看考勤', 'attendance:record:view', 'record', 'view', 'attendance', '查看考勤记录'),
 ('考勤统计', 'attendance:report:view', 'report', 'view', 'attendance', '查看考勤统计报表'),
-('考勤设置', 'attendance:config:manage', 'config', 'manage', 'attendance', '修改考勤规则、班次、排�?),
-('考勤审批', 'attendance:approval:manage', 'approval', 'manage', 'attendance', '审批请假、加班、补卡申�?),
+('考勤设置', 'attendance:config:manage', 'config', 'manage', 'attendance', '修改考勤规则、班次、排班'),
+('考勤审批', 'attendance:approval:manage', 'approval', 'manage', 'attendance', '审批请假、加班、补卡申请'),
 ('排班管理', 'attendance:schedule:manage', 'schedule', 'manage', 'attendance', '管理员工排班'),
 
 -- 假期管理 (Vacation)
-('查看假期', 'vacation:record:view', 'record', 'view', 'vacation', '查看假期余额及记�?),
-('假期配置', 'vacation:config:manage', 'config', 'manage', 'vacation', '配置假期规则及额�?),
+('查看假期', 'vacation:record:view', 'record', 'view', 'vacation', '查看假期余额及记录'),
+('假期配置', 'vacation:config:manage', 'config', 'manage', 'vacation', '配置假期规则及额度'),
 ('假期审批', 'vacation:approval:manage', 'approval', 'manage', 'vacation', '审批调休申请'),
 
 -- 质检管理 (Quality)
-('查看质检', 'quality:session:view', 'session', 'view', 'quality', '查看质检会话及记�?),
+('查看质检', 'quality:session:view', 'session', 'view', 'quality', '查看质检会话及记录'),
 ('质检评分', 'quality:score:manage', 'score', 'manage', 'quality', '进行质检评分'),
-('质检配置', 'quality:config:manage', 'config', 'manage', 'quality', '配置质检规则、标签、平台店�?),
-('案例管理', 'quality:case:manage', 'case', 'manage', 'quality', '管理质检案例�?),
+('质检配置', 'quality:config:manage', 'config', 'manage', 'quality', '配置质检规则、标签、平台店铺'),
+('案例管理', 'quality:case:manage', 'case', 'manage', 'quality', '管理质检案例'),
 
--- 知识�?(Knowledge)
-('查看知识�?, 'knowledge:article:view', 'article', 'view', 'knowledge', '查看公共知识�?),
-('管理知识�?, 'knowledge:article:manage', 'article', 'manage', 'knowledge', '发布、编辑、删除知识库文章'),
+-- 知识库 (Knowledge)
+('查看知识库', 'knowledge:article:view', 'article', 'view', 'knowledge', '查看公共知识库'),
+('管理知识库', 'knowledge:article:manage', 'article', 'manage', 'knowledge', '发布、编辑、删除知识库文章'),
 
 -- 考核系统 (Assessment)
-('查看考核', 'assessment:plan:view', 'plan', 'view', 'assessment', '查看考核计划及试�?),
+('查看考核', 'assessment:plan:view', 'plan', 'view', 'assessment', '查看考核计划及试卷'),
 ('管理考核', 'assessment:plan:manage', 'plan', 'manage', 'assessment', '创建试卷、发布考核计划'),
 ('查看成绩', 'assessment:result:view', 'result', 'view', 'assessment', '查看所有员工考试成绩');
 
 -- 3. 确保基础角色存在
 INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
-('普通员�?, '系统默认基础角色，拥有基本查看权�?, 1, 1);
+('普通员工', '系统默认基础角色，拥有基本查看权限', 1, 1);
 
--- 4. 为【超级管理员】分配所有权�?
+-- 4. 为【超级管理员】分配所有权限
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permissions p
-WHERE r.name = '超级管理�?;
+WHERE r.name = '超级管理员';
 
 -- 5. 为【普通员工】分配基础权限
 INSERT INTO role_permissions (role_id, permission_id)
@@ -2725,7 +2725,7 @@ JOIN permissions p ON p.code IN (
     'knowledge:article:view',
     'assessment:plan:view'
 )
-WHERE r.name = '普通员�?;
+WHERE r.name = '普通员工';
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -2737,18 +2737,18 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- 插入默认设置
 INSERT INTO `notification_settings` (`event_type`, `target_roles`) VALUES
-('leave_apply', '["部门管理�?]'),
-('leave_approval', '["申请�?]'),
-('leave_rejection', '["申请�?]'),
+('leave_apply', '["部门经理"]'),
+('leave_approval', '["申请人"]'),
+('leave_rejection', '["申请人"]'),
 ('exam_publish', '["全体员工"]'),
 ('exam_result', '["考生"]'),
-('leave_cancel', '["部门管理�?]'),
-('overtime_apply', '["部门管理�?]'),
-('overtime_approval', '["申请�?]'),
-('overtime_rejection', '["申请�?]'),
-('makeup_apply', '["部门管理�?]'),
-('makeup_approval', '["申请�?]'),
-('makeup_rejection', '["申请�?]')
+('leave_cancel', '["部门经理"]'),
+('overtime_apply', '["部门经理"]'),
+('overtime_approval', '["申请人"]'),
+('overtime_rejection', '["申请人"]'),
+('makeup_apply', '["部门经理"]'),
+('makeup_approval', '["申请人"]'),
+('makeup_rejection', '["申请人"]')
 ON DUPLICATE KEY UPDATE `event_type` = `event_type`;
 
 
@@ -2757,7 +2757,7 @@ ON DUPLICATE KEY UPDATE `event_type` = `event_type`;
 -- ============================================================
 
 
--- 检查并添加is_department_manager字段到users�?
+-- 检查并添加is_department_manager字段到users表
 SET @col_exists = (
   SELECT COUNT(*)
   FROM INFORMATION_SCHEMA.COLUMNS
@@ -2768,7 +2768,7 @@ SET @col_exists = (
 
 SET @ddl = IF(
   @col_exists = 0,
-  'ALTER TABLE `users` ADD COLUMN `is_department_manager` BOOLEAN DEFAULT FALSE COMMENT ''是否为部门主�?'',
+  'ALTER TABLE `users` ADD COLUMN `is_department_manager` BOOLEAN DEFAULT FALSE COMMENT ''是否为部门主管''',
   'SELECT 1'
 );
 
@@ -2789,7 +2789,7 @@ DEALLOCATE PREPARE stmt;
 INSERT INTO `role_departments` (`role_id`, `department_id`)
 SELECT r.id, d.id
 FROM roles r, departments d
-WHERE r.name = '普通员�? AND d.name IN ('管理�?, '客服�?)
+WHERE r.name = '普通员工' AND d.name IN ('管理部', '客服部')
 ON DUPLICATE KEY UPDATE `role_id` = `role_id`;
 
 -- ============================================================

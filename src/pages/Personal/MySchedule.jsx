@@ -49,6 +49,7 @@ export default function MySchedule() {
 
     setLoading(true)
     try {
+      // 确保使用正确的日期格式（避免时区问题）
       const year = selectedMonth.getFullYear()
       const month = selectedMonth.getMonth() + 1
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`
@@ -64,7 +65,12 @@ export default function MySchedule() {
       })
 
       if (response.data.success) {
-        setSchedules(response.data.data)
+        // 确保日期格式正确，避免时区问题
+        const formattedSchedules = response.data.data.map(schedule => ({
+          ...schedule,
+          schedule_date: schedule.schedule_date.split('T')[0] // 确保只取日期部分
+        }))
+        setSchedules(formattedSchedules)
       }
     } catch (error) {
       console.error('获取排班数据失败:', error)
@@ -76,6 +82,7 @@ export default function MySchedule() {
 
   // 渲染日历视图
   const renderCalendarView = () => {
+    // 确保使用正确的时区处理月份
     const year = selectedMonth.getFullYear()
     const month = selectedMonth.getMonth()
     const firstDay = new Date(year, month, 1)
@@ -94,6 +101,7 @@ export default function MySchedule() {
     }
 
     const getScheduleForDay = (day) => {
+      // 确保使用正确的日期格式进行比较
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       return schedules.find(s => s.schedule_date === dateStr)
     }

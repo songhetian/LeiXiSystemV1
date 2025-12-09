@@ -1,9 +1,13 @@
+/**
+ * Displays a statistical analysis page of each departments of
+ */
 
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
+import { formatDate, formatDateTime } from '../../utils/date'
 
 
 export default function DepartmentStats() {
@@ -600,22 +604,24 @@ export default function DepartmentStats() {
                   <tbody className="divide-y">
                     {employeeDetails.map((record, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-2">{record.record_date}</td>
+                        <td className="px-4 py-2">
+                          {formatDate(record.record_date)}
+                        </td>
                         <td className="px-4 py-2">{record.shift_name}</td>
-                        <td className="px-4 py-2">{record.clock_in_time || '-'}</td>
-                        <td className="px-4 py-2">{record.clock_out_time || '-'}</td>
+                        <td className="px-4 py-2">{record.clock_in_time ? formatDateTime(record.clock_in_time).split(' ')[1] : '-'}</td>
+                        <td className="px-4 py-2">{record.clock_out_time ? formatDateTime(record.clock_out_time).split(' ')[1] : '-'}</td>
                         <td className="px-4 py-2">
                           <span className={`px-2 py-1 rounded text-xs ${
                             record.status === 'normal' ? 'bg-green-100 text-green-800' :
                             record.status === 'late' ? 'bg-red-100 text-red-800' :
-                            record.status === 'early' ? 'bg-orange-100 text-orange-800' :
+                            record.status === 'early' || record.status === 'early_leave' ? 'bg-orange-100 text-orange-800' :
                             record.status === 'absent' ? 'bg-gray-100 text-gray-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {
                               record.status === 'normal' ? '正常' :
                               record.status === 'late' ? '迟到' :
-                              record.status === 'early' ? '早退' :
+                              record.status === 'early' || record.status === 'early_leave' ? '早退' :
                               record.status === 'absent' ? '缺勤' :
                               record.status
                             }

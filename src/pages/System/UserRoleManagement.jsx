@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Card, Tag, Space, Modal, Select, message } from 'antd';
 import { UserOutlined, TeamOutlined, ReloadOutlined, EyeOutlined, LockOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
@@ -22,7 +22,7 @@ const UserRoleManagement = () => {
   const [selectedUserForDepartment, setSelectedUserForDepartment] = useState(null);
 
   // 搜索状态
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [searchDepartment, setSearchDepartment] = useState('');
   const [searchRole, setSearchRole] = useState('');
 
@@ -32,6 +32,10 @@ const UserRoleManagement = () => {
   const [isBatchAssignOpen, setIsBatchAssignOpen] = useState(false);
   const [isBatchRemoveOpen, setIsBatchRemoveOpen] = useState(false);
   const [batchAssignRoleId, setBatchAssignRoleId] = useState(null);
+
+  // 添加排序状态
+  const [sortField, setSortField] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   useEffect(() => {
     fetchUsers();
@@ -44,9 +48,37 @@ const UserRoleManagement = () => {
     try {
       const response = await apiGet('/api/users-with-roles');
       if (response.success) {
-        setUsers(response.data);
+        // 获取每个用户的部门权限信息
+        const usersWithDepartments = await Promise.all(response.data.map(async (user) => {
+          try {
+            const deptResponse = await apiGet(`/api/users/${user.id}/departments`);
+            if (deptResponse.success) {
+              // 确保部门数据格式正确
+              const departments = Array.isArray(deptResponse.data) ? deptResponse.data : [];
+              return { ...user, departments: departments };
+            }
+          } catch (error) {
+            console.error(`获取用户 ${user.real_name} 的部门权限失败:`, error);
+          }
+          return { ...user, departments: [] };
+        }));
+        setUsers(usersWithDepartments);
       } else if (Array.isArray(response)) {
-        setUsers(response);
+        // 兼容旧的API格式，也需要获取部门权限
+        const usersWithDepartments = await Promise.all(response.map(async (user) => {
+          try {
+            const deptResponse = await apiGet(`/api/users/${user.id}/departments`);
+            if (deptResponse.success) {
+              // 确保部门数据格式正确
+              const departments = Array.isArray(deptResponse.data) ? deptResponse.data : [];
+              return { ...user, departments: departments };
+            }
+          } catch (error) {
+            console.error(`获取用户 ${user.real_name} 的部门权限失败:`, error);
+          }
+          return { ...user, departments: [] };
+        }));
+        setUsers(usersWithDepartments);
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
@@ -148,37 +180,96 @@ const UserRoleManagement = () => {
   };
 
   // 过滤用户
-  const filteredUsers = users.filter(user => {
-    // 关键词搜索
-    if (searchKeyword) {
-      const searchLower = searchKeyword.toLowerCase();
-      const matchesKeyword = (
-        (user.real_name && user.real_name.toLowerCase().includes(searchLower)) ||
-        (user.username && user.username.toLowerCase().includes(searchLower)) ||
-        (user.email && user.email.toLowerCase().includes(searchLower)) ||
-        (user.phone && user.phone.includes(searchKeyword))
-      );
-      if (!matchesKeyword) return false;
+  const filteredUsers = useMemo(() => {
+    let result = users.filter(user => {
+      // 关键词搜索
+      if (searchText) {
+        const searchLower = searchText.toLowerCase();
+        const matchesKeyword = (
+          (user.real_name && user.real_name.toLowerCase().includes(searchLower)) ||
+          (user.username && user.username.toLowerCase().includes(searchLower)) ||
+          (user.email && user.email.toLowerCase().includes(searchLower)) ||
+          (user.phone && user.phone.includes(searchText))
+        );
+        if (!matchesKeyword) return false;
+      }
+
+      // 部门搜索
+      if (searchDepartment && user.department_id !== parseInt(searchDepartment)) {
+        return false;
+      }
+
+      // 角色搜索
+      if (searchRole) {
+        const hasRole = user.roles && user.roles.some(role => role.id === parseInt(searchRole));
+        if (!hasRole) return false;
+      }
+
+      return true;
+    });
+
+    // 排序
+    if (sortField) {
+      result.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortField) {
+          case 'real_name':
+            aValue = a.real_name || '';
+            bValue = b.real_name || '';
+            break;
+          case 'username':
+            aValue = a.username || '';
+            bValue = b.username || '';
+            break;
+          case 'department_name':
+            aValue = a.department_name || '';
+            bValue = b.department_name || '';
+            break;
+          default:
+            return 0;
+        }
+        
+        if (sortOrder === 'asc') {
+          return aValue.localeCompare(bValue);
+        } else {
+          return bValue.localeCompare(aValue);
+        }
+      });
     }
 
-    // 部门搜索
-    if (searchDepartment && user.department_id !== parseInt(searchDepartment)) {
-      return false;
-    }
+    return result;
+  }, [users, searchText, searchDepartment, searchRole, sortField, sortOrder]);
 
-    // 角色搜索
-    if (searchRole) {
-      const hasRole = user.roles && user.roles.some(role => role.id === parseInt(searchRole));
-      if (!hasRole) return false;
-    }
-
-    return true;
-  });
+  // 清空搜索
+  const clearSearch = () => {
+    setSearchText('');
+  };
 
   const columns = [
     {
-      title: '用户信息',
+      title: (
+        <div className="flex items-center">
+          <span>用户信息</span>
+          {sortField === 'real_name' && (
+            <span className="ml-1">
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </span>
+          )}
+        </div>
+      ),
       key: 'user-info',
+      sorter: true,
+      onHeaderCell: () => ({
+        onClick: () => {
+          if (sortField === 'real_name') {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+          } else {
+            setSortField('real_name');
+            setSortOrder('asc');
+          }
+        },
+      }),
       render: (_, record) => (
         <div className="flex items-center">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
@@ -192,9 +283,29 @@ const UserRoleManagement = () => {
       ),
     },
     {
-      title: '部门',
+      title: (
+        <div className="flex items-center">
+          <span>部门</span>
+          {sortField === 'department_name' && (
+            <span className="ml-1">
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </span>
+          )}
+        </div>
+      ),
       dataIndex: 'department_name',
       key: 'department_name',
+      sorter: true,
+      onHeaderCell: () => ({
+        onClick: () => {
+          if (sortField === 'department_name') {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+          } else {
+            setSortField('department_name');
+            setSortOrder('asc');
+          }
+        },
+      }),
       render: (text) => (
         <span className="text-gray-600">{text || '未分配'}</span>
       ),
@@ -219,29 +330,74 @@ const UserRoleManagement = () => {
       ),
     },
     {
+      title: '可查看部门',
+      key: 'view-departments',
+      render: (_, record) => {
+        // 检查用户是否有特定的部门权限
+        if (record.departments && record.departments.length > 0) {
+          // 显示前2个部门，其余以数字显示
+          const displayDeps = record.departments.slice(0, 2);
+          const remainingCount = record.departments.length - 2;
+          
+          return (
+            <div className="flex flex-wrap gap-1">
+              {displayDeps.map(dept => (
+                <span
+                  key={dept.id}
+                  className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800"
+                >
+                  <EyeOutlined className="mr-1 text-xs" />
+                  {dept.name}
+                </span>
+              ))}
+              {remainingCount > 0 && (
+                <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                  +{remainingCount}
+                </span>
+              )}
+            </div>
+          );
+        } else {
+          // 如果没有特定部门权限，显示默认状态
+          // 检查用户是否有角色，如果有角色则显示默认权限，否则显示未分配
+          if (record.roles && record.roles.length > 0) {
+            return (
+              <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                <EyeOutlined className="mr-1 text-xs" />
+                默认权限
+              </span>
+            );
+          } else {
+            return (
+              <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                <EyeOutlined className="mr-1 text-xs" />
+                未分配
+              </span>
+            );
+          }
+        }
+      },
+    },
+    {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 180,
       render: (_, record) => (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1">
           <Button
             size="small"
             type="primary"
             ghost
             icon={<TeamOutlined />}
             onClick={() => handleManageRoles(record)}
-            className="flex items-center"
-          >
-            分配角色
-          </Button>
+            title="分配角色"
+          />
           <Button
             size="small"
             icon={<EyeOutlined />}
             onClick={() => handleManageUserDepartments(record)}
-            className="flex items-center"
-          >
-            部门权限
-          </Button>
+            title="部门权限"
+          />
         </div>
       ),
     },
@@ -321,22 +477,51 @@ const UserRoleManagement = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="p-4 md:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         {/* 头部 */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">员工角色管理</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">员工角色管理</h2>
             <p className="text-gray-500 text-sm mt-1">管理员工的角色分配和部门权限</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               icon={<ReloadOutlined />}
               onClick={fetchUsers}
-              className="flex items-center"
             >
-              刷新
+              <span className="hidden sm:inline">刷新</span>
             </Button>
+          </div>
+        </div>
+
+        {/* 搜索框 */}
+        <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <input
+              type="text"
+              placeholder="搜索员工姓名、用户名、邮箱或手机号..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={searchDepartment}
+              onChange={(e) => setSearchDepartment(e.target.value)}
+              className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">所有部门</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </select>
+            {(searchText || searchDepartment) && (
+              <Button onClick={clearSearch}>
+                清空
+              </Button>
+            )}
           </div>
         </div>
 
@@ -356,102 +541,34 @@ const UserRoleManagement = () => {
           </div>
         </div>
 
-        {/* 搜索筛选区 */}
-        <div className="mb-6">
-          <Card size="small" className="rounded-lg border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">关键词搜索</label>
-                <input
-                  type="text"
-                  placeholder="姓名/用户名/邮箱/手机"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">部门筛选</label>
-                <select
-                  value={searchDepartment}
-                  onChange={(e) => setSearchDepartment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                >
-                  <option value="">全部部门</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">角色筛选</label>
-                <select
-                  value={searchRole}
-                  onChange={(e) => setSearchRole(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                >
-                  <option value="">全部角色</option>
-                  {roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
-                  ))}
-                </select>
-              </div>
+        {/* 批量操作栏 */}
+        {selectedUserIds.length > 0 && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="text-sm text-blue-800">
+              已选择 {selectedUserIds.length} 名员工
             </div>
-            <div className="flex justify-end mt-4">
-              <Space>
-                <Button
-                  onClick={() => {
-                    setSearchKeyword('');
-                    setSearchDepartment('');
-                    setSearchRole('');
-                  }}
-                >
-                  重置筛选
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={fetchUsers}
-                >
-                  应用筛选
-                </Button>
-              </Space>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="small"
+                onClick={() => setIsBatchAssignOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <TeamOutlined className="text-xs" />
+                分配角色
+              </Button>
+              <Button
+                size="small"
+                danger
+                onClick={() => setIsBatchRemoveOpen(true)}
+                disabled={isProcessingBatch}
+                className="flex items-center gap-1"
+              >
+                <LockOutlined className="text-xs" />
+                移除角色
+              </Button>
             </div>
-          </Card>
-        </div>
-
-        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="text-sm text-gray-600">
-            已选 {selectedUserIds.length} / {filteredUsers.length} 名员工
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="primary"
-              disabled={selectedUserIds.length === 0}
-              onClick={() => setIsBatchAssignOpen(true)}
-              className="flex items-center"
-            >
-              <TeamOutlined className="mr-1" />
-              批量分配角色
-            </Button>
-            <Button
-              danger
-              disabled={selectedUserIds.length === 0}
-              onClick={() => setIsBatchRemoveOpen(true)}
-              className="flex items-center"
-            >
-              <LockOutlined className="mr-1" />
-              批量移除角色
-            </Button>
-            {isProcessingBatch && (
-              <span className="text-sm text-gray-600 flex items-center">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></span>
-                处理中 {batchProgress.done} / {batchProgress.total}
-              </span>
-            )}
-          </div>
-        </div>
+        )}
 
         <Table
           columns={columns}
@@ -513,6 +630,11 @@ const UserRoleManagement = () => {
                 </ul>
               </div>
             </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 mt-6">
+            <Button onClick={() => setModalVisible(false)}>取消</Button>
+            <Button type="primary" onClick={handleSaveRoles}>保存</Button>
           </div>
         </div>
       </Modal>

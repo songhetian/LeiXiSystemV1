@@ -3,12 +3,23 @@
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
 
+  // 获取北京时间日期的辅助函数
+  function getBeijingDate() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const beijingTime = new Date(utc + (3600000 * 8)); // UTC+8
+    const year = beijingTime.getFullYear();
+    const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+    const day = String(beijingTime.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // 上班打卡
   fastify.post('/api/attendance/clock-in', async (request, reply) => {
     const { employee_id, user_id } = request.body
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getBeijingDate()
 
       // 检查今天是否已经打过上班卡
       const [existing] = await pool.query(
@@ -22,19 +33,25 @@ module.exports = async function (fastify, opts) {
 
       const clockInTime = new Date()
 
-      // 获取员工的排班信息（schedules表使用user_id，不是employee_id）
+      // 获取员工的排班信息（shift_schedules表使用employee_id）
       const [schedules] = await pool.query(
-        `SELECT s.*, ws.start_time, ws.end_time
-         FROM schedules s
-         LEFT JOIN work_shifts ws ON s.shift_id = ws.id
-         WHERE s.user_id = ? AND s.schedule_date = ?`,
-        [user_id, today]
+        `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours
+         FROM shift_schedules ss
+         LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
+         WHERE ss.employee_id = ? AND ss.schedule_date = ?`,
+        [employee_id, today]
       )
 
       // 获取考勤设置（统一使用考勤设置表的阈值）
       const [settings] = await pool.query(
         'SELECT * FROM attendance_settings WHERE id = 1'
       )
+
+      // 使用班次的标准工作时长
+      let workHours = 0
+      if (schedules.length > 0 && schedules[0].work_hours) {
+        workHours = schedules[0].work_hours
+      }
 
       let status = 'normal'
 
@@ -53,9 +70,9 @@ module.exports = async function (fastify, opts) {
 
       const [result] = await pool.query(
         `INSERT INTO attendance_records
-        (employee_id, user_id, attendance_date, record_date, clock_in_time, check_in_time, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [employee_id, user_id, today, today, clockInTime, clockInTime, status]
+        (employee_id, user_id, attendance_date, record_date, clock_in_time, check_in_time, status, work_hours)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [employee_id, user_id, today, today, clockInTime, clockInTime, status, workHours]
       )
 
       // 如果迟到，创建考勤异常通知
@@ -98,7 +115,7 @@ module.exports = async function (fastify, opts) {
     const { employee_id, user_id } = request.body
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getBeijingDate()
 
       // 查找今天的打卡记录
       const [records] = await pool.query(
@@ -117,22 +134,25 @@ module.exports = async function (fastify, opts) {
       const clockOutTime = new Date()
       const clockInTime = new Date(records[0].clock_in_time)
 
-      // 计算工作时长（小时）
-      const workHours = ((clockOutTime - clockInTime) / (1000 * 60 * 60)).toFixed(2)
-
-      // 获取员工的排班信息（schedules表使用user_id，不是employee_id）
+      // 获取员工的排班信息（shift_schedules表使用employee_id）
       const [schedules] = await pool.query(
-        `SELECT s.*, ws.start_time, ws.end_time
-         FROM schedules s
-         LEFT JOIN work_shifts ws ON s.shift_id = ws.id
-         WHERE s.user_id = ? AND s.schedule_date = ?`,
-        [user_id, today]
+        `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours
+         FROM shift_schedules ss
+         LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
+         WHERE ss.employee_id = ? AND ss.schedule_date = ?`,
+        [employee_id, today]
       )
 
       // 获取考勤设置（统一使用考勤设置表的阈值）
       const [settings] = await pool.query(
         'SELECT * FROM attendance_settings WHERE id = 1'
       )
+
+      // 使用班次的标准工作时长
+      let workHours = 0
+      if (schedules.length > 0 && schedules[0].work_hours) {
+        workHours = schedules[0].work_hours
+      }
 
       let status = records[0].status
 
@@ -145,19 +165,19 @@ module.exports = async function (fastify, opts) {
         const earlyThreshold = (setting.early_leave_minutes || 30) * 60 * 1000
 
         if (shiftEndTime - clockOutTime > earlyThreshold) {
-          status = 'early'
+          status = 'early_leave'
         }
       }
 
       await pool.query(
         `UPDATE attendance_records
-        SET clock_out_time = ?, work_hours = ?, status = ?
+        SET clock_out_time = ?, status = ?, work_hours = ?
         WHERE id = ?`,
-        [clockOutTime, workHours, status, records[0].id]
+        [clockOutTime, status, workHours, records[0].id]
       )
 
       // 如果早退，创建考勤异常通知
-      if (status === 'early') {
+      if (status === 'early_leave') {
         const earlyMinutes = schedules.length > 0 && schedules[0].end_time
           ? Math.floor((new Date(`${today} ${schedules[0].end_time}`) - clockOutTime) / 60000)
           : 0
@@ -178,7 +198,7 @@ module.exports = async function (fastify, opts) {
 
       return {
         success: true,
-        message: status === 'early' ? '打卡成功，但您早退了' : '打卡成功',
+        message: status === 'early_leave' ? '打卡成功，但您早退了' : '打卡成功',
         data: { clock_out_time: clockOutTime, work_hours: workHours, status }
       }
     } catch (error) {
@@ -196,7 +216,7 @@ module.exports = async function (fastify, opts) {
     const { employee_id } = request.query
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getBeijingDate()
 
       const [records] = await pool.query(
         'SELECT * FROM attendance_records WHERE employee_id = ? AND record_date = ?',

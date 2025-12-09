@@ -284,21 +284,21 @@ module.exports = async function (fastify, opts) {
         const earlyThreshold = shift.early_threshold * 60 * 1000 // 转换为毫秒
 
         if (shiftEndTime - clockOutTime > earlyThreshold) {
-          status = 'early'
+          status = 'early_leave'
         }
       }
 
       // 更新打卡记录
       await pool.query(
         `UPDATE attendance_records
-         SET clock_out_time = ?, clock_out_location = ?, status = CASE WHEN status = 'late' AND ? = 'early' THEN 'late_early' WHEN status = 'normal' AND ? = 'early' THEN 'early' ELSE status END
+         SET clock_out_time = ?, clock_out_location = ?, status = CASE WHEN status = 'late' AND ? = 'early_leave' THEN 'late_early' WHEN status = 'normal' AND ? = 'early_leave' THEN 'early_leave' ELSE status END
          WHERE id = ?`,
         [clockOutTime, location || null, status, status, clockInRecord[0].id]
       )
 
       return {
         success: true,
-        message: status === 'early' ? '打卡成功，但您早退了' : '打卡成功',
+        message: status === 'early_leave' ? '打卡成功，但您早退了' : '打卡成功',
         data: {
           clock_out_time: clockOutTime,
           status

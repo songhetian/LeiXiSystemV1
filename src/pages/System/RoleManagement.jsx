@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Popconfirm, Drawer, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import RoleDepartmentModal from '../../components/RoleDepartmentModal';
@@ -285,12 +285,15 @@ const RoleManagement = () => {
       key: 'departments',
       render: (_, record) => {
         if (!record.departments || record.departments.length === 0) {
-          return <span className="text-gray-400 text-sm">未设置部门权限</span>;
+          return <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+            <EyeOutlined className="mr-1 text-xs" />
+            未设置
+          </span>;
         }
 
-        // 显示前3个部门，超出部分显示数量
-        const displayDeps = record.departments.slice(0, 3);
-        const remainingCount = record.departments.length - 3;
+        // 优化部门显示，最多显示2个完整部门名称，其余以数字显示
+        const displayDeps = record.departments.slice(0, 2);
+        const remainingCount = record.departments.length - 2;
 
         return (
           <div className="flex flex-wrap gap-1">
@@ -305,7 +308,7 @@ const RoleManagement = () => {
             ))}
             {remainingCount > 0 && (
               <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
-                +{remainingCount} 更多
+                +{remainingCount}
               </span>
             )}
           </div>
@@ -328,36 +331,30 @@ const RoleManagement = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 180,
       render: (_, record) => (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1">
           <Button
             size="small"
             type="primary"
             ghost
             icon={<UserOutlined />}
             onClick={() => handleAssignUsers(record)}
-            className="flex items-center"
-          >
-            分配用户
-          </Button>
+            title="分配用户"
+          />
           <Button
             size="small"
-            icon={<TeamOutlined />}
+            icon={<EyeOutlined />}
             onClick={() => handleManageDepartments(record)}
-            className="flex items-center"
-          >
-            部门权限
-          </Button>
+            title="部门权限"
+          />
           <Button
             size="small"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
-            disabled={record.name === '超级管理员'} // 超级管理员不可编辑权限，防止把自己锁死
-            className="flex items-center"
-          >
-            编辑
-          </Button>
+            disabled={record.name === '超级管理员'}
+            title="编辑角色"
+          />
           {!record.is_system && (
             <Popconfirm
               title="确定删除该角色吗？"
@@ -370,10 +367,8 @@ const RoleManagement = () => {
                 size="small"
                 danger
                 icon={<DeleteOutlined />}
-                className="flex items-center"
-              >
-                删除
-              </Button>
+                title="删除角色"
+              />
             </Popconfirm>
           )}
         </div>
@@ -521,13 +516,29 @@ const RoleManagement = () => {
     }
   };
 
+  const [searchText, setSearchText] = useState('');
+
+  // 过滤角色
+  const filteredRoles = useMemo(() => {
+    if (!searchText) return roles;
+    return roles.filter(role => 
+      role.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      (role.description && role.description.toLowerCase().includes(searchText.toLowerCase()))
+    );
+  }, [roles, searchText]);
+
+  // 清空搜索
+  const clearSearch = () => {
+    setSearchText('');
+  };
+
   return (
-    <div className="p-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="p-4 md:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         {/* 头部 */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">角色权限管理</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">角色权限管理</h2>
             <p className="text-gray-500 text-sm mt-1">管理系统中的角色及其权限配置</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -535,69 +546,98 @@ const RoleManagement = () => {
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleAdd}
-              className="flex items-center"
             >
-              新增角色
+              <span className="hidden sm:inline">新增角色</span>
             </Button>
             <Button
-              onClick={() => setIsTemplateManageOpen(true)}
+              icon={<ReloadOutlined />}
+              onClick={fetchRoles}
             >
-              模板管理
+              <span className="hidden sm:inline">刷新</span>
             </Button>
-            <Button
-              disabled={selectedRoleIds.length === 0}
-              onClick={() => setIsTemplateModalOpen(true)}
-              type="primary"
-            >
-              应用模板
-            </Button>
-            <Button
-              disabled={selectedRoleIds.length === 0}
-              onClick={() => setIsCloneModalOpen(true)}
-            >
-              批量克隆
-            </Button>
-            <Button
-              danger
-              disabled={selectedRoleIds.length === 0 || isProcessingBatch}
-              onClick={handleBatchDeleteRoles}
-            >
-              批量删除
-            </Button>
-            <Button
-              disabled={selectedRoleIds.length === 0}
-              onClick={openBatchDepartmentModal}
-            >
-              批量部门权限
-            </Button>
-            {isProcessingBatch && (
-              <span className="text-sm text-gray-600 flex items-center">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></span>
-                处理中 {batchProgress.done} / {batchProgress.total}
-              </span>
-            )}
           </div>
+        </div>
+
+        {/* 搜索框 */}
+        <div className="mb-4 flex flex-col sm:flex-row gap-2">
+          <div className="flex-grow">
+            <input
+              type="text"
+              placeholder="搜索角色名称或描述..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+          {searchText && (
+            <Button onClick={clearSearch}>
+              清空
+            </Button>
+          )}
         </div>
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
             <div className="text-blue-800 font-medium">总角色数</div>
             <div className="text-2xl font-bold text-blue-900 mt-1">{roles.length}</div>
           </div>
-          <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
             <div className="text-purple-800 font-medium">系统角色</div>
             <div className="text-2xl font-bold text-purple-900 mt-1">{roles.filter(r => r.is_system).length}</div>
           </div>
-          <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
             <div className="text-green-800 font-medium">自定义角色</div>
             <div className="text-2xl font-bold text-green-900 mt-1">{roles.filter(r => !r.is_system).length}</div>
           </div>
         </div>
 
+        {/* 批量操作栏 */}
+        {selectedRoleIds.length > 0 && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="text-sm text-blue-800">
+              已选择 {selectedRoleIds.length} 个角色
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="small"
+                onClick={() => setIsTemplateModalOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+                应用模板
+              </Button>
+              <Button
+                size="small"
+                onClick={openBatchDepartmentModal}
+                className="flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                部门权限
+              </Button>
+              <Button
+                size="small"
+                danger
+                onClick={handleBatchDeleteRoles}
+                disabled={isProcessingBatch}
+                className="flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                删除
+              </Button>
+            </div>
+          </div>
+        )}
+
         <Table
           columns={columns}
-          dataSource={roles}
+          dataSource={filteredRoles}
           rowKey="id"
           loading={loading}
           pagination={{
@@ -609,7 +649,8 @@ const RoleManagement = () => {
           rowSelection={{
             selectedRowKeys: selectedRoleIds,
             onChange: (keys) => setSelectedRoleIds(keys),
-            preserveSelectedRowKeys: true
+            preserveSelectedRowKeys: true,
+            columnWidth: 40
           }}
           scroll={{ x: 'max-content' }}
         />
@@ -620,7 +661,7 @@ const RoleManagement = () => {
         open={modalVisible}
         onOk={handleSave}
         onCancel={() => setModalVisible(false)}
-        width={720}
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -634,10 +675,10 @@ const RoleManagement = () => {
             name="description"
             label="描述"
           >
-            <Input.TextArea placeholder="请输入角色描述" rows={3} />
+            <Input.TextArea placeholder="请输入角色描述" rows={2} />
           </Form.Item>
           <Form.Item label="权限配置">
-            <div className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">
+            <div className="border rounded-lg p-3 max-h-80 overflow-y-auto bg-gray-50">
               <Tree
                 checkable
                 defaultExpandAll
@@ -653,7 +694,7 @@ const RoleManagement = () => {
       {/* 用户分配抽屉 */}
       <Drawer
         title={`为 "${selectedRole?.name}" 角色分配用户`}
-        width={520}
+        width={480}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
         bodyStyle={{ paddingBottom: 80 }}

@@ -396,7 +396,7 @@ function App() {
 
       // 考勤管理
       case 'attendance-home':
-        return <AttendanceHome />
+        return <AttendanceHome onNavigate={handleSetActiveTab} />
       case 'attendance-records':
         return <AttendanceRecords />
       case 'attendance-makeup':
@@ -518,7 +518,7 @@ function App() {
       // 个人中心
       case 'personal-info':
         return <PersonalInfo />;
-      case 'personal-schedule':
+      case 'my-schedule':
         return <MySchedule />;
       case 'my-notifications':
         return <MyNotifications />;

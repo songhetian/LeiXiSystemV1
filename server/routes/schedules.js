@@ -76,6 +76,60 @@ module.exports = async function (fastify, opts) {
     }
   })
 
+  // 员工为自己选择班次排班
+  fastify.post('/api/schedules/self', async (request, reply) => {
+    const { employee_id, user_id, schedule_date, shift_id } = request.body
+
+    try {
+      // 验证必填字段
+      if (!employee_id || !user_id || !schedule_date || !shift_id) {
+        return reply.code(400).send({ success: false, message: '请填写完整信息' })
+      }
+
+      // 检查是否已有排班（包括带时间戳的旧数据）
+      const [existing] = await pool.query(
+        `SELECT id FROM shift_schedules
+         WHERE employee_id = ?
+         AND (schedule_date = ? OR DATE(schedule_date) = ?)`,
+        [employee_id, schedule_date, schedule_date]
+      )
+
+      if (existing.length > 0) {
+        // 如果已存在，则更新
+        const [updateResult] = await pool.query(
+          `UPDATE shift_schedules
+           SET shift_id = ?, is_rest_day = 0
+           WHERE id = ?`,
+          [shift_id, existing[0].id]
+        )
+
+        return {
+          success: true,
+          message: '排班更新成功',
+          data: { id: existing[0].id, updated: true }
+        }
+      }
+
+      // 如果不存在，则创建
+      // 直接使用日期字符串，不做时区转换
+      const [result] = await pool.query(
+        `INSERT INTO shift_schedules
+        (employee_id, shift_id, schedule_date, is_rest_day)
+        VALUES (?, ?, ?, 0)`,
+        [employee_id, shift_id, schedule_date]
+      )
+
+      return {
+        success: true,
+        message: '排班创建成功',
+        data: { id: result.insertId, updated: false }
+      }
+    } catch (error) {
+      console.error('❌ 员工自助排班失败:', error)
+      return reply.code(500).send({ success: false, message: '操作失败: ' + error.message })
+    }
+  })
+
   // 创建单个排班（如果已存在则更新）
   fastify.post('/api/schedules', async (request, reply) => {
     let { employee_id, shift_id, schedule_date, is_rest_day } = request.body
@@ -480,12 +534,12 @@ module.exports = async function (fastify, opts) {
 
   // 删除今日排班（测试用）
   fastify.delete('/api/schedules/today', async (request, reply) => {
-    const { employee_id, date } = request.query
+    const { employee_id, schedule_date } = request.query
 
     try {
       await pool.query(
         'DELETE FROM shift_schedules WHERE employee_id = ? AND DATE(schedule_date) = ?',
-        [employee_id, date]
+        [employee_id, schedule_date]
       )
 
       return { success: true, message: '今日排班已删除' }

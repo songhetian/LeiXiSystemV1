@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { formatDate } from '../../utils/date'
+import { formatDate, formatBeijingDate, getBeijingDate } from '../../utils/date'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
+
 import {
   CalendarIcon,
   ClockIcon,
@@ -68,50 +69,55 @@ export default function AttendanceRecordsOptimized() {
   }, [pagination.page, pagination.limit, filters, selectedMonth, viewMode, employee])
 
   const fetchRecords = async () => {
-    if (!employee) return
-
     setLoading(true)
     try {
-      // 如果是日历视图，自动设置日期范围为选中的月份
-      let queryParams = {
-        employee_id: employee.id,
-        page: viewMode === 'calendar' ? 1 : pagination.page,
-        limit: viewMode === 'calendar' ? 100 : pagination.limit,
-        ...filters
+      // 获取用户信息
+      const user = JSON.parse(localStorage.getItem('user'))
+      
+      // 构建查询参数
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        employee_id: employee?.id || user.employee_id
       }
 
-      // 日历视图：使用选中月份的日期范围
-      if (viewMode === 'calendar') {
-        const year = selectedMonth.getFullYear()
-        const month = selectedMonth.getMonth()
-        // 使用本地时间构建日期字符串，避免时区问题
-        const startDateObj = new Date(year, month, 1)
-        const endDateObj = new Date(year, month + 1, 0)
-
-        queryParams.start_date = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, '0')}-${String(startDateObj.getDate()).padStart(2, '0')}`
-        queryParams.end_date = `${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`
-
-        // 增加限制以确保获取当月所有记录（考虑到可能有多条记录/天）
-        queryParams.limit = 200
+      // 添加过滤条件
+      if (filters.start_date) {
+        params.start_date = filters.start_date
+      }
+      if (filters.end_date) {
+        params.end_date = filters.end_date
+      }
+      if (filters.status && filters.status !== 'all') {
+        params.status = filters.status
       }
 
-      const response = await axios.get(getApiUrl('/api/attendance/records'), {
-        params: queryParams
-      })
-
+      const response = await axios.get(getApiUrl('/api/attendance/records'), { params })
+      
       if (response.data.success) {
-        setRecords(response.data.data)
-        setPagination(prev => ({ ...prev, ...response.data.pagination }))
+        // 确保日期格式正确，避免时区问题
+        const formattedRecords = response.data.data.map(record => ({
+          ...record,
+          record_date: formatBeijingDate(record.record_date) // 确保使用北京时间日期
+        }))
+        
+        setRecords(formattedRecords)
+        setPagination({
+          ...pagination,
+          total: response.data.total
+        })
+        
         // 使用后端返回的统计数据
         if (response.data.stats) {
           setStats(response.data.stats)
         } else {
-          calculateStats(response.data.data)
+          // 如果后端没有返回统计数据，则使用前端计算
+          calculateStats(formattedRecords)
         }
       }
     } catch (error) {
-      console.error('获取打卡记录失败:', error)
-      toast.error('获取打卡记录失败')
+      console.error('获取考勤记录失败:', error)
+      toast.error('获取考勤记录失败')
     } finally {
       setLoading(false)
     }
@@ -122,6 +128,7 @@ export default function AttendanceRecordsOptimized() {
       acc.total_days++
       if (record.status === 'late') acc.late_count++
       if (record.status === 'early') acc.early_count++
+      if (record.status === 'early_leave') acc.early_count++
       if (record.status === 'normal') acc.normal_count++
       if (record.status === 'absent') acc.absent_count++
       if (record.status === 'leave') acc.leave_count++
@@ -153,18 +160,18 @@ export default function AttendanceRecordsOptimized() {
 
     switch (type) {
       case 'today':
-        start_date = end_date = today.toISOString().split('T')[0]
+        start_date = end_date = formatBeijingDate(today)
         break
       case 'week':
         const weekStart = new Date(today)
         weekStart.setDate(today.getDate() - today.getDay() + 1)
-        start_date = weekStart.toISOString().split('T')[0]
-        end_date = today.toISOString().split('T')[0]
+        start_date = formatBeijingDate(weekStart)
+        end_date = formatBeijingDate(today)
         break
       case 'month':
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
-        start_date = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`
-        end_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+        start_date = formatBeijingDate(firstDay)
+        end_date = formatBeijingDate(today)
         break
       default:
         start_date = end_date = ''
@@ -202,11 +209,12 @@ export default function AttendanceRecordsOptimized() {
 
   const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return '--:--'
+    // 使用统一的时间处理函数
     const date = new Date(dateTimeStr)
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${hours}:${minutes}`
   }
-
-
 
   const getStatusText = (status) => {
     const statusMap = {
@@ -240,6 +248,22 @@ export default function AttendanceRecordsOptimized() {
         {badge.text}
       </span>
     )
+  }
+
+  const getStatusColor = (record) => {
+    // 统一处理早退状态
+    if (record.status === 'early' || record.status === 'early_leave') return 'bg-orange-500'
+    if (record.status === 'late') return 'bg-red-500'
+    if (record.status === 'absent') return 'bg-gray-500'
+    if (record.status === 'normal') return 'bg-green-500'
+    if (record.status === 'leave') return 'bg-blue-500'
+    if (record.status === 'overtime') return 'bg-purple-500'
+    return 'bg-gray-300'
+  }
+
+  const getHighlightClass = (record) => {
+    // 统一处理早退状态
+    return `${record.status === 'late' || record.status === 'early' || record.status === 'early_leave' ? 'bg-red-50' : ''}`
   }
 
   // 渲染统计卡片
@@ -355,7 +379,7 @@ export default function AttendanceRecordsOptimized() {
 
         let recordDate
         if (typeof r.record_date === 'string') {
-          // 如果是字符串，直接提取日期部分（YYYY-MM-DD 或 ISO 格式）
+          // 如果是字符串，直接提取日期部分（YYYY-MM-DD 或 ISO �格）
           // 不要转换为 Date 对象，避免时区问题
           recordDate = r.record_date.split('T')[0].split(' ')[0]
         } else {

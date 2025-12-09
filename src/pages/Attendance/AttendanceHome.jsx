@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { formatDate } from '../../utils/date'
+import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
-
 
 export default function AttendanceHome({ onNavigate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -136,7 +135,8 @@ export default function AttendanceHome({ onNavigate }) {
     }
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      // 使用北京时间获取今日日期，避免时区问题
+      const today = formatBeijingDate(); // 使用格式化后的日期字符串
 
       const response = await axios.get(getApiUrl('/api/schedules'), {
         params: {
@@ -178,32 +178,33 @@ export default function AttendanceHome({ onNavigate }) {
       return
     }
 
-    setLoading(true)
-    try {
-      const today = new Date().toISOString().split('T')[0]
+    if (!employee) {
+      toast.error('员工信息未加载，请刷新页面')
+      return
+    }
 
-      const response = await axios.post(getApiUrl('/api/schedules'), {
+    setLoading(true)
+
+    try {
+      // 使用北京时间获取今日日期，避免时区问题
+      const today = formatBeijingDate(); // 使用格式化后的日期
+
+      const response = await axios.post(getApiUrl('/api/schedules/self'), {
         employee_id: employee.id,
-        shift_id: selectedShift,
+        user_id: user.id,
         schedule_date: today,
-        is_rest_day: 0
+        shift_id: selectedShift
       })
 
       if (response.data.success) {
-        toast.success('排班设置成功')
+        toast.success('班次选择成功')
         setShowShiftModal(false)
         setSelectedShift(null)
-
-        // 等待一小段时间确保后端数据已保存
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        // 强制刷新页面数据
-        setRefreshKey(prev => prev + 1)
-        await fetchTodaySchedule()
+        // 重新获取今日排班信息
+        fetchTodaySchedule()
       }
     } catch (error) {
-      console.error('排班设置失败:', error)
-      toast.error(error.response?.data?.message || '排班设置失败')
+      toast.error(error.response?.data?.message || '班次选择失败')
     } finally {
       setLoading(false)
     }
@@ -216,27 +217,20 @@ export default function AttendanceHome({ onNavigate }) {
       return
     }
 
-    // 如果不是补打卡，检查打卡时间
-    if (!isMakeup) {
-      const timeCheck = checkClockInTime()
-      if (!timeCheck.allowed) {
-        setTimeoutMessage(timeCheck.message)
-        setShowTimeoutModal(true)
-        return
-      }
-    }
+    // 移除补打卡检查，始终允许员工打卡
+    // 原有的时间检查逻辑已移除，员工可以随时打卡
+    // 系统会根据实际打卡时间自动判断状态
 
     setLoading(true)
 
     try {
       const response = await axios.post(getApiUrl('/api/attendance/clock-in'), {
         employee_id: employee.id,
-        user_id: user.id,
-        is_makeup: isMakeup // 标记是否为补打卡
+        user_id: user.id
       })
 
       if (response.data.success) {
-        toast.success(isMakeup ? '补打卡成功' : response.data.message)
+        toast.success(response.data.message)
         fetchTodayRecord()
       }
     } catch (error) {
@@ -246,22 +240,15 @@ export default function AttendanceHome({ onNavigate }) {
     }
   }
 
-  // 下班打卡
   const handleClockOut = async (isMakeup = false) => {
     if (!employee) {
       toast.error('员工信息未加载，请刷新页面')
       return
     }
 
-    // 如果不是补打卡，检查打卡时间
-    if (!isMakeup) {
-      const timeCheck = checkClockOutTime()
-      if (!timeCheck.allowed) {
-        setTimeoutMessage(timeCheck.message)
-        setShowTimeoutModal(true)
-        return
-      }
-    }
+    // 移除补打卡检查，始终允许员工打卡
+    // 原有的时间检查逻辑已移除，员工可以随时打卡
+    // 系统会根据实际打卡时间自动判断状态
 
     setLoading(true)
 
@@ -285,8 +272,6 @@ export default function AttendanceHome({ onNavigate }) {
   const formatTime = (date) => {
     return date.toLocaleTimeString('zh-CN', { hour12: false })
   }
-
-
 
   const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return '--:--'
@@ -321,27 +306,22 @@ export default function AttendanceHome({ onNavigate }) {
       return { allowed: false, message: '今日暂无排班信息，请先选择班次排班后再打卡' }
     }
 
-    const now = new Date()
-    const currentTime = now.getHours() * 60 + now.getMinutes()
-
-    const [startHour, startMinute] = todaySchedule.start_time.split(':').map(Number)
-    const shiftStartTime = startHour * 60 + startMinute
-
-    const clockInAdvance = attendanceRules?.clock_in_advance || 30
-    const lateThreshold = attendanceRules?.late_threshold || 30
-    const allowedStartTime = shiftStartTime - clockInAdvance
-    const allowedEndTime = shiftStartTime + lateThreshold
-
-    if (currentTime < allowedStartTime) {
-      const allowedTime = `${String(Math.floor(allowedStartTime / 60)).padStart(2, '0')}:${String(allowedStartTime % 60).padStart(2, '0')}`
-      const shiftTime = `${String(Math.floor(shiftStartTime / 60)).padStart(2, '0')}:${String(shiftStartTime % 60).padStart(2, '0')}`
-      return { allowed: false, message: `打卡时间太早！班次上班时间为 ${shiftTime}，最早可在 ${allowedTime} 打卡（提前${clockInAdvance}分钟）` }
-    }
-
-    if (currentTime > allowedEndTime) {
-      const endTime = `${String(Math.floor(allowedEndTime / 60)).padStart(2, '0')}:${String(allowedEndTime % 60).padStart(2, '0')}`
-      const shiftTime = `${String(Math.floor(shiftStartTime / 60)).padStart(2, '0')}:${String(shiftStartTime % 60).padStart(2, '0')}`
-      return { allowed: false, message: `已超过打卡时间！班次上班时间为 ${shiftTime}，最晚可在 ${endTime} 打卡（迟到阈值${lateThreshold}分钟）。请使用"补打卡"功能。` }
+    // 检查是否已到上班打卡时间
+    const now = new Date();
+    const [hours, minutes] = todaySchedule.start_time.split(':');
+    const startDateTime = new Date();
+    startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // 获取考勤设置中的上班打卡提前分钟数
+    const earlyClockInMinutes = attendanceRules?.clock_in_advance || 60;
+    const earlyClockInTime = new Date(startDateTime.getTime() - earlyClockInMinutes * 60000);
+    
+    if (now < earlyClockInTime) {
+      const timeDiff = Math.ceil((earlyClockInTime - now) / 60000);
+      return { 
+        allowed: false, 
+        message: `还未到上班打卡时间，需在上班前${earlyClockInMinutes}分钟内(${startDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockInMinutes}分钟)才能打卡` 
+      };
     }
 
     return { allowed: true, message: '' }
@@ -358,27 +338,22 @@ export default function AttendanceHome({ onNavigate }) {
       return { allowed: false, message: '今日暂无排班信息，请先选择班次排班后再打卡' }
     }
 
-    const now = new Date()
-    const currentTime = now.getHours() * 60 + now.getMinutes()
-
-    const [endHour, endMinute] = todaySchedule.end_time.split(':').map(Number)
-    const shiftEndTime = endHour * 60 + endMinute
-
-    const earlyThreshold = attendanceRules?.early_threshold || 30
-    const clockOutDelay = attendanceRules?.clock_out_delay || 120
-    const allowedStartTime = shiftEndTime - earlyThreshold
-    const allowedEndTime = shiftEndTime + clockOutDelay
-
-    if (currentTime < allowedStartTime) {
-      const allowedTime = `${String(Math.floor(allowedStartTime / 60)).padStart(2, '0')}:${String(allowedStartTime % 60).padStart(2, '0')}`
-      const shiftTime = `${String(Math.floor(shiftEndTime / 60)).padStart(2, '0')}:${String(shiftEndTime % 60).padStart(2, '0')}`
-      return { allowed: false, message: `打卡时间太早！班次下班时间为 ${shiftTime}，最早可在 ${allowedTime} 打卡（早退阈值${earlyThreshold}分钟）` }
-    }
-
-    if (currentTime > allowedEndTime) {
-      const maxTime = `${String(Math.floor(allowedEndTime / 60) % 24).padStart(2, '0')}:${String(allowedEndTime % 60).padStart(2, '0')}`
-      const shiftTime = `${String(Math.floor(shiftEndTime / 60)).padStart(2, '0')}:${String(shiftEndTime % 60).padStart(2, '0')}`
-      return { allowed: false, message: `已超过打卡时间！班次下班时间为 ${shiftTime}，最晚可在 ${maxTime} 打卡（延后${clockOutDelay}分钟）。请使用"补打卡"功能。` }
+    // 检查是否已到下班打卡时间
+    const now = new Date();
+    const [hours, minutes] = todaySchedule.end_time.split(':');
+    const endDateTime = new Date();
+    endDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // 获取考勤设置中的下班打卡提前分钟数
+    const earlyClockOutMinutes = attendanceRules?.clock_out_delay || 120;
+    const earlyClockOutTime = new Date(endDateTime.getTime() - earlyClockOutMinutes * 60000);
+    
+    if (now < earlyClockOutTime) {
+      const timeDiff = Math.ceil((earlyClockOutTime - now) / 60000);
+      return { 
+        allowed: false, 
+        message: `还未到下班打卡时间，需在下班前${earlyClockOutMinutes}分钟内(${endDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockOutMinutes}分钟)才能打卡` 
+      };
     }
 
     return { allowed: true, message: '' }
@@ -413,7 +388,7 @@ export default function AttendanceHome({ onNavigate }) {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">今日打卡状态</h2>
           {/* 排班信息或选择班次按钮 */}
-          {todaySchedule ? (
+          {todaySchedule && todaySchedule.shift_id ? (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">今日班次：</span>
               <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
@@ -505,40 +480,32 @@ export default function AttendanceHome({ onNavigate }) {
             >
               已打上班卡
             </button>
-          ) : clockInCheck.allowed ? (
-            <>
-              <button
-                onClick={handleClockIn}
-                disabled={loading}
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-green-500 hover:bg-green-600 text-white transition-colors shadow-lg"
-              >
-                {loading ? '打卡中...' : '✓ 上班打卡'}
-              </button>
-              {todaySchedule && (
-                <div className="mt-2 text-center text-sm text-green-600 font-medium">
-                  ✓ 可以打卡（{todaySchedule.start_time} 班次）
-                </div>
-              )}
-            </>
           ) : (
             <>
               <button
-                onClick={() => {
-                  setTimeoutMessage(clockInCheck.message)
-                  setShowTimeoutModal(true)
-                }}
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                onClick={handleClockIn}
+                disabled={loading || !clockInCheck.allowed}
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
+                  loading 
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    : clockInCheck.allowed
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
-                补打上班卡
+                {loading ? '打卡中...' : '✓ 上班打卡'}
               </button>
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <span className="text-red-500 text-lg flex-shrink-0">⚠️</span>
-                  <div className="text-sm text-red-700">
-                    <div className="font-semibold mb-1">无法正常打卡</div>
-                    <div>{clockInCheck.message}</div>
-                  </div>
-                </div>
+              <div className="mt-2 text-center text-sm font-medium">
+                {clockInCheck.message && (
+                  <span className={clockInCheck.allowed ? "text-green-600" : "text-gray-500"}>
+                    {clockInCheck.message}
+                  </span>
+                )}
+                {!clockInCheck.message && todaySchedule && (
+                  <span className="text-green-600">
+                    ✓ 可以打卡（{todaySchedule.start_time} 班次）
+                  </span>
+                )}
               </div>
             </>
           )}
@@ -565,46 +532,95 @@ export default function AttendanceHome({ onNavigate }) {
                 需要先完成上班打卡
               </div>
             </>
-          ) : clockOutCheck.allowed ? (
-            <>
-              <button
-                onClick={handleClockOut}
-                disabled={loading}
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-lg"
-              >
-                {loading ? '打卡中...' : '✓ 下班打卡'}
-              </button>
-              {todaySchedule && (
-                <div className="mt-2 text-center text-sm text-blue-600 font-medium">
-                  ✓ 可以打卡（{todaySchedule.end_time} 下班）
-                </div>
-              )}
-            </>
           ) : (
             <>
               <button
-                onClick={() => {
-                  setTimeoutMessage(clockOutCheck.message)
-                  setShowTimeoutModal(true)
-                }}
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                onClick={handleClockOut}
+                disabled={loading || !clockOutCheck.allowed}
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
+                  loading 
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    : clockOutCheck.allowed
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
-                补打下班卡
+                {loading ? '打卡中...' : '✓ 下班打卡'}
               </button>
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <span className="text-red-500 text-lg flex-shrink-0">⚠️</span>
-                  <div className="text-sm text-red-700">
-                    <div className="font-semibold mb-1">无法正常打卡</div>
-                    <div>{clockOutCheck.message}</div>
-                  </div>
-                </div>
+              <div className="mt-2 text-center text-sm font-medium">
+                {clockOutCheck.message && (
+                  <span className={clockOutCheck.allowed ? "text-blue-600" : "text-gray-500"}>
+                    {clockOutCheck.message}
+                  </span>
+                )}
+                {!clockOutCheck.message && todaySchedule && (
+                  <span className="text-blue-600">
+                    ✓ 可以打卡（{todaySchedule.end_time} 下班）
+                  </span>
+                )}
               </div>
             </>
           )}
         </div>
       </div>
       )}
+
+      {/* 超时提示模态框（休息日不显示） */}
+      {showTimeoutModal && !isRestDay && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span className="text-4xl">⚠️</span>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-semibold text-center mb-2">打卡提醒</h3>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-orange-800 text-center">
+                  {timeoutMessage}
+                </p>
+              </div>
+
+              {todaySchedule && (
+                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <div className="text-sm text-gray-600 text-center">
+                    <p className="mb-1">今日班次：<span className="font-medium text-gray-900">{todaySchedule.shift_name}</span></p>
+                    <p>工作时间：<span className="font-medium text-gray-900">{todaySchedule.start_time} - {todaySchedule.end_time}</span></p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTimeoutModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTimeoutModal(false)
+                    // 直接打卡，不区分补打卡
+                    if (!todayRecord?.clock_in_time) {
+                      handleClockIn()  // 上班打卡
+                    } else {
+                      handleClockOut()  // 下班打卡
+                    }
+                  }}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  {loading ? '打卡中...' : '确认打卡'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 提示信息 */}
       {todayRecord?.status === 'late' && (
         <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -615,7 +631,7 @@ export default function AttendanceHome({ onNavigate }) {
         </div>
       )}
 
-      {todayRecord?.status === 'early' && (
+      {todayRecord?.status === 'early_leave' && (
         <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
           <div className="flex items-center">
             <span className="text-orange-600 mr-2">⚠️</span>
@@ -667,7 +683,7 @@ export default function AttendanceHome({ onNavigate }) {
             onClick={async () => {
               if (!window.confirm('确定要删除今天的打卡记录吗？此操作不可恢复！')) return
               try {
-                const today = new Date().toISOString().split('T')[0]
+                const today = formatBeijingDate() // 使用统一的日期处理函数，避免时区问题
                 await axios.delete(getApiUrl('/api/attendance/today'), {
                   params: { employee_id: employee?.id, date: today }
                 })
@@ -686,9 +702,9 @@ export default function AttendanceHome({ onNavigate }) {
             onClick={async () => {
               if (!window.confirm('确定要删除今天的班次安排吗？此操作不可恢复！')) return
               try {
-                const today = new Date().toISOString().split('T')[0]
+                const today = formatBeijingDate(); // 使用统一的日期处理函数
                 await axios.delete(getApiUrl('/api/schedules/today'), {
-                  params: { employee_id: employee?.id, date: today }
+                  params: { employee_id: employee?.id, schedule_date: today }
                 })
                 toast.success('今日班次已删除')
                 setTodaySchedule(null)
@@ -798,67 +814,6 @@ export default function AttendanceHome({ onNavigate }) {
         </div>
       )}
 
-      {/* 超时提示模态框（休息日不显示） */}
-      {showTimeoutModal && !isRestDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-4xl">⚠️</span>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-center mb-2">补打卡确认</h3>
-
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-orange-800 text-center">
-                  {timeoutMessage}
-                </p>
-              </div>
-
-              {todaySchedule && (
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <div className="text-sm text-gray-600 text-center">
-                    <p className="mb-1">今日班次：<span className="font-medium text-gray-900">{todaySchedule.shift_name}</span></p>
-                    <p>工作时间：<span className="font-medium text-gray-900">{todaySchedule.start_time} - {todaySchedule.end_time}</span></p>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-xs text-yellow-800 text-center">
-                  💡 提示：补打卡记录将标记为"异常"状态，需要后续向管理员说明原因。
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowTimeoutModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={() => {
-                    setShowTimeoutModal(false)
-                    // 根据当前状态判断是上班还是下班补打卡，传递 isMakeup=true
-                    if (!todayRecord?.clock_in_time) {
-                      handleClockIn(true)  // 补打上班卡
-                    } else {
-                      handleClockOut(true)  // 补打下班卡
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-                >
-                  {loading ? '打卡中...' : '确认补打卡'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
