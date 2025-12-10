@@ -7,7 +7,6 @@ import ImportSessionModal from './ImportSessionModal'
 import PlatformShopManagement from './PlatformShopManagement'
 import SessionDetailModal from './SessionDetailModal'
 import ConfirmDialog from './ConfirmDialog'
-import '../pages/Messaging/WeChatPage.css'
 
 const QualityInspection = () => {
   const [inspections, setInspections] = useState([])

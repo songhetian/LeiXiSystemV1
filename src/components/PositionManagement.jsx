@@ -11,7 +11,7 @@ function PositionManagement() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
   const [editingPos, setEditingPos] = useState(null)
   const [statusChangingPos, setStatusChangingPos] = useState(null)
-  const [viewMode, setViewMode] = useState('table')
+  const [viewMode, setViewMode] = useState('card') // 默认改为卡片模式
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
   const [searchFilters, setSearchFilters] = useState({

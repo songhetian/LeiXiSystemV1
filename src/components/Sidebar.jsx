@@ -34,13 +34,14 @@ import {
   CloseCircleOutlined,
   TagsOutlined,
   SoundOutlined,
+  DesktopOutlined,
 } from '@ant-design/icons';
 
 // --- Component Definition ---
 
 const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   // State to manage which menus are expanded
-  const [expandedMenus, setExpandedMenus] = useState(['user', 'org']);
+  const [expandedMenus, setExpandedMenus] = useState(['hr', 'hr-employee', 'collaboration', 'information']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { hasPermission } = usePermission();
@@ -144,11 +145,11 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   // Clear search
   const clearSearch = () => {
     setSearchQuery('');
-    setExpandedMenus(['user', 'org', 'messaging']);
+    setExpandedMenus(['hr', 'hr-employee', 'collaboration', 'information']);
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col">
+    <aside className="w-80 bg-white border-r border-gray-200 shadow-sm flex flex-col">
       {/* Scrollable Main Area */}
       <div className="flex-1 overflow-y-auto p-6">
         <SidebarHeader />
@@ -252,19 +253,29 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
       case 1:
         return {
           container: '',
-          button: 'px-4 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 font-semibold rounded-xl transition-all duration-200',
+          button: 'px-4 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 font-bold rounded-xl transition-all duration-200 shadow-sm',
           icon: 'text-lg',
-          text: 'text-sm',
+          text: 'text-sm font-bold',
         };
       case 2:
         return {
-          container: 'ml-4 pl-4 border-l-2 border-blue-100',
+          container: 'ml-4 pl-4 border-l-2 border-blue-200',
           button: `px-4 py-2.5 rounded-lg transition-all duration-200 ${isActive
-              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-200 font-medium'
-              : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-200 font-semibold'
+              : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 font-medium'
             }`,
           icon: 'text-base',
-          text: 'text-sm',
+          text: 'text-sm font-semibold',
+        };
+      case 3:
+        return {
+          container: 'ml-6 pl-4 border-l-2 border-green-200',
+          button: `px-4 py-2 rounded-md transition-all duration-200 ${isActive
+              ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-lg shadow-green-200 font-medium'
+              : 'text-gray-500 hover:bg-green-50 hover:text-green-600'
+            }`,
+          icon: 'text-sm',
+          text: 'text-xs font-medium',
         };
       default:
         return {
@@ -354,41 +365,60 @@ const SidebarFooter = ({ onLogout }) => (
 
 const allMenuItems = [
   {
-    id: 'user',
-    label: '员工管理',
+    id: 'hr',
+    label: '人事管理',
     icon: <TeamOutlined />,
-    permission: 'user:employee:view',
     children: [
-      { id: 'user-employee', label: '员工管理', icon: <UserOutlined />, permission: 'user:employee:view' },
-      { id: 'user-changes', label: '变动记录', icon: <FileTextOutlined />, permission: 'user:employee:view' },
-      { id: 'user-approval', label: '员工审核', icon: <CheckCircleOutlined />, permission: 'user:audit:manage' },
-      { id: 'user-reset-password', label: '重置密码', icon: <KeyOutlined />, permission: 'user:security:reset_password' },
+      {
+        id: 'hr-employee',
+        label: '员工管理',
+        icon: <UserOutlined />,
+        permission: 'user:employee:view',
+        children: [
+          { id: 'user-employee', label: '员工管理', icon: <UserOutlined />, permission: 'user:employee:view' },
+          { id: 'user-changes', label: '变动记录', icon: <FileTextOutlined />, permission: 'user:employee:view' },
+          { id: 'user-approval', label: '员工审核', icon: <CheckCircleOutlined />, permission: 'user:audit:manage' },
+        ]
+      },
+      {
+        id: 'hr-org',
+        label: '组织架构',
+        icon: <ApartmentOutlined />,
+        permission: 'org:department:view',
+        children: [
+          { id: 'org-department', label: '部门管理', icon: <ApartmentOutlined />, permission: 'org:department:view' },
+          { id: 'org-position', label: '职位管理', icon: <IdcardOutlined />, permission: 'org:position:view' },
+        ]
+      }
+    ]
+  },
+  {
+    id: 'permission',
+    label: '权限管理',
+    icon: <SafetyOutlined />,
+    children: [
       { id: 'user-permission', label: '权限管理', icon: <SafetyOutlined />, permission: 'system:role:view' },
       { id: 'user-role-management', label: '角色分配', icon: <TeamOutlined />, permission: 'system:role:manage' },
-      { id: 'employee-memos', label: '部门备忘录', icon: <BellOutlined />, permission: 'user:memo:manage' },
-    ],
+      { id: 'user-reset-password', label: '重置密码', icon: <KeyOutlined />, permission: 'user:security:reset_password' },
+    ]
   },
   {
-    id: 'org',
-    label: '组织架构',
-    icon: <ApartmentOutlined />,
-    permission: 'org:department:view',
-    children: [
-      { id: 'org-department', label: '部门管理', icon: <ApartmentOutlined />, permission: 'org:department:view' },
-      { id: 'org-position', label: '职位管理', icon: <IdcardOutlined />, permission: 'org:position:view' },
-    ],
-  },
-  {
-    id: 'messaging',
-    label: '信息系统',
+    id: 'collaboration',
+    label: '办公协作',
     icon: <MessageOutlined />,
     children: [
-      { id: 'messaging-chat', label: '聊天系统', icon: <MessageOutlined /> }, // 基础功能，所有人可见
-      { id: 'messaging-create-group', label: '群组管理', icon: <TeamOutlined /> }, // 基础功能
-      { id: 'messaging-broadcast', label: '系统广播', icon: <SoundOutlined />, permission: 'messaging:broadcast:view' },
-      { id: 'broadcast-management', label: '发布广播', icon: <SoundOutlined />, permission: 'messaging:broadcast:manage' },
-      { id: 'notification-settings', label: '通知设置', icon: <BellOutlined />, permission: 'messaging:config:manage' },
-    ],
+      {
+        id: 'information',
+        label: '信息发布',
+        icon: <SoundOutlined />,
+        children: [
+          { id: 'messaging-broadcast', label: '系统广播', icon: <SoundOutlined />, permission: 'messaging:broadcast:view' },
+          { id: 'broadcast-management', label: '发布广播', icon: <SendOutlined />, permission: 'messaging:broadcast:manage' },
+          { id: 'notification-settings', label: '通知设置', icon: <BellOutlined />, permission: 'messaging:config:manage' },
+        ]
+      },
+      { id: 'employee-memos', label: '部门备忘录', icon: <BellOutlined />, permission: 'user:memo:manage' },
+    ]
   },
   {
     id: 'attendance',
@@ -396,21 +426,76 @@ const allMenuItems = [
     icon: <ClockCircleOutlined />,
     permission: 'attendance:record:view',
     children: [
-      { id: 'attendance-home', label: '考勤主页', icon: <HomeOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-records', label: '考勤记录', icon: <FileTextOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-makeup', label: '补卡申请', icon: <FormOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-leave-apply', label: '请假申请', icon: <FormOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-leave-records', label: '请假记录', icon: <FileTextOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-overtime-apply', label: '加班申请', icon: <FormOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-overtime-records', label: '加班记录', icon: <FileTextOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-stats', label: '考勤统计', icon: <BarChartOutlined />, permission: 'attendance:report:view' },
-      { id: 'attendance-department', label: '部门考勤统计', icon: <ApartmentOutlined />, permission: 'attendance:report:view' },
-      { id: 'attendance-shift', label: '班次管理', icon: <SyncOutlined />, permission: 'attendance:config:manage' },
-      { id: 'attendance-schedule', label: '排班管理', icon: <CalendarOutlined />, permission: 'attendance:schedule:manage' },
-      { id: 'attendance-smart-schedule', label: '智能排班', icon: <ThunderboltOutlined />, permission: 'attendance:schedule:manage' },
-      { id: 'attendance-approval', label: '审批管理', icon: <CheckCircleOutlined />, permission: 'attendance:approval:manage' },
-      { id: 'attendance-notifications', label: '考勤通知', icon: <BellOutlined />, permission: 'attendance:record:view' },
-      { id: 'attendance-settings', label: '考勤设置', icon: <SettingOutlined />, permission: 'attendance:config:manage' },
+      {
+        id: 'attendance-records-section',
+        label: '考勤记录',
+        icon: <FileTextOutlined />,
+        children: [
+          { id: 'attendance-home', label: '考勤主页', icon: <HomeOutlined />, permission: 'attendance:record:view' },
+          { id: 'attendance-records', label: '考勤记录', icon: <FileTextOutlined />, permission: 'attendance:record:view' },
+        ]
+      },
+      {
+        id: 'leave-section',
+        label: '请假管理',
+        icon: <FormOutlined />,
+        children: [
+          { id: 'attendance-leave-apply', label: '请假申请', icon: <FormOutlined />, permission: 'attendance:record:view' },
+          { id: 'attendance-leave-records', label: '请假记录', icon: <FileTextOutlined />, permission: 'attendance:record:view' },
+        ]
+      },
+      {
+        id: 'overtime-section',
+        label: '加班管理',
+        icon: <ClockCircleOutlined />,
+        children: [
+          { id: 'attendance-overtime-apply', label: '加班申请', icon: <FormOutlined />, permission: 'attendance:record:view' },
+          { id: 'attendance-overtime-records', label: '加班记录', icon: <FileTextOutlined />, permission: 'attendance:record:view' },
+        ]
+      },
+      {
+        id: 'makeup-section',
+        label: '补卡管理',
+        icon: <FormOutlined />,
+        children: [
+          { id: 'attendance-makeup', label: '补卡申请', icon: <FormOutlined />, permission: 'attendance:record:view' },
+        ]
+      },
+      {
+        id: 'reports-section',
+        label: '统计报表',
+        icon: <BarChartOutlined />,
+        children: [
+          { id: 'attendance-stats', label: '考勤统计', icon: <BarChartOutlined />, permission: 'attendance:report:view' },
+          { id: 'attendance-department', label: '部门考勤统计', icon: <ApartmentOutlined />, permission: 'attendance:report:view' },
+        ]
+      },
+      {
+        id: 'schedule-section',
+        label: '排班管理',
+        icon: <CalendarOutlined />,
+        children: [
+          { id: 'attendance-shift', label: '班次管理', icon: <SyncOutlined />, permission: 'attendance:config:manage' },
+          { id: 'attendance-schedule', label: '排班管理', icon: <CalendarOutlined />, permission: 'attendance:schedule:manage' },
+          { id: 'attendance-smart-schedule', label: '智能排班', icon: <ThunderboltOutlined />, permission: 'attendance:schedule:manage' },
+        ]
+      },
+      {
+        id: 'approval-section',
+        label: '审批管理',
+        icon: <CheckCircleOutlined />,
+        children: [
+          { id: 'attendance-approval', label: '审批管理', icon: <CheckCircleOutlined />, permission: 'attendance:approval:manage' },
+        ]
+      },
+      {
+        id: 'attendance-settings-section',
+        label: '系统设置',
+        icon: <SettingOutlined />,
+        children: [
+          { id: 'attendance-settings', label: '考勤设置', icon: <SettingOutlined />, permission: 'attendance:config:manage' },
+        ]
+      },
     ],
   },
   {
@@ -419,11 +504,39 @@ const allMenuItems = [
     icon: <CalendarOutlined />,
     permission: 'vacation:record:view',
     children: [
-      { id: 'compensatory-apply', label: '申请调休', icon: <FormOutlined />, permission: 'vacation:record:view' },
-      { id: 'vacation-details', label: '假期明细', icon: <FileTextOutlined />, permission: 'vacation:record:view' },
-      { id: 'quota-config', label: '额度配置', icon: <SettingOutlined />, permission: 'vacation:config:manage' },
-      { id: 'vacation-summary', label: '假期汇总', icon: <BarChartOutlined />, permission: 'vacation:record:view' },
-      { id: 'compensatory-approval', label: '调休审批', icon: <CheckCircleOutlined />, permission: 'vacation:approval:manage' },
+      {
+        id: 'vacation-application',
+        label: '假期申请',
+        icon: <FormOutlined />,
+        children: [
+          { id: 'compensatory-apply', label: '申请调休', icon: <FormOutlined />, permission: 'vacation:record:view' },
+        ]
+      },
+      {
+        id: 'vacation-records',
+        label: '假期记录',
+        icon: <FileTextOutlined />,
+        children: [
+          { id: 'vacation-details', label: '假期明细', icon: <FileTextOutlined />, permission: 'vacation:record:view' },
+          { id: 'vacation-summary', label: '假期汇总', icon: <BarChartOutlined />, permission: 'vacation:record:view' },
+        ]
+      },
+      {
+        id: 'vacation-approval',
+        label: '审批管理',
+        icon: <CheckCircleOutlined />,
+        children: [
+          { id: 'compensatory-approval', label: '调休审批', icon: <CheckCircleOutlined />, permission: 'vacation:approval:manage' },
+        ]
+      },
+      {
+        id: 'vacation-settings',
+        label: '系统设置',
+        icon: <SettingOutlined />,
+        children: [
+          { id: 'quota-config', label: '额度配置', icon: <SettingOutlined />, permission: 'vacation:config:manage' },
+        ]
+      },
     ],
   },
   {
@@ -432,16 +545,30 @@ const allMenuItems = [
     icon: <SearchOutlined />,
     permission: 'quality:session:view',
     children: [
-      { id: 'quality-platform-shop', label: '平台店铺', icon: <ShopOutlined />, permission: 'quality:config:manage' },
+      {
+        id: 'quality-config',
+        label: '质检配置',
+        icon: <SettingOutlined />,
+        children: [
+          { id: 'quality-platform-shop', label: '平台店铺', icon: <ShopOutlined />, permission: 'quality:config:manage' },
+          { id: 'quality-tags', label: '标签管理', icon: <TagsOutlined />, permission: 'quality:config:manage' },
+        ]
+      },
       { id: 'quality-score', label: '会话质检', icon: <StarOutlined />, permission: 'quality:session:view' },
-      { id: 'quality-tags', label: '标签管理', icon: <TagsOutlined />, permission: 'quality:config:manage' },
-      { id: 'quality-case-library', label: '案例库', icon: <FolderOpenOutlined />, permission: 'quality:case:manage' },
-      { id: 'quality-case-categories', label: '案例分类管理', icon: <FolderOpenOutlined />, permission: 'quality:case:manage' },
+      {
+        id: 'quality-cases',
+        label: '案例管理',
+        icon: <FolderOpenOutlined />,
+        children: [
+          { id: 'quality-case-library', label: '案例库', icon: <FolderOpenOutlined />, permission: 'quality:case:manage' },
+          { id: 'quality-case-categories', label: '案例分类管理', icon: <FolderOpenOutlined />, permission: 'quality:case:manage' },
+        ]
+      },
     ],
   },
   {
     id: 'knowledge',
-    label: '知识库',
+    label: '知识管理',
     icon: <BookOutlined />,
     permission: 'knowledge:article:view',
     children: [
@@ -456,11 +583,33 @@ const allMenuItems = [
     icon: <FormOutlined />,
     permission: 'assessment:plan:view',
     children: [
-      { id: 'assessment-exams', label: '试卷管理', icon: <FileTextOutlined />, permission: 'assessment:plan:manage' },
-      { id: 'exam-plans', label: '考核计划', icon: <CalendarOutlined />, permission: 'assessment:plan:manage' },
-      { id: 'assessment-categories', label: '分类管理', icon: <FolderOpenOutlined />, permission: 'assessment:plan:manage' },
-      { id: 'exam-results', label: '考试结果', icon: <EyeOutlined />, permission: 'assessment:result:view' },
-      { id: 'my-exams', label: '我的考试', icon: <IdcardOutlined /> }, // 基础功能
+      {
+        id: 'assessment-questions',
+        label: '试题管理',
+        icon: <FileTextOutlined />,
+        children: [
+          { id: 'assessment-exams', label: '试卷管理', icon: <FileTextOutlined />, permission: 'assessment:plan:manage' },
+          { id: 'assessment-categories', label: '分类管理', icon: <FolderOpenOutlined />, permission: 'assessment:plan:manage' },
+        ]
+      },
+      {
+        id: 'assessment-management',
+        label: '考核管理',
+        icon: <CalendarOutlined />,
+        children: [
+          { id: 'exam-plans', label: '考核计划', icon: <CalendarOutlined />, permission: 'assessment:plan:manage' },
+        ]
+      },
+      {
+        id: 'assessment-results',
+        label: '成绩管理',
+        icon: <EyeOutlined />,
+        children: [
+          { id: 'exam-results', label: '考试结果', icon: <EyeOutlined />, permission: 'assessment:result:view' },
+          { id: 'my-exams', label: '我的考试', icon: <IdcardOutlined /> }, // 基础功能
+          { id: 'my-exam-results', label: '我的考试结果', icon: <FileTextOutlined /> },
+        ]
+      },
     ],
   },
   {
@@ -468,11 +617,24 @@ const allMenuItems = [
     label: '个人中心',
     icon: <UserOutlined />,
     children: [
-      { id: 'personal-info', label: '个人信息', icon: <IdcardOutlined /> },
-      { id: 'my-schedule', label: '我的排班', icon: <CalendarOutlined /> },
-      { id: 'my-notifications', label: '我的通知', icon: <BellOutlined /> },
-      { id: 'my-memos', label: '我的备忘录', icon: <FileTextOutlined /> },
-      { id: 'my-exam-results', label: '我的考试结果', icon: <FileTextOutlined /> },
+      {
+        id: 'personal-info-section',
+        label: '个人信息',
+        icon: <IdcardOutlined />,
+        children: [
+          { id: 'personal-info', label: '个人信息', icon: <IdcardOutlined /> },
+        ]
+      },
+      {
+        id: 'personal-office',
+        label: '个人办公',
+        icon: <DesktopOutlined />,
+        children: [
+          { id: 'my-schedule', label: '我的排班', icon: <CalendarOutlined /> },
+          { id: 'my-notifications', label: '我的通知', icon: <BellOutlined /> },
+          { id: 'my-memos', label: '我的备忘录', icon: <FileTextOutlined /> },
+        ]
+      },
     ],
   },
 ];

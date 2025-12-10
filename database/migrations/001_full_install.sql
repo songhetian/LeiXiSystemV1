@@ -1377,11 +1377,10 @@ CREATE TABLE `permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 -- Seed permissions and role bindings (merged from db/018_seed_permissions.sql)
-TRUNCATE TABLE role_permissions;
-TRUNCATE TABLE permissions;
+-- Clear existing data before seeding
+-- Moved TRUNCATE statements after table definitions to fix ER_NO_SUCH_TABLE error
 
-INSERT INTO permissions (name, code, resource, action, module, description) VALUES
--- 系统管理 (System)
+INSERT INTO permissions (name, code, resource, action, module, description) VALUES-- 系统管理 (System)
 ('查看角色', 'system:role:view', 'role', 'view', 'system', '查看角色列表'),
 ('管理角色', 'system:role:manage', 'role', 'manage', 'system', '新增、编辑、删除角色及配置权限'),
 ('查看日志', 'system:log:view', 'log', 'view', 'system', '查看系统操作日志'),
@@ -1432,30 +1431,8 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('查看成绩', 'assessment:result:view', 'result', 'view', 'assessment', '查看所有员工考试成绩');
 
 -- 确保基础角色存在
-INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
-('普通员工', '系统默认基础角色，拥有基本查看权限', 1, 1);
+-- Moved role insertions after table definitions to fix ER_NO_SUCH_TABLE error
 
--- 为【超级管理员】分配所有权限
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r, permissions p
-WHERE r.name = '超级管理员';
-
--- 为【普通员工】分配基础权限
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r
-JOIN permissions p ON p.code IN (
-    'user:employee:view',
-    'org:department:view',
-    'org:position:view',
-    'messaging:broadcast:view',
-    'attendance:record:view',
-    'vacation:record:view',
-    'knowledge:article:view',
-    'assessment:plan:view'
-)
-WHERE r.name = '普通员工';
 
 DROP TABLE IF EXISTS `platforms`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1911,6 +1888,10 @@ CREATE TABLE `role_permissions` (
   CONSTRAINT `fk_role_permissions_role_id` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限关联表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+-- Clear existing data before seeding
+TRUNCATE TABLE permissions;
+TRUNCATE TABLE role_permissions;
 DROP TABLE IF EXISTS `roles`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -1928,6 +1909,33 @@ CREATE TABLE `roles` (
   KEY `idx_is_system` (`is_system`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表-定义系统角色';
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+-- 确保基础角色存在
+INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
+('普通员工', '系统默认基础角色，拥有基本查看权限', 1, 1);
+
+-- 为【超级管理员】分配所有权限
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permissions p
+WHERE r.name = '超级管理员';
+
+-- 为【普通员工】分配基础权限
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.code IN (
+    'user:employee:view',
+    'org:department:view',
+    'org:position:view',
+    'messaging:broadcast:view',
+    'attendance:record:view',
+    'vacation:record:view',
+    'knowledge:article:view',
+    'assessment:plan:view'
+)
+WHERE r.name = '普通员工';
+
 DROP TABLE IF EXISTS `schedules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -2489,9 +2497,9 @@ INSERT INTO `positions` (`name`, `department_id`, `description`, `requirements`,
 
 -- Migration 002: 添加软删除字段到案例表
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'quality_cases' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'quality_cases'
                       AND COLUMN_NAME = 'deleted_at');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE quality_cases ADD COLUMN deleted_at DATETIME DEFAULT NULL COMMENT '删除时间（软删除）'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
@@ -2528,9 +2536,9 @@ ON DUPLICATE KEY UPDATE description = VALUES(description), sort_order = VALUES(s
 -- Migration 003: 添加审批备注字段到用户表
 -- 用于存储员工审核的拒绝原因
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'users' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'users'
                       AND COLUMN_NAME = 'approval_note');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE users ADD COLUMN approval_note TEXT NULL COMMENT '审批备注（拒绝原因）'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
@@ -2577,9 +2585,9 @@ CREATE TABLE `conversion_usage_records` (
 
 -- 为请假记录增加转换假期使用字段
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'leave_records' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'leave_records'
                       AND COLUMN_NAME = 'used_conversion_days');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE leave_records ADD COLUMN used_conversion_days DECIMAL(10,2) DEFAULT 0 COMMENT '使用的转换假期天数'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
@@ -2588,18 +2596,18 @@ DEALLOCATE PREPARE stmt;
 
 -- 先移除转换规则表中不必要的字段
 -- 检查字段是否存在再删除
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'source_type');
 SET @sql := IF(@column_exists > 0, 'ALTER TABLE conversion_rules DROP COLUMN source_type', 'SELECT ''Column does not exist''');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'target_type');
 SET @sql := IF(@column_exists > 0, 'ALTER TABLE conversion_rules DROP COLUMN target_type', 'SELECT ''Column does not exist''');
 PREPARE stmt FROM @sql;
@@ -2608,27 +2616,27 @@ DEALLOCATE PREPARE stmt;
 
 -- 为转换规则表增加缺失字段
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'name');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN name VARCHAR(100) DEFAULT '转换规则' COMMENT '规则名称' AFTER id", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'description');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN description TEXT NULL COMMENT '规则描述'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'ratio');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN ratio DECIMAL(10,4) DEFAULT 0.125 COMMENT '转换比例'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;

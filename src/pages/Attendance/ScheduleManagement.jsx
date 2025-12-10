@@ -4,36 +4,10 @@ import { toast } from 'react-toastify'
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
 
-
-// 班次颜色样式生成器
-const getShiftStyle = (color) => {
-  if (!color) return {}
-
-  // 计算颜色亮度的辅助函数
-  const getContrastColor = (hexColor) => {
-    // 移除 # 号
-    const hex = hexColor.replace('#', '')
-
-    // 解析 RGB
-    const r = parseInt(hex.substr(0, 2), 16)
-    const g = parseInt(hex.substr(2, 2), 16)
-    const b = parseInt(hex.substr(4, 2), 16)
-
-    // 计算亮度 (YIQ 公式)
-    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
-
-    // 如果亮度高（浅色），返回深色文字；否则返回浅色文字
-    // 这里我们使用稍微柔和一点的黑白色
-    return yiq >= 128 ? '#1f2937' : '#ffffff'
-  }
-
-  return {
-    backgroundColor: color, // 使用实色背景，或者可以使用 `${color}CC` 增加一点透明度
-    color: getContrastColor(color), // 自动计算对比色文字
-    borderColor: color,
-    fontWeight: '500',
-    textShadow: '0 1px 2px rgba(0,0,0,0.1)' // 增加一点文字阴影提高可读性
-  }
+// 辅助函数：获取星期几
+const getWeekday = (date) => {
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return weekdays[date.getDay()]
 }
 
 export default function ScheduleManagement() {
@@ -47,6 +21,12 @@ export default function ScheduleManagement() {
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1
   })
+
+  // 辅助函数：获取每月天数
+  const getDaysInMonth = () => {
+    return new Date(selectedMonth.year, selectedMonth.month, 0).getDate()
+  }
+
   const [showBatchModal, setShowBatchModal] = useState(false)
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -62,6 +42,37 @@ export default function ScheduleManagement() {
     start_date: '',
     end_date: ''
   })
+
+  // 班次颜色样式生成器
+  const getShiftStyle = (color) => {
+    if (!color) return {}
+
+    // 计算颜色亮度的辅助函数
+    const getContrastColor = (hexColor) => {
+      // 移除 # 号
+      const hex = hexColor.replace('#', '')
+
+      // 解析 RGB
+      const r = parseInt(hex.substr(0, 2), 16)
+      const g = parseInt(hex.substr(2, 2), 16)
+      const b = parseInt(hex.substr(4, 2), 16)
+
+      // 计算亮度 (YIQ 公式)
+      const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
+
+      // 如果亮度高（浅色），返回深色文字；否则返回浅色文字
+      // 这里我们使用稍微柔和一点的黑白色
+      return yiq >= 128 ? '#1f2937' : '#ffffff'
+    }
+
+    return {
+      backgroundColor: color, // 使用实色背景，或者可以使用 `${color}CC` 增加一点透明度
+      color: getContrastColor(color), // 自动计算对比色文字
+      borderColor: color,
+      fontWeight: '500',
+      textShadow: '0 1px 2px rgba(0,0,0,0.1)' // 增加一点文字阴影提高可读性
+    }
+  }
 
   useEffect(() => {
     fetchDepartments()
@@ -394,11 +405,6 @@ export default function ScheduleManagement() {
     }
   }
 
-  // 获取月份的天数
-  const getDaysInMonth = () => {
-    return new Date(selectedMonth.year, selectedMonth.month, 0).getDate()
-  }
-
   // 获取员工某天的排班
   const getSchedule = (employeeId, date) => {
     const dateStr = `${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}-${String(date).padStart(2, '0')}`
@@ -586,11 +592,18 @@ export default function ScheduleManagement() {
                 <th className="px-3 py-2 text-left font-medium text-gray-700 border-r">
                   员工
                 </th>
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                  <th key={day} className="px-1.5 py-2 text-center font-medium text-gray-700 border-r">
-                    {day}
-                  </th>
-                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                  const date = new Date(selectedMonth.year, selectedMonth.month - 1, day);
+                  const weekday = getWeekday(date);
+                  return (
+                    <th key={day} className="px-1.5 py-2 text-center font-medium text-gray-700 border-r bg-gray-50">
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="text-xs font-semibold text-gray-500">{weekday}</span>
+                        <span className="text-sm font-bold text-gray-800">{day}</span>
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>

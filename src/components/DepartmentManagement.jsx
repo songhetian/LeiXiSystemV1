@@ -14,7 +14,7 @@ function DepartmentManagement() {
   const [statusChangingDept, setStatusChangingDept] = useState(null)
   const [deptDetails, setDeptDetails] = useState(null)
   const [showDeleted, setShowDeleted] = useState(false)
-  const [viewMode, setViewMode] = useState('table') // 'table' or 'card'
+  const [viewMode, setViewMode] = useState('card') // 'table' or 'card' - 默认改为卡片模式
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
   const [formData, setFormData] = useState({

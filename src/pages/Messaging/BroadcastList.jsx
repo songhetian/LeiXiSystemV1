@@ -138,9 +138,7 @@ export default function BroadcastList() {
   const handleBroadcastClick = (broadcast) => {
     setSelectedBroadcast(broadcast);
     setShowModal(true);
-    if (!broadcast.is_read) {
-      markAsRead(broadcast.id);
-    }
+    // 不再自动标记为已读，因为打开就默认为已读
   };
 
   const clearFilters = () => {
@@ -236,8 +234,8 @@ export default function BroadcastList() {
             <button
               onClick={() => setQuickDateFilter('')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                quickFilter === '' 
-                  ? 'bg-blue-500 text-white shadow-md' 
+                quickFilter === ''
+                  ? 'bg-blue-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -246,8 +244,8 @@ export default function BroadcastList() {
             <button
               onClick={() => setQuickDateFilter('today')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                quickFilter === 'today' 
-                  ? 'bg-blue-500 text-white shadow-md' 
+                quickFilter === 'today'
+                  ? 'bg-blue-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -256,8 +254,8 @@ export default function BroadcastList() {
             <button
               onClick={() => setQuickDateFilter('yesterday')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                quickFilter === 'yesterday' 
-                  ? 'bg-blue-500 text-white shadow-md' 
+                quickFilter === 'yesterday'
+                  ? 'bg-blue-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -266,8 +264,8 @@ export default function BroadcastList() {
             <button
               onClick={() => setQuickDateFilter('last3days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                quickFilter === 'last3days' 
-                  ? 'bg-blue-500 text-white shadow-md' 
+                quickFilter === 'last3days'
+                  ? 'bg-blue-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -276,8 +274,8 @@ export default function BroadcastList() {
             <button
               onClick={() => setQuickDateFilter('last7days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                quickFilter === 'last7days' 
-                  ? 'bg-blue-500 text-white shadow-md' 
+                quickFilter === 'last7days'
+                  ? 'bg-blue-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -300,7 +298,7 @@ export default function BroadcastList() {
                 筛选选项
                 {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
               </button>
-              
+
               {/* 筛选器指示器 */}
               {(filters.type || filters.isRead) && (
                 <div className="flex items-center gap-2">
@@ -310,7 +308,7 @@ export default function BroadcastList() {
                 </div>
               )}
             </div>
-            
+
             {/* 清除筛选按钮 */}
             {(filters.type || filters.isRead || quickFilter) && (
               <button
@@ -362,7 +360,7 @@ export default function BroadcastList() {
                   </select>
                 </div>
               </div>
-              
+
               {/* 筛选结果统计 */}
               {(filters.type || filters.isRead || quickFilter) && (
                 <div className="mt-4 flex items-center justify-between">
@@ -392,8 +390,8 @@ export default function BroadcastList() {
                 </div>
                 <h3 className="mt-6 text-2xl font-bold text-gray-900">暂无广播消息</h3>
                 <p className="mt-2 text-gray-600">
-                  {filters.type || filters.isRead || quickFilter 
-                    ? "没有找到符合条件的广播消息" 
+                  {filters.type || filters.isRead || quickFilter
+                    ? "没有找到符合条件的广播消息"
                     : "目前没有任何广播消息"}
                 </p>
                 <div className="mt-8">
@@ -443,15 +441,15 @@ export default function BroadcastList() {
                           </span>
                         </div>
                       </div>
-                      
+
                       <h3 className={`mt-4 text-lg font-bold ${broadcast.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
                         {broadcast.title}
                       </h3>
-                      
+
                       <p className="mt-3 text-gray-600 text-sm line-clamp-3">
                         {broadcast.content}
                       </p>
-                      
+
                       <div className="mt-6 flex items-center justify-between">
                         <div className="flex items-center text-sm text-gray-500">
                           <ClockIcon className="h-4 w-4 mr-1.5" />
@@ -464,7 +462,7 @@ export default function BroadcastList() {
                             })}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center text-sm text-gray-500">
                           <EyeIcon className="h-4 w-4 mr-1.5" />
                           <span>
@@ -477,7 +475,7 @@ export default function BroadcastList() {
                 ))}
               </div>
             </div>
-            
+
             {/* 优化的分页控件 - 固定在底部 */}
             {pagination.total > 0 && (
               <div className="bg-white border-t border-gray-200 p-4">
@@ -486,7 +484,7 @@ export default function BroadcastList() {
                     显示第 <span className="font-semibold">{(pagination.page - 1) * pagination.pageSize + 1}</span> 到 <span className="font-semibold">{Math.min(pagination.page * pagination.pageSize, pagination.total)}</span> 条，
                     共 <span className="font-semibold text-blue-600">{pagination.total}</span> 条
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
@@ -498,7 +496,7 @@ export default function BroadcastList() {
                       </svg>
                       上一页
                     </button>
-                    
+
                     <div className="flex items-center bg-gray-100 rounded-lg px-2 py-1">
                       <input
                         type="number"
@@ -516,7 +514,7 @@ export default function BroadcastList() {
                       <span className="text-gray-500 text-sm mx-1">/</span>
                       <span className="text-gray-700 text-sm">{pagination.totalPages}</span>
                     </div>
-                    
+
                     <button
                       onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
                       disabled={pagination.page === pagination.totalPages}
@@ -528,7 +526,7 @@ export default function BroadcastList() {
                       </svg>
                     </button>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <span className="text-gray-700 text-sm">每页显示:</span>
                     <select
@@ -587,29 +585,17 @@ export default function BroadcastList() {
                   {selectedBroadcast.content}
                 </div>
               </div>
-              
+
               <div className="mt-8 flex items-center justify-between">
                 <div className="flex items-center">
                   <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                    selectedBroadcast.is_read 
-                      ? 'bg-green-100 text-green-800' 
+                    selectedBroadcast.is_read
+                      ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}>
                     {selectedBroadcast.is_read ? '已读' : '未读'}
                   </span>
                 </div>
-                
-                {!selectedBroadcast.is_read && (
-                  <button
-                    onClick={() => {
-                      markAsRead(selectedBroadcast.id);
-                      setShowModal(false);
-                    }}
-                    className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all font-medium shadow-md"
-                  >
-                    标记为已读
-                  </button>
-                )}
               </div>
             </div>
 

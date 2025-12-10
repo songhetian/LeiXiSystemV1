@@ -223,20 +223,20 @@ const PersonalInfo = () => {
         {/* 个人信息卡片 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           {/* 头部 - 柔和色调 */}
-          <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-12">
+          <div className="relative bg-gradient-to-r from-slate-100 to-gray-100 px-8 py-12 border-b border-gray-200">
             <div className="relative flex items-center gap-8">
-              <div className="w-28 h-28 rounded-2xl bg-white shadow-xl flex items-center justify-center text-5xl font-bold text-blue-600 ring-4 ring-white/30">
+              <div className="w-28 h-28 rounded-2xl bg-white shadow-md flex items-center justify-center text-4xl font-semibold text-slate-700 ring-4 ring-gray-200">
                 {user.real_name?.charAt(0) || '员'}
               </div>
-              <div className="text-white flex-1">
+              <div className="text-slate-800 flex-1">
                 <h2 className="text-3xl font-bold mb-3 tracking-tight">{user.real_name}</h2>
-                <div className="flex items-center gap-6 text-blue-50">
-                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center gap-6 text-slate-600">
+                  <div className="flex items-center gap-2 bg-white/70 text-slate-700 px-3 py-1.5 rounded-lg">
                     <span>👤</span>
                     <span className="font-medium">{user.username}</span>
                   </div>
                   {user.employee_no && (
-                    <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                    <div className="flex items-center gap-2 bg-white/70 text-slate-700 px-3 py-1.5 rounded-lg">
                       <span>🏷️</span>
                       <span className="font-medium">工号：{user.employee_no}</span>
                     </div>
@@ -250,13 +250,13 @@ const PersonalInfo = () => {
           <div className="p-10">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                <span className="w-1.5 h-6 bg-slate-400 rounded-full"></span>
                 基本信息
               </h3>
               {!editing ? (
                 <button
                   onClick={() => setEditing(true)}
-                  className="px-5 py-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium flex items-center gap-2"
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
                 >
                   <span>✏️</span>
                   编辑信息
@@ -275,7 +275,7 @@ const PersonalInfo = () => {
                   <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                    className="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2 shadow-sm"
                   >
                     <span>💾</span>
                     {loading ? '保存中...' : '保存'}

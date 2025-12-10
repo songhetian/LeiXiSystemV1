@@ -112,12 +112,23 @@ module.exports = async function (fastify, opts) {
         const dateObj = new Date(date);
         const month = dateObj.getMonth() + 1;
         const day = dateObj.getDate();
+
+        // 获取星期几
+        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const weekday = weekdays[dateObj.getDay()];
+
         columns.push({
-          header: `${month}/${day}`,
+          header: `${month}/${day}\n${weekday}`,
           key: `date_${index}`,
           width: 10
         });
       });
+
+      // 添加统计列
+      columns.push(
+        { header: '休息天数', key: 'rest_days', width: 15 },
+        { header: '班次统计', key: 'shift_stats', width: 30 }
+      );
 
       worksheet.columns = columns;
 
@@ -139,17 +150,38 @@ module.exports = async function (fastify, opts) {
           real_name: emp.name
         };
 
+        // 统计变量
+        let restDays = 0;
+        const shiftCounts = {};
+
         // 填充每一天的排班
         dates.forEach((date, dateIndex) => {
           const key = `${emp.id}_${date}`;
           const scheduleItem = scheduleMap.get(key);
 
           if (scheduleItem) {
-            row[`date_${dateIndex}`] = scheduleItem.is_rest_day ? '休' : scheduleItem.shift_name;
+            if (scheduleItem.is_rest_day) {
+              row[`date_${dateIndex}`] = '休';
+              restDays++;
+            } else {
+              row[`date_${dateIndex}`] = scheduleItem.shift_name;
+              // 统计各班次天数
+              shiftCounts[scheduleItem.shift_name] = (shiftCounts[scheduleItem.shift_name] || 0) + 1;
+            }
           } else {
             row[`date_${dateIndex}`] = '';
           }
         });
+
+        // 添加统计数据到行末尾
+        row['rest_days'] = `休息:${restDays}天`;
+
+        // 添加各班次天数统计
+        let shiftStats = '';
+        for (const [shiftName, count] of Object.entries(shiftCounts)) {
+          shiftStats += `${shiftName}:${count}天 `;
+        }
+        row['shift_stats'] = shiftStats.trim();
 
         worksheet.addRow(row);
 

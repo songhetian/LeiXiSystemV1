@@ -13,11 +13,7 @@ import {
 } from '@ant-design/icons';
 import { tokenManager, apiGet, apiPost } from '../../utils/apiClient';
 import "./BroadcastPage.css";
-
-const WeChatPage = () => {
-  // 模式切换状态 - 'broadcast' 广播模式, 'chat' 聊天模式
-  const [mode, setMode] = useState('broadcast');
-
+const BroadcastPage = () => {
   // 广播相关状态
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastContent, setBroadcastContent] = useState('');
@@ -25,11 +21,6 @@ const WeChatPage = () => {
   const [searchContact, setSearchContact] = useState('');
   const [searchType, setSearchType] = useState(''); // 搜索类型：部门/个人/全体
   const [searchDepartment, setSearchDepartment] = useState(''); // 部门搜索
-
-  // 聊天相关状态
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [messageInput, setMessageInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
 
   // 控制模态框显示
   const [showReadByModal, setShowReadByModal] = useState(false);
@@ -65,7 +56,7 @@ const WeChatPage = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, chatMessages]);
+  }, [messages]);
 
   // 保存已选联系人到localStorage
   useEffect(() => {
@@ -124,7 +115,6 @@ const WeChatPage = () => {
 
     fetchData();
   }, []);
-
   // 构建联系人数据
   useEffect(() => {
     const contactList = [];
@@ -270,26 +260,7 @@ const WeChatPage = () => {
     }
   };
 
-  // 处理发送聊天消息
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedContact) return;
-
-    const newMessage = {
-      id: chatMessages.length + 1,
-      content: messageInput,
-      timestamp: new Date().toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      sender: 'me', // 当前用户
-      type: 'sent'
-    };
-
-    setChatMessages([...chatMessages, newMessage]);
-    setMessageInput('');
-  };
-
-  // 切换联系人选择（广播模式）
+  // 切换联系人选择
   const toggleRecipient = (contact) => {
     setSelectedRecipients(prev => {
       const isSelected = prev.some(r => r.id === contact.id);
@@ -299,21 +270,6 @@ const WeChatPage = () => {
         return [...prev, contact];
       }
     });
-  };
-
-  // 选择联系人（聊天模式）
-  const selectContact = (contact) => {
-    setSelectedContact(contact);
-    // 这里可以加载聊天记录
-    setChatMessages([
-      {
-        id: 1,
-        content: `你好，我是${contact.name}`,
-        timestamp: '10:00',
-        sender: contact.name,
-        type: 'received'
-      }
-    ]);
   };
 
   // 添加到已保存联系人
@@ -356,152 +312,98 @@ const WeChatPage = () => {
 
   return (
     <div className="wechat-page" style={{ height: '95vh' }}>
-      {/* 模式切换按钮 */}
-      <div style={{
-        padding: '10px 16px',
-        backgroundColor: '#f0f0f0',
-        borderBottom: '1px solid #d9d9d9',
-        display: 'flex',
-        gap: '10px'
-      }}>
-        <button
-          onClick={() => setMode('broadcast')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: mode === 'broadcast' ? '#07c160' : '#e0e0e0',
-            color: mode === 'broadcast' ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: mode === 'broadcast' ? 'bold' : 'normal'
-          }}
-        >
-          广播模式
-        </button>
-        <button
-          onClick={() => setMode('chat')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: mode === 'chat' ? '#07c160' : '#e0e0e0',
-            color: mode === 'chat' ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: mode === 'chat' ? 'bold' : 'normal'
-          }}
-        >
-          聊天模式
-        </button>
-      </div>
-
       {/* Left Sidebar - Contact List and Search */}
       <div className="wechat-sidebar" style={{ width: '300px' }}>
         {/* Search Box */}
         <div className="sidebar-search">
           {/* Type Selection Buttons - 放在独立的一行 */}
-          {mode === 'broadcast' ? (
-            <>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <button
-                  onClick={() => setSearchType('department')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 4px', // 减小高度
-                    backgroundColor: searchType === 'department' ? '#07c160' : '#f0f0f0',
-                    color: searchType === 'department' ? 'white' : '#333',
-                    border: 'none',
-                    borderRadius: '6px', // 圆角
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                  onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                >
-                  部门
-                </button>
-                <button
-                  onClick={() => setSearchType('individual')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 4px', // 减小高度
-                    backgroundColor: searchType === 'individual' ? '#07c160' : '#f0f0f0',
-                    color: searchType === 'individual' ? 'white' : '#333',
-                    border: 'none',
-                    borderRadius: '6px', // 圆角
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                  onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                >
-                  个人
-                </button>
-                <button
-                  onClick={() => setSearchType('all')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 4px', // 减小高度
-                    backgroundColor: searchType === 'all' ? '#07c160' : '#f0f0f0',
-                    color: searchType === 'all' ? 'white' : '#333',
-                    border: 'none',
-                    borderRadius: '6px', // 圆角
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                  onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                >
-                  全体
-                </button>
-              </div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <button
+              onClick={() => setSearchType('department')}
+              style={{
+                flex: 1,
+                padding: '8px 4px', // 减小高度
+                backgroundColor: searchType === 'department' ? '#07c160' : '#f0f0f0',
+                color: searchType === 'department' ? 'white' : '#333',
+                border: 'none',
+                borderRadius: '6px', // 圆角
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
+              onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
+            >
+              部门
+            </button>
+            <button
+              onClick={() => setSearchType('individual')}
+              style={{
+                flex: 1,
+                padding: '8px 4px', // 减小高度
+                backgroundColor: searchType === 'individual' ? '#07c160' : '#f0f0f0',
+                color: searchType === 'individual' ? 'white' : '#333',
+                border: 'none',
+                borderRadius: '6px', // 圆角
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
+              onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
+            >
+              个人
+            </button>
+            <button
+              onClick={() => setSearchType('all')}
+              style={{
+                flex: 1,
+                padding: '8px 4px', // 减小高度
+                backgroundColor: searchType === 'all' ? '#07c160' : '#f0f0f0',
+                color: searchType === 'all' ? 'white' : '#333',
+                border: 'none',
+                borderRadius: '6px', // 圆角
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
+              onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
+            >
+              全体
+            </button>
+          </div>
 
-              {/* 搜索框 - 独立放在第二行 */}
-              <div style={{ marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  placeholder={`搜索${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}...`}
-                  value={searchContact}
-                  onChange={(e) => setSearchContact(e.target.value)}
-                  className="search-input"
-                  style={{ width: '100%', marginBottom: '8px' }}
-                />
+          {/* 搜索框 - 独立放在第二行 */}
+          <div style={{ marginBottom: '12px' }}>
+            <input
+              type="text"
+              placeholder={`搜索${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}...`}
+              value={searchContact}
+              onChange={(e) => setSearchContact(e.target.value)}
+              className="search-input"
+              style={{ width: '100%', marginBottom: '8px' }}
+            />
 
-                {/* 部门搜索框 - 仅在搜索个人时显示 */}
-                {searchType === 'individual' && (
-                  <input
-                    type="text"
-                    placeholder="按部门筛选..."
-                    value={searchDepartment}
-                    onChange={(e) => setSearchDepartment(e.target.value)}
-                    className="search-input"
-                    style={{ width: '100%' }}
-                  />
-                )}
-              </div>
-            </>
-          ) : (
-            // 聊天模式的搜索框
-            <div style={{ marginBottom: '12px' }}>
+            {/* 部门搜索框 - 仅在搜索个人时显示 */}
+            {searchType === 'individual' && (
               <input
                 type="text"
-                placeholder="搜索联系人..."
-                value={searchContact}
-                onChange={(e) => setSearchContact(e.target.value)}
+                placeholder="按部门筛选..."
+                value={searchDepartment}
+                onChange={(e) => setSearchDepartment(e.target.value)}
                 className="search-input"
                 style={{ width: '100%' }}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Saved Recipients - 仅在广播模式显示 */}
-        {mode === 'broadcast' && savedRecipients.length > 0 && (
+        {/* Saved Recipients */}
+        {savedRecipients.length > 0 && (
           <div style={{ padding: '0 12px 12px 12px' }}>
             <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#666' }}>常用联系人</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -543,22 +445,16 @@ const WeChatPage = () => {
 
         {/* Contact List */}
         <div className="contact-list">
-          {(mode === 'broadcast' ? searchType : searchContact) ? (
-            (mode === 'broadcast' ? filteredContacts : contacts.filter(c =>
-              c.name.toLowerCase().includes(searchContact.toLowerCase())
-            )).length > 0 ? (
-              (mode === 'broadcast' ? filteredContacts : contacts.filter(c =>
-                c.name.toLowerCase().includes(searchContact.toLowerCase())
-              )).map((contact) => (
+          {searchType ? (
+            filteredContacts.length > 0 ? (
+              filteredContacts.map((contact) => (
                 <div
                   key={contact.id}
                   className={`contact-item ${
-                    mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? 'active' : ''
-                      : selectedContact?.id === contact.id ? 'active' : ''
+                    selectedRecipients.some(r => r.id === contact.id) ? 'active' : ''
                   }`}
-                  onClick={() => mode === 'broadcast' ? toggleRecipient(contact) : selectContact(contact)}
-                  onDoubleClick={() => mode === 'broadcast' && addToSavedRecipients(contact)}
+                  onClick={() => toggleRecipient(contact)}
+                  onDoubleClick={() => addToSavedRecipients(contact)}
                 >
                   <div className="contact-avatar">
                     <div className="avatar-text">{contact.avatar}</div>
@@ -568,46 +464,34 @@ const WeChatPage = () => {
                       <span className="contact-name">{contact.name}</span>
                     </div>
                     <div className="contact-message">
-                      {mode === 'broadcast' ? (
-                        contact.type === 'department'
-                          ? `${contact.members}名成员`
-                          : contact.type === 'individual'
-                            ? contact.department
-                            : `${contact.members}名成员`
-                      ) : (
-                        "点击开始聊天"
-                      )}
+                      {contact.type === 'department'
+                        ? `${contact.members}名成员`
+                        : contact.type === 'individual'
+                          ? contact.department
+                          : `${contact.members}名成员`}
                     </div>
                   </div>
                   <div style={{
                     padding: '4px 8px',
-                    backgroundColor: mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? '#07c160' : '#f0f0f0'
-                      : selectedContact?.id === contact.id ? '#07c160' : '#f0f0f0',
-                    color: mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? 'white' : '#333'
-                      : selectedContact?.id === contact.id ? 'white' : '#333',
+                    backgroundColor: selectedRecipients.some(r => r.id === contact.id) ? '#07c160' : '#f0f0f0',
+                    color: selectedRecipients.some(r => r.id === contact.id) ? 'white' : '#333',
                     borderRadius: '4px',
                     fontSize: '12px',
                     cursor: 'pointer',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                   }}>
-                    {mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? '已选' : '选择'
-                      : selectedContact?.id === contact.id ? '聊天中' : '聊天'}
+                    {selectedRecipients.some(r => r.id === contact.id) ? '已选' : '选择'}
                   </div>
                 </div>
               ))
             ) : (
               <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                {mode === 'broadcast'
-                  ? `无匹配的${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}信息`
-                  : '无匹配的联系人'}
+                无匹配的{searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}信息
               </div>
             )
           ) : (
             <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-              {mode === 'broadcast' ? '请选择搜索类型' : '请输入搜索关键词'}
+              请选择搜索类型
             </div>
           )}
         </div>
@@ -617,183 +501,105 @@ const WeChatPage = () => {
       <div className="wechat-main">
         <div className="wechat-header">
           <div className="header-title">
-            <h2>{mode === 'broadcast' ? '广播消息' : selectedContact ? selectedContact.name : '聊天'}</h2>
+            <h2>广播消息</h2>
           </div>
         </div>
 
-        {/* Messages Area */}
+        {/* Messages Area - Broadcast History */}
         <div className="wechat-messages">
-          {mode === 'broadcast' ? (
-            // 广播模式消息显示
-            messages.map((msg) => (
-              <div key={msg.id} className={`message-wrapper ${msg.type}`} style={{ justifyContent: 'flex-end' }}>
-                <div
-                  className={`message-bubble ${msg.type}`}
-                  style={{ backgroundColor: '#95ec69', color: '#000', cursor: 'pointer' }}
-                  onClick={() => showReadByList(msg.readBy, msg.title)}
-                >
-                  <div style={{ fontWeight: '500', marginBottom: '4px' }}>{msg.title}</div>
-                  <div className="message-content" style={{ marginBottom: '8px' }}>{msg.content}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    发送给: {msg.recipients} |
-                    已读: {msg.readCount}/{msg.totalCount} |
-                    时间: {msg.timestamp}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#666', marginTop: '4px', textDecoration: 'underline' }}>
-                    点击查看详情
-                  </div>
+          {messages.map((msg) => (
+            <div key={msg.id} className={`message-wrapper ${msg.type}`} style={{ justifyContent: 'flex-end' }}>
+              <div
+                className={`message-bubble ${msg.type}`}
+                style={{ backgroundColor: '#95ec69', color: '#000', cursor: 'pointer' }}
+                onClick={() => showReadByList(msg.readBy, msg.title)}
+              >
+                <div style={{ fontWeight: '500', marginBottom: '4px' }}>{msg.title}</div>
+                <div className="message-content" style={{ marginBottom: '8px' }}>{msg.content}</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  发送给: {msg.recipients} |
+                  已读: {msg.readCount}/{msg.totalCount} |
+                  时间: {msg.timestamp}
                 </div>
-                <div className="message-avatar sent">{msg.avatar}</div>
-              </div>
-            ))
-          ) : (
-            // 聊天模式消息显示
-            selectedContact ? (
-              chatMessages.map((msg) => (
-                <div key={msg.id} className={`message-wrapper ${msg.type}`}>
-                  {msg.type === 'received' && (
-                    <>
-                      <div className="message-avatar received">{selectedContact.avatar}</div>
-                      <div className="message-bubble received">
-                        <div className="message-content">{msg.content}</div>
-                        <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginTop: '4px' }}>
-                          {msg.timestamp}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  {msg.type === 'sent' && (
-                    <>
-                      <div className="message-bubble sent">
-                        <div className="message-content">{msg.content}</div>
-                        <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginTop: '4px' }}>
-                          {msg.timestamp}
-                        </div>
-                      </div>
-                      <div className="message-avatar sent">我</div>
-                    </>
-                  )}
+                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px', textDecoration: 'underline' }}>
+                  点击查看详情
                 </div>
-              ))
-            ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: '#999'
-              }}>
-                请选择一个联系人开始聊天
               </div>
-            )
-          )}
+              <div className="message-avatar sent">{msg.avatar}</div>
+            </div>
+          ))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Bottom Input Bar */}
+        {/* Bottom Input Bar - Like WeChat (去除+按钮) */}
         <div className="wechat-input-bar">
-          {mode === 'broadcast' ? (
-            // 广播模式输入栏
-            <>
-              <div style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
-                  {selectedRecipients.map(recipient => (
-                    <div
-                      key={recipient.id}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        backgroundColor: '#e0e0e0',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px'
-                      }}
-                    >
-                      {recipient.name}
-                      <span
-                        onClick={() => toggleRecipient(recipient)}
-                        style={{
-                          marginLeft: '4px',
-                          cursor: 'pointer',
-                          color: '#ff4d4f'
-                        }}
-                      >
-                        ×
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {selectedRecipients.length > 0 && (
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    发送给: {selectedRecipients.map(r => r.name).join(', ')}
-                  </div>
-                )}
-              </div>
-
-              <div className="input-controls">
-                {/* 去除了+按钮 */}
-                <div className="input-wrapper">
-                  <textarea
-                    placeholder="请输入广播内容..."
-                    value={broadcastContent}
-                    onChange={(e) => setBroadcastContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      // Enter 发送（排除Shift+Enter换行的情况）
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendBroadcast();
-                      }
-                    }}
-                    className="message-input"
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+              {selectedRecipients.map(recipient => (
+                <div
+                  key={recipient.id}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    backgroundColor: '#e0e0e0',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px'
+                  }}
+                >
+                  {recipient.name}
+                  <span
+                    onClick={() => toggleRecipient(recipient)}
                     style={{
-                      minHeight: '30px', // 进一步减小最小高度
-                      resize: 'none',
-                      fontFamily: 'inherit',
-                      maxHeight: '80px', // 减小最大高度
-                      overflowY: 'auto' // 超出时显示滚动条
+                      marginLeft: '4px',
+                      cursor: 'pointer',
+                      color: '#ff4d4f'
                     }}
-                  />
+                  >
+                    ×
+                  </span>
                 </div>
-                <button
-                  className="send-btn"
-                  onClick={handleSendBroadcast}
-                  disabled={!broadcastContent.trim() || selectedRecipients.length === 0}
-                >
-                  发送
-                </button>
+              ))}
+            </div>
+            {selectedRecipients.length > 0 && (
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                发送给: {selectedRecipients.map(r => r.name).join(', ')}
               </div>
-            </>
-          ) : (
-            // 聊天模式输入栏
-            selectedContact ? (
-              <div className="input-controls">
-                <div className="input-btn">
-                  <SmileOutlined />
-                </div>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    placeholder="请输入消息..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSendMessage();
-                      }
-                    }}
-                    className="message-input"
-                  />
-                </div>
-                <button
-                  className="send-btn"
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim()}
-                >
-                  发送
-                </button>
-              </div>
-            ) : null
-          )}
+            )}
+          </div>
+
+          <div className="input-controls">
+            {/* 去除了+按钮 */}
+            <div className="input-wrapper">
+              <textarea
+                placeholder="请输入广播内容..."
+                value={broadcastContent}
+                onChange={(e) => setBroadcastContent(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter 发送（排除Shift+Enter换行的情况）
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendBroadcast();
+                  }
+                }}
+                className="message-input"
+                style={{
+                  minHeight: '30px', // 进一步减小最小高度
+                  resize: 'none',
+                  fontFamily: 'inherit',
+                  maxHeight: '80px', // 减小最大高度
+                  overflowY: 'auto' // 超出时显示滚动条
+                }}
+              />
+            </div>
+            <button
+              className="send-btn"
+              onClick={handleSendBroadcast}
+              disabled={!broadcastContent.trim() || selectedRecipients.length === 0}
+            >
+              发送
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1020,4 +826,4 @@ const WeChatPage = () => {
   );
 };
 
-export default WeChatPage;
+export default BroadcastPage;

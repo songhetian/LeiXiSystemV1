@@ -212,7 +212,7 @@ const UserRoleManagement = () => {
     if (sortField) {
       result.sort((a, b) => {
         let aValue, bValue;
-        
+
         switch (sortField) {
           case 'real_name':
             aValue = a.real_name || '';
@@ -229,7 +229,7 @@ const UserRoleManagement = () => {
           default:
             return 0;
         }
-        
+
         if (sortOrder === 'asc') {
           return aValue.localeCompare(bValue);
         } else {
@@ -338,7 +338,7 @@ const UserRoleManagement = () => {
           // 显示前2个部门，其余以数字显示
           const displayDeps = record.departments.slice(0, 2);
           const remainingCount = record.departments.length - 2;
-          
+
           return (
             <div className="flex flex-wrap gap-1">
               {displayDeps.map(dept => (
@@ -631,7 +631,7 @@ const UserRoleManagement = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3 mt-6">
             <Button onClick={() => setModalVisible(false)}>取消</Button>
             <Button type="primary" onClick={handleSaveRoles}>保存</Button>

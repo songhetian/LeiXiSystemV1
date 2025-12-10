@@ -311,16 +311,16 @@ export default function AttendanceHome({ onNavigate }) {
     const [hours, minutes] = todaySchedule.start_time.split(':');
     const startDateTime = new Date();
     startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    
+
     // 获取考勤设置中的上班打卡提前分钟数
     const earlyClockInMinutes = attendanceRules?.clock_in_advance || 60;
     const earlyClockInTime = new Date(startDateTime.getTime() - earlyClockInMinutes * 60000);
-    
+
     if (now < earlyClockInTime) {
       const timeDiff = Math.ceil((earlyClockInTime - now) / 60000);
-      return { 
-        allowed: false, 
-        message: `还未到上班打卡时间，需在上班前${earlyClockInMinutes}分钟内(${startDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockInMinutes}分钟)才能打卡` 
+      return {
+        allowed: false,
+        message: `还未到上班打卡时间，需在上班前${earlyClockInMinutes}分钟内(${startDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockInMinutes}分钟)才能打卡`
       };
     }
 
@@ -343,16 +343,16 @@ export default function AttendanceHome({ onNavigate }) {
     const [hours, minutes] = todaySchedule.end_time.split(':');
     const endDateTime = new Date();
     endDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    
+
     // 获取考勤设置中的下班打卡提前分钟数
     const earlyClockOutMinutes = attendanceRules?.clock_out_delay || 120;
     const earlyClockOutTime = new Date(endDateTime.getTime() - earlyClockOutMinutes * 60000);
-    
+
     if (now < earlyClockOutTime) {
       const timeDiff = Math.ceil((earlyClockOutTime - now) / 60000);
-      return { 
-        allowed: false, 
-        message: `还未到下班打卡时间，需在下班前${earlyClockOutMinutes}分钟内(${endDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockOutMinutes}分钟)才能打卡` 
+      return {
+        allowed: false,
+        message: `还未到下班打卡时间，需在下班前${earlyClockOutMinutes}分钟内(${endDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockOutMinutes}分钟)才能打卡`
       };
     }
 
@@ -486,8 +486,8 @@ export default function AttendanceHome({ onNavigate }) {
                 onClick={handleClockIn}
                 disabled={loading || !clockInCheck.allowed}
                 className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
-                  loading 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  loading
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : clockInCheck.allowed
                       ? 'bg-green-500 hover:bg-green-600 text-white'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -538,8 +538,8 @@ export default function AttendanceHome({ onNavigate }) {
                 onClick={handleClockOut}
                 disabled={loading || !clockOutCheck.allowed}
                 className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
-                  loading 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  loading
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : clockOutCheck.allowed
                       ? 'bg-blue-500 hover:bg-blue-600 text-white'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'

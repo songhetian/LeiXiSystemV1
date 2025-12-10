@@ -39,12 +39,23 @@ module.exports = async function (fastify, opts) {
 
       // 添加日期列
       for (let day = 1; day <= daysInMonth; day++) {
+        // 创建日期对象以获取星期几
+        const date = new Date(year, monthNum - 1, day);
+        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const weekday = weekdays[date.getDay()];
+
         columns.push({
-          header: `${monthNum}/${day}`,
+          header: `${monthNum}/${day}\n${weekday}`,
           key: `day_${day}`,
           width: 10
         })
       }
+
+      // 添加统计列
+      columns.push(
+        { header: '休息天数', key: 'rest_days', width: 15 },
+        { header: '班次统计', key: 'shift_stats', width: 30 }
+      )
 
       worksheet.columns = columns
 
@@ -63,7 +74,9 @@ module.exports = async function (fastify, opts) {
         const rowNum = startRow + index
         const row = {
           employee_no: emp.employee_no,
-          real_name: emp.real_name
+          real_name: emp.real_name,
+          rest_days: '',  // 休息天数占位符
+          shift_stats: '' // 班次统计占位符
         }
         worksheet.addRow(row)
 
@@ -108,6 +121,25 @@ module.exports = async function (fastify, opts) {
           employee_no: shift.name,
           real_name: `代码: ${shift.id}`
         })
+      })
+
+      // 添加统计信息
+      worksheet.addRow({})
+      const statsHeaderRow = worksheet.addRow({
+        employee_no: '统计信息',
+        real_name: ''
+      })
+      statsHeaderRow.font = { bold: true, color: { argb: 'FF0000FF' } }
+
+      // 添加统计说明
+      worksheet.addRow({
+        employee_no: '休息天数',
+        real_name: '每人每月休息天数统计'
+      })
+
+      worksheet.addRow({
+        employee_no: '班次天数',
+        real_name: '每人每月各班次天数统计'
       })
 
       // 设置响应头
@@ -282,8 +314,13 @@ module.exports = async function (fastify, opts) {
       ]
 
       for (let day = 1; day <= daysInMonth; day++) {
+        // 创建日期对象以获取星期几
+        const date = new Date(year, monthNum - 1, day);
+        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const weekday = weekdays[date.getDay()];
+
         columns.push({
-          header: `${monthNum}/${day}`,
+          header: `${monthNum}/${day}\n${weekday}`,
           key: `day_${day}`,
           width: 10
         })
@@ -308,19 +345,59 @@ module.exports = async function (fastify, opts) {
           real_name: emp.real_name
         }
 
+        // 统计变量
+        let restDays = 0;
+        const shiftCounts = {};
+
         for (let day = 1; day <= daysInMonth; day++) {
           const dateStr = `${year}-${monthNum}-${String(day).padStart(2, '0')}`
           const key = `${emp.id}_${dateStr}`
           const schedule = scheduleMap.get(key)
 
           if (schedule) {
-            row[`day_${day}`] = schedule.is_rest_day ? '休' : schedule.shift_name
+            if (schedule.is_rest_day) {
+              row[`day_${day}`] = '休'
+              restDays++;
+            } else {
+              row[`day_${day}`] = schedule.shift_name
+              // 统计各班次天数
+              shiftCounts[schedule.shift_name] = (shiftCounts[schedule.shift_name] || 0) + 1;
+            }
           } else {
             row[`day_${day}`] = ''
           }
         }
 
+        // 添加统计数据到行末尾
+        row['rest_days'] = `休息:${restDays}天`;
+
+        // 添加各班次天数统计
+        let shiftStats = '';
+        for (const [shiftName, count] of Object.entries(shiftCounts)) {
+          shiftStats += `${shiftName}:${count}天 `;
+        }
+        row['shift_stats'] = shiftStats.trim();
+
         worksheet.addRow(row)
+      })
+
+      // 添加统计信息
+      worksheet.addRow({})
+      const statsHeaderRow = worksheet.addRow({
+        employee_no: '统计信息',
+        real_name: ''
+      })
+      statsHeaderRow.font = { bold: true, color: { argb: 'FF0000FF' } }
+
+      // 添加统计说明
+      worksheet.addRow({
+        employee_no: '休息天数',
+        real_name: '每人每月休息天数统计'
+      })
+
+      worksheet.addRow({
+        employee_no: '班次天数',
+        real_name: '每人每月各班次天数统计'
       })
 
       // 设置响应头

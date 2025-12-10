@@ -26,6 +26,9 @@ function EmployeeChanges() {
     dateTo: ''
   })
 
+  // 快捷时间选项
+  const [quickDate, setQuickDate] = useState('')
+
   useEffect(() => {
     fetchChanges()
     fetchDepartments()
@@ -86,17 +89,7 @@ function EmployeeChanges() {
           'Authorization': `Bearer ${token}`
         }
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('获取职位列表失败 - HTTP错误:', response.status, errorData)
-        setPositions([])
-        return
-      }
-
-      const result = await response.json()
-
-      const data = result.success ? result.data : []
+      const data = await response.json()
       setPositions(data.filter(p => p.status === 'active'))
     } catch (error) {
       console.error('获取职位列表失败 - 异常:', error)
@@ -123,6 +116,104 @@ function EmployeeChanges() {
       department: departmentId,
       position: '' // 清空职位
     })
+  }
+
+  // 添加统一的时间格式化函数
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return ''
+    // 确保日期格式为 YYYY-MM-DD
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return ''
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    return `${year}-${month}-${day}`
+  }
+
+  // 添加统一的日期解析函数
+  const parseDate = (dateString) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    return isNaN(date.getTime()) ? null : date
+  }
+
+  // 处理快捷日期选择
+  const handleQuickDateChange = (value) => {
+    setQuickDate(value)
+
+    const today = new Date()
+    let dateFrom = ''
+    let dateTo = ''
+
+    switch (value) {
+      case 'today':
+        dateFrom = formatDateForInput(today)
+        dateTo = dateFrom
+        break
+      case 'yesterday':
+        const yesterday = new Date(today)
+        yesterday.setDate(yesterday.getDate() - 1)
+        dateFrom = formatDateForInput(yesterday)
+        dateTo = dateFrom
+        break
+      case 'last3days':
+        const threeDaysAgo = new Date(today)
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 2)
+        dateFrom = formatDateForInput(threeDaysAgo)
+        dateTo = formatDateForInput(today)
+        break
+      case 'last7days':
+        const sevenDaysAgo = new Date(today)
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+        dateFrom = formatDateForInput(sevenDaysAgo)
+        dateTo = formatDateForInput(today)
+        break
+      case 'last30days':
+        const thirtyDaysAgo = new Date(today)
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
+        dateFrom = formatDateForInput(thirtyDaysAgo)
+        dateTo = formatDateForInput(today)
+        break
+      case 'thisMonth':
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+        dateFrom = formatDateForInput(firstDayOfMonth)
+        dateTo = formatDateForInput(today)
+        break
+      case 'lastMonth':
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+        dateFrom = formatDateForInput(firstDayLastMonth)
+        dateTo = formatDateForInput(lastDayLastMonth)
+        break
+      default:
+        // 对于自定义时间或其他情况，不清除已有的日期范围
+        return
+    }
+
+    setSearchFilters({
+      ...searchFilters,
+      dateFrom,
+      dateTo
+    })
+  }
+
+  // 处理自定义日期范围变化
+  const handleCustomDateChange = (field, value) => {
+    // 验证日期格式
+    if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      console.warn('Invalid date format:', value)
+      return
+    }
+
+    setSearchFilters({
+      ...searchFilters,
+      [field]: value
+    })
+
+    // 清除快捷日期选择状态
+    setQuickDate('')
   }
 
   // 搜索过滤
@@ -209,6 +300,7 @@ function EmployeeChanges() {
       dateFrom: '',
       dateTo: ''
     })
+    setQuickDate('')
   }
 
   const getChangeTypeText = (type) => {
@@ -244,7 +336,7 @@ function EmployeeChanges() {
       {/* 搜索筛选区 */}
       <div className="mb-6 bg-white rounded-xl shadow-md p-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">筛选条件</h2>
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           <div>
             <input
               type="text"
@@ -293,41 +385,120 @@ function EmployeeChanges() {
               <option value="terminate">离职</option>
             </select>
           </div>
-          <div>
-            <input
-              type="date"
-              value={searchFilters.dateFrom}
-              onChange={(e) => handleSearchChange('dateFrom', e.target.value)}
-              placeholder="开始日期"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm cursor-pointer"
-              onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-            />
-          </div>
-          <div>
-            <input
-              type="date"
-              value={searchFilters.dateTo}
-              onChange={(e) => handleSearchChange('dateTo', e.target.value)}
-              placeholder="结束日期"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm cursor-pointer"
-              onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-            />
-          </div>
-        </div>
-        {(searchFilters.keyword || searchFilters.department || searchFilters.position || searchFilters.dateFrom || searchFilters.dateTo) && (
-          <div className="mt-3 flex justify-end">
+          <div className="flex items-end">
             <button
               onClick={clearFilters}
-              className="px-4 py-1.5 text-sm text-gray-600 hover:text-gray-800 underline"
+              className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
               清除筛选
             </button>
+          </div>
+        </div>
+
+        {/* 快捷时间和自定义时间选择器在同一行 */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleQuickDateChange('today')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'today'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              今天
+            </button>
+            <button
+              onClick={() => handleQuickDateChange('yesterday')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'yesterday'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              昨天
+            </button>
+            <button
+              onClick={() => handleQuickDateChange('last3days')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'last3days'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              近三日
+            </button>
+            <button
+              onClick={() => handleQuickDateChange('last7days')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'last7days'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              近七日
+            </button>
+            <button
+              onClick={() => handleQuickDateChange('last30days')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'last30days'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              近30日
+            </button>
+            <button
+              onClick={() => handleQuickDateChange('thisMonth')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'thisMonth'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              本月
+            </button>
+            <button
+              onClick={() => handleQuickDateChange('lastMonth')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                quickDate === 'lastMonth'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              上月
+            </button>
+          </div>
+
+          {/* 自定义时间范围选择器 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-600 whitespace-nowrap">自定义:</span>
+            <input
+              type="date"
+              value={searchFilters.dateFrom}
+              onChange={(e) => handleCustomDateChange('dateFrom', e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            />
+            <span className="text-sm text-gray-600">至</span>
+            <input
+              type="date"
+              value={searchFilters.dateTo}
+              onChange={(e) => handleCustomDateChange('dateTo', e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            />
+          </div>
+        </div>
+
+        {/* 时间范围显示 */}
+        {(searchFilters.dateFrom || searchFilters.dateTo) && (
+          <div className="mt-3 text-sm text-gray-600">
+            时间范围: {searchFilters.dateFrom || '开始'} 至 {searchFilters.dateTo || '现在'}
           </div>
         )}
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-3 gap-8 mb-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 w-full">
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between">
             <div>
@@ -337,7 +508,7 @@ function EmployeeChanges() {
                   new Date(c.change_date).getMonth() === new Date().getMonth()).length}
               </div>
             </div>
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
+            <div className="text-2xl text-green-600">
               👤
             </div>
           </div>
@@ -351,7 +522,7 @@ function EmployeeChanges() {
                   new Date(c.change_date).getMonth() === new Date().getMonth()).length}
               </div>
             </div>
-            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
+            <div className="text-2xl text-red-600">
               👋
             </div>
           </div>
@@ -365,7 +536,7 @@ function EmployeeChanges() {
                   new Date(c.change_date).getMonth() === new Date().getMonth()).length}
               </div>
             </div>
-            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
+            <div className="text-2xl text-blue-600">
               🔄
             </div>
           </div>
@@ -393,10 +564,8 @@ function EmployeeChanges() {
               {getCurrentPageData().map((change, index) => (
                 <tr key={change.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-all duration-200`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {formatDate(change.change_date)}
-                      </div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {formatDate(change.change_date)}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -481,93 +650,85 @@ function EmployeeChanges() {
         </div>
       </div>
 
-      {/* 分页组件 */}
+      {/* 分页组件 - 调整布局 */}
       {filteredChanges.length > 0 && (
-        <div className="mt-4 flex items-center justify-between px-4">
-          {/* 左侧：每页显示数量 */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">每页显示</span>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span className="text-sm text-gray-600">条</span>
-            <span className="text-sm text-gray-600 ml-4">
-              共 {filteredChanges.length} 条记录
-            </span>
-          </div>
-
-          {/* 右侧：分页按钮 */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              首页
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              上一页
-            </button>
-
-            {/* 页码按钮 */}
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                let pageNum
-                if (totalPages <= 7) {
-                  pageNum = i + 1
-                } else if (currentPage <= 4) {
-                  pageNum = i + 1
-                } else if (currentPage >= totalPages - 3) {
-                  pageNum = totalPages - 6 + i
-                } else {
-                  pageNum = currentPage - 3 + i
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-1 border rounded-lg ${
-                      currentPage === pageNum
-                        ? 'bg-primary-500 text-white border-primary-500'
-                        : 'border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                )
-              })}
+        <div className="mt-4 bg-white rounded-xl shadow-md px-4 py-3">
+          <div className="flex flex-row items-center justify-between gap-2 flex-wrap">
+            <div className="flex flex-row items-center gap-3">
+              <div className="text-sm text-gray-600">共 {filteredChanges.length} 条记录</div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>每页</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>条</span>
+              </div>
             </div>
-
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              下一页
-            </button>
-            <button
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              末页
-            </button>
-
-            <span className="text-sm text-gray-600 ml-2">
-              第 {currentPage} / {totalPages} 页
-            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                首页
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                上一页
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  let pageNum
+                  if (totalPages <= 7) {
+                    pageNum = i + 1
+                  } else if (currentPage <= 4) {
+                    pageNum = i + 1
+                  } else if (currentPage >= totalPages - 3) {
+                    pageNum = totalPages - 6 + i
+                  } else {
+                    pageNum = currentPage - 3 + i
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-2 py-1 border rounded-lg text-sm ${
+                        currentPage === pageNum
+                          ? 'bg-primary-500 text-white border-primary-500'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+              </div>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                下一页
+              </button>
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                末页
+              </button>
+              <span className="text-sm text-gray-600 ml-2">{currentPage} / {totalPages}</span>
+            </div>
           </div>
         </div>
       )}

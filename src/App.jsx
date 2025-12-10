@@ -73,7 +73,6 @@ const DepartmentStats = lazy(() => import('./pages/Attendance').then(module => (
 
 const ShiftManagement = lazy(() => import('./pages/Attendance').then(module => ({ default: module.ShiftManagement })));
 const ScheduleManagement = lazy(() => import('./pages/Attendance').then(module => ({ default: module.ScheduleManagement })));
-const Notifications = lazy(() => import('./pages/Attendance').then(module => ({ default: module.Notifications })));
 const SmartSchedule = lazy(() => import('./pages/Attendance').then(module => ({ default: module.SmartSchedule })));
 const ApprovalManagement = lazy(() => import('./pages/Attendance').then(module => ({ default: module.ApprovalManagement })));
 const AttendanceSettings = lazy(() => import('./pages/Attendance').then(module => ({ default: module.AttendanceSettings })));
@@ -91,8 +90,6 @@ const AttendanceRecords = lazy(() => import('./pages/Attendance').then(module =>
 const LeaveApply = lazy(() => import('./pages/Attendance').then(module => ({ default: module.LeaveApply })));
 const PlatformShopManagement = lazy(() => import('./components/PlatformShopManagement'));
 const QualityTagManagement = lazy(() => import('./components/QualityTagManagement'));
-const WeChatPage = lazy(() => import('./pages/Messaging').then(module => ({ default: module.WeChatPage })));
-const CreateGroupPage = lazy(() => import('./pages/Messaging').then(module => ({ default: module.CreateGroupPage })));
 const BroadcastList = lazy(() => import('./pages/Messaging').then(module => ({ default: module.BroadcastList })));
 import DatabaseCheck from './components/DatabaseCheck';
 import TopNavbar from './components/TopNavbar';
@@ -387,12 +384,12 @@ function App() {
         return <PositionManagement />
 
       // 信息系统
-      case 'messaging-chat':
-        return <WeChatPage />
-      case 'messaging-create-group':
-        return <CreateGroupPage />
       case 'messaging-broadcast':
         return <BroadcastList />
+      case 'broadcast-management':
+        return <BroadcastManagement />
+      case 'notification-settings': // New case for NotificationSettings
+        return <NotificationSettings />
 
       // 考勤管理
       case 'attendance-home':
@@ -442,21 +439,15 @@ function App() {
 
 
       // 质检管理
-      case 'quality-rule':
-        return <QualityRuleManagementPage />
       case 'quality-score':
         return <QualityInspection />
       case 'quality-tags':
         return <QualityTagManagement />
       case 'quality-platform-shop':
         return <PlatformShopManagement />
-      case 'quality-report':
-        return <QualityStatisticsPage />
-      case 'quality-report-summary': // New case for QualityReportPage
-        return <QualityReportPage />
-      case 'quality-case-library': // New case for CaseLibraryPage
+      case 'quality-case-library':
         return <CaseLibraryPage />
-      case 'quality-case-categories': // New case for CaseCategoryManagementPage
+      case 'quality-case-categories':
         return <CaseCategoryManagementPage />
       case 'quality-recommendation': // New case for CaseRecommendationPage
         return <CaseRecommendationPage />
@@ -512,8 +503,6 @@ function App() {
         return <NotificationCenter />;
       case 'notification-sender':
         return <NotificationSender />;
-      case 'notification-settings': // New case for NotificationSettings
-        return <NotificationSettings />;
 
       // 个人中心
       case 'personal-info':
