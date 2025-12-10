@@ -28,6 +28,7 @@ const EmployeeApproval = lazy(() => import('./components/EmployeeApproval'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const RoleManagement = lazy(() => import('./pages/System/RoleManagement'));
 const UserRoleManagement = lazy(() => import('./pages/System/UserRoleManagement'));
+const SystemConfigPage = lazy(() => import('./pages/System/SystemConfigPageOptimized'));
 const KnowledgeManagement = lazy(() => import('./components/KnowledgeManagement'));
 const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
 const KnowledgeFolderView = lazy(() => import('./components/KnowledgeFolderView'));
@@ -49,9 +50,8 @@ const PersonalInfo = lazy(() => import('./components/PersonalInfo'));
 const MySchedule = lazy(() => import('./pages/Personal/MySchedule'));
 const MyNotifications = lazy(() => import('./pages/Personal/MyNotifications'));
 const MyMemos = lazy(() => import('./pages/Personal/MyMemos'));
-const EmployeeMemos = lazy(() => import('./pages/Employee/EmployeeMemos'));
+const EmployeeMemos = lazy(() => import('./pages/Employee/EmployeeMemosOptimized'));
 const UnreadMemoPopup = lazy(() => import('./components/UnreadMemoPopup'));
-
 const CaseLibraryPage = lazy(() => import('./pages/CaseLibraryPage'));
 const CaseCategoryManagementPage = lazy(() => import('./pages/CaseCategoryManagementPage'));
 const QualityRuleManagementPage = lazy(() => import('./pages/QualityRuleManagementPage'));
@@ -61,6 +61,11 @@ const CaseRecommendationPage = lazy(() => import('./pages/CaseRecommendationPage
 const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
 const NotificationSender = lazy(() => import('./components/NotificationSender'));
 const NotificationSettings = lazy(() => import('./components/NotificationSettings'));
+const NotificationCenterOptimized = lazy(() => import('./components/NotificationCenterOptimized'));
+const NotificationSenderOptimized = lazy(() => import('./components/NotificationSenderOptimized'));
+const NotificationSettingsOptimized = lazy(() => import('./components/NotificationSettingsOptimized'));
+const MyNotificationsOptimized = lazy(() => import('./pages/Personal/MyNotificationsOptimized'));
+
 const BroadcastManagement = lazy(() => import('./pages/Admin/BroadcastManagement'));
 
 
@@ -500,9 +505,11 @@ function App() {
 
       // 消息通知
       case 'notification-center':
-        return <NotificationCenter />;
+        return <NotificationCenterOptimized />;
       case 'notification-sender':
-        return <NotificationSender />;
+        return <NotificationSenderOptimized />;
+      case 'notification-settings':
+        return <NotificationSettingsOptimized />;
 
       // 个人中心
       case 'personal-info':
@@ -510,13 +517,15 @@ function App() {
       case 'my-schedule':
         return <MySchedule />;
       case 'my-notifications':
-        return <MyNotifications />;
+        return <MyNotificationsOptimized />;
       case 'my-memos':
         return <MyMemos />;
       case 'employee-memos':
-        return <EmployeeMemos />;
+        return <EmployeeMemos />
 
       // 系统管理
+      case 'system-config':
+        return <SystemConfigPage />
       case 'broadcast-management':
         return <BroadcastManagement />
 

@@ -16,6 +16,12 @@ import {
   EyeIcon
 } from '@heroicons/react/24/outline';
 
+// 导入 Shadcn UI 组件
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+
 export default function BroadcastList() {
   const [broadcasts, setBroadcasts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -212,7 +218,7 @@ export default function BroadcastList() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button
+              <Button 
                 onClick={loadBroadcasts}
                 className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-medium shadow-md flex items-center gap-2"
               >
@@ -220,7 +226,7 @@ export default function BroadcastList() {
                   <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                 </svg>
                 刷新
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -231,7 +237,7 @@ export default function BroadcastList() {
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-gray-700 font-medium">快速筛选:</span>
-            <button
+            <Button
               onClick={() => setQuickDateFilter('')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 quickFilter === ''
@@ -240,8 +246,8 @@ export default function BroadcastList() {
               }`}
             >
               全部
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setQuickDateFilter('today')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 quickFilter === 'today'
@@ -250,8 +256,8 @@ export default function BroadcastList() {
               }`}
             >
               今天
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setQuickDateFilter('yesterday')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 quickFilter === 'yesterday'
@@ -260,8 +266,8 @@ export default function BroadcastList() {
               }`}
             >
               昨天
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setQuickDateFilter('last3days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 quickFilter === 'last3days'
@@ -270,8 +276,8 @@ export default function BroadcastList() {
               }`}
             >
               近三天
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setQuickDateFilter('last7days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 quickFilter === 'last7days'
@@ -280,7 +286,7 @@ export default function BroadcastList() {
               }`}
             >
               近七天
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -290,14 +296,14 @@ export default function BroadcastList() {
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
+              <Button
                 onClick={() => setShowFilters(!showFilters)}
                 className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
               >
                 <FunnelIcon className="w-4 h-4" />
                 筛选选项
                 {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-              </button>
+              </Button>
 
               {/* 筛选器指示器 */}
               {(filters.type || filters.isRead) && (
@@ -311,13 +317,13 @@ export default function BroadcastList() {
 
             {/* 清除筛选按钮 */}
             {(filters.type || filters.isRead || quickFilter) && (
-              <button
+              <Button
                 onClick={clearFilters}
                 className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <XMarkIcon className="w-4 h-4" />
                 清除筛选
-              </button>
+              </Button>
             )}
           </div>
 
@@ -383,19 +389,21 @@ export default function BroadcastList() {
           </div>
         ) : broadcasts.length === 0 ? (
           <div className="flex items-center justify-center h-full p-4">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-12 max-w-2xl w-full">
-              <div className="text-center">
+            <Card className="max-w-2xl w-full">
+              <CardContent className="p-12 text-center">
                 <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-blue-50">
                   <SpeakerWaveIcon className="h-12 w-12 text-blue-400" />
                 </div>
-                <h3 className="mt-6 text-2xl font-bold text-gray-900">暂无广播消息</h3>
-                <p className="mt-2 text-gray-600">
-                  {filters.type || filters.isRead || quickFilter
-                    ? "没有找到符合条件的广播消息"
-                    : "目前没有任何广播消息"}
-                </p>
+                <CardHeader className="p-0 mt-6">
+                  <CardTitle className="text-2xl">暂无广播消息</CardTitle>
+                  <CardDescription className="mt-2">
+                    {filters.type || filters.isRead || quickFilter
+                      ? "没有找到符合条件的广播消息"
+                      : "目前没有任何广播消息"}
+                  </CardDescription>
+                </CardHeader>
                 <div className="mt-8">
-                  <button
+                  <Button
                     onClick={loadBroadcasts}
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
                   >
@@ -403,10 +411,10 @@ export default function BroadcastList() {
                       <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                     </svg>
                     重新加载
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <div className="h-full flex flex-col">
@@ -414,37 +422,39 @@ export default function BroadcastList() {
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {broadcasts.map(broadcast => (
-                  <div
+                  <Card 
                     key={broadcast.id}
                     onClick={() => handleBroadcastClick(broadcast)}
                     className={`
-                      relative bg-white rounded-2xl border-2 transition-all duration-300 cursor-pointer hover:shadow-xl transform hover:-translate-y-1
+                      relative transition-all duration-300 cursor-pointer hover:shadow-xl transform hover:-translate-y-1
                       ${broadcast.is_read
                         ? 'border-gray-200 hover:border-gray-300'
                         : `border-l-4 ${getBgColorClass(broadcast.type).split(' ')[1]} ${getBgColorClass(broadcast.type).split(' ')[0]} shadow-md`
                       }
                     `}
                   >
-                    <div className="p-6">
+                    <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className={`p-3 rounded-xl ${getColorClass(broadcast.type)}`}>
                           {getIcon(broadcast.type)}
                         </div>
                         <div className="flex items-center gap-2">
                           {!broadcast.is_read && (
-                            <span className="px-2.5 py-1 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
+                            <Badge className="px-2.5 py-1 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
                               NEW
-                            </span>
+                            </Badge>
                           )}
-                          <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                          <Badge variant="outline" className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
                             {getTypeName(broadcast.type)}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
 
-                      <h3 className={`mt-4 text-lg font-bold ${broadcast.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
-                        {broadcast.title}
-                      </h3>
+                      <CardHeader className="p-0 mt-4">
+                        <CardTitle className={`text-lg ${broadcast.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
+                          {broadcast.title}
+                        </CardTitle>
+                      </CardHeader>
 
                       <p className="mt-3 text-gray-600 text-sm line-clamp-3">
                         {broadcast.content}
@@ -470,8 +480,8 @@ export default function BroadcastList() {
                           </span>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             </div>
@@ -486,7 +496,7 @@ export default function BroadcastList() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                       disabled={pagination.page === 1}
                       className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium flex items-center gap-2"
@@ -495,7 +505,7 @@ export default function BroadcastList() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                       上一页
-                    </button>
+                    </Button>
 
                     <div className="flex items-center bg-gray-100 rounded-lg px-2 py-1">
                       <input
@@ -515,7 +525,7 @@ export default function BroadcastList() {
                       <span className="text-gray-700 text-sm">{pagination.totalPages}</span>
                     </div>
 
-                    <button
+                    <Button
                       onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
                       disabled={pagination.page === pagination.totalPages}
                       className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium flex items-center gap-2"
@@ -524,7 +534,7 @@ export default function BroadcastList() {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -550,34 +560,34 @@ export default function BroadcastList() {
       </div>
 
       {/* 详情模态框 */}
-      {showModal && selectedBroadcast && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden transform transition-all">
-            {/* 模态框头部 */}
-            <div className={`px-6 py-5 flex items-center justify-between border-b-2 ${getBgColorClass(selectedBroadcast.type)}`}>
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${getColorClass(selectedBroadcast.type)}`}>
-                  {getIcon(selectedBroadcast.type)}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{getTypeName(selectedBroadcast.type)}</h3>
-                  <div className="flex items-center text-sm text-gray-600 mt-1">
-                    <UserIcon className="h-4 w-4 mr-1.5" />
-                    <span>来自系统</span>
-                    <ClockIcon className="h-4 w-4 ml-3 mr-1.5" />
-                    <span>{new Date(selectedBroadcast.created_at).toLocaleString('zh-CN')}</span>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        {selectedBroadcast && (
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+            <DialogHeader className={`${getBgColorClass(selectedBroadcast.type)} px-6 py-5`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl ${getColorClass(selectedBroadcast.type)}`}>
+                    {getIcon(selectedBroadcast.type)}
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl text-gray-900">{getTypeName(selectedBroadcast.type)}</DialogTitle>
+                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                      <UserIcon className="h-4 w-4 mr-1.5" />
+                      <span>来自系统</span>
+                      <ClockIcon className="h-4 w-4 ml-3 mr-1.5" />
+                      <span>{new Date(selectedBroadcast.created_at).toLocaleString('zh-CN')}</span>
+                    </div>
                   </div>
                 </div>
+                <Button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6 text-gray-500" />
+                </Button>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-white/50 rounded-lg transition-colors"
-              >
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
+            </DialogHeader>
 
-            {/* 模态框内容 */}
             <div className="p-8 overflow-y-auto max-h-[60vh]">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">{selectedBroadcast.title}</h2>
               <div className="prose prose-lg max-w-none">
@@ -588,29 +598,32 @@ export default function BroadcastList() {
 
               <div className="mt-8 flex items-center justify-between">
                 <div className="flex items-center">
-                  <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                    selectedBroadcast.is_read
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <Badge 
+                    className={`
+                      px-3 py-1.5 rounded-full text-sm font-medium
+                      ${selectedBroadcast.is_read
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                      }
+                    `}
+                  >
                     {selectedBroadcast.is_read ? '已读' : '未读'}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             </div>
 
-            {/* 模态框底部 */}
-            <div className="px-8 py-5 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
-              <button
+            <DialogFooter className="px-8 py-5 bg-gray-50 border-t border-gray-200">
+              <Button
                 onClick={() => setShowModal(false)}
                 className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
               >
                 关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

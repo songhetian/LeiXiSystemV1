@@ -1,12 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Card, Tag, Space, Modal, Select, message } from 'antd';
-import { UserOutlined, TeamOutlined, ReloadOutlined, EyeOutlined, LockOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPut, apiPost } from '../../utils/apiClient';
 // 导入部门权限模态框组件
 import UserDepartmentModal from '../../components/UserDepartmentModal';
 
-const { Option } = Select;
+// 导入 Shadcn UI 组件
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Badge } from '../../components/ui/badge';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '../../components/ui/table';
+
+// 导入图标
+import { User, Users, RefreshCw, Eye, Lock, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const UserRoleManagement = () => {
   const [users, setUsers] = useState([]);
@@ -82,7 +98,8 @@ const UserRoleManagement = () => {
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
-      message.error('获取用户列表失败');
+      // 使用浏览器原生alert替代message.error
+      alert('获取用户列表失败');
     } finally {
       setLoading(false);
     }
@@ -122,7 +139,8 @@ const UserRoleManagement = () => {
       }
     } catch (error) {
       console.error('获取角色列表失败:', error);
-      message.error('获取角色列表失败');
+      // 使用浏览器原生alert替代message.error
+      alert('获取角色列表失败');
     }
   };
 
@@ -136,7 +154,8 @@ const UserRoleManagement = () => {
       }
     } catch (error) {
       console.error('获取部门列表失败:', error);
-      message.error('获取部门列表失败');
+      // 使用浏览器原生alert替代message.error
+      alert('获取部门列表失败');
     }
   };
 
@@ -154,11 +173,13 @@ const UserRoleManagement = () => {
         roleIds: selectedRoles
       });
 
-      message.success('角色分配成功');
+      // 使用浏览器原生alert替代message.success
+      alert('角色分配成功');
       setModalVisible(false);
       fetchUsers(); // 刷新用户列表
     } catch (error) {
-      message.error('分配失败: ' + (error.message || '未知错误'));
+      // 使用浏览器原生alert替代message.error
+      alert('分配失败: ' + (error.message || '未知错误'));
     }
   };
 
@@ -175,7 +196,8 @@ const UserRoleManagement = () => {
   // 员工部门权限设置成功回调
   const handleUserDepartmentSuccess = () => {
     // 可以在这里添加刷新逻辑或其他操作
-    message.success('员工部门权限设置成功');
+    // 使用浏览器原生alert替代message.success
+    alert('员工部门权限设置成功');
     fetchUsers(); // 刷新用户列表
   };
 
@@ -246,166 +268,9 @@ const UserRoleManagement = () => {
     setSearchText('');
   };
 
-  const columns = [
-    {
-      title: (
-        <div className="flex items-center">
-          <span>用户信息</span>
-          {sortField === 'real_name' && (
-            <span className="ml-1">
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </span>
-          )}
-        </div>
-      ),
-      key: 'user-info',
-      sorter: true,
-      onHeaderCell: () => ({
-        onClick: () => {
-          if (sortField === 'real_name') {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-          } else {
-            setSortField('real_name');
-            setSortOrder('asc');
-          }
-        },
-      }),
-      render: (_, record) => (
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-            <UserOutlined className="text-blue-500" />
-          </div>
-          <div>
-            <div className="font-medium text-gray-900">{record.real_name}</div>
-            <div className="text-sm text-gray-500">@{record.username}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: (
-        <div className="flex items-center">
-          <span>部门</span>
-          {sortField === 'department_name' && (
-            <span className="ml-1">
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </span>
-          )}
-        </div>
-      ),
-      dataIndex: 'department_name',
-      key: 'department_name',
-      sorter: true,
-      onHeaderCell: () => ({
-        onClick: () => {
-          if (sortField === 'department_name') {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-          } else {
-            setSortField('department_name');
-            setSortOrder('asc');
-          }
-        },
-      }),
-      render: (text) => (
-        <span className="text-gray-600">{text || '未分配'}</span>
-      ),
-    },
-    {
-      title: '角色',
-      key: 'roles',
-      render: (_, record) => (
-        <div>
-          {record.roles && record.roles.length > 0 ? (
-            <Space wrap>
-              {record.roles.map(role => (
-                <Tag key={role.id} color="blue">
-                  {role.name}
-                </Tag>
-              ))}
-            </Space>
-          ) : (
-            <span className="text-gray-400 text-sm">未分配角色</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: '可查看部门',
-      key: 'view-departments',
-      render: (_, record) => {
-        // 检查用户是否有特定的部门权限
-        if (record.departments && record.departments.length > 0) {
-          // 显示前2个部门，其余以数字显示
-          const displayDeps = record.departments.slice(0, 2);
-          const remainingCount = record.departments.length - 2;
-
-          return (
-            <div className="flex flex-wrap gap-1">
-              {displayDeps.map(dept => (
-                <span
-                  key={dept.id}
-                  className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800"
-                >
-                  <EyeOutlined className="mr-1 text-xs" />
-                  {dept.name}
-                </span>
-              ))}
-              {remainingCount > 0 && (
-                <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
-                  +{remainingCount}
-                </span>
-              )}
-            </div>
-          );
-        } else {
-          // 如果没有特定部门权限，显示默认状态
-          // 检查用户是否有角色，如果有角色则显示默认权限，否则显示未分配
-          if (record.roles && record.roles.length > 0) {
-            return (
-              <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                <EyeOutlined className="mr-1 text-xs" />
-                默认权限
-              </span>
-            );
-          } else {
-            return (
-              <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
-                <EyeOutlined className="mr-1 text-xs" />
-                未分配
-              </span>
-            );
-          }
-        }
-      },
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 180,
-      render: (_, record) => (
-        <div className="flex flex-wrap gap-1">
-          <Button
-            size="small"
-            type="primary"
-            ghost
-            icon={<TeamOutlined />}
-            onClick={() => handleManageRoles(record)}
-            title="分配角色"
-          />
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleManageUserDepartments(record)}
-            title="部门权限"
-          />
-        </div>
-      ),
-    },
-  ];
-
   const handleBatchAssignRoles = async () => {
     if (selectedUserIds.length === 0 || !batchAssignRoleId) {
-      message.error('请选择用户和角色');
+      alert('请选择用户和角色');
       return;
     }
     setIsProcessingBatch(true);
@@ -423,9 +288,9 @@ const UserRoleManagement = () => {
         setBatchProgress(prev => ({ ...prev, done: i + 1 }));
       }
       if (failCount === 0) {
-        message.success('分配角色成功');
+        alert('分配角色成功');
       } else {
-        message.error(`分配角色完成，但有 ${failCount} 人失败`);
+        alert(`分配角色完成，但有 ${failCount} 人失败`);
       }
       setIsBatchAssignOpen(false);
       setBatchAssignRoleId(null);
@@ -433,7 +298,7 @@ const UserRoleManagement = () => {
       fetchUsers();
     } catch (error) {
       console.error('批量分配失败:', error);
-      message.error('批量分配失败: ' + (error.message || '未知错误'));
+      alert('批量分配失败: ' + (error.message || '未知错误'));
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -442,7 +307,7 @@ const UserRoleManagement = () => {
 
   const handleBatchRemoveRoles = async () => {
     if (selectedUserIds.length === 0) {
-      message.error('请选择员工');
+      alert('请选择员工');
       return;
     }
     setIsProcessingBatch(true);
@@ -460,251 +325,428 @@ const UserRoleManagement = () => {
         setBatchProgress(prev => ({ ...prev, done: i + 1 }));
       }
       if (failCount === 0) {
-        message.success('删除角色成功');
+        alert('删除角色成功');
       } else {
-        message.error(`删除角色完成，但有 ${failCount} 人失败`);
+        alert(`删除角色完成，但有 ${failCount} 人失败`);
       }
       setIsBatchRemoveOpen(false);
       setSelectedUserIds([]);
       fetchUsers();
     } catch (error) {
       console.error('批量移除失败:', error);
-      message.error('批量移除失败: ' + (error.message || '未知错误'));
+      alert('批量移除失败: ' + (error.message || '未知错误'));
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
     }
   };
 
+  // 获取角色显示名称
+  const getRoleBadges = (userRoles) => {
+    if (userRoles && userRoles.length > 0) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {userRoles.map(role => (
+            <Badge key={role.id} variant="default">
+              {role.name}
+            </Badge>
+          ))}
+        </div>
+      );
+    }
+    return <span className="text-gray-400 text-sm">未分配角色</span>;
+  };
+
+  // 获取部门权限显示
+  const getViewDepartmentBadges = (record) => {
+    // 检查用户是否有特定的部门权限
+    if (record.departments && record.departments.length > 0) {
+      // 显示前2个部门，其余以数字显示
+      const displayDeps = record.departments.slice(0, 2);
+      const remainingCount = record.departments.length - 2;
+
+      return (
+        <div className="flex flex-wrap gap-1">
+          {displayDeps.map(dept => (
+            <Badge key={dept.id} variant="secondary" className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {dept.name}
+            </Badge>
+          ))}
+          {remainingCount > 0 && (
+            <Badge variant="secondary">+{remainingCount}</Badge>
+          )}
+        </div>
+      );
+    } else {
+      // 如果没有特定部门权限，显示默认状态
+      // 检查用户是否有角色，如果有角色则显示默认权限，否则显示未分配
+      if (record.roles && record.roles.length > 0) {
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Eye className="h-3 w-3" />
+            默认权限
+          </Badge>
+        );
+      } else {
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Eye className="h-3 w-3" />
+            未分配
+          </Badge>
+        );
+      }
+    }
+  };
+
   return (
-    <div className="p-4 md:p-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
-        {/* 头部 */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">员工角色管理</h2>
-            <p className="text-gray-500 text-sm mt-1">管理员工的角色分配和部门权限</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={fetchUsers}
-            >
-              <span className="hidden sm:inline">刷新</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* 搜索框 */}
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <input
-              type="text"
-              placeholder="搜索员工姓名、用户名、邮箱或手机号..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={searchDepartment}
-              onChange={(e) => setSearchDepartment(e.target.value)}
-              className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">所有部门</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
-            {(searchText || searchDepartment) && (
-              <Button onClick={clearSearch}>
-                清空
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-            <div className="text-blue-800 font-medium">总员工数</div>
-            <div className="text-2xl font-bold text-blue-900 mt-1">{filteredUsers.length}</div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-            <div className="text-purple-800 font-medium">已选员工</div>
-            <div className="text-2xl font-bold text-purple-900 mt-1">{selectedUserIds.length}</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-            <div className="text-green-800 font-medium">角色数量</div>
-            <div className="text-2xl font-bold text-green-900 mt-1">{roles.length}</div>
-          </div>
-        </div>
-
-        {/* 批量操作栏 */}
-        {selectedUserIds.length > 0 && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="text-sm text-blue-800">
-              已选择 {selectedUserIds.length} 名员工
+    <motion.div 
+      className="p-4 md:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="rounded-xl shadow-sm border border-gray-200">
+        <CardHeader>
+          {/* 头部 */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle className="text-xl md:text-2xl">员工角色管理</CardTitle>
+              <CardDescription className="text-gray-500 text-sm mt-1">管理员工的角色分配和部门权限</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                size="small"
-                onClick={() => setIsBatchAssignOpen(true)}
-                className="flex items-center gap-1"
+                variant="outline"
+                onClick={fetchUsers}
+                className="flex items-center gap-2"
               >
-                <TeamOutlined className="text-xs" />
-                分配角色
-              </Button>
-              <Button
-                size="small"
-                danger
-                onClick={() => setIsBatchRemoveOpen(true)}
-                disabled={isProcessingBatch}
-                className="flex items-center gap-1"
-              >
-                <LockOutlined className="text-xs" />
-                移除角色
+                <RefreshCw className="h-4 w-4" />
+                <span className="hidden sm:inline">刷新</span>
               </Button>
             </div>
           </div>
-        )}
-
-        <Table
-          columns={columns}
-          dataSource={filteredUsers}
-          rowKey="id"
-          loading={loading}
-          rowSelection={{ selectedRowKeys: selectedUserIds, onChange: setSelectedUserIds, preserveSelectedRowKeys: true }}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`
-          }}
-          scroll={{ x: 'max-content' }}
-        />
-      </div>
-
-      {/* 角色分配模态框 */}
-      <Modal
-        title={`为 "${selectedUser?.real_name}" 分配角色`}
-        open={modalVisible}
-        onOk={handleSaveRoles}
-        onCancel={() => setModalVisible(false)}
-        width={600}
-      >
-        <div className="py-4">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              选择角色
-            </label>
-            <Select
-              mode="multiple"
-              placeholder="请选择角色"
-              value={selectedRoles}
-              onChange={handleRoleChange}
-              style={{ width: '100%' }}
-              size="large"
-            >
-              {roles.map(role => (
-                <Option key={role.id} value={role.id}>
-                  <div className="flex items-center">
-                    <span className="mr-2">{role.name}</span>
-                    {role.is_system && <Tag color="red">系统</Tag>}
-                  </div>
-                </Option>
-              ))}
-            </Select>
+        </CardHeader>
+        <CardContent>
+          {/* 搜索框 */}
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Input
+                type="text"
+                placeholder="搜索员工姓名、用户名、邮箱或手机号..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={searchDepartment} onValueChange={setSearchDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="所有部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">所有部门</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id.toString()}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(searchText || searchDepartment) && (
+                <Button onClick={clearSearch} variant="outline">
+                  清空
+                </Button>
+              )}
+            </div>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-start">
-              <span className="text-blue-500 text-lg mr-2">ℹ️</span>
-              <div>
-                <p className="text-sm font-medium text-blue-800">操作说明</p>
-                <ul className="text-xs text-blue-700 mt-1 list-disc pl-4 space-y-1">
-                  <li>可以选择多个角色分配给用户</li>
-                  <li>系统角色具有特殊权限，请谨慎分配</li>
-                  <li>不选择任何角色将移除用户的所有角色</li>
-                </ul>
+          {/* 统计卡片 */}
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="bg-blue-50 border-blue-100">
+              <CardContent className="p-4">
+                <div className="text-blue-800 font-medium">总员工数</div>
+                <div className="text-2xl font-bold text-blue-900 mt-1">{filteredUsers.length}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-purple-50 border-purple-100">
+              <CardContent className="p-4">
+                <div className="text-purple-800 font-medium">已选员工</div>
+                <div className="text-2xl font-bold text-purple-900 mt-1">{selectedUserIds.length}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-green-50 border-green-100">
+              <CardContent className="p-4">
+                <div className="text-green-800 font-medium">角色数量</div>
+                <div className="text-2xl font-bold text-green-900 mt-1">{roles.length}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* 批量操作栏 */}
+          {selectedUserIds.length > 0 && (
+            <motion.div 
+              className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="text-sm text-blue-800">
+                已选择 {selectedUserIds.length} 名员工
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setIsBatchAssignOpen(true)}
+                  className="flex items-center gap-1"
+                >
+                  <Users className="h-4 w-4" />
+                  分配角色
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setIsBatchRemoveOpen(true)}
+                  disabled={isProcessingBatch}
+                  className="flex items-center gap-1"
+                >
+                  <Lock className="h-4 w-4" />
+                  移除角色
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* 用户表格 */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>用户信息</TableHead>
+                  <TableHead>部门</TableHead>
+                  <TableHead>角色</TableHead>
+                  <TableHead>可查看部门</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
+                        加载中...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      暂无数据
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((record) => (
+                    <TableRow key={record.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                            <User className="text-blue-500 h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{record.real_name}</div>
+                            <div className="text-sm text-gray-500">@{record.username}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-gray-600">{record.department_name || '未分配'}</span>
+                      </TableCell>
+                      <TableCell>
+                        {getRoleBadges(record.roles)}
+                      </TableCell>
+                      <TableCell>
+                        {getViewDepartmentBadges(record)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleManageRoles(record)}
+                            title="分配角色"
+                            className="flex items-center gap-1"
+                          >
+                            <Users className="h-4 w-4" />
+                            <span className="hidden sm:inline">分配</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleManageUserDepartments(record)}
+                            title="部门权限"
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="hidden sm:inline">权限</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </motion.div>
+        </CardContent>
+      </Card>
+
+      {/* 角色分配对话框 */}
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>为 "{selectedUser?.real_name}" 分配角色</DialogTitle>
+            <DialogDescription>
+              选择要分配给该用户的角色
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                选择角色
+              </label>
+              <Select 
+                value={selectedRoles.join(',')} 
+                onValueChange={(value) => handleRoleChange(value.split(',').filter(v => v !== ""))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(role => (
+                    <SelectItem 
+                      key={role.id} 
+                      value={role.id.toString()}
+                      disabled={selectedRoles.includes(role.id)}
+                    >
+                      <div className="flex items-center">
+                        <span className="mr-2">{role.name}</span>
+                        {role.is_system && <Badge variant="destructive">系统</Badge>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {selectedRoles.map(roleId => {
+                  const role = roles.find(r => r.id === roleId);
+                  return role ? (
+                    <Badge 
+                      key={roleId} 
+                      variant="secondary" 
+                      className="flex items-center gap-1"
+                      onClick={() => handleRoleChange(selectedRoles.filter(id => id !== roleId))}
+                    >
+                      {role.name}
+                      <span className="cursor-pointer">×</span>
+                    </Badge>
+                  ) : null;
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-start">
+                <Info className="text-blue-500 h-5 w-5 mr-2 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">操作说明</p>
+                  <ul className="text-xs text-blue-700 mt-1 list-disc pl-4 space-y-1">
+                    <li>可以选择多个角色分配给用户</li>
+                    <li>系统角色具有特殊权限，请谨慎分配</li>
+                    <li>不选择任何角色将移除用户的所有角色</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+            <Button onClick={handleSaveRoles}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={() => setModalVisible(false)}>取消</Button>
-            <Button type="primary" onClick={handleSaveRoles}>保存</Button>
+      {/* 批量分配角色对话框 */}
+      <Dialog open={isBatchAssignOpen} onOpenChange={setIsBatchAssignOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>批量为选中员工分配角色</DialogTitle>
+            <DialogDescription>
+              为选中的 {selectedUserIds.length} 名员工分配一个角色
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                选择角色
+              </label>
+              <Select value={batchAssignRoleId || ""} onValueChange={setBatchAssignRoleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择要分配的角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(role => (
+                    <SelectItem key={role.id} value={role.id.toString()}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-      </Modal>
-
-      <Modal
-        title={"批量为选中员工分配角色"}
-        open={isBatchAssignOpen}
-        onCancel={() => setIsBatchAssignOpen(false)}
-        footer={null}
-        width={600}
-      >
-        <div className="py-4">
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">
-              为选中的 <span className="font-semibold text-gray-900">{selectedUserIds.length}</span> 名员工分配一个角色：
-            </p>
-            <Select
-              placeholder="选择要分配的角色"
-              value={batchAssignRoleId}
-              onChange={setBatchAssignRoleId}
-              style={{ width: '100%' }}
-              size="large"
-            >
-              {roles.map(role => (
-                <Option key={role.id} value={role.id}>{role.name}</Option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsBatchAssignOpen(false)}>取消</Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchAssignOpen(false)}>取消</Button>
             <Button
-              type="primary"
               onClick={handleBatchAssignRoles}
               disabled={isProcessingBatch || !batchAssignRoleId}
             >
-              保存
+              {isProcessingBatch ? '处理中...' : '保存'}
             </Button>
-          </div>
-        </div>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <Modal
-        title={"批量从选中员工移除角色"}
-        open={isBatchRemoveOpen}
-        onCancel={() => setIsBatchRemoveOpen(false)}
-        footer={null}
-        width={600}
-      >
-        <div className="py-4">
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">
-              将从选中的 <span className="font-semibold text-gray-900">{selectedUserIds.length}</span> 名员工移除全部角色。
-            </p>
+      {/* 批量移除角色对话框 */}
+      <Dialog open={isBatchRemoveOpen} onOpenChange={setIsBatchRemoveOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>批量从选中员工移除角色</DialogTitle>
+            <DialogDescription>
+              将从选中的 {selectedUserIds.length} 名员工移除全部角色
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
             <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200">
               此操作会清空所选员工的所有角色，请谨慎执行。
             </div>
           </div>
-          <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsBatchRemoveOpen(false)}>取消</Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchRemoveOpen(false)}>取消</Button>
             <Button
-              type="primary"
-              danger
+              variant="destructive"
               onClick={handleBatchRemoveRoles}
               disabled={isProcessingBatch}
             >
-              移除
+              {isProcessingBatch ? '处理中...' : '移除'}
             </Button>
-          </div>
-        </div>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 部门权限模态框 */}
       <UserDepartmentModal
@@ -713,7 +755,7 @@ const UserRoleManagement = () => {
         onSuccess={handleUserDepartmentSuccess}
         user={selectedUserForDepartment}
       />
-    </div>
+    </motion.div>
   );
 };
 

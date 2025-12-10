@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react'
 import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
-import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
+
+// 导入 Shadcn UI 组件
+import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+
+// 导入图标
+import { Clock, User, Calendar, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function AttendanceHome({ onNavigate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -45,11 +53,11 @@ export default function AttendanceHome({ onNavigate }) {
       if (response.data.success && response.data.data) {
         setEmployee(response.data.data)
       } else {
-        toast.error('未找到员工信息，请联系管理员')
+        alert('未找到员工信息，请联系管理员')
       }
     } catch (error) {
       console.error('获取员工信息失败:', error)
-      toast.error('获取员工信息失败')
+      alert('获取员工信息失败')
     }
   }
 
@@ -174,12 +182,12 @@ export default function AttendanceHome({ onNavigate }) {
   // 为自己选择班次排班
   const handleSelectShift = async () => {
     if (!selectedShift) {
-      toast.error('请选择班次')
+      alert('请选择班次')
       return
     }
 
     if (!employee) {
-      toast.error('员工信息未加载，请刷新页面')
+      alert('员工信息未加载，请刷新页面')
       return
     }
 
@@ -197,14 +205,14 @@ export default function AttendanceHome({ onNavigate }) {
       })
 
       if (response.data.success) {
-        toast.success('班次选择成功')
+        alert('班次选择成功')
         setShowShiftModal(false)
         setSelectedShift(null)
         // 重新获取今日排班信息
         fetchTodaySchedule()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '班次选择失败')
+      alert(error.response?.data?.message || '班次选择失败')
     } finally {
       setLoading(false)
     }
@@ -213,7 +221,7 @@ export default function AttendanceHome({ onNavigate }) {
   // 上班打卡
   const handleClockIn = async (isMakeup = false) => {
     if (!employee) {
-      toast.error('员工信息未加载，请刷新页面')
+      alert('员工信息未加载，请刷新页面')
       return
     }
 
@@ -230,11 +238,11 @@ export default function AttendanceHome({ onNavigate }) {
       })
 
       if (response.data.success) {
-        toast.success(response.data.message)
+        alert(response.data.message)
         fetchTodayRecord()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '打卡失败')
+      alert(error.response?.data?.message || '打卡失败')
     } finally {
       setLoading(false)
     }
@@ -242,7 +250,7 @@ export default function AttendanceHome({ onNavigate }) {
 
   const handleClockOut = async (isMakeup = false) => {
     if (!employee) {
-      toast.error('员工信息未加载，请刷新页面')
+      alert('员工信息未加载，请刷新页面')
       return
     }
 
@@ -259,11 +267,11 @@ export default function AttendanceHome({ onNavigate }) {
       })
 
       if (response.data.success) {
-        toast.success(response.data.message)
+        alert(response.data.message)
         fetchTodayRecord()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '打卡失败')
+      alert(error.response?.data?.message || '打卡失败')
     } finally {
       setLoading(false)
     }
@@ -281,17 +289,18 @@ export default function AttendanceHome({ onNavigate }) {
 
   const getStatusBadge = (status) => {
     const badges = {
-      normal: { text: '正常', color: 'bg-green-100 text-green-800' },
-      late: { text: '迟到', color: 'bg-red-100 text-red-800' },
-      early: { text: '早退', color: 'bg-orange-100 text-orange-800' },
-      absent: { text: '缺勤', color: 'bg-gray-100 text-gray-800' },
-      leave: { text: '请假', color: 'bg-blue-100 text-blue-800' }
+      normal: { text: '正常', variant: 'default' },
+      late: { text: '迟到', variant: 'destructive' },
+      early: { text: '早退', variant: 'warning' },
+      absent: { text: '缺勤', variant: 'secondary' },
+      leave: { text: '请假', variant: 'outline' }
     }
-    const badge = badges[status] || badges.normal
+    
+    const badgeConfig = badges[status] || badges.normal
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.color}`}>
-        {badge.text}
-      </span>
+      <Badge variant={badgeConfig.variant}>
+        {badgeConfig.text}
+      </Badge>
     )
   }
 
@@ -365,7 +374,12 @@ export default function AttendanceHome({ onNavigate }) {
   const isRestDay = todaySchedule && todaySchedule.shift_id == restShiftId
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
+    <motion.div 
+      className="min-h-screen p-6 bg-gray-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* 头部 */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">考勤打卡</h1>
@@ -376,24 +390,34 @@ export default function AttendanceHome({ onNavigate }) {
       </div>
 
       {/* 当前时间卡片 */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 mb-6 text-white">
+      <motion.div 
+        className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 mb-6 text-white"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
         <div className="text-center">
           <div className="text-5xl font-bold mb-2">{formatTime(currentTime)}</div>
           <div className="text-lg opacity-90">{formatDate(currentTime)}</div>
         </div>
-      </div>
+      </motion.div>
 
       {/* 今日打卡状态 */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <motion.div 
+        className="bg-white rounded-lg shadow p-6 mb-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">今日打卡状态</h2>
           {/* 排班信息或选择班次按钮 */}
           {todaySchedule && todaySchedule.shift_id ? (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">今日班次：</span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+              <Badge variant="default">
                 {todaySchedule.shift_name || '休息日'}
-              </span>
+              </Badge>
               {todaySchedule.start_time && todaySchedule.end_time && (
                 <span className="text-gray-500">
                   {todaySchedule.start_time} - {todaySchedule.end_time}
@@ -401,52 +425,70 @@ export default function AttendanceHome({ onNavigate }) {
               )}
             </div>
           ) : (
-            <button
+            <Button
               onClick={() => setShowShiftModal(true)}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              className="flex items-center gap-2"
             >
-              <span>📅</span>
+              <Calendar className="h-4 w-4" />
               <span>选择班次排班</span>
-            </button>
+            </Button>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* 上班打卡 */}
-          <div className="border rounded-lg p-4">
-            <div className="text-sm text-gray-600 mb-2">上班打卡</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {formatDateTime(todayRecord?.clock_in_time)}
-            </div>
-          </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                上班打卡
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                {formatDateTime(todayRecord?.clock_in_time)}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* 下班打卡 */}
-          <div className="border rounded-lg p-4">
-            <div className="text-sm text-gray-600 mb-2">下班打卡</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {formatDateTime(todayRecord?.clock_out_time)}
-            </div>
-          </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                下班打卡
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                {formatDateTime(todayRecord?.clock_out_time)}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* 工作时长 */}
-          <div className="border rounded-lg p-4">
-            <div className="text-sm text-gray-600 mb-2">工作时长</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {todayRecord?.work_hours ? `${todayRecord.work_hours}h` : '--'}
-            </div>
-            {todayRecord?.status && (
-              <div className="mt-2">
-                {getStatusBadge(todayRecord.status)}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600">工作时长</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                {todayRecord?.work_hours ? `${todayRecord.work_hours}h` : '--'}
               </div>
-            )}
-          </div>
+              {todayRecord?.status && (
+                <div className="mt-2">
+                  {getStatusBadge(todayRecord.status)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* 没有排班提示 */}
         {!todaySchedule && (
           <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start gap-2">
-              <span className="text-yellow-600 text-lg">⚠️</span>
+              <AlertTriangle className="text-yellow-600 h-5 w-5 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-yellow-900 mb-1">今日暂无排班信息</p>
                 <p className="text-sm text-yellow-800">
@@ -456,45 +498,57 @@ export default function AttendanceHome({ onNavigate }) {
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* 休息日提示 */}
       {isRestDay && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+        <motion.div 
+          className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
           <div className="flex items-start gap-2">
-            <span className="text-green-600 text-lg">🛌</span>
+            <CheckCircle className="text-green-600 h-5 w-5 mt-0.5" />
             <div className="flex-1 text-sm text-green-800">今日为休息日，无需打卡</div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* 打卡按钮 */}
       {!isRestDay && (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
         {/* 上班打卡按钮 */}
         <div>
           {todayRecord?.clock_in_time ? (
-            <button
+            <Button
               disabled
-              className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
+              className="w-full py-4 px-6 rounded-lg font-semibold text-lg"
+              variant="secondary"
             >
               已打上班卡
-            </button>
+            </Button>
           ) : (
             <>
-              <button
+              <Button
                 onClick={handleClockIn}
                 disabled={loading || !clockInCheck.allowed}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg ${
                   loading
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? ''
                     : clockInCheck.allowed
-                      ? 'bg-green-500 hover:bg-green-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : ''
                 }`}
+                variant={clockInCheck.allowed ? "default" : "secondary"}
               >
                 {loading ? '打卡中...' : '✓ 上班打卡'}
-              </button>
+              </Button>
               <div className="mt-2 text-center text-sm font-medium">
                 {clockInCheck.message && (
                   <span className={clockInCheck.allowed ? "text-green-600" : "text-gray-500"}>
@@ -514,39 +568,42 @@ export default function AttendanceHome({ onNavigate }) {
         {/* 下班打卡按钮 */}
         <div>
           {todayRecord?.clock_out_time ? (
-            <button
+            <Button
               disabled
-              className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
+              className="w-full py-4 px-6 rounded-lg font-semibold text-lg"
+              variant="secondary"
             >
               已打下班卡
-            </button>
+            </Button>
           ) : !todayRecord?.clock_in_time ? (
             <>
-              <button
+              <Button
                 disabled
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
+                className="w-full py-4 px-6 rounded-lg font-semibold text-lg"
+                variant="secondary"
               >
                 请先打上班卡
-              </button>
+              </Button>
               <div className="mt-2 text-center text-sm text-gray-500">
                 需要先完成上班打卡
               </div>
             </>
           ) : (
             <>
-              <button
+              <Button
                 onClick={handleClockOut}
                 disabled={loading || !clockOutCheck.allowed}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg ${
                   loading
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? ''
                     : clockOutCheck.allowed
-                      ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      ? 'bg-blue-500 hover:bg-blue-600'
+                      : ''
                 }`}
+                variant={clockOutCheck.allowed ? "default" : "secondary"}
               >
                 {loading ? '打卡中...' : '✓ 下班打卡'}
-              </button>
+              </Button>
               <div className="mt-2 text-center text-sm font-medium">
                 {clockOutCheck.message && (
                   <span className={clockOutCheck.allowed ? "text-blue-600" : "text-gray-500"}>
@@ -562,124 +619,84 @@ export default function AttendanceHome({ onNavigate }) {
             </>
           )}
         </div>
-      </div>
-      )}
-
-      {/* 超时提示模态框（休息日不显示） */}
-      {showTimeoutModal && !isRestDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-4xl">⚠️</span>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-center mb-2">打卡提醒</h3>
-
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-orange-800 text-center">
-                  {timeoutMessage}
-                </p>
-              </div>
-
-              {todaySchedule && (
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <div className="text-sm text-gray-600 text-center">
-                    <p className="mb-1">今日班次：<span className="font-medium text-gray-900">{todaySchedule.shift_name}</span></p>
-                    <p>工作时间：<span className="font-medium text-gray-900">{todaySchedule.start_time} - {todaySchedule.end_time}</span></p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowTimeoutModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={() => {
-                    setShowTimeoutModal(false)
-                    // 直接打卡，不区分补打卡
-                    if (!todayRecord?.clock_in_time) {
-                      handleClockIn()  // 上班打卡
-                    } else {
-                      handleClockOut()  // 下班打卡
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                >
-                  {loading ? '打卡中...' : '确认打卡'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      </motion.div>
       )}
 
       {/* 提示信息 */}
       {todayRecord?.status === 'late' && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+        <motion.div 
+          className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
           <div className="flex items-center">
-            <span className="text-red-600 mr-2">⚠️</span>
+            <AlertTriangle className="text-red-600 mr-2 h-5 w-5" />
             <span className="text-red-800">您今天迟到了，请注意准时上班</span>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {todayRecord?.status === 'early_leave' && (
-        <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <motion.div 
+          className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
           <div className="flex items-center">
-            <span className="text-orange-600 mr-2">⚠️</span>
+            <AlertTriangle className="text-orange-600 mr-2 h-5 w-5" />
             <span className="text-orange-800">您今天早退了，请注意工作时间</span>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* 快捷入口 */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button
-          onClick={() => navigate('attendance-records')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">📋</div>
-          <div className="text-sm font-medium">打卡记录</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-leave-apply')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">🏖️</div>
-          <div className="text-sm font-medium">请假申请</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-overtime-apply')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">⏰</div>
-          <div className="text-sm font-medium">加班申请</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-stats')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">📊</div>
-          <div className="text-sm font-medium">考勤统计</div>
-        </button>
-      </div>
+      <motion.div 
+        className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+      >
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('attendance-records')}>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="text-sm font-medium">打卡记录</div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('attendance-leave-apply')}>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl mb-2">🏖️</div>
+            <div className="text-sm font-medium">请假申请</div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('attendance-overtime-apply')}>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl mb-2">⏰</div>
+            <div className="text-sm font-medium">加班申请</div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('attendance-stats')}>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">考勤统计</div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* 测试功能按钮 - 仅用于开发测试 */}
-      <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-lg p-4">
+      <motion.div 
+        className="mt-6 bg-red-50 border-2 border-red-200 rounded-lg p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+      >
         <div className="flex items-center gap-2 mb-3">
           <span className="text-red-600 text-lg">🔧</span>
           <h3 className="text-sm font-semibold text-red-800">测试功能（仅删除当天记录）</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
+          <Button
             onClick={async () => {
               if (!window.confirm('确定要删除今天的打卡记录吗？此操作不可恢复！')) return
               try {
@@ -687,18 +704,18 @@ export default function AttendanceHome({ onNavigate }) {
                 await axios.delete(getApiUrl('/api/attendance/today'), {
                   params: { employee_id: employee?.id, date: today }
                 })
-                toast.success('今日打卡记录已删除')
+                alert('今日打卡记录已删除')
                 fetchTodayRecord()
               } catch (error) {
-                toast.error('删除失败: ' + (error.response?.data?.message || error.message))
+                alert('删除失败: ' + (error.response?.data?.message || error.message))
               }
             }}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+            variant="destructive"
           >
             🗑️ 删除打卡记录
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={async () => {
               if (!window.confirm('确定要删除今天的班次安排吗？此操作不可恢复！')) return
               try {
@@ -706,39 +723,44 @@ export default function AttendanceHome({ onNavigate }) {
                 await axios.delete(getApiUrl('/api/schedules/today'), {
                   params: { employee_id: employee?.id, schedule_date: today }
                 })
-                toast.success('今日班次已删除')
+                alert('今日班次已删除')
                 setTodaySchedule(null)
                 fetchTodaySchedule()
               } catch (error) {
-                toast.error('删除失败: ' + (error.response?.data?.message || error.message))
+                alert('删除失败: ' + (error.response?.data?.message || error.message))
               }
             }}
-            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
+            variant="destructive"
+            className="bg-purple-500 hover:bg-purple-600"
           >
             🗑️ 删除班次
-          </button>
+          </Button>
         </div>
         <p className="text-xs text-red-600 mt-2">⚠️ 警告：这些按钮仅用于测试，只会删除当天的记录</p>
-      </div>
+      </motion.div>
 
       {/* 选择班次模态框 */}
       {showShiftModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <motion.div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">选择今日班次</h3>
-                <button
+                <Button
                   onClick={() => {
                     setShowShiftModal(false)
                     setSelectedShift(null)
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  variant="ghost"
+                  size="sm"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  ✕
+                </Button>
               </div>
 
               <div className="mb-4">
@@ -788,32 +810,28 @@ export default function AttendanceHome({ onNavigate }) {
               </div>
 
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={() => {
                     setShowShiftModal(false)
                     setSelectedShift(null)
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  variant="outline"
+                  className="flex-1"
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleSelectShift}
                   disabled={!selectedShift || loading}
-                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
-                    !selectedShift || loading
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                  }`}
+                  className="flex-1"
                 >
                   {loading ? '设置中...' : '确认'}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
-
-    </div>
+    </motion.div>
   )
 }

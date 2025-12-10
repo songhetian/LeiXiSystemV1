@@ -4,6 +4,16 @@ import { toast } from 'react-toastify'
 import axios from 'axios'
 import { useDebounce } from '../hooks/useDebounce'
 import { getApiBaseUrl } from '../utils/apiConfig'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue
+} from './ui/select'
+import { MotionCard } from './ui/motion-card'
 
 const API_URL = getApiBaseUrl()
 
@@ -294,15 +304,13 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 关键词搜索
               </label>
-              <input
-                type="text"
+              <Input
                 value={keyword}
                 onChange={(e) => {
                   setKeyword(e.target.value)
                   setCurrentPage(1)
                 }}
                 placeholder="搜索标题、内容或摘要..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -395,32 +403,31 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                   日期范围筛选
                 </label>
                 <div className="border border-gray-300 rounded-lg p-3 bg-white space-y-2">
-                  <select
-                    value={dateRange.field}
-                    onChange={(e) => setDateRange({ ...dateRange, field: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="created_at">创建时间</option>
-                    <option value="updated_at">更新时间</option>
-                  </select>
-                  <input
+                  <Select value={dateRange.field} onValueChange={(v) => setDateRange({ ...dateRange, field: v })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="选择字段" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="created_at">创建时间</SelectItem>
+                      <SelectItem value="updated_at">更新时间</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
                     type="date"
                     value={dateRange.start}
                     onChange={(e) => {
                       setDateRange({ ...dateRange, start: e.target.value })
                       setCurrentPage(1)
                     }}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500"
                     placeholder="开始日期"
                   />
-                  <input
+                  <Input
                     type="date"
                     value={dateRange.end}
                     onChange={(e) => {
                       setDateRange({ ...dateRange, end: e.target.value })
                       setCurrentPage(1)
                     }}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500"
                     placeholder="结束日期"
                   />
                 </div>
@@ -433,44 +440,33 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   排序方式
                 </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm sm:text-base"
-                >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setCurrentPage(1) }}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="选择排序" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   排序顺序
                 </label>
-                <select
-                  value={sortOrder}
-                  onChange={(e) => {
-                    setSortOrder(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm sm:text-base"
-                >
-                  <option value="desc">降序（新到旧）</option>
-                  <option value="asc">升序（旧到新）</option>
-                </select>
+                <Select value={sortOrder} onValueChange={(v) => { setSortOrder(v); setCurrentPage(1) }}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="选择顺序" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">降序（新到旧）</SelectItem>
+                    <SelectItem value="asc">升序（旧到新）</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="w-full sm:w-auto">
-                <button
-                  onClick={handleReset}
-                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm sm:text-base"
-                >
-                  🔄 重置
-                </button>
+                <Button variant="outline" onClick={handleReset}>🔄 重置</Button>
               </div>
             </div>
           </div>
@@ -488,12 +484,7 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               <div className="text-6xl mb-4">⚠️</div>
               <p className="text-gray-700 text-lg font-medium mb-2">搜索出错</p>
               <p className="text-gray-500 text-sm mb-4">{error}</p>
-              <button
-                onClick={handleRetry}
-                className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                🔄 重试
-              </button>
+              <Button onClick={handleRetry}>🔄 重试</Button>
             </div>
           ) : (
             <>
@@ -583,10 +574,7 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {searchResults.map(article => (
-                    <div
-                      key={article.id}
-                      className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all hover:border-primary-300 active:scale-[0.98]"
-                    >
+                    <MotionCard key={article.id} className="border border-gray-200 p-3 sm:p-4">
                       <div className="flex items-start justify-between mb-2">
                         <h4
                           className="font-semibold text-sm sm:text-base text-gray-900 line-clamp-2 flex-1 pr-2 cursor-pointer hover:text-primary-600 transition-colors"
@@ -638,35 +626,17 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                       {(onEdit || onMove || onDelete) && (
                         <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                           {onMove && (
-                            <button
-                              onClick={() => onMove(article)}
-                              className="px-2 py-1 text-purple-600 hover:bg-purple-50 rounded transition-colors text-xs"
-                              title="移动到其他分类"
-                            >
-                              📁 移动
-                            </button>
+                            <Button variant="ghost" className="text-purple-600" onClick={() => onMove(article)} title="移动到其他分类">📁 移动</Button>
                           )}
                           {onEdit && (
-                            <button
-                              onClick={() => onEdit(article)}
-                              className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors text-xs"
-                              title="编辑"
-                            >
-                              ✏️ 编辑
-                            </button>
+                            <Button variant="ghost" className="text-blue-600" onClick={() => onEdit(article)} title="编辑">✏️ 编辑</Button>
                           )}
                           {onDelete && (
-                            <button
-                              onClick={() => onDelete(article.id)}
-                              className="px-2 py-1 text-red-600 hover:bg-red-50 rounded transition-colors text-xs"
-                              title="删除"
-                            >
-                              🗑️ 删除
-      </button>
+                            <Button variant="ghost" className="text-red-600" onClick={() => onDelete(article.id)} title="删除">🗑️ 删除</Button>
                           )}
                         </div>
                       )}
-                    </div>
+                    </MotionCard>
                   ))}
                 </div>
               )}
@@ -674,14 +644,10 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               {/* 分页 */}
               {getTotalPages() > 1 && (
                 <div className="mt-4 sm:mt-6 flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={prevPage}
-                    disabled={currentPage === 1}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base"
-                  >
+                  <Button variant="outline" onClick={prevPage} disabled={currentPage === 1}>
                     <span className="hidden sm:inline">← 上一页</span>
                     <span className="sm:hidden">←</span>
-                  </button>
+                  </Button>
 
                   {[...Array(Math.min(getTotalPages(), 5))].map((_, i) => {
                     let pageNum
@@ -697,28 +663,20 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                     }
 
                     return (
-                      <button
+                      <Button
                         key={i}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
                         onClick={() => goToPage(pageNum)}
-                        className={`px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg transition-colors text-xs sm:text-base ${
-                          currentPage === pageNum
-                            ? 'bg-primary-500 text-white border-primary-500'
-                            : 'border-gray-300 hover:bg-gray-50'
-                        }`}
                       >
                         {pageNum}
-                      </button>
+                      </Button>
                     )
                   })}
 
-                  <button
-                    onClick={nextPage}
-                    disabled={currentPage === getTotalPages()}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base"
-                  >
+                  <Button variant="outline" onClick={nextPage} disabled={currentPage === getTotalPages()}>
                     <span className="hidden sm:inline">下一页 →</span>
                     <span className="sm:hidden">→</span>
-                  </button>
+                  </Button>
 
                   <div className="text-sm text-gray-600 ml-4">
                     共 {totalResults} 条结果
@@ -731,12 +689,7 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
 
         {/* 底部操作栏 */}
         <div className="p-3 sm:p-4 border-t border-gray-200 flex items-center justify-end gap-2 sm:gap-3 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm sm:text-base"
-          >
-            关闭
-          </button>
+          <Button variant="outline" onClick={onClose}>关闭</Button>
         </div>
       </div>
     </div>

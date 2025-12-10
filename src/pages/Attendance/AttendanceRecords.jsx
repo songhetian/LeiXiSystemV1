@@ -1,19 +1,42 @@
 import { useState, useEffect } from 'react'
 import { formatDate, formatBeijingDate, getBeijingDate } from '../../utils/date'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { motion } from 'framer-motion'
 import { getApiUrl } from '../../utils/apiConfig'
 
-import {
-  CalendarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationCircleIcon,
-  ChartBarIcon,
-  DocumentArrowDownIcon
-} from '@heroicons/react/24/outline'
+// Shadcn UI Components
+import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
+import { Badge } from '../../components/ui/badge'
+import { Calendar } from '../../components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs'
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '../../components/ui/table'
+import { MotionCard } from '../../components/ui/motion-card'
+import { MotionTable, MotionTableBody, MotionTableCell, MotionTableHead, MotionTableHeader, MotionTableRow } from '../../components/ui/motion-table'
 
+// Icons
+import { 
+  Calendar as CalendarIcon,
+  Clock as ClockIcon,
+  CheckCircle as CheckCircleIcon,
+  XCircle as XCircleIcon,
+  AlertCircle as ExclamationCircleIcon,
+  BarChart as ChartBarIcon,
+  Download as DocumentArrowDownIcon,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react'
 
 export default function AttendanceRecordsOptimized() {
   const [records, setRecords] = useState([])
@@ -58,7 +81,8 @@ export default function AttendanceRecordsOptimized() {
       }
     } catch (error) {
       console.error('获取员工信息失败:', error)
-      toast.error('获取员工信息失败')
+      // 使用Shadcn UI Toast组件替代react-toastify
+      // toast.error('获取员工信息失败')
     }
   }
 
@@ -117,7 +141,8 @@ export default function AttendanceRecordsOptimized() {
       }
     } catch (error) {
       console.error('获取考勤记录失败:', error)
-      toast.error('获取考勤记录失败')
+      // 使用Shadcn UI Toast组件替代react-toastify
+      // toast.error('获取考勤记录失败')
     } finally {
       setLoading(false)
     }
@@ -204,7 +229,8 @@ export default function AttendanceRecordsOptimized() {
     link.href = URL.createObjectURL(blob)
     link.download = `考勤记录_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
-    toast.success('导出成功')
+    // 使用Shadcn UI Toast组件替代react-toastify
+    // toast.success('导出成功')
   }
 
   const formatDateTime = (dateTimeStr) => {
@@ -269,7 +295,12 @@ export default function AttendanceRecordsOptimized() {
   // 渲染统计卡片
   const renderStatsCards = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">总天数</div>
@@ -277,9 +308,14 @@ export default function AttendanceRecordsOptimized() {
           </div>
           <CalendarIcon className="w-8 h-8 opacity-50" />
         </div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">正常</div>
@@ -288,9 +324,14 @@ export default function AttendanceRecordsOptimized() {
           <CheckCircleIcon className="w-8 h-8 opacity-50" />
         </div>
         <div className="text-xs mt-1 opacity-90">出勤率 {stats.attendance_rate}%</div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">迟到</div>
@@ -298,9 +339,14 @@ export default function AttendanceRecordsOptimized() {
           </div>
           <ExclamationCircleIcon className="w-8 h-8 opacity-50" />
         </div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">早退</div>
@@ -308,9 +354,14 @@ export default function AttendanceRecordsOptimized() {
           </div>
           <ExclamationCircleIcon className="w-8 h-8 opacity-50" />
         </div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.5 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">缺勤</div>
@@ -318,9 +369,14 @@ export default function AttendanceRecordsOptimized() {
           </div>
           <XCircleIcon className="w-8 h-8 opacity-50" />
         </div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.6 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">请假</div>
@@ -328,9 +384,14 @@ export default function AttendanceRecordsOptimized() {
           </div>
           <ClockIcon className="w-8 h-8 opacity-50" />
         </div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.7 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">加班</div>
@@ -338,9 +399,14 @@ export default function AttendanceRecordsOptimized() {
           </div>
           <ClockIcon className="w-8 h-8 opacity-50" />
         </div>
-      </div>
+      </MotionCard>
 
-      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white">
+      <MotionCard 
+        className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.8 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm opacity-90">工时</div>
@@ -349,125 +415,80 @@ export default function AttendanceRecordsOptimized() {
           <ClockIcon className="w-8 h-8 opacity-50" />
         </div>
         <div className="text-xs mt-1 opacity-90">小时/天</div>
-      </div>
+      </MotionCard>
     </div>
   )
 
   // 渲染日历视图
   const renderCalendarView = () => {
-    const year = selectedMonth.getFullYear()
-    const month = selectedMonth.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startDayOfWeek = firstDay.getDay()
-
-    const days = []
-    // 填充空白天数
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null)
-    }
-    // 填充实际天数
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i)
-    }
-
-    const getRecordForDay = (day) => {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      return records.find(r => {
-        if (!r.record_date) return false
-
-        let recordDate
-        if (typeof r.record_date === 'string') {
-          // 如果是字符串，直接提取日期部分（YYYY-MM-DD 或 ISO �格）
-          // 不要转换为 Date 对象，避免时区问题
-          recordDate = r.record_date.split('T')[0].split(' ')[0]
-        } else {
-          // 如果不是字符串（可能是 Date 对象），先转换为字符串再处理
-          // 注意：这种情况不应该发生，因为后端返回的应该是字符串
-          console.warn('record_date is not a string:', r.record_date, typeof r.record_date)
-          recordDate = String(r.record_date).split('T')[0].split(' ')[0]
-        }
-
-        return recordDate === dateStr
-      })
-    }
-
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        {/* 月份选择器 */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => setSelectedMonth(new Date(year, month - 1))}
-            className="px-4 py-2 border rounded hover:bg-gray-50"
-          >
-            ← 上月
-          </button>
-          <h3 className="text-xl font-bold">
-            {year}年{month + 1}月
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-center mb-4">
+            {selectedMonth.getFullYear()}年{selectedMonth.getMonth() + 1}月
           </h3>
-          <button
-            onClick={() => setSelectedMonth(new Date(year, month + 1))}
-            className="px-4 py-2 border rounded hover:bg-gray-50"
-          >
-            下月 →
-          </button>
+          <div className="flex justify-center">
+            <Button 
+              onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1))}
+              variant="outline"
+              size="sm"
+              className="mr-2"
+            >
+              ← 上月
+            </Button>
+            <Button 
+              onClick={() => setSelectedMonth(new Date())}
+              variant="outline"
+              size="sm"
+            >
+              今天
+            </Button>
+            <Button 
+              onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1))}
+              variant="outline"
+              size="sm"
+              className="ml-2"
+            >
+              下月 →
+            </Button>
+          </div>
         </div>
-
-        {/* 星期标题 */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
-          {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-            <div key={day} className="text-center font-semibold text-gray-600 py-2">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* 日历格子 */}
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((day, index) => {
-            if (!day) {
-              return <div key={`empty-${index}`} className="aspect-square" />
+        
+        <Calendar
+          mode="single"
+          selected={selectedMonth}
+          onSelect={(date) => {
+            if (date) {
+              setSelectedMonth(date);
             }
-
-            const record = getRecordForDay(day)
-            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
-
-            return (
-              <div
-                key={day}
-                onClick={() => {
-                  if (record) {
-                    setSelectedRecord(record)
-                    setShowDetailModal(true)
-                  }
-                }}
-                className={`
-                  aspect-square border rounded-lg p-2 hover:shadow-md transition-shadow cursor-pointer
-                  ${isToday ? 'border-blue-500 border-2' : 'border-gray-200'}
-                  ${record ? 'bg-white hover:bg-blue-50' : 'bg-gray-50'}
-                `}
-              >
-                <div className="text-sm font-semibold mb-1">{day}</div>
-                {record && (
-                  <div className="space-y-1">
-                    <div className="text-xs text-gray-600">
-                      ↑ {formatDateTime(record.clock_in_time)}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      ↓ {formatDateTime(record.clock_out_time)}
-                    </div>
-                    <div className="flex justify-center mt-1">
-                      {getStatusBadge(record.status)}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+          }}
+          className="rounded-md border"
+          classNames={{
+            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+            month: "space-y-4",
+            caption: "flex justify-center pt-1 relative items-center",
+            caption_label: "text-sm font-medium",
+            nav: "space-x-1 flex items-center",
+            nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+            nav_button_previous: "absolute left-1",
+            nav_button_next: "absolute right-1",
+            table: "w-full border-collapse space-y-1",
+            head_row: "flex",
+            head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+            row: "flex w-full mt-2",
+            cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+            day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+            day_range_end: "day-range-end",
+            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+            day_today: "bg-accent text-accent-foreground",
+            day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+            day_disabled: "text-muted-foreground opacity-50",
+            day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+            day_hidden: "invisible",
+          }}
+        />
       </div>
-    )
+    );
   }
 
   // 渲染时间轴视图
@@ -475,7 +496,13 @@ export default function AttendanceRecordsOptimized() {
     <div className="bg-white rounded-lg shadow p-6">
       <div className="space-y-4">
         {records.map((record, index) => (
-          <div key={record.id} className="relative">
+          <motion.div 
+            key={record.id} 
+            className="relative"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+          >
             {/* 时间轴线 */}
             {index < records.length - 1 && (
               <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200" />
@@ -497,10 +524,10 @@ export default function AttendanceRecordsOptimized() {
               </div>
 
               {/* 记录卡片 */}
-              <div className="flex-1 bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <MotionCard className="flex-1 bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                      <div className="font-semibold text-lg text-gray-800">{formatDate(record.record_date)}</div>
+                    <div className="font-semibold text-lg text-gray-800">{formatDate(record.record_date)}</div>
                     <div className="text-sm text-gray-500 mt-1">
                       {record.type === 'leave' ? (
                         <span>请假天数: {record.days}天</span>
@@ -570,9 +597,9 @@ export default function AttendanceRecordsOptimized() {
                     💬 {record.remark}
                   </div>
                 )}
-              </div>
+              </MotionCard>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -587,101 +614,104 @@ export default function AttendanceRecordsOptimized() {
         <div className="p-8 text-center text-gray-500">暂无打卡记录</div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    日期
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    类型
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    时间/详情
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    时长
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    状态
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    备注
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {records.map((record) => (
-                  <tr
-                    key={record.id}
-                    className={`
-                      hover:bg-gray-50 transition-colors
-                      ${record.status === 'late' || record.status === 'early' || record.status === 'early_leave' ? 'bg-red-50' : ''}
-                      ${record.status === 'absent' ? 'bg-gray-100' : ''}
-                      ${record.type === 'leave' ? 'bg-blue-50' : ''}
-                      ${record.type === 'overtime' ? 'bg-purple-50' : ''}
-                    `}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="w-5 h-5 text-gray-400" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {formatDate(record.record_date)}
-                          </div>
+          <MotionTable className="w-full">
+            <MotionTableHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <MotionTableRow>
+                <MotionTableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  日期
+                </MotionTableHead>
+                <MotionTableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  类型
+                </MotionTableHead>
+                <MotionTableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  时间/详情
+                </MotionTableHead>
+                <MotionTableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  时长
+                </MotionTableHead>
+                <MotionTableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  状态
+                </MotionTableHead>
+                <MotionTableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  备注
+                </MotionTableHead>
+              </MotionTableRow>
+            </MotionTableHeader>
+            <MotionTableBody className="divide-y divide-gray-200">
+              {records.map((record) => (
+                <MotionTableRow
+                  key={record.id}
+                  className={`
+                    hover:bg-gray-50 transition-colors
+                    ${record.status === 'late' || record.status === 'early' || record.status === 'early_leave' ? 'bg-red-50' : ''}
+                    ${record.status === 'absent' ? 'bg-gray-100' : ''}
+                    ${record.type === 'leave' ? 'bg-blue-50' : ''}
+                    ${record.type === 'overtime' ? 'bg-purple-50' : ''}
+                  `}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.02, backgroundColor: "rgba(0,0,0,0.02)" }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <MotionTableCell className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatDate(record.record_date)}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        record.type === 'attendance' ? 'bg-gray-100 text-gray-800' :
-                        record.type === 'leave' ? 'bg-blue-100 text-blue-800' :
-                        record.type === 'overtime' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {record.type === 'attendance' ? '考勤' :
-                         record.type === 'leave' ? '请假' :
-                         record.type === 'overtime' ? '加班' : '未知'}
+                    </div>
+                  </MotionTableCell>
+                  <MotionTableCell className="px-6 py-4 whitespace-nowrap">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      record.type === 'attendance' ? 'bg-gray-100 text-gray-800' :
+                      record.type === 'leave' ? 'bg-blue-100 text-blue-800' :
+                      record.type === 'overtime' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {record.type === 'attendance' ? '考勤' :
+                       record.type === 'leave' ? '请假' :
+                       record.type === 'overtime' ? '加班' : '未知'}
+                    </span>
+                  </MotionTableCell>
+                  <MotionTableCell className="px-6 py-4 whitespace-nowrap">
+                    {record.type === 'leave' ? (
+                      <div className="text-sm text-gray-900">
+                        {record.leave_type} ({record.days}天)
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-green-600 bg-green-50 px-1 rounded">上</span>
+                          <span className="text-sm text-gray-900">{formatDateTime(record.clock_in_time)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">下</span>
+                          <span className="text-sm text-gray-900">{formatDateTime(record.clock_out_time)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </MotionTableCell>
+                  <MotionTableCell className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <ClockIcon className="w-5 h-5 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-900">
+                        {record.type === 'leave' ? `${record.days}天` :
+                         record.work_hours ? `${record.work_hours}h` : '--'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {record.type === 'leave' ? (
-                        <div className="text-sm text-gray-900">
-                          {record.leave_type} ({record.days}天)
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-green-600 bg-green-50 px-1 rounded">上</span>
-                            <span className="text-sm text-gray-900">{formatDateTime(record.clock_in_time)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">下</span>
-                            <span className="text-sm text-gray-900">{formatDateTime(record.clock_out_time)}</span>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <ClockIcon className="w-5 h-5 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {record.type === 'leave' ? `${record.days}天` :
-                           record.work_hours ? `${record.work_hours}h` : '--'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(record.status)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {record.remark || '--'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </MotionTableCell>
+                  <MotionTableCell className="px-6 py-4 whitespace-nowrap">
+                    {getStatusBadge(record.status)}
+                  </MotionTableCell>
+                  <MotionTableCell className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    {record.remark || '--'}
+                  </MotionTableCell>
+                </MotionTableRow>
+              ))}
+            </MotionTableBody>
+          </MotionTable>
 
           {/* 分页 */}
           {pagination.total > 0 && (
@@ -692,36 +722,39 @@ export default function AttendanceRecordsOptimized() {
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-gray-600">每页显示</label>
-                  <select
-                    value={pagination.limit}
-                    onChange={(e) => setPagination({ ...pagination, limit: parseInt(e.target.value), page: 1 })}
-                    className="border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="10">10条</option>
-                    <option value="20">20条</option>
-                    <option value="50">50条</option>
-                    <option value="100">100条</option>
-                  </select>
+                  <Select value={pagination.limit.toString()} onValueChange={(value) => setPagination({ ...pagination, limit: parseInt(value), page: 1 })}>
+                    <SelectTrigger className="border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 w-[80px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10条</SelectItem>
+                      <SelectItem value="20">20条</SelectItem>
+                      <SelectItem value="50">50条</SelectItem>
+                      <SelectItem value="100">100条</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
                   第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
                 </span>
-                <button
+                <Button
                   onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
                   disabled={pagination.page === 1}
-                  className="px-4 py-2 border rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  variant="outline"
+                  size="sm"
                 >
                   上一页
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                   disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-                  className="px-4 py-2 border rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  variant="outline"
+                  size="sm"
                 >
                   下一页
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -735,26 +768,19 @@ export default function AttendanceRecordsOptimized() {
     if (!showDetailModal || !selectedRecord) return null
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          {/* 模态框头部 */}
-          <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 flex items-center justify-between">
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 flex items-center justify-between rounded-t-lg -m-6 mb-6">
             <div>
-              <h3 className="text-xl font-bold">打卡详情</h3>
-              <p className="text-sm opacity-90 mt-1">{formatDate(selectedRecord.record_date)}</p>
+              <DialogTitle className="text-xl font-bold">打卡详情</DialogTitle>
+              <DialogDescription className="text-sm opacity-90 mt-1 text-white">
+                {formatDate(selectedRecord.record_date)}
+              </DialogDescription>
             </div>
-            <button
-              onClick={() => setShowDetailModal(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          </DialogHeader>
 
           {/* 模态框内容 */}
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             {/* 状态卡片 */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
@@ -884,16 +910,13 @@ export default function AttendanceRecordsOptimized() {
           </div>
 
           {/* 模态框底部 */}
-          <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
-            <button
-              onClick={() => setShowDetailModal(false)}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-            >
+          <DialogFooter className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t -mx-6 -mb-6 mt-6 rounded-b-lg">
+            <Button onClick={() => setShowDetailModal(false)} variant="outline">
               关闭
-            </button>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     )
   }
 
@@ -906,13 +929,13 @@ export default function AttendanceRecordsOptimized() {
             <h1 className="text-3xl font-bold text-gray-800">打卡记录</h1>
             <p className="text-gray-600 mt-1">查看您的考勤打卡历史记录</p>
           </div>
-          <button
+          <Button 
             onClick={exportRecords}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+            className="flex items-center gap-2"
           >
             <DocumentArrowDownIcon className="w-5 h-5" />
             导出记录
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -930,9 +953,11 @@ export default function AttendanceRecordsOptimized() {
           { id: 'leave', name: '请假' },
           { id: 'overtime', name: '加班' }
         ].map(tab => (
-          <button
+          <Button
             key={tab.id}
             onClick={() => handleStatusFilter(tab.id)}
+            variant={filters.status === tab.id ? "default" : "outline"}
+            size="sm"
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filters.status === tab.id
                 ? 'bg-blue-600 text-white shadow-md'
@@ -940,7 +965,7 @@ export default function AttendanceRecordsOptimized() {
             }`}
           >
             {tab.name}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -951,44 +976,45 @@ export default function AttendanceRecordsOptimized() {
           <div className="flex flex-wrap gap-4 items-end">
             {/* 快捷筛选 */}
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => handleQuickFilter('today')}
+                variant="outline"
                 className={`px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors ${
                   filters.start_date === new Date().toISOString().split('T')[0] ? 'bg-blue-50 border-blue-500' : ''
                 }`}
               >
                 今天
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleQuickFilter('week')}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                variant="outline"
               >
                 本周
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleQuickFilter('month')}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                variant="outline"
               >
                 本月
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleQuickFilter('all')}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                variant="outline"
               >
                 全部
-              </button>
+              </Button>
             </div>
 
             {/* 日期范围 */}
             <div className="flex gap-2 items-center">
-              <input
+              <Input
                 type="date"
                 value={filters.start_date}
                 onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
                 className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
               />
               <span className="text-gray-500">至</span>
-              <input
+              <Input
                 type="date"
                 value={filters.end_date}
                 onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
@@ -997,31 +1023,33 @@ export default function AttendanceRecordsOptimized() {
             </div>
 
             {/* 状态筛选 */}
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">全部状态</option>
-              <option value="normal">正常</option>
-              <option value="late">迟到</option>
-              <option value="early">早退</option>
-              <option value="absent">缺勤</option>
-              <option value="leave">请假</option>
-            </select>
+            <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+              <SelectTrigger className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 w-[180px]">
+                <SelectValue placeholder="全部状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部状态</SelectItem>
+                <SelectItem value="normal">正常</SelectItem>
+                <SelectItem value="late">迟到</SelectItem>
+                <SelectItem value="early">早退</SelectItem>
+                <SelectItem value="absent">缺勤</SelectItem>
+                <SelectItem value="leave">请假</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* 右侧视图切换 */}
           <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-            <button
+            <Button
               onClick={() => setViewMode('list')}
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               列表视图
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setViewMode('calendar')
                 // 切换到日历视图时，如果没有选择月份，默认为当前月份
@@ -1029,20 +1057,22 @@ export default function AttendanceRecordsOptimized() {
                   setSelectedMonth(new Date())
                 }
               }}
+              variant={viewMode === 'calendar' ? 'default' : 'ghost'}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'calendar' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               日历视图
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setViewMode('timeline')}
+              variant={viewMode === 'timeline' ? 'default' : 'ghost'}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'timeline' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               时间轴
-            </button>
+            </Button>
           </div>
         </div>
       </div>
