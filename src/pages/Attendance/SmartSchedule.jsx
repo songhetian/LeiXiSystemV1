@@ -140,7 +140,7 @@ const SmartSchedule = () => {
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await axios.get(getApiUrl('/api/shifts/rest'), { headers });
-      if (response.data.success) {  
+      if (response.data.success) {
         setRestShiftId(response.data.data.id);
       }
     } catch (error) {
