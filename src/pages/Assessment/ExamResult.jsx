@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, message, Spin, Typography, Tag, Descriptions } from 'antd';
-import { ArrowLeftOutlined, EyeOutlined, RedoOutlined } from '@ant-design/icons';
+import { ArrowLeft, Eye, RotateCcw } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Pie, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title as ChartTitle } from 'chart.js';
+import { toast } from 'react-toastify';
 import './ExamResult.css';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartTitle);
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 
-const { Title, Text, Paragraph } = Typography;
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartTitle);
 
 const ExamResult = () => {
   const { resultId } = useParams();
@@ -32,7 +35,7 @@ const ExamResult = () => {
       setExamResult(payload.result_summary);
       setDetailedQuestions(payload.detailed_questions || []);
     } catch (error) {
-      message.error(`获取考试结果失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`获取考试结果失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to fetch exam result:', error);
       navigate('/assessment/my-exams'); // Go back if failed to load result
     } finally {
@@ -115,8 +118,9 @@ const ExamResult = () => {
   if (loading) {
     return (
       <div className="exam-result-page">
-        <div className="loading-container">
-          <Spin className="loading-spinner" size="large" tip="加载中..." />
+        <div className="loading-container flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-3 text-lg">加载中...</span>
         </div>
       </div>
     );
@@ -126,79 +130,125 @@ const ExamResult = () => {
     return (
       <div className="exam-result-page">
         <div className="empty-state">
-          <Card title="考试结果">
-            <p>无法加载考试结果。</p>
-            <Button type="primary" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
-              返回我的考试
-            </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>考试结果</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">无法加载考试结果。</p>
+              <Button onClick={() => navigate('/assessment/my-exams')} className="flex items-center">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                返回我的考试
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </div>
     );
   }
 
-  const { exam_title, user_score, exam_total_score, is_passed, duration, plan_id } = examResult;
+  const { exam_title, user_score, exam_total_score, is_passed, duration, plan_id, correct_rate, time_taken, rank, attempt_count, max_attempts } = examResult;
   const score = user_score;
   const total_score = exam_total_score;
   const canRetake = true;
 
   return (
-    <div className="exam-result-page">
-      <Card className="exam-result-card" title={<Title level={3}>考试结果 - {exam_title}</Title>}>
-        {/* 成绩卡片 */}
-        <Card className="score-summary-card">
-          <Space direction="vertical" style={{ width: '100%', textAlign: 'center' }}>
-            <Title className="score-title">
-              {score !== null ? score.toFixed(2) : '待评分'} / {total_score}
-            </Title>
-            <Tag className="score-status-tag" color={is_passed ? 'success' : 'error'}>
-              {is_passed ? '通过' : '未通过'}
-            </Tag>
-            <Descriptions className="score-descriptions" column={2} bordered style={{ width: '100%', marginTop: 16 }}>
-              <Descriptions.Item label="正确率">{correct_rate !== null ? `${(correct_rate * 100).toFixed(2)}%` : '-'}</Descriptions.Item>
-              <Descriptions.Item label="用时">{time_taken !== null ? `${Math.floor(time_taken / 60)}分${time_taken % 60}秒` : '-'}</Descriptions.Item>
-              <Descriptions.Item label="排名">{rank !== null ? rank : '-'}</Descriptions.Item>
-              <Descriptions.Item label="尝试次数">{attempt_count} / {max_attempts}</Descriptions.Item>
-            </Descriptions>
-          </Space>
-        </Card>
-
-        {/* 答题统计 */}
-        <div className="charts-container">
-          <Card className="chart-card" title="各题型正确率">
-            <div className="chart-container">
-              {getCorrectRateByQuestionType().labels.length > 0 ? (
-                <Pie data={getCorrectRateByQuestionType()} options={{ responsive: true, maintainAspectRatio: false }} />
-              ) : (
-                <Paragraph>暂无题型正确率数据。</Paragraph>
-              )}
-            </div>
+    <div className="exam-result-page p-6">
+      <Card className="exam-result-card">
+        <CardHeader>
+          <CardTitle className="text-xl">考试结果 - {exam_title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* 成绩卡片 */}
+          <Card className="score-summary-card mb-6">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center">
+                <div className="text-4xl font-bold mb-2">
+                  {score !== null ? score.toFixed(2) : '待评分'} / {total_score}
+                </div>
+                <Badge variant={is_passed ? "default" : "destructive"} className="mb-4">
+                  {is_passed ? '通过' : '未通过'}
+                </Badge>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md">
+                  <div className="border rounded-lg p-3">
+                    <div className="text-sm text-gray-500">正确率</div>
+                    <div className="font-semibold">
+                      {correct_rate !== null ? `${(correct_rate * 100).toFixed(2)}%` : '-'}
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-sm text-gray-500">用时</div>
+                    <div className="font-semibold">
+                      {time_taken !== null ? `${Math.floor(time_taken / 60)}分${time_taken % 60}秒` : '-'}
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-sm text-gray-500">排名</div>
+                    <div className="font-semibold">
+                      {rank !== null ? rank : '-'}
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <div className="text-sm text-gray-500">尝试次数</div>
+                    <div className="font-semibold">
+                      {attempt_count} / {max_attempts}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
           </Card>
-          <Card className="chart-card" title="分数分布">
-            <div className="chart-container">
-              {getScoreDistribution().labels.length > 0 ? (
-                <Bar data={getScoreDistribution()} options={{ responsive: true, maintainAspectRatio: false }} />
-              ) : (
-                <Paragraph>暂无分数分布数据。</Paragraph>
-              )}
-            </div>
-          </Card>
-        </div>
 
-        {/* 操作按钮 */}
-        <div className="button-group">
-          <Button className="result-action-btn btn-view-details" icon={<EyeOutlined />} onClick={() => navigate(`/assessment/results/${resultId}/answers`)}>
-            查看答题详情
-          </Button>
-          <Button className="result-action-btn btn-back" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
-            返回我的考试
-          </Button>
-          {canRetake && (
-            <Button className="result-action-btn btn-retake" icon={<RedoOutlined />} onClick={() => navigate(`/assessment/instructions/${plan_id}`)}>
-              再次考试
+          {/* 答题统计 */}
+          <div className="charts-container grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card className="chart-card">
+              <CardHeader>
+                <CardTitle>各题型正确率</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="chart-container h-64">
+                  {getCorrectRateByQuestionType().labels.length > 0 ? (
+                    <Pie data={getCorrectRateByQuestionType()} options={{ responsive: true, maintainAspectRatio: false }} />
+                  ) : (
+                    <p className="text-center text-gray-500">暂无题型正确率数据。</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="chart-card">
+              <CardHeader>
+                <CardTitle>分数分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="chart-container h-64">
+                  {getScoreDistribution().labels.length > 0 ? (
+                    <Bar data={getScoreDistribution()} options={{ responsive: true, maintainAspectRatio: false }} />
+                  ) : (
+                    <p className="text-center text-gray-500">暂无分数分布数据。</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="button-group flex flex-wrap gap-3">
+            <Button className="result-action-btn" onClick={() => navigate(`/assessment/results/${resultId}/answers`)} variant="default">
+              <Eye className="mr-2 h-4 w-4" />
+              查看答题详情
             </Button>
-          )}
-        </div>
+            <Button className="result-action-btn" onClick={() => navigate('/assessment/my-exams')} variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回我的考试
+            </Button>
+            {canRetake && (
+              <Button className="result-action-btn" onClick={() => navigate(`/assessment/instructions/${plan_id}`)} variant="secondary">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                再次考试
+              </Button>
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

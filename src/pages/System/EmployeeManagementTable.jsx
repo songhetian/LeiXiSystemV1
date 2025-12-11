@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet } from '../../utils/apiClient';

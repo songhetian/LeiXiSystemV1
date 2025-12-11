@@ -1,18 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import {
-  ArrowLeftOutlined,
-  MoreOutlined,
-  SmileOutlined,
-  AudioOutlined,
-  PhoneOutlined,
-  VideoCameraOutlined,
-  PictureOutlined,
-  FileOutlined,
-  CameraOutlined,
-  EnvironmentOutlined,
-} from '@ant-design/icons';
 import { tokenManager, apiGet, apiPost } from '../../utils/apiClient';
 import './WeChatPage.css';
+
+// 导入 shadcn UI 组件
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 
 const BroadcastPage = () => {
   // 广播相关状态
@@ -308,68 +301,59 @@ const BroadcastPage = () => {
         <div className="sidebar-search">
           {/* Type Selection Buttons - 放在独立的一行 */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <button
+            <Button
               onClick={() => setSearchType('department')}
+              variant={searchType === 'department' ? 'default' : 'outline'}
               style={{
                 flex: 1,
                 padding: '8px 4px', // 减小高度
-                backgroundColor: searchType === 'department' ? '#07c160' : '#f0f0f0',
-                color: searchType === 'department' ? 'white' : '#333',
-                border: 'none',
                 borderRadius: '6px', // 圆角
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
                 fontSize: '14px',
-                cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
               onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
               onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
             >
               部门
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setSearchType('individual')}
+              variant={searchType === 'individual' ? 'default' : 'outline'}
               style={{
                 flex: 1,
                 padding: '8px 4px', // 减小高度
-                backgroundColor: searchType === 'individual' ? '#07c160' : '#f0f0f0',
-                color: searchType === 'individual' ? 'white' : '#333',
-                border: 'none',
                 borderRadius: '6px', // 圆角
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
                 fontSize: '14px',
-                cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
               onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
               onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
             >
               个人
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setSearchType('all')}
+              variant={searchType === 'all' ? 'default' : 'outline'}
               style={{
                 flex: 1,
                 padding: '8px 4px', // 减小高度
-                backgroundColor: searchType === 'all' ? '#07c160' : '#f0f0f0',
-                color: searchType === 'all' ? 'white' : '#333',
-                border: 'none',
                 borderRadius: '6px', // 圆角
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
                 fontSize: '14px',
-                cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
               onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
               onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
             >
               全体
-            </button>
+            </Button>
           </div>
 
           {/* 搜索框 - 独立放在第二行 */}
           <div style={{ marginBottom: '12px' }}>
-            <input
+            <Input
               type="text"
               placeholder={`搜索${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}...`}
               value={searchContact}
@@ -380,7 +364,7 @@ const BroadcastPage = () => {
 
             {/* 部门搜索框 - 仅在搜索个人时显示 */}
             {searchType === 'individual' && (
-              <input
+              <Input
                 type="text"
                 placeholder="按部门筛选..."
                 value={searchDepartment}
@@ -561,7 +545,7 @@ const BroadcastPage = () => {
           <div className="input-controls">
             {/* 去除了+按钮 */}
             <div className="input-wrapper">
-              <textarea
+              <Textarea
                 placeholder="请输入广播内容..."
                 value={broadcastContent}
                 onChange={(e) => setBroadcastContent(e.target.value)}
@@ -582,13 +566,13 @@ const BroadcastPage = () => {
                 }}
               />
             </div>
-            <button
+            <Button
               className="send-btn"
               onClick={handleSendBroadcast}
               disabled={!broadcastContent.trim() || selectedRecipients.length === 0}
             >
               发送
-            </button>
+            </Button>
           </div>
         </div>
       </div>

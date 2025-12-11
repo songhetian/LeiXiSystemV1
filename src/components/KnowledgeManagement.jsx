@@ -4,6 +4,12 @@ import axios from 'axios'
 import { categoryIcons } from '../utils/iconOptions'
 import { getApiUrl } from '../utils/apiConfig'
 
+// 导入 shadcn UI 组件
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
+
 
 const KnowledgeManagement = () => {
   const [articles, setArticles] = useState([])
@@ -109,18 +115,18 @@ const KnowledgeManagement = () => {
 
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={() => setShowCategoryModal(true)}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            variant="secondary"
           >
             📁 管理分类
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowTrashModal(true)}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            variant="destructive"
           >
             🗑️ 垃圾箱 ({getDeletedArticles().length})
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -133,30 +139,33 @@ const KnowledgeManagement = () => {
             </div>
             <div className="p-6">
               <form onSubmit={handleCategorySubmit} className="space-y-4 mb-6">
-                <input
+                <Input
                   type="text"
                   required
                   value={categoryFormData.name}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
                   placeholder="分类名称"
                 />
-                <select
+                <Select
                   value={categoryFormData.icon}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, icon: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  onValueChange={(value) => setCategoryFormData({ ...categoryFormData, icon: value })}
                 >
-                  {categoryIcons.map(icon => (
-                    <option key={icon.value} value={icon.value}>{icon.label}</option>
-                  ))}
-                </select>
-                <button
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择图标" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryIcons.map(icon => (
+                      <SelectItem key={icon.value} value={icon.value}>{icon.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  className="w-full"
                 >
                   {editingCategory ? '更新' : '添加'}
-                </button>
+                </Button>
               </form>
 
               <div className="space-y-2">
@@ -174,7 +183,7 @@ const KnowledgeManagement = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         onClick={async () => {
                           if (!window.confirm(
                             cat.is_hidden === 1
@@ -197,15 +206,11 @@ const KnowledgeManagement = () => {
                           }
                         }}
                         disabled={loading}
-                        className={`px-3 py-1.5 text-sm rounded-lg font-medium ${
-                          cat.is_hidden === 1
-                            ? 'bg-green-500 text-white hover:bg-green-600'
-                            : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                        }`}
+                        variant={cat.is_hidden === 1 ? "default" : "secondary"}
                       >
                         {cat.is_hidden === 1 ? '👁️ 显示' : '🔒 隐藏'}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => {
                           setEditingCategory(cat)
                           setCategoryFormData({
@@ -214,25 +219,25 @@ const KnowledgeManagement = () => {
                             icon: cat.icon || '📚'
                           })
                         }}
-                        className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        variant="default"
                       >
                         ✏️ 编辑
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="flex justify-end pt-4 mt-4 border-t">
-                <button
+                <Button
                   onClick={() => {
                     setShowCategoryModal(false)
                     resetCategoryForm()
                   }}
-                  className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+                  variant="outline"
                 >
                   关闭
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -266,30 +271,30 @@ const KnowledgeManagement = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => handleRestoreArticle(article.id)}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                          variant="default"
                         >
                           ↩️ 还原
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => handlePermanentDelete(article.id)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                          variant="destructive"
                         >
                           🗑️ 永久删除
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               <div className="flex justify-end pt-4 mt-4 border-t">
-                <button
+                <Button
                   onClick={() => setShowTrashModal(false)}
-                  className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+                  variant="outline"
                 >
                   关闭
-                </button>
+                </Button>
               </div>
             </div>
           </div>

@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  ArrowLeftOutlined,
-  PlusOutlined,
-  SearchOutlined,
-  UserOutlined,
-  TeamOutlined,
-  CheckOutlined,
-  ContactsOutlined,
-  GroupOutlined,
-} from '@ant-design/icons';
+import { ArrowLeft, Plus, Search, Check, AddressBook, Users } from 'lucide-react';
 import './CreateGroupPage.css';
 
 const CreateGroupPage = () => {
@@ -55,7 +46,7 @@ const CreateGroupPage = () => {
       {/* Header */}
       <div className="create-group-header">
         <button className="header-btn">
-          <ArrowLeftOutlined />
+          <ArrowLeft />
         </button>
         <div className="header-title">
           <h2>群组管理</h2>
@@ -71,14 +62,14 @@ const CreateGroupPage = () => {
           className={`tab-btn ${activeTab === 'create' ? 'active' : ''}`}
           onClick={() => setActiveTab('create')}
         >
-          <PlusOutlined />
+          <Plus />
           <span>创建群组</span>
         </button>
         <button
           className={`tab-btn ${activeTab === 'manage' ? 'active' : ''}`}
           onClick={() => setActiveTab('manage')}
         >
-          <ContactsOutlined />
+          <AddressBook />
           <span>群组管理</span>
         </button>
       </div>
@@ -146,7 +137,7 @@ const CreateGroupPage = () => {
               {/* Search Box */}
               <div className="member-search">
                 <div className="search-input-wrapper">
-                  <SearchOutlined className="search-icon" />
+                  <Search className="search-icon" />
                   <input
                     type="text"
                     className="search-input"
@@ -174,11 +165,11 @@ const CreateGroupPage = () => {
                     </div>
                     {selectedMembers.some(member => member.id === employee.id) ? (
                       <div className="selection-indicator selected">
-                        <CheckOutlined />
+                        <Check />
                       </div>
                     ) : (
                       <div className="selection-indicator">
-                        <PlusOutlined />
+                        <Plus />
                       </div>
                     )}
                   </div>
@@ -208,7 +199,7 @@ const CreateGroupPage = () => {
               {/* Search Box */}
               <div className="group-search">
                 <div className="search-input-wrapper">
-                  <SearchOutlined className="search-icon" />
+                  <Search className="search-icon" />
                   <input
                     type="text"
                     className="search-input"
@@ -241,7 +232,7 @@ const CreateGroupPage = () => {
               {/* Empty State */}
               {existingGroups.length === 0 && (
                 <div className="empty-state">
-                  <GroupOutlined className="empty-icon" />
+                  <Users className="empty-icon" />
                   <p>暂无群组</p>
                   <p className="empty-desc">点击"创建群组"开始创建</p>
                 </div>

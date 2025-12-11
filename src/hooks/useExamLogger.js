@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { message } from 'antd';
+import { toast } from 'react-toastify';
 
 const INACTIVITY_WARNING_TIME = 5 * 60 * 1000; // 5 minutes
 const INACTIVITY_SUBMIT_TIME = 10 * 60 * 1000; // 10 minutes
@@ -38,11 +38,11 @@ const useExamLogger = (resultId, onInactivitySubmit) => {
     activityTimerRef.current = setTimeout(() => {
       const inactiveDuration = Date.now() - lastActivityTimeRef.current;
       if (inactiveDuration >= INACTIVITY_SUBMIT_TIME) {
-        message.error('长时间未操作，考试已自动提交！', 5);
+        toast.error('长时间未操作，考试已自动提交！');
         sendLog('EXAM_AUTO_SUBMIT_INACTIVITY', { duration: inactiveDuration });
         onInactivitySubmitRef.current();
       } else if (inactiveDuration >= INACTIVITY_WARNING_TIME) {
-        message.warning('您已长时间未操作，请尽快继续答题，否则考试将自动提交。', 5);
+        toast.warning('您已长时间未操作，请尽快继续答题，否则考试将自动提交。');
         sendLog('INACTIVITY_WARNING', { duration: inactiveDuration });
         // Reset timer for the next check (e.g., for auto-submit)
         resetActivityTimer();

@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Modal, Tag, message } from 'antd';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import { formatDate } from '../utils/date';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Badge } from './ui/badge';
 
 const BalanceChangeHistory = ({ visible, onClose, employeeId, year }) => {
   const [history, setHistory] = useState([]);
@@ -29,10 +34,10 @@ const BalanceChangeHistory = ({ visible, onClose, employeeId, year }) => {
       if (data.success) {
         setHistory(data.data);
       } else {
-        message.error(data.message || '加载历史记录失败');
+        toast.error(data.message || '加载历史记录失败');
       }
     } catch (error) {
-      message.error('加载历史记录失败');
+      toast.error('加载历史记录失败');
     } finally {
       setLoading(false);
     }
@@ -40,13 +45,13 @@ const BalanceChangeHistory = ({ visible, onClose, employeeId, year }) => {
 
   const getChangeTypeTag = (type) => {
     const map = {
-      'addition': { color: 'green', text: '增加' },
-      'deduction': { color: 'red', text: '扣减' },
-      'conversion': { color: 'blue', text: '转换' },
-      'adjustment': { color: 'orange', text: '调整' }
+      'addition': { variant: 'success', text: '增加' },
+      'deduction': { variant: 'destructive', text: '扣减' },
+      'conversion': { variant: 'default', text: '转换' },
+      'adjustment': { variant: 'secondary', text: '调整' }
     };
-    const config = map[type] || { color: 'default', text: type };
-    return <Tag color={config.color}>{config.text}</Tag>;
+    const config = map[type] || { variant: 'default', text: type };
+    return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
   const getLeaveTypeName = (type) => {
@@ -63,64 +68,52 @@ const BalanceChangeHistory = ({ visible, onClose, employeeId, year }) => {
     return map[type] || type;
   };
 
-  const columns = [
-    {
-      title: '时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (text) => formatDate(text, true) // Assuming formatDate handles datetime or add true for time
-    },
-    {
-      title: '变更类型',
-      dataIndex: 'change_type',
-      key: 'change_type',
-      render: (type) => getChangeTypeTag(type)
-    },
-    {
-      title: '假期类型',
-      dataIndex: 'leave_type',
-      key: 'leave_type',
-      render: (type) => getLeaveTypeName(type)
-    },
-    {
-      title: '变更数量',
-      dataIndex: 'amount',
-      key: 'amount',
-      render: (amount) => (
-        <span className={amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-          {amount > 0 ? '+' : ''}{amount} 天
-        </span>
-      )
-    },
-    {
-      title: '变更后余额',
-      dataIndex: 'balance_after',
-      key: 'balance_after',
-      render: (val) => val != null ? `${val} 天` : '-'
-    },
-    {
-      title: '原因',
-      dataIndex: 'reason',
-      key: 'reason',
-    }
-  ];
+  // Render table rows directly since we're not using Ant Design's Table anymore
+  const renderTableRows = () => {
+    return history.map((item) => (
+      <TableRow key={item.id}>
+        <TableCell>{formatDate(item.created_at, true)}</TableCell>
+        <TableCell>{getChangeTypeTag(item.change_type)}</TableCell>
+        <TableCell>{getLeaveTypeName(item.leave_type)}</TableCell>
+        <TableCell>
+          <span className={item.amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+            {item.amount > 0 ? '+' : ''}{item.amount} 天
+          </span>
+        </TableCell>
+        <TableCell>{item.balance_after != null ? `${item.balance_after} 天` : '-'}</TableCell>
+        <TableCell>{item.reason}</TableCell>
+      </TableRow>
+    ));
+  };
 
   return (
-    <Modal
-      title="额度变更历史"
-      open={visible}
-      onCancel={onClose}
-      width={900}
-      footer={null}
-    >
-      <Table
-        columns={columns}
-        dataSource={history}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
-    </Modal>
+    <Dialog open={visible} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>额度变更历史</DialogTitle>
+        </DialogHeader>
+        <div className="mt-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>时间</TableHead>
+                <TableHead>变更类型</TableHead>
+                <TableHead>假期类型</TableHead>
+                <TableHead>变更数量</TableHead>
+                <TableHead>变更后余额</TableHead>
+                <TableHead>原因</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {renderTableRows()}
+            </TableBody>
+          </Table>
+          {history.length === 0 && !loading && (
+            <div className="text-center py-8 text-gray-500">暂无数据</div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
@@ -7,13 +8,13 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '../components/ui/table';
 import { MotionCard } from '../components/ui/motion-card';
 import { MotionTable, MotionTableBody, MotionTableCell, MotionTableHead, MotionTableHeader, MotionTableRow } from '../components/ui/motion-table';
@@ -21,7 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from '../components/ui/checkbox';
 
 // Icons
-import { 
+import {
   Plus,
   Edit,
   Trash2,
@@ -73,7 +74,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
   // 生成唯一的假期类型编码
   const generateVacationCode = (name, existingCodes = []) => {
     if (!name) return '';
-    
+
     // 1. 检查是否有直接映射
     if (chineseToEnglishMap[name]) {
       let code = chineseToEnglishMap[name];
@@ -86,13 +87,13 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
       }
       return uniqueCode;
     }
-    
+
     // 2. 处理其他名称
     let code = name.toLowerCase()
       .replace(/[^a-z0-9\s]/g, '') // 移除特殊字符
       .replace(/\s+/g, '_') // 替换空格为下划线
       .replace(/^_|_$/g, ''); // 移除首尾下划线
-    
+
     // 3. 确保唯一性
     let counter = 1;
     let uniqueCode = code;
@@ -100,7 +101,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
       uniqueCode = `${code}_${counter}`;
       counter++;
     }
-    
+
     return uniqueCode;
   };
 
@@ -110,7 +111,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
       ...prev,
       name: value
     }));
-    
+
     if (!editingType && value) {
       const existingCodes = types.map(t => t.code);
       const generatedCode = generateVacationCode(value, existingCodes);
@@ -339,7 +340,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
           </MotionTableHeader>
           <MotionTableBody>
             {types.map((record, index) => (
-              <MotionTableRow 
+              <MotionTableRow
                 key={record.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -403,7 +404,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
           <DialogHeader>
             <DialogTitle>{editingType ? '编辑类型' : '新增类型'}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="code">类型代码 (唯一标识)</Label>
@@ -469,7 +470,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalVisible(false)}>
               取消
@@ -486,7 +487,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
           <DialogHeader>
             <DialogTitle>快捷添加常用假期</DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
             <p className="mb-4 text-gray-600">请选择要添加的假期类型（已存在的将自动跳过）：</p>
             <div className="grid grid-cols-1 gap-4">
@@ -510,7 +511,7 @@ const VacationTypeManagementOptimized = ({ visible, onClose, standalone = false 
               ))}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setQuickAddModalVisible(false)}>
               取消

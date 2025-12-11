@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, message, Spin, Popconfirm, Collapse, Tag, InputNumber } from 'antd';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { EditOutlined, DeleteOutlined, SwapOutlined } from '@ant-design/icons';
+import { Edit, Trash2, GripVertical } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-const { Panel } = Collapse;
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 
 // Helper function to reorder a list
 const reorder = (list, startIndex, endIndex) => {
@@ -16,20 +19,20 @@ const reorder = (list, startIndex, endIndex) => {
 
 const getItemStyle = (isDragging, draggableStyle) => ({
   userSelect: 'none',
-  padding: 8 * 2,
+  padding: 16,
   margin: `0 0 8px 0`,
-  borderRadius: '4px',
-  background: isDragging ? '#e6f7ff' : 'white',
-  border: isDragging ? '1px solid #91d5ff' : '1px solid #d9d9d9',
-  boxShadow: isDragging ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none',
+  borderRadius: '6px',
+  background: isDragging ? '#f0f9ff' : 'white',
+  border: isDragging ? '1px solid #bae6fd' : '1px solid #e5e7eb',
+  boxShadow: isDragging ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
   ...draggableStyle,
 });
 
 const getListStyle = (isDraggingOver) => ({
-  background: isDraggingOver ? '#f0f2f5' : '#f5f5f5',
+  background: isDraggingOver ? '#f9fafb' : '#f3f4f6',
   padding: 8,
   minHeight: '100px',
-  borderRadius: '4px',
+  borderRadius: '6px',
 });
 
 const QuestionList = ({ examId, onEditQuestion, onDeleteQuestion, onQuestionsReordered }) => {
@@ -50,7 +53,7 @@ const QuestionList = ({ examId, onEditQuestion, onDeleteQuestion, onQuestionsReo
       });
       setQuestions(response.data.data.questions);
     } catch (error) {
-      message.error('获取试卷题目失败');
+      toast.error('获取试卷题目失败');
       console.error('Failed to fetch exam questions:', error);
     } finally {
       setLoading(false);
@@ -76,12 +79,12 @@ const QuestionList = ({ examId, onEditQuestion, onDeleteQuestion, onQuestionsReo
       await axios.put(`/api/exams/${examId}/questions/reorder`, { question_ids: questionIds }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('题目排序成功');
+      toast.success('题目排序成功');
       if (onQuestionsReordered) {
         onQuestionsReordered(reorderedQuestions);
       }
     } catch (error) {
-      message.error('题目排序失败');
+      toast.error('题目排序失败');
       console.error('Failed to reorder questions:', error);
       // Revert to original order if API call fails
       fetchExamQuestions(examId);
@@ -90,100 +93,117 @@ const QuestionList = ({ examId, onEditQuestion, onDeleteQuestion, onQuestionsReo
 
   const getQuestionTypeTag = (type) => {
     switch (type) {
-      case 'single_choice': return <Tag color="blue">单选</Tag>;
-      case 'multiple_choice': return <Tag color="green">多选</Tag>;
-      case 'true_false': return <Tag color="orange">判断</Tag>;
-      case 'fill_blank': return <Tag color="purple">填空</Tag>;
-      case 'essay': return <Tag color="red">简答</Tag>;
-      default: return <Tag>{type}</Tag>;
+      case 'single_choice': return <Badge variant="default">单选</Badge>;
+      case 'multiple_choice': return <Badge variant="secondary">多选</Badge>;
+      case 'true_false': return <Badge variant="outline">判断</Badge>;
+      case 'fill_blank': return <Badge variant="default">填空</Badge>;
+      case 'essay': return <Badge variant="destructive">简答</Badge>;
+      default: return <Badge>{type}</Badge>;
+    }
+  };
+
+  const handleDeleteQuestion = (questionId) => {
+    if (window.confirm('确定删除此题目吗？')) {
+      onDeleteQuestion(questionId);
     }
   };
 
   return (
-    <Spin spinning={loading}>
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="questions">
-          {(provided, snapshot) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              style={getListStyle(snapshot.isDraggingOver)}
-            >
-              {questions.length === 0 ? (
-                <p style={{ textAlign: 'center', padding: 20 }}>暂无题目</p>
-              ) : (
-                <Collapse accordion>
-                  {questions.map((question, index) => (
-                    <Draggable key={question.id} draggableId={String(question.id)} index={index}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          style={getItemStyle(
-                            snapshot.isDragging,
-                            provided.draggableProps.style
-                          )}
-                        >
-                          <Panel
-                            header={
-                              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                <span>
-                                  {index + 1}. {getQuestionTypeTag(question.type)} {question.content}
-                                </span>
-                                <Space onClick={(e) => e.stopPropagation()}> {/* Prevent collapse on button click */}
+    <div>
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-2">加载中...</span>
+        </div>
+      ) : (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="questions">
+            {(provided, snapshot) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                style={getListStyle(snapshot.isDraggingOver)}
+              >
+                {questions.length === 0 ? (
+                  <p className="text-center py-5 text-gray-500">暂无题目</p>
+                ) : (
+                  <div className="space-y-3">
+                    {questions.map((question, index) => (
+                      <Draggable key={question.id} draggableId={String(question.id)} index={index}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            style={getItemStyle(
+                              snapshot.isDragging,
+                              provided.draggableProps.style
+                            )}
+                            className="flex items-start"
+                          >
+                            <div {...provided.dragHandleProps} className="pt-3 pr-2 cursor-move">
+                              <GripVertical className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center">
+                                  <span className="font-medium mr-2">{index + 1}.</span>
+                                  {getQuestionTypeTag(question.type)}
+                                  <span className="ml-2 truncate">{question.content}</span>
+                                </div>
+                                <div className="flex space-x-2">
                                   <Button
-                                    icon={<EditOutlined />}
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => onEditQuestion(question.id)}
-                                    size="small"
+                                    className="h-8 px-3"
                                   >
+                                    <Edit className="h-4 w-4 mr-1" />
                                     编辑
                                   </Button>
-                                  <Popconfirm
-                                    title="确定删除此题目吗？"
-                                    onConfirm={() => onDeleteQuestion(question.id)}
-                                    okText="是"
-                                    cancelText="否"
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDeleteQuestion(question.id)}
+                                    className="h-8 px-3"
                                   >
-                                    <Button icon={<DeleteOutlined />} danger size="small">
-                                      删除
-                                    </Button>
-                                  </Popconfirm>
-                                </Space>
-                              </Space>
-                            }
-                            key={question.id}
-                          >
-                            <p><strong>分值:</strong> {question.score}</p>
-                            {question.options && (
-                              <div>
-                                <strong>选项:</strong>
-                                <ul>
-                                  {question.options.map((option, optIndex) => (
-                                    <li key={optIndex}>{option}</li>
-                                  ))}
-                                </ul>
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    删除
+                                  </Button>
+                                </div>
                               </div>
-                            )}
-                            {question.correct_answer && (
-                              <p><strong>正确答案:</strong> {question.correct_answer}</p>
-                            )}
-                            {question.explanation && (
-                              <p><strong>解析:</strong> {question.explanation}</p>
-                            )}
-                          </Panel>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                </Collapse>
-              )}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
-    </Spin>
+                              <div className="text-sm text-gray-600 mt-2">
+                                <p><strong>分值:</strong> {question.score}</p>
+                                {question.options && (
+                                  <div className="mt-1">
+                                    <strong>选项:</strong>
+                                    <ul className="list-disc pl-5 mt-1">
+                                      {question.options.map((option, optIndex) => (
+                                        <li key={optIndex}>{option}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {question.correct_answer && (
+                                  <p className="mt-1"><strong>正确答案:</strong> {question.correct_answer}</p>
+                                )}
+                                {question.explanation && (
+                                  <p className="mt-1"><strong>解析:</strong> {question.explanation}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                  </div>
+                )}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      )}
+    </div>
   );
 };
 

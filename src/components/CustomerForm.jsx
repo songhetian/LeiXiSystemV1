@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
 
+// 导入 shadcn UI 组件
+import { Input } from './ui/input'
+import { Textarea } from './ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { Button } from './ui/button'
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/card'
+
 const CustomerForm = ({ customer, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -32,49 +39,47 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">姓名 *</label>
-        <input
+        <Input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({...formData, name: e.target.value})}
-          className="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           required
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">邮箱 *</label>
-        <input
+        <Input
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({...formData, email: e.target.value})}
-          className="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           required
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">电话 *</label>
-        <input
+        <Input
           type="tel"
           value={formData.phone}
           onChange={(e) => setFormData({...formData, phone: e.target.value})}
-          className="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           required
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">部门</label>
-        <select
-          value={formData.department}
-          onChange={(e) => setFormData({...formData, department: e.target.value})}
-          className="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option>客服部</option>
-          <option>技术部</option>
-          <option>销售部</option>
-          <option>市场部</option>
-        </select>
+        <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="客服部">客服部</SelectItem>
+            <SelectItem value="技术部">技术部</SelectItem>
+            <SelectItem value="销售部">销售部</SelectItem>
+            <SelectItem value="市场部">市场部</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
@@ -95,30 +100,32 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">状态</label>
-        <select
-          value={formData.status}
-          onChange={(e) => setFormData({...formData, status: e.target.value})}
-          className="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="active">在职</option>
-          <option value="inactive">离职</option>
-        </select>
+        <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">在职</SelectItem>
+            <SelectItem value="inactive">离职</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex gap-3 pt-4">
-        <button
+        <Button
           type="button"
           onClick={onCancel}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          variant="outline"
+          className="flex-1"
         >
           取消
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg"
+          className="flex-1"
         >
           保存
-        </button>
+        </Button>
       </div>
     </form>
   )

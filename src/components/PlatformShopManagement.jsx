@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import qualityAPI from '../api/qualityAPI.js';
-import Modal from './Modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import PlatformShopForm from './PlatformShopForm';
 import { MagnifyingGlassIcon, Squares2X2Icon, ListBulletIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import './PlatformShopManagement.css';
@@ -400,66 +400,63 @@ const PlatformShopManagement = () => {
             )}
 
             {/* Modals */}
-            <Modal
-                isOpen={isPlatformModalOpen}
-                onClose={() => setIsPlatformModalOpen(false)}
-                title={editingPlatform ? '编辑平台' : '添加平台'}
-                variant={editingPlatform ? 'warning' : 'success'}
-            >
-                <PlatformShopForm
-                    entity={editingPlatform}
-                    onSave={handleSavePlatform}
-                    onCancel={() => setIsPlatformModalOpen(false)}
-                />
-            </Modal>
+            <Dialog open={isPlatformModalOpen} onOpenChange={(open) => { if (!open) setIsPlatformModalOpen(false); }}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingPlatform ? '编辑平台' : '添加平台'}</DialogTitle>
+                    </DialogHeader>
+                    <PlatformShopForm
+                        entity={editingPlatform}
+                        onSave={handleSavePlatform}
+                        onCancel={() => setIsPlatformModalOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
 
-            <Modal
-                isOpen={isShopModalOpen}
-                onClose={() => setIsShopModalOpen(false)}
-                title={editingShop ? `编辑店铺 (平台: ${selectedPlatform?.name})` : `添加新店铺到 ${selectedPlatform?.name}`}
-                variant={editingShop ? 'info' : 'primary'}
-            >
-                <PlatformShopForm
-                    entity={editingShop}
-                    onSave={handleSaveShop}
-                    onCancel={() => setIsShopModalOpen(false)}
-                />
-            </Modal>
+            <Dialog open={isShopModalOpen} onOpenChange={(open) => { if (!open) setIsShopModalOpen(false); }}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingShop ? `编辑店铺 (平台: ${selectedPlatform?.name})` : `添加新店铺到 ${selectedPlatform?.name}`}</DialogTitle>
+                    </DialogHeader>
+                    <PlatformShopForm
+                        entity={editingShop}
+                        onSave={handleSaveShop}
+                        onCancel={() => setIsShopModalOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
 
             {/* Delete Confirmation Modal */}
-            <Modal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                title="确认删除"
-                variant="danger"
-                size="small"
-            >
-                <div className="py-4">
-                    <p className="text-gray-700 mb-4">
-                        {deleteTarget?.type === 'platform'
-                            ? `确定要删除平台 "${deleteTarget?.name}" 吗？其下的所有店铺也将被删除。`
-                            : `确定要删除店铺 "${deleteTarget?.name}" 吗？`
-                        }
-                    </p>
-                    <p className="text-sm text-red-600 font-medium">
-                        ⚠️ 此操作不可撤销！
-                    </p>
-                </div>
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                    <button
-                        onClick={() => setIsDeleteModalOpen(false)}
-                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
-                    >
-                        取消
-                    </button>
-                    <button
-                        onClick={confirmDelete}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                    >
-                        确认删除
-                    </button>
-                </div>
-            </Modal>
+            <Dialog open={isDeleteModalOpen} onOpenChange={(open) => { if (!open) setIsDeleteModalOpen(false); }}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>确认删除</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <p className="text-gray-700 mb-4">
+                            {deleteTarget?.type === 'platform'
+                                ? `确定要删除平台 "${deleteTarget?.name}" 吗？其下的所有店铺也将被删除。`
+                                : `确定要删除店铺 "${deleteTarget?.name}" 吗？`
+                            }
+                        </p>
+                        <p className="text-sm text-red-600 font-medium">⚠️ 此操作不可撤销！</p>
+                        <div className="flex justify-end gap-3 pt-4 border-t">
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                            >
+                                确认删除
+                            </button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

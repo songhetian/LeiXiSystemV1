@@ -4,6 +4,14 @@ import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 import { tokenManager } from '../utils/apiClient'
 import { pinyin } from 'pinyin-pro'
+// 导入shadcn UI组件
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Switch } from '../components/ui/switch'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
 
 const Login = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true)
@@ -157,7 +165,7 @@ const Login = ({ onLoginSuccess }) => {
       }, {
         timeout: 10000 // 10秒超时
       })
-      
+
       console.log('登录API响应:', response.data);
 
       if (response.data.success) {
@@ -196,14 +204,14 @@ const Login = ({ onLoginSuccess }) => {
     console.log('.handleSubmit开始执行');
     setLoading(true)
     setErrorMessage('') // 清除之前的错误
-    
+
     // 表单验证
     if (!validateForm()) {
       console.log('表单验证失败');
       setLoading(false)
       return
     }
-    
+
     console.log('开始登录流程，用户名:', formData.username);
 
     try {
@@ -216,7 +224,7 @@ const Login = ({ onLoginSuccess }) => {
         }, {
           timeout: 10000 // 10秒超时
         })
-        
+
         console.log('检查会话响应:', checkResponse.data);
 
         if (checkResponse.data.hasActiveSession) {
@@ -241,7 +249,7 @@ const Login = ({ onLoginSuccess }) => {
         const response = await axios.post(getApiUrl('/api/auth/register'), formData, {
           timeout: 10000 // 10秒超时
         })
-        
+
         console.log('注册响应:', response.data);
 
         if (response.data.success) {
@@ -327,356 +335,340 @@ const Login = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-primary-100 rounded-full mb-4">
-            <span className="text-4xl">💬</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800">雷犀客服系统</h1>
-          <p className="text-gray-500 mt-2">企业级客服管理平台</p>
-        </div>
-
-        {/* 切换登录/注册 */}
-        <div className="flex mb-6 bg-primary-50 rounded-lg p-1">
-          <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
-            }`}
-          >
-            登录
-          </button>
-          <button
-            onClick={() => {
-              setIsLogin(false)
-              setFormData({ username: '', password: '', real_name: '', email: '', phone: '' })
-              setFieldErrors({})
-              setUsernameAvailable(null)
-              setUsernameSuggestions([])
-            }}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              !isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
-            }`}
-          >
-            注册
-          </button>
-        </div>
-
-        {/* 错误提示框 */}
-        {errorMessage && (
-          <div className="mb-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg animate-shake">
-            <div className="flex items-start gap-3">
-              <span className="text-red-600 text-2xl flex-shrink-0">❌</span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-red-900 mb-1">登录失败</p>
-                <p className="text-sm text-red-800">{errorMessage}</p>
-              </div>
-              <button
-                onClick={() => setErrorMessage('')}
-                className="text-red-400 hover:text-red-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="inline-block p-3 bg-primary-100 rounded-full mb-4">
+              <span className="text-4xl">💬</span>
             </div>
+            <h1 className="text-3xl font-bold text-gray-800">雷犀客服系统</h1>
+            <p className="text-gray-500 mt-2">企业级客服管理平台</p>
           </div>
-        )}
 
-        {/* 表单 */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">真实姓名</label>
-              <input
-                type="text"
-                value={formData.real_name}
-                onChange={(e) => {
-                  setFormData({...formData, real_name: e.target.value})
-                  setFieldErrors({...fieldErrors, real_name: ''})
-                }}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                  fieldErrors.real_name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="请输入真实姓名"
-              />
-              {fieldErrors.real_name && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.real_name}</p>
-              )}
-            </div>
+          {/* 切换登录/注册 */}
+          <div className="flex mb-6 bg-primary-50 rounded-lg p-1">
+            <Button
+              variant={isLogin ? "default" : "ghost"}
+              onClick={() => setIsLogin(true)}
+              className="flex-1 py-2 rounded-lg transition-all"
+            >
+              登录
+            </Button>
+            <Button
+              variant={!isLogin ? "default" : "ghost"}
+              onClick={() => {
+                setIsLogin(false)
+                setFormData({ username: '', password: '', real_name: '', email: '', phone: '' })
+                setFieldErrors({})
+                setUsernameAvailable(null)
+                setUsernameSuggestions([])
+              }}
+              className="flex-1 py-2 rounded-lg transition-all"
+            >
+              注册
+            </Button>
+          </div>
+
+          {/* 错误提示框 */}
+          {errorMessage && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>登录失败</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => {
-                  setFormData({...formData, username: e.target.value})
-                  setFieldErrors({...fieldErrors, username: ''})
-                  if (!isLogin) {
-                    checkUsername(e.target.value, formData.real_name)
-                  }
-                }}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                  fieldErrors.username ? 'border-red-500' :
-                  !isLogin && usernameAvailable === false ? 'border-red-500' :
-                  !isLogin && usernameAvailable === true ? 'border-green-500' :
-                  'border-gray-300'
-                }`}
-                placeholder="请输入用户名"
-              />
-              {!isLogin && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  {isCheckingUsername && (
-                    <div className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"></div>
-                  )}
-                  {!isCheckingUsername && usernameAvailable === true && (
-                    <span className="text-green-500 text-xl">✓</span>
-                  )}
-                  {!isCheckingUsername && usernameAvailable === false && (
-                    <span className="text-red-500 text-xl">✗</span>
-                  )}
-                </div>
-              )}
-            </div>
-            {fieldErrors.username && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
-            )}
-            {/* 用户名建议 */}
-            {!isLogin && usernameSuggestions.length > 0 && (
-              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800 mb-2">该用户名已被使用，以下是建议：</p>
-                <div className="flex flex-wrap gap-2">
-                  {usernameSuggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => {
-                        setFormData({...formData, username: suggestion})
-                        checkUsername(suggestion, formData.real_name)
-                      }}
-                      className="px-3 py-1 bg-white border border-yellow-300 rounded-md text-sm text-gray-700 hover:bg-yellow-100 transition-colors"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-
-          {!isLogin && (
+          {/* 表单 */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">部门</label>
-                <select
-                  value={formData.department_id}
+                <Label htmlFor="real_name">真实姓名</Label>
+                <Input
+                  id="real_name"
+                  type="text"
+                  value={formData.real_name}
                   onChange={(e) => {
-                    setFormData({...formData, department_id: e.target.value})
-                    setFieldErrors({...fieldErrors, department_id: ''})
+                    setFormData({...formData, real_name: e.target.value})
+                    setFieldErrors({...fieldErrors, real_name: ''})
                   }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    fieldErrors.department_id ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">请选择部门</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
-                {fieldErrors.department_id && (
-                  <p className="mt-1 text-sm text-red-600">{fieldErrors.department_id}</p>
+                  placeholder="请输入真实姓名"
+                  className={fieldErrors.real_name ? 'border-red-500' : ''}
+                />
+                {fieldErrors.real_name && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.real_name}</p>
                 )}
               </div>
-
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => {
-                setFormData({...formData, password: e.target.value})
-                setFieldErrors({...fieldErrors, password: ''})
-              }}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                fieldErrors.password ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="请输入密码"
-            />
-            {fieldErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
             )}
-          </div>
 
-          {/* 记住密码选项 */}
-          {isLogin && (
-            <div className="flex items-center">
-              <label className="flex items-center cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={rememberPassword}
-                  onChange={(e) => setRememberPassword(e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
+            <div>
+              <Label htmlFor="username">用户名</Label>
+              <div className="relative">
+                <Input
+                  id="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => {
+                    setFormData({...formData, username: e.target.value})
+                    setFieldErrors({...fieldErrors, username: ''})
+                    if (!isLogin) {
+                      checkUsername(e.target.value, formData.real_name)
+                    }
+                  }}
+                  placeholder="请输入用户名"
+                  className={
+                    fieldErrors.username ? 'border-red-500' :
+                    !isLogin && usernameAvailable === false ? 'border-red-500' :
+                    !isLogin && usernameAvailable === true ? 'border-green-500' :
+                    ''
+                  }
                 />
-                <span className="ml-2 text-sm text-gray-700 group-hover:text-primary-600 transition-colors">
-                  记住密码
-                </span>
-              </label>
+                {!isLogin && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    {isCheckingUsername && (
+                      <div className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                    )}
+                    {!isCheckingUsername && usernameAvailable === true && (
+                      <span className="text-green-500 text-xl">✓</span>
+                    )}
+                    {!isCheckingUsername && usernameAvailable === false && (
+                      <span className="text-red-500 text-xl">✗</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {fieldErrors.username && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
+              )}
+              {/* 用户名建议 */}
+              {!isLogin && usernameSuggestions.length > 0 && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800 mb-2">该用户名已被使用，以下是建议：</p>
+                  <div className="flex flex-wrap gap-2">
+                    {usernameSuggestions.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFormData({...formData, username: suggestion})
+                          checkUsername(suggestion, formData.real_name)
+                        }}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
-          </button>
-        </form>
-      </div>
+
+            {!isLogin && (
+                <div>
+                  <Label htmlFor="department_id">部门</Label>
+                  <Select
+                    value={formData.department_id}
+                    onValueChange={(value) => {
+                      setFormData({...formData, department_id: value})
+                      setFieldErrors({...fieldErrors, department_id: ''})
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择部门" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">请选择部门</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldErrors.department_id && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.department_id}</p>
+                  )}
+                </div>
+
+            )}
+
+            <div>
+              <Label htmlFor="password">密码</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => {
+                  setFormData({...formData, password: e.target.value})
+                  setFieldErrors({...fieldErrors, password: ''})
+                }}
+                placeholder="请输入密码"
+                className={fieldErrors.password ? 'border-red-500' : ''}
+              />
+              {fieldErrors.password && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+              )}
+            </div>
+
+            {/* 记住密码选项 */}
+            {isLogin && (
+              <div className="flex items-center">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="rememberPassword"
+                    checked={rememberPassword}
+                    onCheckedChange={setRememberPassword}
+                  />
+                  <Label htmlFor="rememberPassword">记住密码</Label>
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* 确认登录对话框 */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 m-4 animate-fadeIn">
-            {/* 图标 */}
-            <div className="text-center mb-6">
-              <div className="inline-block p-4 bg-yellow-100 rounded-full mb-4">
-                <span className="text-5xl">⚠️</span>
+          <Card className="w-full max-w-md m-4">
+            <CardContent className="p-8">
+              {/* 图标 */}
+              <div className="text-center mb-6">
+                <div className="inline-block p-4 bg-yellow-100 rounded-full mb-4">
+                  <span className="text-5xl">⚠️</span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">检测到活跃会话</h2>
+                <p className="text-gray-600">该账号已在其他设备登录</p>
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">检测到活跃会话</h2>
-              <p className="text-gray-600">该账号已在其他设备登录</p>
-            </div>
 
-            {/* 会话信息 */}
-            {sessionInfo && sessionInfo.sessionCreatedAt && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <span className="text-blue-600 text-xl">ℹ️</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-900 mb-1">会话信息</p>
-                    <p className="text-sm text-blue-800">
-                      登录时间：{new Date(sessionInfo.sessionCreatedAt).toLocaleString('zh-CN')}
-                    </p>
+              {/* 会话信息 */}
+              {sessionInfo && sessionInfo.sessionCreatedAt && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <span className="text-blue-600 text-xl">ℹ️</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 mb-1">会话信息</p>
+                      <p className="text-sm text-blue-800">
+                        登录时间：{new Date(sessionInfo.sessionCreatedAt).toLocaleString('zh-CN')}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 提示信息 */}
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <span className="text-red-600 text-xl">🚨</span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-red-900 mb-2">重要提示</p>
-                  <p className="text-sm text-red-800 leading-relaxed">
-                    如果继续登录，之前登录的设备将被强制退出。
-                    <br />
-                    请确认这是您本人的操作。
-                  </p>
-                </div>
-              </div>
-            </div>
+              {/* 提示信息 */}
+              <Alert variant="destructive" className="mb-6">
+                <AlertTitle>重要提示</AlertTitle>
+                <AlertDescription>
+                  如果继续登录，之前登录的设备将被强制退出。
+                  请确认这是您本人的操作。
+                </AlertDescription>
+              </Alert>
 
-            {/* 按钮组 */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false)
-                  setLoading(false)
-                }}
-                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-              >
-                取消
-              </button>
-              <button
-                onClick={async () => {
-                  setLoading(true)
-                  try {
-                    await performLogin(true)
-                    // 确保在任何情况下都关闭loading状态
-                    if (loading) {
+              {/* 按钮组 */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowConfirmModal(false)
+                    setLoading(false)
+                  }}
+                  className="flex-1"
+                >
+                  取消
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setLoading(true)
+                    try {
+                      await performLogin(true)
+                      // 确保在任何情况下都关闭loading状态
+                      if (loading) {
+                        setLoading(false)
+                      }
+                    } catch (error) {
+                      console.error('强制登录失败:', error)
+                      setShowConfirmModal(false)
+
+                      // 显示错误信息
+                      if (error.response) {
+                        const message = error.response.data?.message
+                        if (error.response.status === 401) {
+                          setErrorMessage('用户名或密码错误')
+                          toast.error('❌ 用户名或密码错误')
+                        } else if (message) {
+                          setErrorMessage(message)
+                          toast.error(`❌ ${message}`)
+                        }
+                      } else {
+                        setErrorMessage('登录失败，请稍后重试')
+                        toast.error('❌ 登录失败')
+                      }
+                    } finally {
                       setLoading(false)
                     }
-                  } catch (error) {
-                    console.error('强制登录失败:', error)
-                    setShowConfirmModal(false)
-
-                    // 显示错误信息
-                    if (error.response) {
-                      const message = error.response.data?.message
-                      if (error.response.status === 401) {
-                        setErrorMessage('用户名或密码错误')
-                        toast.error('❌ 用户名或密码错误')
-                      } else if (message) {
-                        setErrorMessage(message)
-                        toast.error(`❌ ${message}`)
-                      }
-                    } else {
-                      setErrorMessage('登录失败，请稍后重试')
-                      toast.error('❌ 登录失败')
-                    }
-                  } finally {
-                    setLoading(false)
-                  }
-                }}
-                disabled={loading}
-                className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? '登录中...' : '确认登录'}
-              </button>
-            </div>
-          </div>
+                  }}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  {loading ? '登录中...' : '确认登录'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* 注册成功模态框 */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
-            <div className="text-center">
-              {/* 成功图标 */}
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-
-              {/* 标题 */}
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">注册成功！</h3>
-
-              {/* 说明文字 */}
-              <div className="mb-6 space-y-2">
-                <p className="text-gray-600">您的账号已成功提交注册申请</p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                  <p className="text-sm text-blue-800 mb-2">
-                    <span className="font-semibold">📋 下一步：</span>
-                  </p>
-                  <ul className="text-sm text-blue-700 space-y-1 ml-4">
-                    <li>• 您的账号正在等待管理员审核</li>
-                    <li>• 审核通过后，您将可以登录系统</li>
-                    <li>• 请耐心等待，通常会在1个工作日内完成审核</li>
-                  </ul>
+          <Card className="max-w-md w-full">
+            <CardContent className="p-8">
+              <div className="text-center">
+                {/* 成功图标 */}
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                  <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
                 </div>
-              </div>
 
-              {/* 按钮 */}
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false)
-                  setIsLogin(true)
-                }}
-                className="w-full py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg"
-              >
-                好的，我知道了
-              </button>
-            </div>
-          </div>
+                {/* 标题 */}
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">注册成功！</h3>
+
+                {/* 说明文字 */}
+                <div className="mb-6 space-y-2">
+                  <p className="text-gray-600">您的账号已成功提交注册申请</p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                    <p className="text-sm text-blue-800 mb-2">
+                      <span className="font-semibold">📋 下一步：</span>
+                    </p>
+                    <ul className="text-sm text-blue-700 space-y-1 ml-4">
+                      <li>• 您的账号正在等待管理员审核</li>
+                      <li>• 审核通过后，您将可以登录系统</li>
+                      <li>• 请耐心等待，通常会在1个工作日内完成审核</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* 按钮 */}
+                <Button
+                  onClick={() => {
+                    setShowSuccessModal(false)
+                    setIsLogin(true)
+                  }}
+                  className="w-full"
+                >
+                  好的，我知道了
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

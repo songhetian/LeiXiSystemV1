@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Descriptions, Tag, Table, Spin, Tabs, message } from 'antd';
-import {
-  UserOutlined, CalendarOutlined, ClockCircleOutlined,
-  FileTextOutlined, HistoryOutlined
-} from '@ant-design/icons';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import { formatDate, formatDateTime } from '../utils/date';
 import VacationTrendChart from './VacationTrendChart';
 import VacationTypeComparisonChart from './VacationTypeComparisonChart';
 import VacationMonthlyView from './VacationMonthlyView';
 import VacationYearlyView from './VacationYearlyView';
+
+// 导入 shadcn UI 组件
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Badge } from './ui/badge';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { User, Calendar, Clock, FileText, History } from 'lucide-react';
 
 const { TabPane } = Tabs;
 
@@ -68,7 +71,7 @@ const VacationDetailModal = ({ visible, onClose, employee, year }) => {
         setHistoryData(historyResult.data);
       }
     } catch (error) {
-      message.error('加载数据失败');
+      console.error('加载数据失败:', error);
     } finally {
       setLoading(false);
     }
@@ -88,200 +91,167 @@ const VacationDetailModal = ({ visible, onClose, employee, year }) => {
 
   const getLeaveTypeTag = (type) => {
     const typeMap = {
-      'annual_leave': { color: 'blue', text: '年假' },
-      'sick_leave': { color: 'orange', text: '病假' },
-      'overtime_leave': { color: 'green', text: '加班假' },
-      'personal_leave': { color: 'default', text: '事假' },
-      'marriage_leave': { color: 'pink', text: '婚假' },
-      'maternity_leave': { color: 'purple', text: '产假' }
+      'annual_leave': { text: '年假' },
+      'sick_leave': { text: '病假' },
+      'overtime_leave': { text: '加班假' },
+      'personal_leave': { text: '事假' },
+      'marriage_leave': { text: '婚假' },
+      'maternity_leave': { text: '产假' }
     };
-    const config = typeMap[type] || { color: 'default', text: type };
-    return <Tag color={config.color}>{config.text}</Tag>;
+    const config = typeMap[type] || { text: type };
+    return <Badge variant="secondary">{config.text}</Badge>;
   };
 
   const getChangeTypeTag = (type) => {
     const typeMap = {
-      'addition': { color: 'green', text: '增加' },
-      'deduction': { color: 'red', text: '扣减' },
-      'conversion': { color: 'blue', text: '转换' },
-      'adjustment': { color: 'orange', text: '调整' }
+      'addition': { text: '增加' },
+      'deduction': { text: '扣减' },
+      'conversion': { text: '转换' },
+      'adjustment': { text: '调整' }
     };
-    const config = typeMap[type] || { color: 'default', text: type };
-    return <Tag color={config.color}>{config.text}</Tag>;
+    const config = typeMap[type] || { text: type };
+    return <Badge variant="secondary">{config.text}</Badge>;
   };
 
-  const historyColumns = [
-    {
-      title: '时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 180,
-      render: (text) => formatDateTime(text)
-    },
-    {
-      title: '类型',
-      dataIndex: 'change_type',
-      key: 'change_type',
-      width: 100,
-      render: (type) => getChangeTypeTag(type)
-    },
-    // 移除假期类型列，统一显示
-    // {
-    //   title: '假期类型',
-    //   dataIndex: 'leave_type',
-    //   key: 'leave_type',
-    //   width: 100,
-    //   render: (type) => getLeaveTypeTag(type)
-    // },
-    {
-      title: '变更数量',
-      dataIndex: 'amount',
-      key: 'amount',
-      width: 120,
-      render: (amount) => (
-        <span className={amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-          {amount > 0 ? '+' : ''}{amount} 天
-        </span>
-      )
-    },
-    {
-      title: '变更后余额',
-      dataIndex: 'balance_after',
-      key: 'balance_after',
-      width: 120,
-      render: (val) => val != null ? `${val} 天` : '-'
-    },
-    {
-      title: '操作人',
-      dataIndex: 'operator_name',
-      key: 'operator_name',
-      width: 100
-    },
-    {
-      title: '审批单号',
-      dataIndex: 'approval_no',
-      key: 'approval_no',
-      width: 120,
-      render: (val) => val || '-'
-    },
-    {
-      title: '原因',
-      dataIndex: 'reason',
-      key: 'reason',
-      ellipsis: true
-    }
-  ];
+  const renderTableRows = () => {
+    return historyData.map((record) => (
+      <TableRow key={record.id}>
+        <TableCell>{formatDateTime(record.created_at)}</TableCell>
+        <TableCell>{getChangeTypeTag(record.change_type)}</TableCell>
+        <TableCell>
+          <span className={record.amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+            {record.amount > 0 ? '+' : ''}{record.amount} 天
+          </span>
+        </TableCell>
+        <TableCell>{record.balance_after != null ? `${record.balance_after} 天` : '-'}</TableCell>
+        <TableCell>{record.operator_name}</TableCell>
+        <TableCell>{record.approval_no || '-'}</TableCell>
+        <TableCell>{record.reason}</TableCell>
+      </TableRow>
+    ));
+  };
 
   return (
-    <Modal
-      title={
-        <div className="flex items-center gap-2">
-          <UserOutlined className="text-primary-600" />
-          <span>假期详情 - {employee?.real_name}</span>
-        </div>
-      }
-      open={visible}
-      onCancel={onClose}
-      width={900}
-      footer={null}
-      className="vacation-detail-modal"
-    >
-      <Spin spinning={loading}>
-        <Tabs defaultActiveKey="balance">
-          {/* 余额详情 */}
-          <TabPane
-            tab={
-              <span>
-                <CalendarOutlined />
-                余额详情
-              </span>
-            }
-            key="balance"
-          >
-            {balanceData && (
-              <div className="space-y-6">
-                {/* 基本信息 */}
-                <Descriptions bordered column={2} size="small">
-                  <Descriptions.Item label="工号">{employee?.employee_no}</Descriptions.Item>
-                  <Descriptions.Item label="部门">{employee?.department_name}</Descriptions.Item>
-                  <Descriptions.Item label="年度">{year}</Descriptions.Item>
-                  <Descriptions.Item label="最后更新">
-                    {balanceData.last_updated ? formatDateTime(balanceData.last_updated) : '-'}
-                  </Descriptions.Item>
-                </Descriptions>
-
-                {/* 假期余额概览 */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <FileTextOutlined className="text-blue-600" />
-                    假期余额概览
-                  </h4>
-
-                  {(() => {
-                    const totalStats = balanceData?.balances?.reduce((acc, curr) => ({
-                      total: acc.total + parseFloat(curr.total || 0),
-                      used: acc.used + parseFloat(curr.used || 0),
-                      remaining: acc.remaining + parseFloat(curr.remaining || 0)
-                    }), { total: 0, used: 0, remaining: 0 });
-
-                    return (
-                      <div className="grid grid-cols-3 gap-6 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                          <div className="text-gray-500 mb-1">总额度</div>
-                          <div className="text-2xl font-bold text-blue-600">{totalStats?.total.toFixed(1)} <span className="text-sm font-normal text-gray-500">天</span></div>
-                        </div>
-                        <div className="text-center p-4 bg-orange-50 rounded-lg">
-                          <div className="text-gray-500 mb-1">已使用</div>
-                          <div className="text-2xl font-bold text-orange-600">{totalStats?.used.toFixed(1)} <span className="text-sm font-normal text-gray-500">天</span></div>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 rounded-lg">
-                          <div className="text-gray-500 mb-1">剩余</div>
-                          <div className="text-2xl font-bold text-green-600">{totalStats?.remaining.toFixed(1)} <span className="text-sm font-normal text-gray-500">天</span></div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </TabPane>
-
-          {/* 变更历史 */}
-          <TabPane
-            tab={
-              <span>
-                <HistoryOutlined />
-                变更历史
-              </span>
-            }
-            key="history"
-          >
-            <Table
-              columns={historyColumns}
-              dataSource={historyData}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              size="small"
-            />
-          </TabPane>
-
-          {/* 趋势分析 */}
-          <TabPane
-            tab={
-              <span>
-                <ClockCircleOutlined />
-                趋势分析
-              </span>
-            }
-            key="trend"
-          >
-            <div className="space-y-6">
-              <VacationTrendChart employeeId={employee?.employee_id} year={year} />
+    <Dialog open={visible} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary-600" />
+              <span>假期详情 - {employee?.real_name}</span>
             </div>
-          </TabPane>
-        </Tabs>
-      </Spin>
-    </Modal>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className={loading ? 'opacity-50 pointer-events-none' : ''}>
+          <Tabs defaultValue="balance">
+            <TabsList>
+              <TabsTrigger value="balance">
+                <Calendar className="h-4 w-4 mr-2" />
+                余额详情
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="h-4 w-4 mr-2" />
+                变更历史
+              </TabsTrigger>
+              <TabsTrigger value="trend">
+                <Clock className="h-4 w-4 mr-2" />
+                趋势分析
+              </TabsTrigger>
+            </TabsList>
+
+            {/* 余额详情 */}
+            <TabsContent value="balance">
+              {balanceData && (
+                <div className="space-y-6 mt-4">
+                  {/* 基本信息 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-500">工号</div>
+                      <div>{employee?.employee_no}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">部门</div>
+                      <div>{employee?.department_name}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">年度</div>
+                      <div>{year}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">最后更新</div>
+                      <div>{balanceData.last_updated ? formatDateTime(balanceData.last_updated) : '-'}</div>
+                    </div>
+                  </div>
+
+                  {/* 假期余额概览 */}
+                  <div>
+                    <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      假期余额概览
+                    </h4>
+
+                    {(() => {
+                      const totalStats = balanceData?.balances?.reduce((acc, curr) => ({
+                        total: acc.total + parseFloat(curr.total || 0),
+                        used: acc.used + parseFloat(curr.used || 0),
+                        remaining: acc.remaining + parseFloat(curr.remaining || 0)
+                      }), { total: 0, used: 0, remaining: 0 });
+
+                      return (
+                        <div className="grid grid-cols-3 gap-6 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                          <div className="text-center p-4 bg-blue-50 rounded-lg">
+                            <div className="text-gray-500 mb-1">总额度</div>
+                            <div className="text-2xl font-bold text-blue-600">{totalStats?.total.toFixed(1)} <span className="text-sm font-normal text-gray-500">天</span></div>
+                          </div>
+                          <div className="text-center p-4 bg-orange-50 rounded-lg">
+                            <div className="text-gray-500 mb-1">已使用</div>
+                            <div className="text-2xl font-bold text-orange-600">{totalStats?.used.toFixed(1)} <span className="text-sm font-normal text-gray-500">天</span></div>
+                          </div>
+                          <div className="text-center p-4 bg-green-50 rounded-lg">
+                            <div className="text-gray-500 mb-1">剩余</div>
+                            <div className="text-2xl font-bold text-green-600">{totalStats?.remaining.toFixed(1)} <span className="text-sm font-normal text-gray-500">天</span></div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* 变更历史 */}
+            <TabsContent value="history">
+              <div className="mt-4 rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>时间</TableHead>
+                      <TableHead>类型</TableHead>
+                      <TableHead>变更数量</TableHead>
+                      <TableHead>变更后余额</TableHead>
+                      <TableHead>操作人</TableHead>
+                      <TableHead>审批单号</TableHead>
+                      <TableHead>原因</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {renderTableRows()}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            {/* 趋势分析 */}
+            <TabsContent value="trend">
+              <div className="space-y-6 mt-4">
+                <VacationTrendChart employeeId={employee?.employee_id} year={year} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

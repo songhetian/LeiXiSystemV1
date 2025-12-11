@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Upload, Users, Building, User, FileText, X } from 'lucide-react';
@@ -63,31 +64,31 @@ const NotificationSenderOptimized = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // 验证必填字段
     if (!formData.title.trim()) {
       toast.error('请输入通知标题');
       return;
     }
-    
+
     if (!formData.receivers) {
       toast.error('请选择接收对象');
       return;
     }
-    
+
     if (formData.receivers === 'department' && selectedDepartments.length === 0) {
       toast.error('请选择至少一个部门');
       return;
     }
-    
+
     if (!formData.content.trim()) {
       toast.error('请输入通知内容');
       return;
     }
-    
+
     console.log('发送通知:', formData);
     toast.success('通知发送成功！');
-    
+
     // 重置表单
     setFormData({
       title: '',
@@ -101,13 +102,13 @@ const NotificationSenderOptimized = () => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
-    
+
     // 限制文件数量
     if (formData.attachments.length + files.length > 5) {
       toast.error('最多只能上传5个附件');
       return;
     }
-    
+
     // 限制文件大小 (每个文件不超过5MB)
     for (let file of files) {
       if (file.size > 5 * 1024 * 1024) {
@@ -115,20 +116,20 @@ const NotificationSenderOptimized = () => {
         return;
       }
     }
-    
+
     setFormData(prev => ({
       ...prev,
       attachments: [...prev.attachments, ...files]
     }));
   };
-  
+
   const removeAttachment = (index) => {
     setFormData(prev => ({
       ...prev,
       attachments: prev.attachments.filter((_, i) => i !== index)
     }));
   };
-  
+
   const clearAttachments = () => {
     setFormData(prev => ({
       ...prev,
@@ -232,14 +233,14 @@ const NotificationSenderOptimized = () => {
                   </Button>
                 </Label>
                 <span className="text-sm text-gray-500">
-                  {formData.attachments.length > 0 
-                    ? `${formData.attachments.length} 个文件已选择` 
+                  {formData.attachments.length > 0
+                    ? `${formData.attachments.length} 个文件已选择`
                     : '未选择文件'}
                 </span>
                 {formData.attachments.length > 0 && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={clearAttachments}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -247,7 +248,7 @@ const NotificationSenderOptimized = () => {
                   </Button>
                 )}
               </div>
-              
+
               {/* 显示已选择的文件 */}
               {formData.attachments.length > 0 && (
                 <div className="mt-2 space-y-1">
@@ -258,9 +259,9 @@ const NotificationSenderOptimized = () => {
                         <span className="text-xs text-gray-500">
                           {(file.size / 1024).toFixed(1)} KB
                         </span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => removeAttachment(index)}
                           className="h-6 w-6"
                         >

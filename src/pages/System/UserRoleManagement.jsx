@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect, useMemo } from 'react';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPut, apiPost } from '../../utils/apiClient';
@@ -11,13 +12,13 @@ import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Badge } from '../../components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '../../components/ui/table';
 
 // 导入图标
@@ -400,7 +401,7 @@ const UserRoleManagement = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="p-4 md:p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -458,7 +459,7 @@ const UserRoleManagement = () => {
           </div>
 
           {/* 统计卡片 */}
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -486,7 +487,7 @@ const UserRoleManagement = () => {
 
           {/* 批量操作栏 */}
           {selectedUserIds.length > 0 && (
-            <motion.div 
+            <motion.div
               className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -620,8 +621,8 @@ const UserRoleManagement = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 选择角色
               </label>
-              <Select 
-                value={selectedRoles.join(',')} 
+              <Select
+                value={selectedRoles.join(',')}
                 onValueChange={(value) => handleRoleChange(value.split(',').filter(v => v !== ""))}
               >
                 <SelectTrigger>
@@ -629,8 +630,8 @@ const UserRoleManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map(role => (
-                    <SelectItem 
-                      key={role.id} 
+                    <SelectItem
+                      key={role.id}
                       value={role.id.toString()}
                       disabled={selectedRoles.includes(role.id)}
                     >
@@ -646,9 +647,9 @@ const UserRoleManagement = () => {
                 {selectedRoles.map(roleId => {
                   const role = roles.find(r => r.id === roleId);
                   return role ? (
-                    <Badge 
-                      key={roleId} 
-                      variant="secondary" 
+                    <Badge
+                      key={roleId}
+                      variant="secondary"
                       className="flex items-center gap-1"
                       onClick={() => handleRoleChange(selectedRoles.filter(id => id !== roleId))}
                     >

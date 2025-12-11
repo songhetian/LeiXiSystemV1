@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getApiUrl } from '../../utils/apiConfig';
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth';
-import './SmartSchedule.css';
+
+// 导入 shadcn UI 组件
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Button } from '../../components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Input } from '../../components/ui/input';
 
 const SmartSchedule = () => {
   const [departments, setDepartments] = useState([]);
@@ -135,7 +140,7 @@ const SmartSchedule = () => {
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await axios.get(getApiUrl('/api/shifts/rest'), { headers });
-      if (response.data.success) {
+      if (response.data.success) {  
         setRestShiftId(response.data.data.id);
       }
     } catch (error) {
@@ -323,25 +328,23 @@ const SmartSchedule = () => {
       <h2>🤖 智能排班</h2>
 
       {/* 模态框 */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => !loading && setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-body">
-              <p style={{ whiteSpace: 'pre-line' }}>{modalMessage}</p>
-            </div>
-            {!loading && (
-              <div className="modal-footer">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="btn-close-modal"
-                >
-                  关闭
-                </button>
-              </div>
-            )}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>提示</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p style={{ whiteSpace: 'pre-line' }} className="text-center">{modalMessage}</p>
           </div>
-        </div>
-      )}
+          {!loading && (
+            <DialogFooter>
+              <Button onClick={() => setShowModal(false)}>
+                关闭
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <div className="schedule-form">
         <div className="form-section">
@@ -349,40 +352,45 @@ const SmartSchedule = () => {
           <div className="form-row">
             <div className="form-group">
               <label>部门</label>
-              <select
-                className="department-selector"
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-              >
-                {departments.length === 0 ? (
-                  <option value="">加载中...</option>
-                ) : (
-                  departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))
-                )}
-              </select>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="department-selector">
+                  <SelectValue placeholder="请选择部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.length === 0 ? (
+                    <SelectItem value="">加载中...</SelectItem>
+                  ) : (
+                    departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                        {dept.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div className="form-group">
               <label>排班月份</label>
               <div className="month-selector">
-                <button
+                <Button
                   type="button"
                   onClick={handlePrevMonth}
                   className="btn-month-nav"
+                  variant="outline"
                 >
                   ◀
-                </button>
+                </Button>
                 <div className="month-display">
                   {selectedMonth.year}年 {selectedMonth.month}月
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={handleNextMonth}
                   className="btn-month-nav"
+                  variant="outline"
                 >
                   ▶
-                </button>
+                </Button>
               </div>
               <div className="date-range-hint">
                 {startDate} 至 {endDate}
@@ -394,9 +402,9 @@ const SmartSchedule = () => {
         <div className="form-section">
           <div className="rules-header">
             <h3>排班规则</h3>
-            <button onClick={addRule} className="btn-add-rule">
+            <Button onClick={addRule} className="btn-add-rule">
               ➕ 添加规则
-            </button>
+            </Button>
           </div>
 
           <div className="rules-list">
@@ -407,72 +415,97 @@ const SmartSchedule = () => {
                 <div className="rule-fields">
                   <div className="form-group">
                     <label>客服</label>
-                    <select
+                    <Select
                       value={rule.employee_id}
-                      onChange={(e) => updateRule(rule.id, 'employee_id', e.target.value)}
+                      onValueChange={(value) => updateRule(rule.id, 'employee_id', value)}
                     >
-                      <option value="">请选择客服</option>
-                      {employees.map(emp => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.real_name} ({emp.employee_no})
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="请选择客服" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">请选择客服</SelectItem>
+                        {employees.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id.toString()}>
+                            {emp.real_name} ({emp.employee_no})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="form-group">
                     <label>开始日期</label>
-                    <select
+                    <Select
                       value={rule.start_day}
-                      onChange={(e) => updateRule(rule.id, 'start_day', e.target.value)}
+                      onValueChange={(value) => updateRule(rule.id, 'start_day', value)}
                     >
-                      <option value="">请选择</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                        <option key={day} value={day}>{day}号</option>
-                      ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="请选择" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">请选择</SelectItem>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                          <SelectItem key={day} value={day.toString()}>
+                            {day}号
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="form-group">
                     <label>结束日期</label>
-                    <select
+                    <Select
                       value={rule.end_day}
-                      onChange={(e) => updateRule(rule.id, 'end_day', e.target.value)}
+                      onValueChange={(value) => updateRule(rule.id, 'end_day', value)}
                       disabled={!rule.start_day}
                     >
-                      <option value="">请选择</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1)
-                        .filter(day => !rule.start_day || day >= parseInt(rule.start_day))
-                        .map(day => (
-                          <option key={day} value={day}>{day}号</option>
-                        ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="请选择" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">请选择</SelectItem>
+                        {Array.from({ length: 31 }, (_, i) => i + 1)
+                          .filter(day => !rule.start_day || day >= parseInt(rule.start_day))
+                          .map(day => (
+                            <SelectItem key={day} value={day.toString()}>
+                              {day}号
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="form-group">
                     <label>班次</label>
-                    <select
+                    <Select
                       value={rule.shift_id}
-                      onChange={(e) => updateRule(rule.id, 'shift_id', e.target.value)}
+                      onValueChange={(value) => updateRule(rule.id, 'shift_id', value)}
                     >
-                      <option value="">请选择班次</option>
-                      {shifts.map(shift => (
-                        <option key={shift.id} value={shift.id}>
-                          {shift.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="请选择班次" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">请选择班次</SelectItem>
+                        {shifts.map(shift => (
+                          <SelectItem key={shift.id} value={shift.id.toString()}>
+                            {shift.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 {scheduleRules.length > 1 && (
-                  <button
+                  <Button
                     onClick={() => removeRule(rule.id)}
                     className="btn-remove-rule"
                     title="删除此规则"
+                    variant="destructive"
                   >
                     ❌
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
@@ -490,13 +523,13 @@ const SmartSchedule = () => {
         </div>
 
         <div className="form-actions">
-          <button
+          <Button
             onClick={generateSchedule}
             disabled={loading}
             className="btn-generate"
           >
             {loading ? '生成中...' : '📥 生成并下载Excel排班方案'}
-          </button>
+          </Button>
         </div>
       </div>
 

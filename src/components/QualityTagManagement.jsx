@@ -2,15 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import qualityAPI from '../api/qualityAPI';
 import Modal from './Modal';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  FolderOutlined,
-  TagOutlined,
-  SaveOutlined,
-  CloseOutlined,
-} from '@ant-design/icons';
+import { Plus, Edit, Trash2, Folder, Tag, Save, X } from 'lucide-react';
 import './QualityTagManagement.css';
 
 const QualityTagManagement = () => {
@@ -194,7 +186,7 @@ const QualityTagManagement = () => {
       .map(item => (
         <div key={item.id} className="tree-item" style={{ paddingLeft: `${level * 24}px` }}>
           <div className="tree-item-content">
-            <FolderOutlined className="tree-icon" />
+            <Folder className="tree-icon" />
             <span className="tree-label">{item.name}</span>
             <span
               className="tree-color-badge"
@@ -207,14 +199,14 @@ const QualityTagManagement = () => {
                 className="btn-icon btn-edit"
                 title="编辑"
               >
-                <EditOutlined />
+                <Edit />
               </button>
               <button
                 onClick={() => handleDeleteCategory(item.id)}
                 className="btn-icon btn-delete"
                 title="删除"
               >
-                <DeleteOutlined />
+                <Trash2 />
               </button>
             </div>
           </div>
@@ -233,7 +225,7 @@ const QualityTagManagement = () => {
       .map(item => (
         <div key={item.id} className="tree-item" style={{ paddingLeft: `${level * 24}px` }}>
           <div className="tree-item-content">
-            <TagOutlined className="tree-icon" />
+            <Tag className="tree-icon" />
             <span className="tree-label">{item.name}</span>
             <span
               className="tag-badge"
@@ -251,14 +243,14 @@ const QualityTagManagement = () => {
                 className="btn-icon btn-edit"
                 title="编辑"
               >
-                <EditOutlined />
+                <Edit />
               </button>
               <button
                 onClick={() => handleDeleteTag(item.id)}
                 className="btn-icon btn-delete"
                 title="删除"
               >
-                <DeleteOutlined />
+                <Trash2 />
               </button>
             </div>
           </div>
@@ -305,13 +297,13 @@ const QualityTagManagement = () => {
           className={`tab-button ${activeTab === 'categories' ? 'active' : ''}`}
           onClick={() => setActiveTab('categories')}
         >
-          <FolderOutlined /> 标签分类 ({categories.length})
+          <Folder /> 标签分类 ({categories.length})
         </button>
         <button
           className={`tab-button ${activeTab === 'tags' ? 'active' : ''}`}
           onClick={() => setActiveTab('tags')}
         >
-          <TagOutlined /> 标签 ({tags.length})
+          <Tag /> 标签 ({tags.length})
         </button>
       </div>
 
@@ -324,7 +316,7 @@ const QualityTagManagement = () => {
                 onClick={handleCreateCategory}
                 className="btn-primary"
               >
-                <PlusOutlined /> 新建分类
+                <Plus /> 新建分类
               </button>
             </div>
             <div className="tree-container">
@@ -348,7 +340,7 @@ const QualityTagManagement = () => {
                 onClick={handleCreateTag}
                 className="btn-primary"
               >
-                <PlusOutlined /> 新建标签
+                <Plus /> 新建标签
               </button>
             </div>
             <div className="tree-container">
@@ -445,10 +437,10 @@ const QualityTagManagement = () => {
         </div>
         <div className="modal-actions">
           <button onClick={() => setIsCategoryModalOpen(false)} className="btn-secondary">
-            <CloseOutlined /> 取消
+            <X /> 取消
           </button>
           <button onClick={handleSaveCategory} className="btn-primary">
-            <SaveOutlined /> 保存
+            <Save /> 保存
           </button>
         </div>
       </Modal>
@@ -542,10 +534,10 @@ const QualityTagManagement = () => {
         </div>
         <div className="modal-actions">
           <button onClick={() => setIsTagModalOpen(false)} className="btn-secondary">
-            <CloseOutlined /> 取消
+            <X /> 取消
           </button>
           <button onClick={handleSaveTag} className="btn-primary">
-            <SaveOutlined /> 保存
+            <Save /> 保存
           </button>
         </div>
       </Modal>

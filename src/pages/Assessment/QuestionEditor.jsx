@@ -1,34 +1,58 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Form, Input, Select, Button, Space, message, Card, Radio, InputNumber, Checkbox, Tag } from 'antd';
-import { MinusCircleOutlined, PlusOutlined, ArrowLeftOutlined, SaveOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useFormAutoSave } from '../../hooks/useFormAutoSave';
+import { toast } from 'react-toastify';
+import {
+  Plus,
+  ArrowLeft,
+  Save,
+  CheckCircle,
+  XCircle,
+  MinusCircle,
+  ImagePlus
+} from 'lucide-react';
 
-const { Option } = Select;
-const { TextArea } = Input;
-const RadioGroup = Radio.Group;
-const CheckboxGroup = Checkbox.Group;
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Badge } from '../../components/ui/badge';
 
 const QuestionEditor = () => {
-  const [form] = Form.useForm();
   const navigate = useNavigate();
   const { examId, questionId } = useParams(); // examId for new question, questionId for editing
   const [loading, setLoading] = useState(false);
   const [questionType, setQuestionType] = useState('single_choice');
   const [formChanged, setFormChanged] = useState(false);
+  const [formData, setFormData] = useState({
+    type: 'single_choice',
+    content: '',
+    score: 5,
+    options: [{ value: '' }, { value: '' }],
+    correct_answer: undefined,
+    fill_blanks: [{ keyword: '' }],
+    explanation: ''
+  });
 
   useEffect(() => {
     if (questionId) {
       fetchQuestionDetails(questionId);
     } else {
       // Set default values for new question
-      form.setFieldsValue({
+      setFormData({
         type: 'single_choice',
+        content: '',
         score: 5,
         options: [{ value: '' }, { value: '' }],
         correct_answer: undefined,
         fill_blanks: [{ keyword: '' }],
+        explanation: ''
       });
     }
   }, [questionId]);
@@ -53,9 +77,9 @@ const QuestionEditor = () => {
         question.fill_blanks = JSON.parse(question.fill_blanks);
       }
 
-      form.setFieldsValue(question);
+      setFormData(question);
     } catch (error) {
-      message.error('获取题目详情失败');
+      toast.error('获取题目详情失败');
       console.error('Failed to fetch question details:', error);
     } finally {
       setLoading(false);
@@ -85,16 +109,16 @@ const QuestionEditor = () => {
         await axios.put(`/api/questions/${questionId}`, payload, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-        message.success('题目更新成功');
+        toast.success('题目更新成功');
       } else {
         await axios.post(`/api/exams/${examId}/questions`, payload, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-        message.success('题目创建成功');
+        toast.success('题目创建成功');
       }
       navigate(`/assessment/exams/${examId}`); // Navigate back to exam details
     } catch (error) {
-      message.error(`操作失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`操作失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to save question:', error);
     } finally {
       setLoading(false);
@@ -104,17 +128,20 @@ const QuestionEditor = () => {
   const handleQuestionTypeChange = (value) => {
     setQuestionType(value);
     // Reset relevant fields when type changes
-    form.setFieldsValue({
-      options: undefined,
-      correct_answer: undefined,
-      fill_blanks: undefined,
-    });
+    const newData = { ...formData };
+    newData.type = value;
+    newData.options = undefined;
+    newData.correct_answer = undefined;
+    newData.fill_blanks = undefined;
+
     if (value === 'single_choice' || value === 'multiple_choice') {
-      form.setFieldsValue({ options: [{ value: '' }, { value: '' }] });
+      newData.options = [{ value: '' }, { value: '' }];
     }
     if (value === 'fill_blank') {
-      form.setFieldsValue({ fill_blanks: [{ keyword: '' }] });
+      newData.fill_blanks = [{ keyword: '' }];
     }
+
+    setFormData(newData);
   };
 
   // Auto-save draft function
@@ -138,229 +165,344 @@ const QuestionEditor = () => {
 
   const { triggerSave, isSaving, saveStatus } = useFormAutoSave(autoSaveDraft, 3000, questionId && formChanged);
 
-  const handleFormChange = useCallback(() => {
+  const handleFormChange = useCallback((field, value) => {
     setFormChanged(true);
+    setFormData(prev => ({ ...prev, [field]: value }));
+
     if (questionId) {
-      const values = form.getFieldsValue();
-      triggerSave(values);
+      triggerSave({ ...formData, [field]: value });
     }
-  }, [questionId, form, triggerSave]);
+  }, [questionId, formData, triggerSave]);
+
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...formData.options];
+    newOptions[index].value = value;
+    setFormData(prev => ({ ...prev, options: newOptions }));
+
+    if (questionId) {
+      triggerSave({ ...formData, options: newOptions });
+    }
+  };
+
+  const addOption = () => {
+    const newOptions = [...formData.options, { value: '' }];
+    setFormData(prev => ({ ...prev, options: newOptions }));
+  };
+
+  const removeOption = (index) => {
+    if (formData.options.length <= 2) return;
+    const newOptions = [...formData.options];
+    newOptions.splice(index, 1);
+    setFormData(prev => ({ ...prev, options: newOptions }));
+  };
+
+  const handleFillBlankChange = (index, value) => {
+    const newFillBlanks = [...formData.fill_blanks];
+    newFillBlanks[index].keyword = value;
+    setFormData(prev => ({ ...prev, fill_blanks: newFillBlanks }));
+
+    if (questionId) {
+      triggerSave({ ...formData, fill_blanks: newFillBlanks });
+    }
+  };
+
+  const addFillBlank = () => {
+    const newFillBlanks = [...formData.fill_blanks, { keyword: '' }];
+    setFormData(prev => ({ ...prev, fill_blanks: newFillBlanks }));
+  };
+
+  const removeFillBlank = (index) => {
+    if (formData.fill_blanks.length <= 1) return;
+    const newFillBlanks = [...formData.fill_blanks];
+    newFillBlanks.splice(index, 1);
+    setFormData(prev => ({ ...prev, fill_blanks: newFillBlanks }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onFinish(formData);
+  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        title={
-          <Space>
-            <span>{questionId ? '编辑题目' : '创建题目'}</span>
+    <div className="p-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>
+              {questionId ? '编辑题目' : '创建题目'}
+            </CardTitle>
             {questionId && (
-              <>
-                {isSaving && <Tag icon={<SaveOutlined spin />} color="processing">保存中...</Tag>}
-                {saveStatus === 'success' && <Tag icon={<CheckCircleOutlined />} color="success">已保存</Tag>}
-                {saveStatus === 'error' && <Tag icon={<CloseCircleOutlined />} color="error">保存失败</Tag>}
-              </>
+              <div className="flex items-center space-x-2">
+                {isSaving && (
+                  <Badge variant="secondary" className="flex items-center">
+                    <Save className="h-3 w-3 mr-1 animate-spin" />
+                    保存中...
+                  </Badge>
+                )}
+                {saveStatus === 'success' && (
+                  <Badge variant="default" className="flex items-center">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    已保存
+                  </Badge>
+                )}
+                {saveStatus === 'error' && (
+                  <Badge variant="destructive" className="flex items-center">
+                    <XCircle className="h-3 w-3 mr-1" />
+                    保存失败
+                  </Badge>
+                )}
+              </div>
             )}
-          </Space>
-        }
-        loading={loading}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onValuesChange={handleFormChange}
-          onFinish={onFinish}
-        >
-          <Form.Item
-            name="type"
-            label="题型"
-            rules={[{ required: true, message: '请选择题型' }]}
-          >
-            <Select placeholder="请选择题型" onChange={handleQuestionTypeChange}>
-              <Option value="single_choice">单选题</Option>
-              <Option value="multiple_choice">多选题</Option>
-              <Option value="true_false">判断题</Option>
-              <Option value="fill_blank">填空题</Option>
-              <Option value="essay">简答题</Option>
-            </Select>
-          </Form.Item>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="type">题型</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={handleQuestionTypeChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择题型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single_choice">单选题</SelectItem>
+                    <SelectItem value="multiple_choice">多选题</SelectItem>
+                    <SelectItem value="true_false">判断题</SelectItem>
+                    <SelectItem value="fill_blank">填空题</SelectItem>
+                    <SelectItem value="essay">简答题</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <Form.Item
-            name="content"
-            label="题目内容"
-            rules={[{ required: true, message: '请输入题目内容' }]}
-          >
-            <TextArea rows={4} placeholder="请输入题目内容" />
-          </Form.Item>
+              <div className="space-y-2">
+                <Label htmlFor="content">题目内容</Label>
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => handleFormChange('content', e.target.value)}
+                  rows={4}
+                  placeholder="请输入题目内容"
+                />
+              </div>
 
-          <Form.Item
-            name="score"
-            label="分值"
-            rules={[{ required: true, message: '请输入分值' }, { type: 'number', min: 1, message: '分值必须大于0' }]}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
+              <div className="space-y-2">
+                <Label htmlFor="score">分值</Label>
+                <Input
+                  id="score"
+                  type="number"
+                  min="1"
+                  value={formData.score}
+                  onChange={(e) => handleFormChange('score', parseInt(e.target.value) || 0)}
+                />
+              </div>
 
-          {/* Options for Single/Multiple Choice */}
-          {(questionType === 'single_choice' || questionType === 'multiple_choice') && (
-            <Form.List name="options" rules={[{
-              validator: async (_, options) => {
-                if (!options || options.length < 2) {
-                  return Promise.reject(new Error('至少需要两个选项'));
-                }
-                if (options.some(option => !option || !option.value || option.value.trim() === '')) {
-                  return Promise.reject(new Error('选项内容不能为空'));
-                }
-              },
-            }]}>
-              {(fields, { add, remove }) => (
-                <>
-                  {fields.map((field, index) => (
-                    <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                      <Form.Item
-                        {...field}
-                        name={[field.name, 'value']}
-                        fieldKey={[field.fieldKey, 'value']}
-                        rules={[{ required: true, message: '选项内容不能为空' }]}
-                      >
-                        <Input placeholder={`选项 ${index + 1}`} style={{ width: 300 }} />
-                      </Form.Item>
-                      {fields.length > 2 ? (
-                        <MinusCircleOutlined onClick={() => remove(field.name)} />
-                      ) : null}
-                    </Space>
-                  ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      添加选项
-                    </Button>
-                  </Form.Item>
-                </>
+              {/* Options for Single/Multiple Choice */}
+              {(questionType === 'single_choice' || questionType === 'multiple_choice') && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>选项</Label>
+                    {formData.options?.map((option, index) => (
+                      <div key={index} className="flex items-center mt-2">
+                        <Input
+                          value={option.value}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                          placeholder={`选项 ${index + 1}`}
+                          className="mr-2"
+                        />
+                        {formData.options.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeOption(index)}
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addOption}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    添加选项
+                  </Button>
+                </div>
               )}
-            </Form.List>
-          )}
 
-          {/* Correct Answer for Single/Multiple Choice */}
-          {questionType === 'single_choice' && (
-            <Form.Item
-              name="correct_answer"
-              label="正确答案"
-              rules={[{ required: true, message: '请选择正确答案' }]}
-            >
-              <RadioGroup>
-                {form.getFieldValue('options')?.map((option, index) => (
-                  <Radio key={index} value={option.value}>{`选项 ${index + 1}: ${option.value}`}</Radio>
-                ))}
-              </RadioGroup>
-            </Form.Item>
-          )}
-
-          {questionType === 'multiple_choice' && (
-            <Form.Item
-              name="correct_answer"
-              label="正确答案"
-              rules={[{ required: true, message: '请选择至少两个正确答案' }, {
-                validator: async (_, value) => {
-                  if (questionType === 'multiple_choice' && (!value || value.length < 2)) {
-                    return Promise.reject(new Error('多选题至少需要选择两个正确答案'));
-                  }
-                },
-              }]}
-            >
-              <CheckboxGroup>
-                {form.getFieldValue('options')?.map((option, index) => (
-                  <Checkbox key={index} value={option.value}>{`选项 ${index + 1}: ${option.value}`}</Checkbox>
-                ))}
-              </CheckboxGroup>
-            </Form.Item>
-          )}
-
-          {/* Correct Answer for True/False */}
-          {questionType === 'true_false' && (
-            <Form.Item
-              name="correct_answer"
-              label="正确答案"
-              rules={[{ required: true, message: '请选择正确答案' }]}
-            >
-              <RadioGroup>
-                <Radio value={true}>正确</Radio>
-                <Radio value={false}>错误</Radio>
-              </RadioGroup>
-            </Form.Item>
-          )}
-
-          {/* Keywords for Fill-in-the-blank */}
-          {questionType === 'fill_blank' && (
-            <Form.List name="fill_blanks" rules={[{
-              validator: async (_, fill_blanks) => {
-                if (!fill_blanks || fill_blanks.length === 0) {
-                  return Promise.reject(new Error('至少需要一个填空项'));
-                }
-                if (fill_blanks.some(blank => !blank || !blank.keyword || blank.keyword.trim() === '')) {
-                  return Promise.reject(new Error('填空关键词不能为空'));
-                }
-              },
-            }]}>
-              {(fields, { add, remove }) => (
-                <>
-                  {fields.map((field, index) => (
-                    <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                      <Form.Item
-                        {...field}
-                        name={[field.name, 'keyword']}
-                        fieldKey={[field.fieldKey, 'keyword']}
-                        rules={[{ required: true, message: '填空关键词不能为空' }]}
-                      >
-                        <Input placeholder={`填空项 ${index + 1} 关键词`} style={{ width: 300 }} />
-                      </Form.Item>
-                      {fields.length > 1 ? (
-                        <MinusCircleOutlined onClick={() => remove(field.name)} />
-                      ) : null}
-                    </Space>
-                  ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      添加填空项
-                    </Button>
-                  </Form.Item>
-                </>
+              {/* Correct Answer for Single Choice */}
+              {questionType === 'single_choice' && (
+                <div className="space-y-2">
+                  <Label>正确答案</Label>
+                  <RadioGroup
+                    value={formData.correct_answer}
+                    onValueChange={(value) => handleFormChange('correct_answer', value)}
+                  >
+                    {formData.options?.map((option, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <RadioGroupItem
+                          value={option.value}
+                          id={`option-${index}`}
+                        />
+                        <Label htmlFor={`option-${index}`}>
+                          {`选项 ${index + 1}: ${option.value}`}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
               )}
-            </Form.List>
+
+              {/* Correct Answer for Multiple Choice */}
+              {questionType === 'multiple_choice' && (
+                <div className="space-y-2">
+                  <Label>正确答案</Label>
+                  <div className="space-y-2">
+                    {formData.options?.map((option, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={formData.correct_answer?.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            let newCorrectAnswers = formData.correct_answer || [];
+                            if (checked) {
+                              newCorrectAnswers = [...newCorrectAnswers, option.value];
+                            } else {
+                              newCorrectAnswers = newCorrectAnswers.filter(val => val !== option.value);
+                            }
+                            handleFormChange('correct_answer', newCorrectAnswers);
+                          }}
+                          id={`multi-option-${index}`}
+                        />
+                        <Label htmlFor={`multi-option-${index}`}>
+                          {`选项 ${index + 1}: ${option.value}`}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Correct Answer for True/False */}
+              {questionType === 'true_false' && (
+                <div className="space-y-2">
+                  <Label>正确答案</Label>
+                  <RadioGroup
+                    value={formData.correct_answer?.toString()}
+                    onValueChange={(value) => handleFormChange('correct_answer', value === 'true')}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="true" />
+                      <Label htmlFor="true">正确</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="false" />
+                      <Label htmlFor="false">错误</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* Keywords for Fill-in-the-blank */}
+              {questionType === 'fill_blank' && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>填空项</Label>
+                    {formData.fill_blanks?.map((blank, index) => (
+                      <div key={index} className="flex items-center mt-2">
+                        <Input
+                          value={blank.keyword}
+                          onChange={(e) => handleFillBlankChange(index, e.target.value)}
+                          placeholder={`填空项 ${index + 1} 关键词`}
+                          className="mr-2"
+                        />
+                        {formData.fill_blanks.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeFillBlank(index)}
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addFillBlank}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    添加填空项
+                  </Button>
+                </div>
+              )}
+
+              {/* Reference Answer for Essay */}
+              {questionType === 'essay' && (
+                <div className="space-y-2">
+                  <Label htmlFor="correct_answer">参考答案</Label>
+                  <Textarea
+                    id="correct_answer"
+                    value={formData.correct_answer || ''}
+                    onChange={(e) => handleFormChange('correct_answer', e.target.value)}
+                    rows={6}
+                    placeholder="请输入参考答案"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="explanation">解析</Label>
+                <Textarea
+                  id="explanation"
+                  value={formData.explanation}
+                  onChange={(e) => handleFormChange('explanation', e.target.value)}
+                  rows={4}
+                  placeholder="请输入题目解析"
+                />
+              </div>
+
+              {/* Image Upload (Placeholder) */}
+              <div className="space-y-2">
+                <Label>图片上传</Label>
+                <Button variant="outline" disabled>
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                  上传图片 (待实现)
+                </Button>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button type="submit" disabled={loading}>
+                  {loading && <Save className="h-4 w-4 mr-2 animate-spin" />}
+                  保存题目
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/assessment/exams/${examId}`)}
+                  disabled={loading}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  取消
+                </Button>
+              </div>
+            </form>
           )}
-
-          {/* Reference Answer for Essay */}
-          {questionType === 'essay' && (
-            <Form.Item
-              name="correct_answer" // Using correct_answer to store reference answer
-              label="参考答案"
-            >
-              <TextArea rows={6} placeholder="请输入参考答案" />
-            </Form.Item>
-          )}
-
-          <Form.Item
-            name="explanation"
-            label="解析"
-          >
-            <TextArea rows={4} placeholder="请输入题目解析" />
-          </Form.Item>
-
-          {/* Image Upload (Placeholder) */}
-          <Form.Item label="图片上传">
-            <Button icon={<PlusOutlined />} disabled>
-              上传图片 (待实现)
-            </Button>
-          </Form.Item>
-
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                保存题目
-              </Button>
-              <Button onClick={() => navigate(`/assessment/exams/${examId}`)} disabled={loading}>
-                取消
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+        </CardContent>
       </Card>
     </div>
   );

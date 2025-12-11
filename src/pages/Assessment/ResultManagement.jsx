@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Select, Space, Tag, message, Popconfirm, DatePicker, Modal, Form, InputNumber, Typography } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, ExportOutlined, SearchOutlined } from '@ant-design/icons';
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { Eye, Edit, Trash2, Download, Search, Calendar } from 'lucide-react';
 
-const { Option } = Select;
-const { RangePicker } = DatePicker;
-const { Text } = Typography;
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from '../../components/ui/table';
 
 const ResultManagement = () => {
   const navigate = useNavigate();
@@ -33,7 +39,12 @@ const ResultManagement = () => {
 
   const [gradingModalVisible, setGradingModalVisible] = useState(false);
   const [currentGradingRecord, setCurrentGradingRecord] = useState(null);
-  const [gradingForm] = Form.useForm();
+  const [gradingForm, setGradingForm] = useState({
+    question_id: '',
+    user_answer: '',
+    score: 0,
+    max_score: 0
+  });
 
   useEffect(() => {
     fetchResults();
@@ -51,8 +62,8 @@ const ResultManagement = () => {
           exam_id: filters.exam_id,
           plan_id: filters.plan_id,
           status: filters.status,
-          start_time: filters.dateRange[0] ? filters.dateRange[0].format('YYYY-MM-DD') : undefined,
-          end_time: filters.dateRange[1] ? filters.dateRange[1].format('YYYY-MM-DD') : undefined,
+          start_time: filters.dateRange[0] ? dayjs(filters.dateRange[0]).format('YYYY-MM-DD') : undefined,
+          end_time: filters.dateRange[1] ? dayjs(filters.dateRange[1]).format('YYYY-MM-DD') : undefined,
           sort_field: params.sorter?.field,
           sort_order: params.sorter?.order,
         },
@@ -68,7 +79,7 @@ const ResultManagement = () => {
         total: response.data.data.total,
       });
     } catch (error) {
-      message.error('获取考试记录失败');
+      toast.error('获取考试记录失败');
       console.error('Failed to fetch assessment results:', error);
     } finally {
       setLoading(false);
@@ -86,7 +97,7 @@ const ResultManagement = () => {
       setExams(examsRes.data.data.exams);
       setPlans(plansRes.data.data.plans);
     } catch (error) {
-      message.error('获取筛选选项失败');
+      toast.error('获取筛选选项失败');
       console.error('Failed to fetch filter options:', error);
     }
   };
@@ -107,82 +118,17 @@ const ResultManagement = () => {
   const getStatusTag = (status) => {
     switch (status) {
       case 'in_progress':
-        return <Tag color="blue">进行中</Tag>;
+        return <Badge variant="secondary">进行中</Badge>;
       case 'submitted':
-        return <Tag color="warning">待评分</Tag>;
+        return <Badge variant="default">待评分</Badge>;
       case 'graded':
-        return <Tag color="success">已评分</Tag>;
+        return <Badge variant="default">已评分</Badge>;
       case 'expired':
-        return <Tag color="error">已过期</Tag>;
+        return <Badge variant="destructive">已过期</Badge>;
       default:
-        return <Tag>{status}</Tag>;
+        return <Badge>{status}</Badge>;
     }
   };
-
-  const columns = [
-    {
-      title: '用户',
-      dataIndex: 'username',
-      key: 'username',
-      render: (text, record) => record.real_name || text,
-    },
-    {
-      title: '考试名称',
-      dataIndex: 'exam_title',
-      key: 'exam_title',
-    },
-    {
-      title: '考核计划',
-      dataIndex: 'plan_title',
-      key: 'plan_title',
-    },
-    {
-      title: '成绩',
-      dataIndex: 'score',
-      key: 'score',
-      render: (score) => score !== null ? score.toFixed(2) : '-',
-      sorter: true,
-    },
-    {
-      title: '通过状态',
-      dataIndex: 'is_passed',
-      key: 'is_passed',
-      render: (isPassed) => isPassed !== null ? (isPassed ? <Tag color="success">通过</Tag> : <Tag color="error">未通过</Tag>) : '-',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: getStatusTag,
-    },
-    {
-      title: '提交时间',
-      dataIndex: 'submit_time',
-      key: 'submit_time',
-      render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-',
-      sorter: true,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => navigate(`/assessment/results/${record.id}/answers`)}>查看详情</Button>
-          {record.status === 'submitted' && (
-            <Button icon={<EditOutlined />} onClick={() => handleManualGrade(record)}>人工评分</Button>
-          )}
-          <Popconfirm
-            title="确定删除此考试记录吗？"
-            onConfirm={() => handleDeleteResult(record.id)}
-            okText="是"
-            cancelText="否"
-          >
-            <Button icon={<DeleteOutlined />} danger>删除</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
 
   const handleManualGrade = async (record) => {
     setCurrentGradingRecord(record);
@@ -196,7 +142,7 @@ const ResultManagement = () => {
         // For simplicity, let's assume we grade the first subjective question found
         // In a real app, you'd list all subjective questions and allow grading each
         const firstSubjective = subjectiveQuestions[0];
-        gradingForm.setFieldsValue({
+        setGradingForm({
           question_id: firstSubjective.question_id,
           user_answer: firstSubjective.user_answer,
           score: firstSubjective.user_score || 0,
@@ -204,29 +150,36 @@ const ResultManagement = () => {
         });
         setGradingModalVisible(true);
       } else {
-        message.info('此考试记录没有需要人工评分的主观题。');
+        toast.info('此考试记录没有需要人工评分的主观题。');
       }
     } catch (error) {
-      message.error('获取题目详情失败，无法进行人工评分');
+      toast.error('获取题目详情失败，无法进行人工评分');
       console.error('Failed to fetch answers for grading:', error);
     }
   };
 
-  const handleGradingSubmit = async (values) => {
+  const handleGradingFormChange = (field, value) => {
+    setGradingForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleGradingSubmit = async () => {
     setLoading(true);
     try {
       await axios.put(`/api/assessment-results/${currentGradingRecord.id}/grade`, {
-        question_id: values.question_id,
-        score: values.score,
-        is_correct: values.score > 0 ? 1 : 0, // Simple logic: if score > 0, it's correct
+        question_id: gradingForm.question_id,
+        score: gradingForm.score,
+        is_correct: gradingForm.score > 0 ? 1 : 0, // Simple logic: if score > 0, it's correct
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('评分成功');
+      toast.success('评分成功');
       setGradingModalVisible(false);
       fetchResults(); // Refresh list
     } catch (error) {
-      message.error(`评分失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`评分失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to submit grade:', error);
     } finally {
       setLoading(false);
@@ -234,15 +187,17 @@ const ResultManagement = () => {
   };
 
   const handleDeleteResult = async (id) => {
+    if (!window.confirm('确定要删除这条考试记录吗？')) return;
+
     setLoading(true);
     try {
       await axios.delete(`/api/assessment-results/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('考试记录删除成功');
+      toast.success('考试记录删除成功');
       fetchResults();
     } catch (error) {
-      message.error(`删除失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`删除失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to delete result:', error);
     } finally {
       setLoading(false);
@@ -250,134 +205,179 @@ const ResultManagement = () => {
   };
 
   const handleBatchExport = () => {
-    message.info('批量导出功能待实现');
+    toast.info('批量导出功能待实现');
     // Implement batch export logic here
   };
 
   const handleBatchGrade = () => {
-    message.info('批量评分功能待实现');
+    toast.info('批量评分功能待实现');
     // Implement batch grading logic here
   };
 
   return (
     <div style={{ padding: 24 }}>
-      <Card title="成绩管理 (管理员)">
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-          <Space>
-            <Select
-              placeholder="筛选用户"
-              style={{ width: 150 }}
-              onChange={(value) => handleFilterChange('user_id', value)}
-              allowClear
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-            >
-              {users.map(user => (
-                <Option key={user.id} value={user.id}>{user.real_name || user.username}</Option>
-              ))}
-            </Select>
-            <Select
-              placeholder="筛选试卷"
-              style={{ width: 150 }}
-              onChange={(value) => handleFilterChange('exam_id', value)}
-              allowClear
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-            >
-              {exams.map(exam => (
-                <Option key={exam.id} value={exam.id}>{exam.title}</Option>
-              ))}
-            </Select>
-            <Select
-              placeholder="筛选计划"
-              style={{ width: 150 }}
-              onChange={(value) => handleFilterChange('plan_id', value)}
-              allowClear
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-            >
-              {plans.map(plan => (
-                <Option key={plan.id} value={plan.id}>{plan.title}</Option>
-              ))}
-            </Select>
-            <Select
-              placeholder="筛选状态"
-              style={{ width: 120 }}
-              onChange={(value) => handleFilterChange('status', value)}
-              allowClear
-            >
-              <Option value="in_progress">进行中</Option>
-              <Option value="submitted">待评分</Option>
-              <Option value="graded">已评分</Option>
-              <Option value="expired">已过期</Option>
-            </Select>
-            <RangePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              onChange={(dates) => handleFilterChange('dateRange', dates)}
-              value={filters.dateRange}
-            />
-          </Space>
-          <Space>
-            <Button icon={<ExportOutlined />} onClick={handleBatchExport}>批量导出</Button>
-            <Button icon={<EditOutlined />} onClick={handleBatchGrade}>批量评分</Button>
-          </Space>
-        </Space>
+      <Card>
+        <CardHeader>
+          <CardTitle>成绩管理 (管理员)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex flex-wrap gap-2 justify-between">
+            <div className="flex flex-wrap gap-2">
+              <Select onValueChange={(value) => handleFilterChange('user_id', value)} value={filters.user_id?.toString() || ""}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="筛选用户" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={user.id.toString()}>{user.real_name || user.username}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select onValueChange={(value) => handleFilterChange('exam_id', value)} value={filters.exam_id?.toString() || ""}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="筛选试卷" />
+                </SelectTrigger>
+                <SelectContent>
+                  {exams.map(exam => (
+                    <SelectItem key={exam.id} value={exam.id.toString()}>{exam.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select onValueChange={(value) => handleFilterChange('plan_id', value)} value={filters.plan_id?.toString() || ""}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="筛选计划" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map(plan => (
+                    <SelectItem key={plan.id} value={plan.id.toString()}>{plan.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select onValueChange={(value) => handleFilterChange('status', value)} value={filters.status || ""}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="筛选状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_progress">进行中</SelectItem>
+                  <SelectItem value="submitted">待评分</SelectItem>
+                  <SelectItem value="graded">已评分</SelectItem>
+                  <SelectItem value="expired">已过期</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <Input
+                  type="date"
+                  onChange={(e) => handleFilterChange('dateRange', [e.target.value])}
+                  value={filters.dateRange[0] || ""}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleBatchExport} className="flex items-center gap-1">
+                <Download className="h-4 w-4" />
+                批量导出
+              </Button>
+              <Button onClick={handleBatchGrade} variant="outline" className="flex items-center gap-1">
+                <Edit className="h-4 w-4" />
+                批量评分
+              </Button>
+            </div>
+          </div>
 
-        <Table
-          columns={columns}
-          dataSource={results}
-          rowKey="id"
-          loading={loading}
-          pagination={pagination}
-          onChange={handleTableChange}
-          scroll={{ x: 'max-content' }}
-        />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>用户</TableHead>
+                <TableHead>考试名称</TableHead>
+                <TableHead>考核计划</TableHead>
+                <TableHead>成绩</TableHead>
+                <TableHead>通过状态</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>提交时间</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {results.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell>{record.real_name || record.username}</TableCell>
+                  <TableCell>{record.exam_title}</TableCell>
+                  <TableCell>{record.plan_title}</TableCell>
+                  <TableCell>{record.score !== null ? record.score.toFixed(2) : '-'}</TableCell>
+                  <TableCell>
+                    {record.is_passed !== null ? (
+                      record.is_passed ?
+                      <Badge variant="default">通过</Badge> :
+                      <Badge variant="destructive">未通过</Badge>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell>{getStatusTag(record.status)}</TableCell>
+                  <TableCell>{record.submit_time ? dayjs(record.submit_time).format('YYYY-MM-DD HH:mm') : '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => navigate(`/assessment/results/${record.id}/answers`)} size="sm" className="flex items-center gap-1">
+                        <Eye className="h-4 w-4" />
+                        查看详情
+                      </Button>
+                      {record.status === 'submitted' && (
+                        <Button onClick={() => handleManualGrade(record)} variant="outline" size="sm" className="flex items-center gap-1">
+                          <Edit className="h-4 w-4" />
+                          人工评分
+                        </Button>
+                      )}
+                      <Button onClick={() => handleDeleteResult(record.id)} variant="destructive" size="sm" className="flex items-center gap-1">
+                        <Trash2 className="h-4 w-4" />
+                        删除
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
-      <Modal
-        title="人工评分"
-        visible={gradingModalVisible}
-        onCancel={() => setGradingModalVisible(false)}
-        footer={null}
-        destroyOnClose
-      >
-        <Form form={gradingForm} layout="vertical" onFinish={handleGradingSubmit}>
-          <Form.Item label="题目内容">
-            <Text>{currentGradingRecord?.question_content}</Text>
-          </Form.Item>
-          <Form.Item label="用户答案">
-            <Text>{gradingForm.getFieldValue('user_answer') || '未作答'}</Text>
-          </Form.Item>
-          <Form.Item
-            name="score"
-            label={`评分 (满分: ${gradingForm.getFieldValue('max_score')})`}
-            rules={[
-              { required: true, message: '请输入分数' },
-              { type: 'number', min: 0, max: gradingForm.getFieldValue('max_score'), message: `分数必须在0到${gradingForm.getFieldValue('max_score')}之间` },
-            ]}
-          >
-            <InputNumber min={0} max={gradingForm.getFieldValue('max_score')} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="question_id" hidden>
-            <Input />
-          </Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              保存评分
-            </Button>
-            <Button onClick={() => setGradingModalVisible(false)}>
-              取消
-            </Button>
-          </Space>
-        </Form>
-      </Modal>
+      <Dialog open={gradingModalVisible} onOpenChange={setGradingModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>人工评分</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium mb-1 block">题目内容</Label>
+              <p>{currentGradingRecord?.question_content}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium mb-1 block">用户答案</Label>
+              <p>{gradingForm.user_answer || '未作答'}</p>
+            </div>
+            <div>
+              <Label htmlFor="score" className="text-sm font-medium mb-1 block">
+                评分 (满分: {gradingForm.max_score})
+              </Label>
+              <Input
+                id="score"
+                type="number"
+                min="0"
+                max={gradingForm.max_score}
+                value={gradingForm.score || ''}
+                onChange={(e) => handleGradingFormChange('score', parseFloat(e.target.value) || 0)}
+                className="w-full"
+              />
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setGradingModalVisible(false)} variant="outline">
+                取消
+              </Button>
+              <Button onClick={handleGradingSubmit} disabled={loading}>
+                {loading ? '保存中...' : '保存评分'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

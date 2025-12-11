@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Switch, message, Space } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PushpinOutlined, PushpinFilled } from '@ant-design/icons';
 import { getApiBaseUrl } from '../utils/apiConfig';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Switch } from './ui/switch';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Textarea } from './ui/textarea';
+import { Pin, PinOff, Edit, Trash2, Plus } from 'lucide-react';
 
 const COMMON_VACATION_TYPES = [
   { code: 'annual', name: '年假', base_days: 5, included_in_total: true, description: '法定年休假' },
@@ -21,7 +30,19 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
   const [editingType, setEditingType] = useState(null);
   const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
   const [selectedQuickTypes, setSelectedQuickTypes] = useState(COMMON_VACATION_TYPES.map(t => t.code));
-  const [form] = Form.useForm();
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    code: '',
+    name: '',
+    base_days: 0,
+    description: '',
+    included_in_total: true,
+    enabled: true
+  });
+
+  // 表单错误状态
+  const [errors, setErrors] = useState({});
 
   // 中文名称到英文的映射
   const chineseToEnglishMap = {
@@ -38,7 +59,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
   // 生成唯一的假期类型编码
   const generateVacationCode = (name, existingCodes = []) => {
     if (!name) return '';
-    
+
     // 1. 检查是否有直接映射
     if (chineseToEnglishMap[name]) {
       let code = chineseToEnglishMap[name];
@@ -51,13 +72,13 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       }
       return uniqueCode;
     }
-    
+
     // 2. 处理其他名称
     let code = name.toLowerCase()
       .replace(/[^a-z0-9\s]/g, '') // 移除特殊字符
       .replace(/\s+/g, '_') // 替换空格为下划线
       .replace(/^_|_$/g, ''); // 移除首尾下划线
-    
+
     // 3. 确保唯一性
     let counter = 1;
     let uniqueCode = code;
@@ -65,7 +86,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       uniqueCode = `${code}_${counter}`;
       counter++;
     }
-    
+
     return uniqueCode;
   };
 
@@ -75,7 +96,9 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
     if (!editingType && name) {
       const existingCodes = types.map(t => t.code);
       const generatedCode = generateVacationCode(name, existingCodes);
-      form.setFieldsValue({ code: generatedCode });
+      setFormData({ ...formData, code: generatedCode, name });
+    } else {
+      setFormData({ ...formData, name });
     }
   };
 
@@ -103,16 +126,35 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
         });
         setTypes(sortedTypes);
       } else {
-        message.error(data.message || '加载假期类型失败');
+        toast.error(data.message || '加载假期类型失败');
       }
     } catch (error) {
-      message.error('加载假期类型失败');
+      toast.error('加载假期类型失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async (values) => {
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.code.trim()) {
+      newErrors.code = '请输入类型代码';
+    }
+
+    if (!formData.name.trim()) {
+      newErrors.name = '请输入类型名称';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const url = editingType
@@ -127,45 +169,41 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(values)
+        body: JSON.stringify(formData)
       });
 
       const data = await response.json();
       if (data.success) {
-        message.success(editingType ? '更新成功' : '创建成功');
+        toast.success(editingType ? '更新成功' : '创建成功');
         setModalVisible(false);
         loadTypes();
       } else {
-        message.error(data.message || '保存失败');
+        toast.error(data.message || '保存失败');
       }
     } catch (error) {
-      message.error('保存失败');
+      toast.error('保存失败');
     }
   };
 
   const handleDelete = async (id) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个假期类型吗？',
-      onOk: async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${getApiBaseUrl()}/vacation-types/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await response.json();
-          if (data.success) {
-            message.success('删除成功');
-            loadTypes();
-          } else {
-            message.error(data.message || '删除失败');
-          }
-        } catch (error) {
-          message.error('删除失败');
+    if (window.confirm('确定要删除这个假期类型吗？')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${getApiBaseUrl()}/vacation-types/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast.success('删除成功');
+          loadTypes();
+        } else {
+          toast.error(data.message || '删除失败');
         }
+      } catch (error) {
+        toast.error('删除失败');
       }
-    });
+    }
   };
 
   const handleTogglePin = async (id, currentPinned) => {
@@ -182,13 +220,13 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
 
       const data = await response.json();
       if (data.success) {
-        message.success(currentPinned ? '已取消置顶' : '已置顶');
+        toast.success(currentPinned ? '已取消置顶' : '已置顶');
         loadTypes();
       } else {
-        message.error(data.message || '操作失败');
+        toast.error(data.message || '操作失败');
       }
     } catch (error) {
-      message.error('操作失败');
+      toast.error('操作失败');
     }
   };
 
@@ -202,7 +240,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       );
 
       if (typesToAdd.length === 0) {
-        message.info('选中的类型已全部存在');
+        toast.info('选中的类型已全部存在');
         setQuickAddModalVisible(false);
         setLoading(false);
         return;
@@ -226,83 +264,72 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
         }
       }
 
-      message.success(`成功添加 ${successCount} 个假期类型`);
+      toast.success(`成功添加 ${successCount} 个假期类型`);
       setQuickAddModalVisible(false);
       loadTypes();
     } catch (error) {
-      message.error('批量添加失败');
+      toast.error('批量添加失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const columns = [
-    {
-      title: '置顶',
-      key: 'pin',
-      width: 80,
-      render: (_, record) => (
-        <Button
-          type="text"
-          icon={record.is_pinned ? <PushpinFilled className="text-blue-500" /> : <PushpinOutlined />}
-          onClick={() => handleTogglePin(record.id, record.is_pinned)}
-        />
-      )
-    },
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: '计入总额',
-      dataIndex: 'included_in_total',
-      key: 'included_in_total',
-      render: (included) => (
-        <span className={included ? 'text-blue-600' : 'text-gray-400'}>
-          {included ? '是' : '否'}
-        </span>
-      )
-    },
-    {
-      title: '状态',
-      dataIndex: 'enabled',
-      key: 'enabled',
-      render: (enabled) => (
-        <span className={enabled ? 'text-green-600' : 'text-gray-400'}>
-          {enabled ? '启用' : '禁用'}
-        </span>
-      )
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_, record) => (
-        <div className="space-x-2">
+  const renderTableRows = () => {
+    return types.map((record) => (
+      <TableRow key={record.id}>
+        <TableCell>
           <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingType(record);
-              form.setFieldsValue(record);
-              setModalVisible(true);
-            }}
-          />
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-          />
-        </div>
-      )
-    }
-  ];
+            variant="ghost"
+            size="sm"
+            onClick={() => handleTogglePin(record.id, record.is_pinned)}
+          >
+            {record.is_pinned ? <Pin className="h-4 w-4 text-blue-500" /> : <PinOff className="h-4 w-4" />}
+          </Button>
+        </TableCell>
+        <TableCell>{record.name}</TableCell>
+        <TableCell>{record.description}</TableCell>
+        <TableCell>
+          <span className={record.included_in_total ? 'text-blue-600' : 'text-gray-400'}>
+            {record.included_in_total ? '是' : '否'}
+          </span>
+        </TableCell>
+        <TableCell>
+          <span className={record.enabled ? 'text-green-600' : 'text-gray-400'}>
+            {record.enabled ? '启用' : '禁用'}
+          </span>
+        </TableCell>
+        <TableCell>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditingType(record);
+                setFormData({
+                  code: record.code,
+                  name: record.name,
+                  base_days: record.base_days,
+                  description: record.description,
+                  included_in_total: record.included_in_total,
+                  enabled: record.enabled
+                });
+                setModalVisible(true);
+              }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleDelete(record.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    ));
+  };
 
   const content = (
     <>
@@ -311,141 +338,187 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           <h2 className="text-xl font-bold text-gray-800">假期类型管理</h2>
           <p className="text-gray-600 text-sm mt-1">管理系统中的假期类型配置</p>
         </div>
-        <div className="space-x-2">
-          <Button
-            icon={<PlusOutlined />}
-            onClick={() => setQuickAddModalVisible(true)}
-          >
+        <div className="flex space-x-2">
+          <Button onClick={() => setQuickAddModalVisible(true)}>
+            <Plus className="h-4 w-4 mr-1" />
             快捷添加
           </Button>
           <Button
-            type="primary"
-            icon={<PlusOutlined />}
             onClick={() => {
               setEditingType(null);
-              form.resetFields();
-              form.setFieldsValue({ enabled: true, included_in_total: true, base_days: 0 });
+              setFormData({
+                code: '',
+                name: '',
+                base_days: 0,
+                description: '',
+                included_in_total: true,
+                enabled: true
+              });
               setModalVisible(true);
             }}
           >
+            <Plus className="h-4 w-4 mr-1" />
             新增类型
           </Button>
         </div>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={types}
-        rowKey="id"
-        loading={loading}
-        pagination={false}
-      />
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>置顶</TableHead>
+              <TableHead>名称</TableHead>
+              <TableHead>描述</TableHead>
+              <TableHead>计入总额</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {renderTableRows()}
+          </TableBody>
+        </Table>
+      </div>
 
-      <Modal
-        title={editingType ? '编辑类型' : '新增类型'}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={() => form.submit()}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSave}
-        >
-          <Form.Item
-            name="code"
-            label="类型代码 (唯一标识)"
-            rules={[{ required: true }]}
-          >
-            <Input 
-              disabled={!!editingType} 
-              placeholder="例如: annual_leave" 
-              readOnly={!!editingType}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="name"
-            label="类型名称"
-            rules={[{ required: true }]}
-          >
-            <Input 
-              placeholder="例如: 年假" 
-              onChange={handleNameChange}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="base_days"
-            label="基准天数 (默认额度)"
-            rules={[{ required: true }]}
-          >
-            <Space.Compact style={{ width: '100%' }}>
-              <InputNumber min={0} precision={1} className="w-full" />
-              <Input defaultValue="天" readOnly={true} disabled={true} />
-            </Space.Compact>
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="描述"
-          >
-            <Input.TextArea rows={2} />
-          </Form.Item>
-
-          <div className="flex space-x-8">
-            <Form.Item
-              name="included_in_total"
-              label="计入总假期额度"
-              valuePropName="checked"
-            >
-              <Switch checkedChildren="是" unCheckedChildren="否" />
-            </Form.Item>
-
-            <Form.Item
-              name="enabled"
-              label="状态"
-              valuePropName="checked"
-            >
-              <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-            </Form.Item>
-          </div>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="快捷添加常用假期"
-        open={quickAddModalVisible}
-        onCancel={() => setQuickAddModalVisible(false)}
-        onOk={handleQuickAdd}
-        confirmLoading={loading}
-      >
-        <div className="py-4">
-          <p className="mb-4 text-gray-600">请选择要添加的假期类型（已存在的将自动跳过）：</p>
-          <div className="grid grid-cols-2 gap-4">
-            {COMMON_VACATION_TYPES.map(type => (
-              <label key={type.code} className="flex items-center space-x-2 cursor-pointer p-2 border rounded hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={selectedQuickTypes.includes(type.code)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedQuickTypes([...selectedQuickTypes, type.code]);
-                    } else {
-                      setSelectedQuickTypes(selectedQuickTypes.filter(c => c !== type.code));
-                    }
-                  }}
-                  className="rounded text-blue-600 focus:ring-blue-500"
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingType ? '编辑类型' : '新增类型'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="code" className="text-right">
+                类型代码 (唯一标识)
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="code"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="例如: annual_leave"
+                  disabled={!!editingType}
+                  readOnly={!!editingType}
+                  className={errors.code ? 'border-red-500' : ''}
                 />
-                <div>
-                  <div className="font-medium">{type.name}</div>
-                  <div className="text-xs text-gray-500">{type.description}</div>
-                </div>
-              </label>
-            ))}
+                {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                类型名称
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={handleNameChange}
+                  placeholder="例如: 年假"
+                  className={errors.name ? 'border-red-500' : ''}
+                />
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="base_days" className="text-right">
+                基准天数 (默认额度)
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="base_days"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={formData.base_days}
+                  onChange={(e) => setFormData({ ...formData, base_days: parseFloat(e.target.value) || 0 })}
+                  className="w-full"
+                />
+                <span className="ml-2">天</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                描述
+              </Label>
+              <div className="col-span-3">
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={2}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                计入总假期额度
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="included_in_total"
+                  checked={formData.included_in_total}
+                  onCheckedChange={(checked) => setFormData({ ...formData, included_in_total: checked })}
+                />
+                <span>{formData.included_in_total ? '是' : '否'}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                状态
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="enabled"
+                  checked={formData.enabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })}
+                />
+                <span>{formData.enabled ? '启用' : '禁用'}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <Button onClick={handleSave}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickAddModalVisible} onOpenChange={setQuickAddModalVisible}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>快捷添加常用假期</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="mb-4 text-gray-600">请选择要添加的假期类型（已存在的将自动跳过）：</p>
+            <div className="grid grid-cols-2 gap-4">
+              {COMMON_VACATION_TYPES.map(type => (
+                <label key={type.code} className="flex items-center space-x-2 cursor-pointer p-2 border rounded hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={selectedQuickTypes.includes(type.code)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedQuickTypes([...selectedQuickTypes, type.code]);
+                      } else {
+                        setSelectedQuickTypes(selectedQuickTypes.filter(c => c !== type.code));
+                      }
+                    }}
+                    className="rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <div className="font-medium">{type.name}</div>
+                    <div className="text-xs text-gray-500">{type.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleQuickAdd} disabled={loading}>
+              {loading ? '添加中...' : '添加'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 
@@ -454,15 +527,16 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
   }
 
   return (
-    <Modal
-      title="假期类型管理"
-      open={visible}
-      onCancel={onClose}
-      width={900}
-      footer={null}
-    >
-      {content}
-    </Modal>
+    <Dialog open={visible} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle>假期类型管理</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[80vh] overflow-y-auto pr-2">
+          {content}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

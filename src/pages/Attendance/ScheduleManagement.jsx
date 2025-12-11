@@ -1,8 +1,15 @@
+// [SHADCN-REPLACED]
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
+
+// 导入 shadcn UI 组件
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../components/ui/card"
 
 // 辅助函数：获取星期几
 const getWeekday = (date) => {
@@ -444,16 +451,12 @@ export default function ScheduleManagement() {
           <p className="text-gray-600 text-sm">管理员工的工作排班</p>
         </div>
         <div className="flex gap-1.5">
-          <button
-            onClick={handleDownloadTemplate}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-            title="下载Excel导入模板"
-          >
+          <Button onClick={handleDownloadTemplate} variant="secondary" size="sm" className="flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             下载模板
-          </button>
+          </Button>
           <label className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -466,407 +469,424 @@ export default function ScheduleManagement() {
               className="hidden"
             />
           </label>
-          <button
-            onClick={handleExportExcel}
-            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-          >
+          <Button onClick={handleExportExcel} variant="secondary" size="sm" className="flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             导出Excel
-          </button>
-          <button
-            onClick={handleBatchSchedule}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors text-sm"
-          >
+          </Button>
+          <Button onClick={handleBatchSchedule} variant="default" size="sm">
             批量排班
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* 筛选器 */}
-      <div className="bg-white rounded-lg shadow p-3 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* 部门选择 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              选择部门
-            </label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2"
-            >
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* 部门选择 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                选择部门
+              </label>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id.toString()}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* 月份选择 - 与部门统计相同的样式 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              选择月份
-            </label>
-            <div className="flex items-stretch gap-2">
-              {/* 上一月按钮 */}
-              <button
-                onClick={handlePrevMonth}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center"
-                title="上个月"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+            {/* 月份选择 - 与部门统计相同的样式 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                选择月份
+              </label>
+              <div className="flex items-stretch gap-2">
+                {/* 上一月按钮 */}
+                <Button onClick={handlePrevMonth} variant="outline" size="icon">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Button>
 
-              {/* 日期选择区域 */}
-              <div className="flex-1 flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-2xl">📅</span>
-                  <select
-                    value={selectedMonth.year}
-                    onChange={(e) => handleMonthChange(parseInt(e.target.value), selectedMonth.month)}
-                    className="bg-transparent border-none text-xl font-bold text-gray-800 focus:outline-none focus:ring-0 cursor-pointer pr-1"
+                {/* 日期选择区域 */}
+                <div className="flex-1 flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-2xl">📅</span>
+                    <Select value={selectedMonth.year.toString()} onValueChange={(value) => handleMonthChange(parseInt(value), selectedMonth.month)}>
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xl font-bold text-gray-700">年</span>
+
+                    <Select value={selectedMonth.month.toString()} onValueChange={(value) => handleMonthChange(selectedMonth.year, parseInt(value))}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                          <SelectItem key={month} value={month.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xl font-bold text-gray-700">月</span>
+                  </div>
+
+                  {/* 本月按钮 - 始终显示 */}
+                  <Button
+                    onClick={handleThisMonth}
+                    disabled={isCurrentMonth()}
+                    variant={isCurrentMonth() ? "default" : "outline"}
+                    size="sm"
                   >
-                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                  <span className="text-xl font-bold text-gray-700">年</span>
-
-                  <select
-                    value={selectedMonth.month}
-                    onChange={(e) => handleMonthChange(selectedMonth.year, parseInt(e.target.value))}
-                    className="bg-transparent border-none text-xl font-bold text-gray-800 focus:outline-none focus:ring-0 cursor-pointer pr-1"
-                  >
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                      <option key={month} value={month}>{month}</option>
-                    ))}
-                  </select>
-                  <span className="text-xl font-bold text-gray-700">月</span>
+                    {isCurrentMonth() ? '✓ 本月' : '回到本月'}
+                  </Button>
                 </div>
 
-                {/* 本月按钮 - 始终显示 */}
-                <button
-                  onClick={handleThisMonth}
-                  disabled={isCurrentMonth()}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    isCurrentMonth()
-                      ? 'bg-blue-500 text-white cursor-default shadow-md'
-                      : 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-400'
-                  }`}
-                  title={isCurrentMonth() ? '当前月份' : '返回本月'}
-                >
-                  {isCurrentMonth() ? '✓ 本月' : '回到本月'}
-                </button>
+                {/* 下一月按钮 */}
+                <Button onClick={handleNextMonth} variant="outline" size="icon">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
               </div>
-
-              {/* 下一月按钮 */}
-              <button
-                onClick={handleNextMonth}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center"
-                title="下个月"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 排班日历 */}
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        {loading ? (
-          <div className="p-6 text-center text-gray-500 text-sm">加载中...</div>
-        ) : employees.length === 0 ? (
-          <div className="p-6 text-center text-gray-500 text-sm">该部门暂无员工</div>
-        ) : (
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium text-gray-700 border-r">
-                  员工
-                </th>
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                  const date = new Date(selectedMonth.year, selectedMonth.month - 1, day);
-                  const weekday = getWeekday(date);
-                  return (
-                    <th key={day} className="px-1.5 py-2 text-center font-medium text-gray-700 border-r bg-gray-50">
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="text-xs font-semibold text-gray-500">{weekday}</span>
-                        <span className="text-sm font-bold text-gray-800">{day}</span>
-                      </div>
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 text-center text-gray-500 text-sm">加载中...</div>
+          ) : employees.length === 0 ? (
+            <div className="p-6 text-center text-gray-500 text-sm">该部门暂无员工</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700 border-r">
+                      员工
                     </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((employee) => (
-                <tr key={employee.id} className="border-t hover:bg-gray-50">
-                  <td className="px-3 py-2 font-medium text-gray-800 border-r whitespace-nowrap">
-                    {employee.real_name}
-                  </td>
-                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                    const schedule = getSchedule(employee.id, day)
-                    const shiftStyle = schedule?.color ? getShiftStyle(schedule.color) : {}
-
-                    return (
-                      <td
-                        key={day}
-                        onClick={() => handleCellClick(employee, day)}
-                        className={`px-1.5 py-2 text-center border-r cursor-pointer transition-all ${
-                          schedule
-                            ? 'hover:opacity-80 font-medium'
-                            : 'hover:bg-blue-50'
-                        }`}
-                        style={schedule && schedule.color ? getShiftStyle(schedule.color) : {}}
-                      >
-                        {schedule?.shift_name || '-'}
-                        {/* 如果是休息日且有请假记录，显示红点 */}
-                        {(schedule?.is_rest_day == 1 || schedule?.is_rest_day === true) && (
-                          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                        )}
+                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                      const date = new Date(selectedMonth.year, selectedMonth.month - 1, day);
+                      const weekday = getWeekday(date);
+                      return (
+                        <th key={day} className="px-1.5 py-2 text-center font-medium text-gray-700 border-r bg-gray-50">
+                          <div className="flex flex-col items-center justify-center">
+                            <span className="text-xs font-semibold text-gray-500">{weekday}</span>
+                            <span className="text-sm font-bold text-gray-800">{day}</span>
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((employee) => (
+                    <tr key={employee.id} className="border-t hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium text-gray-800 border-r whitespace-nowrap">
+                        {employee.real_name}
                       </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                      {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                        const schedule = getSchedule(employee.id, day)
+                        const shiftStyle = schedule?.color ? getShiftStyle(schedule.color) : {}
+
+                        return (
+                          <td
+                            key={day}
+                            onClick={() => handleCellClick(employee, day)}
+                            className={`px-1.5 py-2 text-center border-r cursor-pointer transition-all ${
+                              schedule
+                                ? 'hover:opacity-80 font-medium'
+                                : 'hover:bg-blue-50'
+                            }`}
+                            style={schedule && schedule.color ? getShiftStyle(schedule.color) : {}}
+                          >
+                            {schedule?.shift_name || '-'}
+                            {/* 如果是休息日且有请假记录，显示红点 */}
+                            {(schedule?.is_rest_day == 1 || schedule?.is_rest_day === true) && (
+                              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 单个排班模态框 */}
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">设置排班</h2>
-
-            <div className="space-y-4">
-              {/* 员工信息 */}
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-sm text-gray-600">员工</div>
-                <div className="text-lg font-semibold text-gray-800">
-                  {scheduleModalData.employee?.real_name}
-                </div>
-              </div>
-
-              {/* 日期信息 */}
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-sm text-gray-600">日期</div>
-                <div className="text-lg font-semibold text-gray-800">
-                  {scheduleModalData.dateStr}
-                </div>
-              </div>
-
-              {/* 选择班次 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  选择班次 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={scheduleModalData.selectedShiftId}
-                  onChange={(e) => setScheduleModalData({
-                    ...scheduleModalData,
-                    selectedShiftId: e.target.value
-                  })}
-                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {/* 未排班选项 */}
-                  <option value="">未排班</option>
-
-                  {/* 全公司通用班次 */}
-                  {shifts.filter(s => !s.department_id).length > 0 && (
-                    <optgroup label="━━ 全公司通用班次 ━━">
-                      {shifts.filter(s => !s.department_id).map((shift) => (
-                        <option key={shift.id} value={shift.id}>
-                          {shift.name} ({shift.start_time} - {shift.end_time})
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-
-                  {/* 部门专属班次 - 按部门分组 */}
-                  {(() => {
-                    const deptShifts = shifts.filter(s => s.department_id)
-                    if (deptShifts.length === 0) return null
-
-                    // 按部门分组
-                    const deptGroups = {}
-                    deptShifts.forEach(shift => {
-                      const deptKey = shift.department_name || `部门${shift.department_id}`
-                      if (!deptGroups[deptKey]) {
-                        deptGroups[deptKey] = []
-                      }
-                      deptGroups[deptKey].push(shift)
-                    })
-
-                    // 为每个部门创建一个 optgroup
-                    return Object.keys(deptGroups).map(deptName => (
-                      <optgroup key={deptName} label={`━━ ${deptName} ━━`}>
-                        {deptGroups[deptName].map(shift => (
-                          <option key={shift.id} value={shift.id}>
-                            {shift.name}
-                            {shift.department_name && !shift.name.includes(shift.department_name) ? ` (${shift.department_name})` : ''}
-                            {' '}({shift.start_time} - {shift.end_time})
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))
-                  })()}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleScheduleSubmit}
-                disabled={submitting}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? '保存中...' : '确定'}
-              </button>
-              <button
-                onClick={() => setShowScheduleModal(false)}
-                disabled={submitting}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                取消
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 批量排班模态框 */}
-      {showBatchModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">批量排班</h2>
-
-            <form onSubmit={handleBatchSubmit}>
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>设置排班</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
-                {/* 选择员工 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    选择员工 <span className="text-red-500">*</span>
-                  </label>
-                  <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                    {employees.map((emp) => (
-                      <label key={emp.id} className="flex items-center gap-2 py-1">
-                        <input
-                          type="checkbox"
-                          checked={batchData.employee_ids.includes(emp.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setBatchData({
-                                ...batchData,
-                                employee_ids: [...batchData.employee_ids, emp.id]
-                              })
-                            } else {
-                              setBatchData({
-                                ...batchData,
-                                employee_ids: batchData.employee_ids.filter(id => id !== emp.id)
-                              })
-                            }
-                          }}
-                        />
-                        <span>{emp.real_name}</span>
-                      </label>
-                    ))}
+                {/* 员工信息 */}
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-600">员工</div>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {scheduleModalData.employee?.real_name}
+                  </div>
+                </div>
+
+                {/* 日期信息 */}
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-600">日期</div>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {scheduleModalData.dateStr}
                   </div>
                 </div>
 
                 {/* 选择班次 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    选择班次
+                    选择班次 <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={batchData.shift_id}
-                    onChange={(e) => setBatchData({ ...batchData, shift_id: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                  <Select
+                    value={scheduleModalData.selectedShiftId || ""}
+                    onValueChange={(value) => setScheduleModalData({
+                      ...scheduleModalData,
+                      selectedShiftId: value
+                    })}
                   >
-                    {/* 未排班选项 */}
-                    <option value="">未排班</option>
-                    {/* 全公司通用班次 */}
-                    {shifts.filter(s => !s.department_id).length > 0 && (
-                      <optgroup label="━━ 全公司通用班次 ━━">
-                        {shifts.filter(s => !s.department_id).map((shift) => (
-                          <option key={shift.id} value={shift.id}>
-                            {shift.name} ({shift.start_time} - {shift.end_time})
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择班次" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* 未排班选项 */}
+                      <SelectItem value="">未排班</SelectItem>
 
-                    {/* 部门专属班次 */}
-                    {shifts.filter(s => s.department_id).length > 0 && (
-                      <optgroup label="━━ 部门专属班次 ━━">
-                        {shifts.filter(s => s.department_id).map((shift) => (
-                          <option key={shift.id} value={shift.id}>
-                            {shift.name}
-                            {shift.department_name && !shift.name.includes(shift.department_name) ? ` (${shift.department_name})` : ''}
-                            {' '}({shift.start_time} - {shift.end_time})
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
-                </div>
+                      {/* 全公司通用班次 */}
+                      {shifts.filter(s => !s.department_id).length > 0 && (
+                        <SelectItem value="group-global" disabled>
+                          ━━ 全公司通用班次 ━━
+                        </SelectItem>
+                      )}
+                      {shifts.filter(s => !s.department_id).map((shift) => (
+                        <SelectItem key={shift.id} value={shift.id.toString()}>
+                          {shift.name} ({shift.start_time} - {shift.end_time})
+                        </SelectItem>
+                      ))}
 
-                {/* 日期范围 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      开始日期 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={batchData.start_date}
-                      onChange={(e) => setBatchData({ ...batchData, start_date: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      结束日期 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={batchData.end_date}
-                      onChange={(e) => setBatchData({ ...batchData, end_date: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
+                      {/* 部门专属班次 - 按部门分组 */}
+                      {(() => {
+                        const deptShifts = shifts.filter(s => s.department_id)
+                        if (deptShifts.length === 0) return null
+
+                        // 按部门分组
+                        const deptGroups = {}
+                        deptShifts.forEach(shift => {
+                          const deptKey = shift.department_name || `部门${shift.department_id}`
+                          if (!deptGroups[deptKey]) {
+                            deptGroups[deptKey] = []
+                          }
+                          deptGroups[deptKey].push(shift)
+                        })
+
+                        // 为每个部门创建选项组
+                        return Object.keys(deptGroups).map(deptName => (
+                          <React.Fragment key={deptName}>
+                            <SelectItem value={`group-${deptName}`} disabled>
+                              ━━ {deptName} ━━
+                            </SelectItem>
+                            {deptGroups[deptName].map(shift => (
+                              <SelectItem key={shift.id} value={shift.id.toString()}>
+                                {shift.name}
+                                {shift.department_name && !shift.name.includes(shift.department_name) ? ` (${shift.department_name})` : ''}
+                                {' '}({shift.start_time} - {shift.end_time})
+                              </SelectItem>
+                            ))}
+                          </React.Fragment>
+                        ))
+                      })()}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="flex gap-3 mt-6">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition-colors"
+                <Button
+                  onClick={handleScheduleSubmit}
+                  disabled={submitting}
+                  className="flex-1"
                 >
-                  确定
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowBatchModal(false)}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded transition-colors"
+                  {submitting ? '保存中...' : '确定'}
+                </Button>
+                <Button
+                  onClick={() => setShowScheduleModal(false)}
+                  disabled={submitting}
+                  variant="secondary"
+                  className="flex-1"
                 >
                   取消
-                </button>
+                </Button>
               </div>
-            </form>
-          </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 批量排班模态框 */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle>批量排班</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleBatchSubmit}>
+                <div className="space-y-4">
+                  {/* 选择员工 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      选择员工 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="border rounded p-3 max-h-40 overflow-y-auto">
+                      {employees.map((emp) => (
+                        <div key={emp.id} className="flex items-center gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            id={`employee-${emp.id}`}
+                            checked={batchData.employee_ids.includes(emp.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setBatchData({
+                                  ...batchData,
+                                  employee_ids: [...batchData.employee_ids, emp.id]
+                                })
+                              } else {
+                                setBatchData({
+                                  ...batchData,
+                                  employee_ids: batchData.employee_ids.filter(id => id !== emp.id)
+                                })
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <label htmlFor={`employee-${emp.id}`} className="text-sm text-gray-700">
+                            {emp.real_name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 选择班次 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      选择班次
+                    </label>
+                    <Select
+                      value={batchData.shift_id || ""}
+                      onValueChange={(value) => setBatchData({ ...batchData, shift_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="请选择班次" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* 未排班选项 */}
+                        <SelectItem value="">未排班</SelectItem>
+
+                        {/* 全公司通用班次 */}
+                        {shifts.filter(s => !s.department_id).length > 0 && (
+                          <SelectItem value="group-global" disabled>
+                            ━━ 全公司通用班次 ━━
+                          </SelectItem>
+                        )}
+                        {shifts.filter(s => !s.department_id).map((shift) => (
+                          <SelectItem key={shift.id} value={shift.id.toString()}>
+                            {shift.name} ({shift.start_time} - {shift.end_time})
+                          </SelectItem>
+                        ))}
+
+                        {/* 部门专属班次 */}
+                        {shifts.filter(s => s.department_id).length > 0 && (
+                          <SelectItem value="group-dept" disabled>
+                            ━━ 部门专属班次 ━━
+                          </SelectItem>
+                        )}
+                        {shifts.filter(s => s.department_id).map((shift) => (
+                          <SelectItem key={shift.id} value={shift.id.toString()}>
+                            {shift.name}
+                            {shift.department_name && !shift.name.includes(shift.department_name) ? ` (${shift.department_name})` : ''}
+                            {' '}({shift.start_time} - {shift.end_time})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 日期范围 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        开始日期 <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="date"
+                        required
+                        value={batchData.start_date}
+                        onChange={(e) => setBatchData({ ...batchData, start_date: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        结束日期 <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="date"
+                        required
+                        value={batchData.end_date}
+                        onChange={(e) => setBatchData({ ...batchData, end_date: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <Button type="submit" className="flex-1">
+                    确定
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setShowBatchModal(false)}
+                    variant="secondary"
+                    className="flex-1"
+                  >
+                    取消
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

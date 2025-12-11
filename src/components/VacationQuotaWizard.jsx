@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Steps, Button, Form, InputNumber, DatePicker, Switch, Card, message, Table, Tag, Space, Alert, Divider, Input } from 'antd';
-import { SaveOutlined, ArrowRightOutlined, ArrowLeftOutlined, CheckCircleOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { toast } from 'react-toastify';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import dayjs from 'dayjs';
 
-const { Step } = Steps;
+// 导入 shadcn UI 组件
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Badge } from './ui/badge';
+import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import { Calendar } from 'lucide-react';
+
+
 
 const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -84,10 +92,10 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
         },
         body: JSON.stringify({ settings })
       });
-      message.success('设置已保存');
+      toast.success('设置已保存');
       next();
     } catch (error) {
-      message.error('保存失败');
+      toast.error('保存失败');
     }
   };
 
@@ -102,40 +110,44 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
   // Step 1: Global Settings
   const renderGlobalSettings = () => (
     <div className="max-w-2xl mx-auto py-8">
-      <Alert
-        message="全局默认设置"
-        description="这些设置将作为新员工的默认假期额度。修改此处不会影响现有员工的额度。"
-        type="info"
-        showIcon
-        className="mb-6"
-      />
-      <Form layout="vertical">
-        <Form.Item label="默认年假额度 (天/年)">
-          <InputNumber
-            min={0}
+      <Alert className="mb-6">
+        <AlertTitle>全局默认设置</AlertTitle>
+        <AlertDescription>
+          这些设置将作为新员工的默认假期额度。修改此处不会影响现有员工的额度。
+        </AlertDescription>
+      </Alert>
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">默认年假额度 (天/年)</label>
+          <Input
+            type="number"
+            min="0"
             value={settings.annual_leave_default}
-            onChange={val => setSettings({ ...settings, annual_leave_default: val })}
+            onChange={e => setSettings({ ...settings, annual_leave_default: parseFloat(e.target.value) || 0 })}
             className="w-full"
           />
-        </Form.Item>
-        <Form.Item label="默认病假额度 (天/年)">
-          <InputNumber
-            min={0}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">默认病假额度 (天/年)</label>
+          <Input
+            type="number"
+            min="0"
             value={settings.sick_leave_default}
-            onChange={val => setSettings({ ...settings, sick_leave_default: val })}
+            onChange={e => setSettings({ ...settings, sick_leave_default: parseFloat(e.target.value) || 0 })}
             className="w-full"
           />
-        </Form.Item>
-        <Form.Item label="入职首年规则">
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">入职首年规则</label>
           <div className="flex gap-4">
             <Button
-              type={settings.entry_date_rule === 'prorated' ? 'primary' : 'default'}
+              variant={settings.entry_date_rule === 'prorated' ? 'default' : 'outline'}
               onClick={() => setSettings({ ...settings, entry_date_rule: 'prorated' })}
             >
               按比例折算
             </Button>
             <Button
-              type={settings.entry_date_rule === 'full' ? 'primary' : 'default'}
+              variant={settings.entry_date_rule === 'full' ? 'default' : 'outline'}
               onClick={() => setSettings({ ...settings, entry_date_rule: 'full' })}
             >
               全额发放
@@ -146,8 +158,8 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
               ? '例如：6月入职，将获得 50% 的年假额度'
               : '无论何时入职，都将获得完整的年假额度'}
           </p>
-        </Form.Item>
-      </Form>
+        </div>
+      </div>
     </div>
   );
 
@@ -156,7 +168,7 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
 
   const handleAddHoliday = async () => {
     if (!newHoliday.date || !newHoliday.name) {
-      message.warning('请填写完整信息');
+      toast.warn('请填写完整信息');
       return;
     }
     try {
@@ -173,11 +185,11 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
           type: newHoliday.type
         })
       });
-      message.success('添加成功');
+      toast.success('添加成功');
       setNewHoliday({ date: null, name: '', type: 'holiday' });
       fetchHolidays();
     } catch (error) {
-      message.error('添加失败');
+      toast.error('添加失败');
     }
   };
 
@@ -188,10 +200,10 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      message.success('删除成功');
+      toast.success('删除成功');
       fetchHolidays();
     } catch (error) {
-      message.error('删除失败');
+      toast.error('删除失败');
     }
   };
 
@@ -199,91 +211,104 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
     <div className="py-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">节假日与调休设置 ({year}年)</h3>
-        <Space>
-          <Button onClick={() => setYear(year - 1)}>上一年</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setYear(year - 1)}>上一年</Button>
           <span className="font-bold">{year}</span>
-          <Button onClick={() => setYear(year + 1)}>下一年</Button>
-        </Space>
+          <Button variant="outline" onClick={() => setYear(year + 1)}>下一年</Button>
+        </div>
       </div>
 
       {/* Add Holiday Form */}
-      <div className="bg-gray-50 p-4 rounded-lg mb-6 flex items-center gap-4">
-        <DatePicker
-          value={newHoliday.date}
-          onChange={date => setNewHoliday({ ...newHoliday, date })}
-          placeholder="选择日期"
-        />
-        <InputNumber
+      <div className="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-gray-500" />
+          <input
+            type="date"
+            value={newHoliday.date ? newHoliday.date.format('YYYY-MM-DD') : ''}
+            onChange={e => setNewHoliday({ ...newHoliday, date: e.target.value ? dayjs(e.target.value) : null })}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+          />
+        </div>
+        <Input
           placeholder="节日名称"
           value={newHoliday.name}
-          onChange={val => setNewHoliday({ ...newHoliday, name: val })} // InputNumber returns value directly, but we need string for name. Wait, InputNumber is for numbers. Should use Input.
-          style={{ width: 150 }}
-          // Correction: Use Input for name
+          onChange={e => setNewHoliday({ ...newHoliday, name: e.target.value })}
+          className="w-32"
         />
-        {/* Wait, I need to import Input first. It's not in the imports. */}
-        {/* Let me fix the imports in a separate chunk or assume it's there. It's not there. */}
-        {/* I will use a simple input element or add Input to imports. */}
-        {/* Actually, I can just use <input> styled with tailwind or antd Input if I add it. */}
-        {/* Let's check imports. Line 2: import { Steps, Button, Form, InputNumber, DatePicker, Switch, Card, message, Table, Tag, Space, Alert, Divider } from 'antd'; */}
-        {/* Input is missing. I will add it to imports in the first chunk. */}
-
-        <Switch
-          checkedChildren="节假日"
-          unCheckedChildren="调休班"
-          checked={newHoliday.type === 'holiday'}
-          onChange={checked => setNewHoliday({ ...newHoliday, type: checked ? 'holiday' : 'workday' })}
-        />
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAddHoliday}>添加</Button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">调休班</span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={newHoliday.type === 'holiday'}
+              onChange={e => setNewHoliday({ ...newHoliday, type: e.target.checked ? 'holiday' : 'workday' })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+          <span className="text-sm text-gray-600">节假日</span>
+        </div>
+        <Button onClick={handleAddHoliday}>添加</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card title="法定节假日" size="small">
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {holidays.filter(h => h.type === 'holiday').map(h => (
-              <div key={h.date} className="flex justify-between items-center p-2 bg-red-50 rounded group">
-                <span>{dayjs(h.date).format('MM-DD')} {h.name}</span>
-                <Space>
-                  <Tag color="red">休</Tag>
-                  <Button
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    className="opacity-0 group-hover:opacity-100"
-                    onClick={() => handleDeleteHoliday(h.date)}
-                  />
-                </Space>
-              </div>
-            ))}
-            {holidays.filter(h => h.type === 'holiday').length === 0 && <div className="text-gray-400 text-center py-4">暂无数据</div>}
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>法定节假日</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {holidays.filter(h => h.type === 'holiday').map(h => (
+                <div key={h.date} className="flex justify-between items-center p-2 bg-red-50 rounded group">
+                  <span>{dayjs(h.date).format('MM-DD')} {h.name}</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive">休</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
+                      onClick={() => handleDeleteHoliday(h.date)}
+                    >
+                      删除
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {holidays.filter(h => h.type === 'holiday').length === 0 && <div className="text-gray-400 text-center py-4">暂无数据</div>}
+            </div>
+          </CardContent>
         </Card>
-        <Card title="调休工作日" size="small">
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {holidays.filter(h => h.type === 'workday').map(h => (
-              <div key={h.date} className="flex justify-between items-center p-2 bg-blue-50 rounded group">
-                <span>{dayjs(h.date).format('MM-DD')} {h.name}</span>
-                <Space>
-                  <Tag color="blue">班</Tag>
-                  <Button
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    className="opacity-0 group-hover:opacity-100"
-                    onClick={() => handleDeleteHoliday(h.date)}
-                  />
-                </Space>
-              </div>
-            ))}
-            {holidays.filter(h => h.type === 'workday').length === 0 && <div className="text-gray-400 text-center py-4">暂无数据</div>}
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>调休工作日</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {holidays.filter(h => h.type === 'workday').map(h => (
+                <div key={h.date} className="flex justify-between items-center p-2 bg-blue-50 rounded group">
+                  <span>{dayjs(h.date).format('MM-DD')} {h.name}</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default">班</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
+                      onClick={() => handleDeleteHoliday(h.date)}
+                    >
+                      删除
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {holidays.filter(h => h.type === 'workday').length === 0 && <div className="text-gray-400 text-center py-4">暂无数据</div>}
+            </div>
+          </CardContent>
         </Card>
       </div>
       <div className="mt-4 text-right">
-        <Button type="link" href="http://timor.tech/api/holiday" target="_blank">
+        <a href="http://timor.tech/api/holiday" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
           参考国务院放假安排
-        </Button>
+        </a>
       </div>
     </div>
   );
@@ -291,20 +316,21 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
   // Step 3: Overtime Rules
   const renderOvertimeRules = () => (
     <div className="max-w-2xl mx-auto py-8">
-      <Alert
-        message="加班转换规则"
-        description="设置加班时长转换为调休假期的比例。"
-        type="warning"
-        showIcon
-        className="mb-6"
-      />
-      <Form layout="vertical">
-        <Form.Item label="加班转调休比例 (小时 : 天)">
+      <Alert className="mb-6">
+        <AlertTitle>加班转换规则</AlertTitle>
+        <AlertDescription>
+          设置加班时长转换为调休假期的比例。
+        </AlertDescription>
+      </Alert>
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">加班转调休比例 (小时 : 天)</label>
           <div className="flex items-center gap-2">
-            <InputNumber
-              min={1}
+            <Input
+              type="number"
+              min="1"
               value={settings.overtime_to_leave_ratio}
-              onChange={val => setSettings({ ...settings, overtime_to_leave_ratio: val })}
+              onChange={e => setSettings({ ...settings, overtime_to_leave_ratio: parseInt(e.target.value) || 1 })}
               className="w-32"
             />
             <span className="text-gray-600">小时 = 1 天调休</span>
@@ -312,87 +338,69 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
           <p className="text-gray-500 text-sm mt-2">
             默认每 8 小时加班可转换为 1 天调休假。
           </p>
-        </Form.Item>
-      </Form>
+        </div>
+      </div>
     </div>
   );
 
   // Step 4: Employee Quotas Review
   const renderEmployeeQuotas = () => {
-    const columns = [
-      { title: '姓名', dataIndex: 'real_name', key: 'real_name' },
-      { title: '部门', dataIndex: 'department_name', key: 'department_name' },
-      {
-        title: '年假余额',
-        key: 'annual',
-        render: (_, r) => (
-          <span className={r.annual_leave_total < settings.annual_leave_default ? 'text-orange-500' : 'text-green-600'}>
-            {r.annual_leave_total}
-          </span>
-        )
-      },
-      {
-        title: '病假余额',
-        key: 'sick',
-        render: (_, r) => r.sick_leave_total
-      },
-      {
-        title: '状态',
-        key: 'status',
-        render: (_, r) => (
-          r.annual_leave_total < settings.annual_leave_default
-            ? <Tag color="orange">低于默认</Tag>
-            : <Tag color="green">正常</Tag>
-        )
-      },
-      {
-        title: '操作',
-        key: 'action',
-        render: (_, r) => (
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => {
-              // Close wizard and open edit modal? Or just show a message?
-              // Ideally, we should allow editing here or link to the main page.
-              // Since integrating the full edit modal here is complex, I'll add a tooltip or simple inline edit if possible.
-              // For now, let's just show a message guiding them to the main page, or better, trigger a callback to open the edit modal in the parent.
-              // But I don't have a callback for that.
-              // I'll just display a message for now as per "Review" step, but the user asked for "Direct Adjustment".
-              // Let's add a simple popover or just say "Go to Main Page".
-              // Actually, I can add a simple inline edit using Popover but that's too much code.
-              // Let's just add a "Edit" button that shows a message "Please go to Employee List to edit".
-              // Wait, the user requirement is "Quota Overview (Need to support direct adjustment)".
-              // I should probably add an "Edit" button that opens a small modal *on top* of this wizard?
-              // Or just make the table editable?
-              // Let's make the table editable for "Annual Leave" and "Sick Leave".
-              // That's a bit complex for this step.
-              // Let's stick to the "Review" purpose but add a clear instruction.
-              message.info('请在"假期管理"主界面进行个别调整');
-            }}
-          >
-            调整
-          </Button>
-        )
-      }
-    ];
+    // Render table rows directly since we're not using Ant Design's Table anymore
+    const renderTableRows = () => {
+      return employees.map((record) => (
+        <TableRow key={record.id}>
+          <TableCell>{record.real_name}</TableCell>
+          <TableCell>{record.department_name}</TableCell>
+          <TableCell>
+            <span className={record.annual_leave_total < settings.annual_leave_default ? 'text-orange-500' : 'text-green-600'}>
+              {record.annual_leave_total}
+            </span>
+          </TableCell>
+          <TableCell>{record.sick_leave_total}</TableCell>
+          <TableCell>
+            {record.annual_leave_total < settings.annual_leave_default
+              ? <Badge variant="default">低于默认</Badge>
+              : <Badge variant="secondary">正常</Badge>}
+          </TableCell>
+          <TableCell>
+            <Button
+              variant="link"
+              onClick={() => {
+                toast.info('请在"假期管理"主界面进行个别调整');
+              }}
+            >
+              调整
+            </Button>
+          </TableCell>
+        </TableRow>
+      ));
+    };
 
     return (
       <div className="py-4">
-        <Alert
-          message="额度概览"
-          description={`当前共有 ${employees.length} 名员工。以下列表展示了当前的额度状态，您可以在"假期管理"主界面进行个别调整。`}
-          type="success"
-          showIcon
-          className="mb-4"
-        />
-        <Table
-          dataSource={employees}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 5 }}
-          size="small"
-        />
+        <Alert className="mb-4">
+          <AlertTitle>额度概览</AlertTitle>
+          <AlertDescription>
+            当前共有 {employees.length} 名员工。以下列表展示了当前的额度状态，您可以在"假期管理"主界面进行个别调整。
+          </AlertDescription>
+        </Alert>
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>部门</TableHead>
+                <TableHead>年假余额</TableHead>
+                <TableHead>病假余额</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {renderTableRows()}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   };
@@ -411,13 +419,37 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800">假期配置向导</h2>
-          <Button type="text" onClick={onClose}>关闭</Button>
+          <Button variant="ghost" onClick={onClose}>关闭</Button>
         </div>
 
         <div className="p-6 flex-1 overflow-y-auto">
-          <Steps current={currentStep} className="mb-8">
-            {steps.map(item => <Step key={item.title} title={item.title} />)}
-          </Steps>
+          {/* Custom step indicator */}
+          <div className="mb-8">
+            <div className="flex justify-between relative">
+              {/* Progress line */}
+              <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 -z-10">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+                ></div>
+              </div>
+
+              {steps.map((step, index) => (
+                <div key={step.title} className="flex flex-col items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-colors ${index <= currentStep ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}
+                  >
+                    {index < currentStep ? '✓' : index + 1}
+                  </div>
+                  <span
+                    className={`text-sm ${index <= currentStep ? 'text-blue-600 font-medium' : 'text-gray-500'}`}
+                  >
+                    {step.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="mt-4">
             {steps[currentStep].content}
@@ -428,16 +460,13 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
           <Button
             onClick={prev}
             disabled={currentStep === 0}
-            icon={<ArrowLeftOutlined />}
           >
             上一步
           </Button>
 
           {currentStep < steps.length - 1 && (
             <Button
-              type="primary"
               onClick={currentStep === 0 || currentStep === 2 ? handleSaveSettings : next}
-              icon={<ArrowRightOutlined />}
             >
               保存并下一步
             </Button>
@@ -445,13 +474,11 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
 
           {currentStep === steps.length - 1 && (
             <Button
-              type="primary"
               onClick={() => {
-                message.success('配置完成');
+                toast.success('配置完成');
                 onSuccess?.();
                 onClose();
               }}
-              icon={<CheckCircleOutlined />}
             >
               完成配置
             </Button>

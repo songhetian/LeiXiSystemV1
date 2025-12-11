@@ -1,12 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  UserOutlined,
-  LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  HomeOutlined,
-  BellOutlined
-} from '@ant-design/icons';
+import { User, LogOut, Home, Bell } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 
 const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) => {
@@ -135,7 +128,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
       {/* Left: Breadcrumbs */}
       <div className="flex items-center text-sm text-gray-600">
         <div className="flex items-center gap-2">
-          <HomeOutlined className="text-gray-400" />
+          <Home className="text-gray-400" />
           <span className="text-gray-400">/</span>
         </div>
         {breadcrumbs.map((item, index) => (
@@ -159,7 +152,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
             title="通知"
             onClick={() => setShowNotifications(!showNotifications)}
           >
-            <BellOutlined className="text-gray-600 text-xl" />
+            <Bell className="text-gray-600 text-xl" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 font-bold">
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -190,7 +183,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
 
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium text-sm">
-            {user?.real_name?.charAt(0) || <UserOutlined />}
+            {user?.real_name?.charAt(0) || <User />}
           </div>
           <div className="flex flex-col items-end">
             <span className="text-lg font-bold text-gray-900">{user?.real_name || '用户'}</span>
@@ -204,7 +197,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors text-sm"
           title="退出登录"
         >
-          <LogoutOutlined />
+          <LogOut />
           <span>退出</span>
         </button>
       </div>

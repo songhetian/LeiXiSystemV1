@@ -7,13 +7,13 @@ import {
     CheckCircleIcon,
     TagIcon,
     TrashIcon,
-    ArrowPathIcon,
     SwatchIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-toastify';
 import qualityAPI from '../api/qualityAPI';
-import Modal from './Modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Loader2 } from 'lucide-react';
 import TagSelector from './TagSelector';
 import './SessionDetailModal.css';
 
@@ -715,152 +715,145 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
             {/* --- Sub Modals --- */}
 
             {/* Confirm Save Modal */}
-            <Modal
-                isOpen={showConfirmSave}
-                onClose={() => setShowConfirmSave(false)}
-                title="确认保存"
-                size="small"
-                zIndex={1100}
-                variant="primary"
-            >
-                <div className="py-4">
-                    <p className="text-gray-600 mb-4">确定要保存对该会话的所有修改吗？</p>
-                    <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setShowConfirmSave(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
-                            取消
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                        >
-                            {isSaving && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
-                            确认保存
-                        </button>
+            <Dialog open={showConfirmSave} onOpenChange={(open) => { if (!open) setShowConfirmSave(false); }}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>确认保存</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <p className="text-gray-600 mb-4">确定要保存对该会话的所有修改吗？</p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowConfirmSave(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                            >
+                                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                                确认保存
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </Modal>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit Message Modal */}
-            <Modal
-                isOpen={showEditSession}
-                onClose={() => setShowEditSession(false)}
-                title="修改消息内容"
-                zIndex={1100}
-                variant="warning"
-            >
-                <div className="py-4 space-y-4">
-                    <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-3 text-sm text-yellow-800">
-                        注意：此操作将永久修改数据库中的消息内容。
-                    </div>
-                    <textarea
-                        className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none resize-none"
-                        placeholder="在此编辑消息内容..."
-                        value={messageEditContent}
-                        onChange={(e) => setMessageEditContent(e.target.value)}
-                    />
-                    <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setShowEditSession(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
-                            取消
-                        </button>
-                        <button
-                            onClick={async () => {
-                                if (selectedMessageId && messageEditContent.trim()) {
-                                    try {
-                                        // Call API to update message content
-                                        await qualityAPI.updateMessage(selectedMessageId, { content: messageEditContent });
-
-                                        // Update local state
-                                        setMessages(prevMessages =>
-                                            prevMessages.map(msg =>
-                                                msg.id === selectedMessageId
-                                                    ? { ...msg, content: messageEditContent }
-                                                    : msg
-                                            )
-                                        );
-                                        toast.success('消息内容已更新');
-                                        setShowEditSession(false);
-                                    } catch (error) {
-                                        console.error('Update failed:', error);
-                                        toast.error('更新失败: ' + (error.response?.data?.message || error.message));
+            <Dialog open={showEditSession} onOpenChange={(open) => { if (!open) setShowEditSession(false); }}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>修改消息内容</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-3 text-sm text-yellow-800">
+                            注意：此操作将永久修改数据库中的消息内容。
+                        </div>
+                        <textarea
+                            className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none resize-none"
+                            placeholder="在此编辑消息内容..."
+                            value={messageEditContent}
+                            onChange={(e) => setMessageEditContent(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowEditSession(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (selectedMessageId && messageEditContent.trim()) {
+                                        try {
+                                            await qualityAPI.updateMessage(selectedMessageId, { content: messageEditContent });
+                                            setMessages(prevMessages =>
+                                                prevMessages.map(msg =>
+                                                    msg.id === selectedMessageId
+                                                        ? { ...msg, content: messageEditContent }
+                                                        : msg
+                                                )
+                                            );
+                                            toast.success('消息内容已更新');
+                                            setShowEditSession(false);
+                                        } catch (error) {
+                                            console.error('Update failed:', error);
+                                            toast.error('更新失败: ' + (error.response?.data?.message || error.message));
+                                        }
+                                    } else {
+                                        toast.error('消息内容不能为空');
                                     }
-                                } else {
-                                    toast.error('消息内容不能为空');
-                                }
-                            }}
-                            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
-                        >
-                            保存修改
-                        </button>
+                                }}
+                                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+                            >
+                                保存修改
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </Modal>
+                </DialogContent>
+            </Dialog>
 
 
 
             {/* Add to Case Modal */}
-            <Modal
-                isOpen={showAddToCase}
-                onClose={() => setShowAddToCase(false)}
-                title="添加到案例库"
-                zIndex={1100}
-                variant="success"
-            >
-                <div className="py-4 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">案例标题</label>
-                        <input
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="请输入案例标题"
-                            value={caseForm.title}
-                            onChange={(e) => setCaseForm({ ...caseForm, title: e.target.value })}
-                        />
+            <Dialog open={showAddToCase} onOpenChange={(open) => { if (!open) setShowAddToCase(false); }}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>添加到案例库</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">案例标题</label>
+                            <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="请输入案例标题"
+                                value={caseForm.title}
+                                onChange={(e) => setCaseForm({ ...caseForm, title: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">选择分类</label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                                value={caseForm.category}
+                                onChange={(e) => setCaseForm({ ...caseForm, category: e.target.value })}
+                            >
+                                <option value="">请选择分类</option>
+                                {caseCategories.map(cat => (
+                                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">备注说明</label>
+                            <textarea
+                                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                                placeholder="请输入备注说明..."
+                                value={caseForm.description}
+                                onChange={(e) => setCaseForm({ ...caseForm, description: e.target.value })}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button
+                                onClick={() => setShowAddToCase(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleAddToCase}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            >
+                                确认添加
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">选择分类</label>
-                        <select
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                            value={caseForm.category}
-                            onChange={(e) => setCaseForm({ ...caseForm, category: e.target.value })}
-                        >
-                            <option value="">请选择分类</option>
-                            {caseCategories.map(cat => (
-                                <option key={cat.id} value={cat.name}>{cat.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">备注说明</label>
-                        <textarea
-                            className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                            placeholder="请输入备注说明..."
-                            value={caseForm.description}
-                            onChange={(e) => setCaseForm({ ...caseForm, description: e.target.value })}
-                        />
-                    </div>
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button
-                            onClick={() => setShowAddToCase(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
-                            取消
-                        </button>
-                        <button
-                            onClick={handleAddToCase}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
-                            确认添加
-                        </button>
-                    </div>
-                </div>
-            </Modal >
+                </DialogContent>
+            </Dialog>
 
         </div >
     );

@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, message, Spin, Typography, Select, DatePicker, Table } from 'antd';
 import { Bar, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title as ChartTitle, Tooltip, Legend } from 'chart.js';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Calendar } from '../../components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Badge } from '../../components/ui/badge';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ChartTitle, Tooltip, Legend);
-
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 const ExamStatistics = () => {
   const [loading, setLoading] = useState(false);
@@ -47,7 +54,7 @@ const ExamStatistics = () => {
         overall_pass_rate: data.pass_rate !== undefined ? parseFloat(data.pass_rate) : undefined
       });
     } catch (error) {
-      message.error('获取总体统计失败');
+      toast.error('获取总体统计失败');
       console.error('Failed to fetch overall stats:', error);
     } finally {
       setLoading(false);
@@ -214,81 +221,139 @@ const ExamStatistics = () => {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Spin spinning={loading}>
-        <Card title="考试统计仪表板" style={{ marginBottom: 16 }}>
-          <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'flex-start' }}>
-            <RangePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              onChange={(dates) => handleFilterChange('dateRange', dates)}
-              value={filters.dateRange}
-            />
-            <Select
-              placeholder="筛选试卷"
-              style={{ width: 200 }}
-              onChange={(value) => handleFilterChange('examId', value)}
-              allowClear
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-            >
-              {exams.map(exam => (
-                <Option key={exam.id} value={exam.id}>{exam.title}</Option>
-              ))}
-            </Select>
-          </Space>
-
+    <div className="p-6">
+      <div className={`${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <Card>
+          <CardHeader>
+            <CardTitle>考试统计仪表板</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 mb-6">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline">
+                    {filters.dateRange[0] ? `${dayjs(filters.dateRange[0]).format('YYYY-MM-DD')} - ${dayjs(filters.dateRange[1]).format('YYYY-MM-DD')}` : '选择日期范围'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: filters.dateRange[0], to: filters.dateRange[1] }}
+                    onSelect={(range) => handleFilterChange('dateRange', [range?.from, range?.to])}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Select value={filters.examId || ''} onValueChange={(value) => handleFilterChange('examId', value || undefined)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="筛选试卷" />
+                </SelectTrigger>
+                <SelectContent>
+                  {exams.map(exam => (
+                    <SelectItem key={exam.id} value={exam.id}>{exam.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
           {/* 总体统计卡片 */}
-          <Space style={{ width: '100%', justifyContent: 'space-around', marginBottom: 24 }}>
-            <Card size="small" title="总考试次数" style={{ width: 200, textAlign: 'center' }}>
-              <Title level={3}>{overallStats?.total_exams || 0}</Title>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">总考试次数</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{overallStats?.total_exams || 0}</div>
+              </CardContent>
             </Card>
-            <Card size="small" title="平均分" style={{ width: 200, textAlign: 'center' }}>
-              <Title level={3}>{overallStats?.average_score?.toFixed(2) || 'N/A'}</Title>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">平均分</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{overallStats?.average_score?.toFixed(2) || 'N/A'}</div>
+              </CardContent>
             </Card>
-            <Card size="small" title="总通过率" style={{ width: 200, textAlign: 'center' }}>
-              <Title level={3}>{overallStats?.overall_pass_rate !== undefined ? `${(overallStats.overall_pass_rate * 100).toFixed(2)}%` : 'N/A'}</Title>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">总通过率</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{overallStats?.overall_pass_rate !== undefined ? `${(overallStats.overall_pass_rate * 100).toFixed(2)}%` : 'N/A'}</div>
+              </CardContent>
             </Card>
-            <Card size="small" title="参与人数" style={{ width: 200, textAlign: 'center' }}>
-              <Title level={3}>{overallStats?.total_participants || 0}</Title>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">参与人数</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{overallStats?.total_participants || 0}</div>
+              </CardContent>
             </Card>
-          </Space>
+          </div>
 
           {/* 成绩趋势图表 */}
-          <Card title="成绩趋势" style={{ marginBottom: 24 }}>
-            <div style={{ height: '300px' }}>
-              {scoreTrendData.labels?.length > 0 ? (
-                <Line options={scoreTrendOptions} data={scoreTrendData} />
-              ) : (
-                <Paragraph>暂无成绩趋势数据。</Paragraph>
-              )}
-            </div>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>成绩趋势</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ height: '300px' }}>
+                {scoreTrendData.labels?.length > 0 ? (
+                  <Line options={scoreTrendOptions} data={scoreTrendData} />
+                ) : (
+                  <div>暂无成绩趋势数据。</div>
+                )}
+              </div>
+            </CardContent>
           </Card>
 
           {/* 部门对比图表 */}
-          <Card title="部门对比" style={{ marginBottom: 24 }}>
-            <div style={{ height: '300px' }}>
-              {departmentComparisonData.labels?.length > 0 ? (
-                <Bar options={departmentComparisonOptions} data={departmentComparisonData} />
-              ) : (
-                <Paragraph>暂无部门对比数据。</Paragraph>
-              )}
-            </div>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>部门对比</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ height: '300px' }}>
+                {departmentComparisonData.labels?.length > 0 ? (
+                  <Bar options={departmentComparisonOptions} data={departmentComparisonData} />
+                ) : (
+                  <div>暂无部门对比数据。</div>
+                )}
+              </div>
+            </CardContent>
           </Card>
 
           {/* 热门考试排行 */}
-          <Card title="热门考试排行">
-            <Table
-              columns={rankingColumns}
-              dataSource={rankingData}
-              rowKey="exam_id"
-              pagination={{ pageSize: 5 }}
-            />
+          <Card>
+            <CardHeader>
+              <CardTitle>热门考试排行</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {rankingColumns.map((column) => (
+                      <TableHead key={column.key}>{column.title}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rankingData.map((record) => (
+                    <TableRow key={record.exam_id}>
+                      {rankingColumns.map((column) => (
+                        <TableCell key={column.key}>
+                          {column.render ? column.render(record[column.dataIndex], record) : record[column.dataIndex]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
         </Card>
-      </Spin>
+      </div>
     </div>
   );
 };

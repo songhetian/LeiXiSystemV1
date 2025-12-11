@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, InputNumber, message, Spin, Alert } from 'antd';
+import { toast } from 'react-toastify';
 import { getApiBaseUrl } from '../utils/apiConfig';
-import { Space } from 'antd';
+
+// 导入 shadcn UI 组件
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const VacationQuotaEditModal = ({ visible, onClose, employee, year, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [types, setTypes] = useState([]);
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     if (visible) {
@@ -60,35 +71,53 @@ const VacationQuotaEditModal = ({ visible, onClose, employee, year, onSuccess })
                  formValues[type.code] = 0;
                }
              });
-             form.setFieldsValue(formValues);
+             // Set form data with loaded values
+             setFormData(formValues);
           } else {
             // No balance record yet, set defaults from types
             const defaults = {};
             activeTypes.forEach(t => defaults[t.code] = t.base_days);
-            form.setFieldsValue(defaults);
+            setFormData(defaults);
           }
         }
       }
     } catch (error) {
       console.error(error);
-      message.error('加载数据失败');
+      toast.error('加载数据失败');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (visible && types.length > 0) {
+      const initialData = {};
+      types.filter(t => supportedTypes.includes(t.code)).forEach(type => {
+        // Get current value from form or set default
+        initialData[type.code] = 0;
+      });
+      setFormData(initialData);
+    }
+  }, [visible, types]);
+
+  const handleInputChange = (typeCode, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [typeCode]: value
+    }));
+  };
+
   const handleOk = async () => {
     try {
-      const values = await form.validateFields();
       setLoading(true);
 
       const token = localStorage.getItem('token');
 
       // Transform form values to the format expected by API
       // API expects: { year, quotas: [{ type: 'annual_leave', days: 10 }, ...] }
-      const quotas = Object.keys(values).map(key => ({
+      const quotas = Object.keys(formData).map(key => ({
         type: key,
-        days: values[key]
+        days: formData[key]
       }));
 
       const response = await fetch(`${getApiBaseUrl()}/vacation/balance/${employee.id}`, {
@@ -105,15 +134,15 @@ const VacationQuotaEditModal = ({ visible, onClose, employee, year, onSuccess })
 
       const data = await response.json();
       if (data.success) {
-        message.success('额度更新成功');
+        toast.success('额度更新成功');
         onSuccess();
         onClose();
       } else {
-        message.error(data.message || '更新失败');
+        toast.error(data.message || '更新失败');
       }
     } catch (error) {
       console.error(error);
-      message.error('更新失败');
+      toast.error('更新失败');
     } finally {
       setLoading(false);
     }
@@ -131,51 +160,60 @@ const VacationQuotaEditModal = ({ visible, onClose, employee, year, onSuccess })
   };
 
   return (
-    <Modal
-      title={`编辑假期额度 - ${employee?.real_name} (${year}年)`}
-      open={visible}
-      onCancel={onClose}
-      onOk={handleOk}
-      confirmLoading={loading}
-      width={600}
-    >
-      <Spin spinning={loading}>
-        <Alert
-          message="注意"
-          description="修改额度会直接更新员工的假期总额，并记录一条'调整'类型的变更历史。"
-          type="warning"
-          showIcon
-          className="mb-4"
-        />
+    <Dialog open={visible} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>编辑假期额度 - {employee?.real_name} ({year}年)</DialogTitle>
+        </DialogHeader>
 
-        <Form
-          form={form}
-          layout="horizontal"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
-        >
-          {types.filter(t => supportedTypes.includes(t.code)).map(type => (
-            <Form.Item
-              key={type.id}
-              name={type.code}
-              label={type.name}
-              rules={[{ required: true, message: '请输入天数' }]}
-            >
-              <Space.Compact style={{ width: '100%' }}>
-                <InputNumber min={0} precision={1} />
-                <Input defaultValue="天" readOnly={true} disabled={true} />
-              </Space.Compact>
-            </Form.Item>
-          ))}
+        <div className="py-4">
+          <Alert variant="destructive">
+            <AlertTitle>注意</AlertTitle>
+            <AlertDescription>
+              修改额度会直接更新员工的假期总额，并记录一条'调整'类型的变更历史。
+            </AlertDescription>
+          </Alert>
+
+          <div className="grid gap-4 py-4">
+            {types.filter(t => supportedTypes.includes(t.code)).map(type => (
+              <div key={type.id} className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor={`input-${type.code}`} className="text-right">
+                  {type.name}
+                </Label>
+                <div className="col-span-3 flex items-center space-x-2">
+                  <Input
+                    id={`input-${type.code}`}
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData[type.code] || ''}
+                    onChange={(e) => handleInputChange(type.code, parseFloat(e.target.value) || 0)}
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground">天</span>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {types.some(t => !supportedTypes.includes(t.code)) && (
-             <div className="text-gray-400 text-sm text-center mt-4">
-               * 部分假期类型暂不支持在此编辑（需数据库字段支持）
-             </div>
+            <div className="text-gray-400 text-sm text-center mt-4">
+              * 部分假期类型暂不支持在此编辑（需数据库字段支持）
+            </div>
           )}
-        </Form>
-      </Spin>
-    </Modal>
+        </div>
+
+        <DialogFooter>
+          <button
+            onClick={handleOk}
+            disabled={loading}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          >
+            {loading ? '更新中...' : '确定'}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,155 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, message, Spin, Typography, Tag, Collapse, List } from 'antd';
-import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
 
-const { Title, Paragraph, Text } = Typography;
-const { Panel } = Collapse;
-
-
-
-  const getQuestionType = (q) => q?.question_type || q?.type || '';
-
-  const getQuestionTypeTag = (type) => {
-    switch (type) {
-      case 'single_choice': return <Tag color="blue">单选</Tag>;
-      case 'multiple_choice': return <Tag color="green">多选</Tag>;
-      case 'true_false': return <Tag color="orange">判断</Tag>;
-      case 'fill_blank': return <Tag color="purple">填空</Tag>;
-      case 'essay': return <Tag color="red">简答</Tag>;
-      default: return <Tag>{type}</Tag>;
-    }
-  };
-
-  const renderUserAnswer = (question, userAnswer) => {
-    if (!userAnswer) return <Text type="secondary">未作答</Text>;
-
-    try {
-      const t = getQuestionType(question);
-      let displayAnswer = userAnswer;
-      if (t === 'multiple_choice' || t === 'fill_blank') {
-        displayAnswer = JSON.parse(userAnswer).join(', ');
-      } else if (t === 'true_false') {
-        displayAnswer = userAnswer === 'true' ? '正确' : '错误';
-      }
-      return <Text strong style={{ color: question.is_correct === 1 ? 'green' : 'red' }}>{displayAnswer}</Text>;
-    } catch (e) {
-      return <Text type="danger">答案解析错误</Text>;
-    }
-  };
-
-  const renderCorrectAnswer = (question) => {
-    if (!question.correct_answer) return <Text type="secondary">无</Text>;
-
-    try {
-      const t = getQuestionType(question);
-      let displayAnswer = question.correct_answer;
-      if (t === 'multiple_choice' || t === 'fill_blank') {
-        displayAnswer = JSON.parse(question.correct_answer).join(', ');
-      } else if (t === 'true_false') {
-        displayAnswer = question.correct_answer === 'true' ? '正确' : '错误';
-      }
-      return <Text strong>{displayAnswer}</Text>;
-    } catch (e) {
-      return <Text type="danger">答案解析错误</Text>;
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  if (loading) {
-    return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-      <Spin size="large"><span className="sr-only">加载中...</span></Spin>
-      </div>
-    );
-  }
-
-  if (!answerDetails || !answerDetails.questions) {
-    return (
-      <div style={{ padding: 24 }}>
-        <Card title="答题详情">
-          <p>无法加载答题详情。</p>
-          <Button type="primary" onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
-            返回考试结果
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  const { exam_title, score, total_score, is_passed, questions } = answerDetails;
-  const currentQuestion = questions[currentQuestionIndex];
-
-  return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Header */}
-      <Card
-        style={{ width: '100%', position: 'fixed', top: 0, zIndex: 100, borderRadius: 0 }}
-        bodyStyle={{ padding: '10px 24px' }}
-      >
-        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Title level={4} style={{ margin: 0 }}>答题详情 - {exam_title}</Title>
-          <Space>
-            <Button onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
-              返回考试结果
-            </Button>
-            <Button icon={<PrinterOutlined />} onClick={handlePrint}>
-              打印
-            </Button>
-          </Space>
-        </Space>
-      </Card>
-
-      <div style={{ display: 'flex', flex: 1, paddingTop: 64 }}> {/* Adjust paddingTop for fixed header */}
-        {/* Side Navigation */}
-        <Card style={{ width: 200, flexShrink: 0, overflowY: 'auto', borderRadius: 0 }}>
-          <Title level={5}>题目导航</Title>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-            {questions.map((q, index) => (
-              <Button
-                key={q.question_id}
-                type={currentQuestionIndex === index ? 'primary' : 'default'}
-                danger={q.is_correct === 0} // Incorrect answers in red
-                onClick={() => setCurrentQuestionIndex(index)}
-                style={{
-                  backgroundColor: q.is_correct === 1 ? '#e6ffe6' : (q.is_correct === 0 ? '#ffe6e6' : undefined),
-                  borderColor: q.is_correct === 1 ? 'green' : (q.is_correct === 0 ? 'red' : undefined),
-                }}
-              >
-                {index + 1}
-              </Button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Question Display Area */}
-        <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
-          {currentQuestion && (
-            <Card
-              title={
-                <Space>
-                  {currentQuestionIndex + 1}. {getQuestionTypeTag(getQuestionType(currentQuestion))}
-                  <Text strong>分值: {currentQuestion.score}</Text>
-                  {currentQuestion.user_score !== null && (
-                    <Text strong style={{ color: currentQuestion.user_score > 0 ? 'green' : 'red' }}>
-                      得分: {currentQuestion.user_score}
-                    </Text>
-                  )}
-                  {currentQuestion.is_correct !== null && (
-                    <Tag color={currentQuestion.is_correct === 1 ? 'success' : 'error'}>
-                      {currentQuestion.is_correct === 1 ? '正确' : '错误'}
-                    </Tag>
-                  )}
-                </Space>
-              }
-              style={{ marginBottom: 16, borderColor: currentQuestion.is_correct === 0 ? 'red' : undefined }}
-            >
-              <LazyImageRenderer htmlContent={currentQuestion.content} />
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { ChevronLeft, Printer, CircleCheck, CircleX, AlertCircle } from 'lucide-react';
 
 const AnswerDetail = () => {
   const { resultId } = useParams();
@@ -170,7 +29,7 @@ const AnswerDetail = () => {
       });
       setAnswerDetails(response.data.data);
     } catch (error) {
-      message.error(`获取答题详情失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`获取答题详情失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to fetch answer details:', error);
       navigate(`/assessment/results/${resultId}/result`); // Go back to result if failed
     } finally {
@@ -178,23 +37,82 @@ const AnswerDetail = () => {
     }
   };
 
+  const getQuestionType = (q) => q?.question_type || q?.type || '';
+
+  const getQuestionTypeBadge = (type) => {
+    switch (type) {
+      case 'single_choice': return <Badge variant="default">单选</Badge>;
+      case 'multiple_choice': return <Badge variant="secondary">多选</Badge>;
+      case 'true_false': return <Badge variant="outline">判断</Badge>;
+      case 'fill_blank': return <Badge variant="default">填空</Badge>;
+      case 'essay': return <Badge variant="destructive">简答</Badge>;
+      default: return <Badge>{type}</Badge>;
+    }
+  };
+
+  const renderUserAnswer = (question, userAnswer) => {
+    if (!userAnswer) return <span className="text-gray-500">未作答</span>;
+
+    try {
+      const t = getQuestionType(question);
+      let displayAnswer = userAnswer;
+      if (t === 'multiple_choice' || t === 'fill_blank') {
+        displayAnswer = JSON.parse(userAnswer).join(', ');
+      } else if (t === 'true_false') {
+        displayAnswer = userAnswer === 'true' ? '正确' : '错误';
+      }
+      return <span className={`font-semibold ${question.is_correct === 1 ? 'text-green-600' : 'text-red-600'}`}>{displayAnswer}</span>;
+    } catch (e) {
+      return <span className="text-red-500">答案解析错误</span>;
+    }
+  };
+
+  const renderCorrectAnswer = (question) => {
+    if (!question.correct_answer) return <span className="text-gray-500">无</span>;
+
+    try {
+      const t = getQuestionType(question);
+      let displayAnswer = question.correct_answer;
+      if (t === 'multiple_choice' || t === 'fill_blank') {
+        displayAnswer = JSON.parse(question.correct_answer).join(', ');
+      } else if (t === 'true_false') {
+        displayAnswer = question.correct_answer === 'true' ? '正确' : '错误';
+      }
+      return <span className="font-semibold">{displayAnswer}</span>;
+    } catch (e) {
+      return <span className="text-red-500">答案解析错误</span>;
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <Spin size="large"><span className="sr-only">加载中...</span></Spin>
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <span className="ml-2">加载中...</span>
       </div>
     );
   }
 
   if (!answerDetails || !answerDetails.questions) {
     return (
-      <div style={{ padding: 24 }}>
-        <Card title="答题详情">
-          <p>无法加载答题详情。</p>
-          <Button type="primary" onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
-            返回考试结果
-          </Button>
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>答题详情</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>无法加载答题详情。</p>
+            <div className="mt-4">
+              <Button onClick={() => navigate(`/assessment/results/${resultId}/result`)}>
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                返回考试结果
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -204,115 +122,153 @@ const AnswerDetail = () => {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
-      <Card
-        style={{ width: '100%', position: 'fixed', top: 0, zIndex: 100, borderRadius: 0 }}
-        bodyStyle={{ padding: '10px 24px' }}
-      >
-        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Title level={4} style={{ margin: 0 }}>答题详情 - {exam_title}</Title>
-          <Space>
-            <Button onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
-              返回考试结果
-            </Button>
-            <Button icon={<PrinterOutlined />} onClick={handlePrint}>
-              打印
-            </Button>
-          </Space>
-        </Space>
+      <Card className="w-full rounded-none shadow-md">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">答题详情 - {exam_title}</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate(`/assessment/results/${resultId}/result`)}>
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                返回考试结果
+              </Button>
+              <Button variant="outline" onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                打印
+              </Button>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      <div style={{ display: 'flex', flex: 1, paddingTop: 64 }}> {/* Adjust paddingTop for fixed header */}
+      <div className="flex flex-1 overflow-hidden pt-16">
         {/* Side Navigation */}
-        <Card style={{ width: 200, flexShrink: 0, overflowY: 'auto', borderRadius: 0 }}>
-          <Title level={5}>题目导航</Title>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-            {questions.map((q, index) => (
-              <Button
-                key={q.question_id}
-                type={currentQuestionIndex === index ? 'primary' : 'default'}
-                danger={q.is_correct === 0} // Incorrect answers in red
-                onClick={() => setCurrentQuestionIndex(index)}
-                style={{
-                  backgroundColor: q.is_correct === 1 ? '#e6ffe6' : (q.is_correct === 0 ? '#ffe6e6' : undefined),
-                  borderColor: q.is_correct === 1 ? 'green' : (q.is_correct === 0 ? 'red' : undefined),
-                }}
-              >
-                {index + 1}
-              </Button>
-            ))}
-          </div>
+        <Card className="w-52 flex-shrink-0 overflow-y-auto rounded-none border-r">
+          <CardHeader>
+            <CardTitle className="text-lg">题目导航</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-2">
+              {questions.map((q, index) => (
+                <Button
+                  key={q.question_id}
+                  variant={currentQuestionIndex === index ? 'default' : 'outline'}
+                  className={`h-8 p-0 text-xs ${
+                    q.is_correct === 1 ? 'bg-green-100 hover:bg-green-200 border-green-500' :
+                    q.is_correct === 0 ? 'bg-red-100 hover:bg-red-200 border-red-500' : ''
+                  }`}
+                  onClick={() => setCurrentQuestionIndex(index)}
+                >
+                  {index + 1}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
         </Card>
 
         {/* Question Display Area */}
-        <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
+        <div className="flex-1 p-6 overflow-y-auto">
           {currentQuestion && (
-            <Card
-              title={
-                <Space>
-                  {currentQuestionIndex + 1}. {getQuestionTypeTag(currentQuestion.question_type)}
-                  <Text strong>分值: {currentQuestion.score}</Text>
+            <Card className="mb-4 border-2 border-gray-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
+                  <span>{currentQuestionIndex + 1}.</span>
+                  {getQuestionTypeBadge(getQuestionType(currentQuestion))}
+                  <span>分值: {currentQuestion.score}</span>
                   {currentQuestion.user_score !== null && (
-                    <Text strong style={{ color: currentQuestion.user_score > 0 ? 'green' : 'red' }}>
+                    <span className={`font-semibold ${currentQuestion.user_score > 0 ? 'text-green-600' : 'text-red-600'}`}>
                       得分: {currentQuestion.user_score}
-                    </Text>
+                    </span>
                   )}
                   {currentQuestion.is_correct !== null && (
-                    <Tag color={currentQuestion.is_correct === 1 ? 'success' : 'error'}>
-                      {currentQuestion.is_correct === 1 ? '正确' : '错误'}
-                    </Tag>
+                    <Badge variant={currentQuestion.is_correct === 1 ? 'default' : 'destructive'}>
+                      {currentQuestion.is_correct === 1 ? (
+                        <><CircleCheck className="mr-1 h-3 w-3" /> 正确</>
+                      ) : (
+                        <><CircleX className="mr-1 h-3 w-3" /> 错误</>
+                      )}
+                    </Badge>
                   )}
-                </Space>
-              }
-              style={{ marginBottom: 16, borderColor: currentQuestion.is_correct === 0 ? 'red' : undefined }}
-            >
-              <LazyImageRenderer htmlContent={currentQuestion.content} />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose max-w-none mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.content }} />
 
-              {getQuestionType(currentQuestion) === 'single_choice' || getQuestionType(currentQuestion) === 'multiple_choice' ? (
-                <div style={{ marginBottom: 16 }}>
-                  <Text strong>选项:</Text>
-                  <List
-                    size="small"
-                    bordered
-                    dataSource={(() => { try { return JSON.parse(currentQuestion.options); } catch { return []; } })()}
-                    renderItem={(item, idx) => (
-                      <List.Item>
-                        <Text
-                          style={{
-                            color: (() => { try { return (currentQuestion.user_answer && JSON.parse(currentQuestion.user_answer).includes(item)) ? 'blue' : 'inherit'; } catch { return 'inherit'; } })(),
-                            fontWeight: (() => { try { return (currentQuestion.correct_answer && JSON.parse(currentQuestion.correct_answer).includes(item)) ? 'bold' : 'normal'; } catch { return 'normal'; } })(),
-                          }}
-                        >
-                          {String.fromCharCode(65 + idx)}. {item}
-                        </Text>
-                      </List.Item>
-                    )}
-                  />
+                {(getQuestionType(currentQuestion) === 'single_choice' || getQuestionType(currentQuestion) === 'multiple_choice') && (
+                  <div className="mb-6">
+                    <h3 className="font-semibold mb-2">选项:</h3>
+                    <div className="space-y-2">
+                      {(() => {
+                        try {
+                          return JSON.parse(currentQuestion.options).map((item, idx) => (
+                            <div
+                              key={idx}
+                              className={`p-2 rounded border ${
+                                (() => {
+                                  try {
+                                    return (currentQuestion.user_answer && JSON.parse(currentQuestion.user_answer).includes(item)) ?
+                                      'border-blue-500 bg-blue-50' : '';
+                                  } catch {
+                                    return '';
+                                  }
+                                })()
+                              } ${
+                                (() => {
+                                  try {
+                                    return (currentQuestion.correct_answer && JSON.parse(currentQuestion.correct_answer).includes(item)) ?
+                                      'border-green-500 bg-green-50 font-bold' : '';
+                                  } catch {
+                                    return '';
+                                  }
+                                })()
+                              }`}
+                            >
+                              <span>{String.fromCharCode(65 + idx)}. {item}</span>
+                            </div>
+                          ));
+                        } catch {
+                          return [];
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mb-2">
+                  <span className="font-semibold">您的答案:</span> {renderUserAnswer(currentQuestion, currentQuestion.user_answer)}
                 </div>
-              ) : null}
+                <div className="mb-2">
+                  <span className="font-semibold">正确答案:</span> {renderCorrectAnswer(currentQuestion)}
+                </div>
 
-              <Paragraph>
-                <Text strong>您的答案:</Text> {renderUserAnswer(currentQuestion, currentQuestion.user_answer)}
-              </Paragraph>
-              <Paragraph>
-                <Text strong>正确答案:</Text> {renderCorrectAnswer(currentQuestion)}
-              </Paragraph>
-              {currentQuestion.explanation && (
-                <Paragraph>
-                  <Text strong>解析:</Text> {currentQuestion.explanation}
-                </Paragraph>
-              )}
+                {currentQuestion.explanation && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                    <div className="font-semibold flex items-center">
+                      <AlertCircle className="mr-2 h-4 w-4 text-blue-500" />
+                      解析:
+                    </div>
+                    <div className="mt-1">{currentQuestion.explanation}</div>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           )}
-          <Space style={{ marginTop: 16, justifyContent: 'space-between', width: '100%' }}>
-            <Button onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))} disabled={currentQuestionIndex === 0}>
+
+          <div className="flex justify-between">
+            <Button
+              onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+              disabled={currentQuestionIndex === 0}
+            >
               上一题
             </Button>
-            <Button onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))} disabled={currentQuestionIndex === questions.length - 1}>
+            <Button
+              onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
+              disabled={currentQuestionIndex === questions.length - 1}
+            >
               下一题
             </Button>
-          </Space>
+          </div>
         </div>
       </div>
     </div>

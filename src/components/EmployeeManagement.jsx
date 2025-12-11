@@ -1,10 +1,31 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
-import Modal from './Modal'
 import EmployeeDetail from './EmployeeDetail'
 import EmployeeBatchOperations from './EmployeeBatchOperations'
-import UserDepartmentModal from './UserDepartmentModal'  // 添加这一行
+import UserDepartmentModal from './UserDepartmentModal'
 import { getApiUrl } from '../utils/apiConfig'
+
+// 导入 shadcn UI 组件
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
+import { Badge } from "./ui/badge"
+import { Switch } from "./ui/switch"
+import { Label } from "./ui/label"
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar"
+import { Checkbox } from "./ui/checkbox"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "./ui/table"
 
 function EmployeeManagement() {
   const [employees, setEmployees] = useState([])

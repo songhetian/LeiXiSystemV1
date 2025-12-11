@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import qualityAPI from '../api/qualityAPI.js';
-import Modal from '../components/Modal';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Checkbox } from '../components/ui/checkbox';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 
 const CaseCategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
@@ -122,142 +130,124 @@ const CaseCategoryManagementPage = () => {
 
   return (
     <div className="p-6">
-      <div className="business-card">
-        <div className="business-card-header">
-          <div>
-            <h2 className="business-card-title">案例分类管理</h2>
-            <p className="text-gray-500 text-sm mt-1">共 {categories.length} 个分类</p>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>案例分类管理</CardTitle>
+              <p className="text-gray-500 text-sm mt-1">共 {categories.length} 个分类</p>
+            </div>
+            <Button onClick={openCreateModal} className="flex items-center gap-1">
+              <Plus className="h-4 w-4" /> 新增分类
+            </Button>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="business-btn business-btn-primary"
-          >
-            新增分类
-          </button>
-        </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>分类名称</TableHead>
+                  <TableHead>描述</TableHead>
+                  <TableHead>排序</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead className="text-center">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      暂无分类数据
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  categories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell className="text-gray-600">{category.description || '-'}</TableCell>
+                      <TableCell>{category.sort_order}</TableCell>
+                      <TableCell>
+                        <Badge variant={category.is_active ? 'success' : 'destructive'}>
+                          {category.is_active ? '已启用' : '已禁用'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => openEditModal(category)} className="flex items-center gap-1">
+                            <Edit className="h-4 w-4" /> 编辑
+                          </Button>
+                          <Button
+                            variant={category.is_active ? 'secondary' : 'default'}
+                            size="sm"
+                            onClick={() => handleToggleActive(category)}
+                            className="flex items-center gap-1"
+                          >
+                            {category.is_active ? '禁用' : '启用'}
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(category.id)} className="flex items-center gap-1">
+                            <Trash2 className="h-4 w-4" /> 删除
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="overflow-x-auto">
-          <table className="business-table">
-            <thead>
-              <tr>
-                <th>分类名称</th>
-                <th>描述</th>
-                <th>排序</th>
-                <th>状态</th>
-                <th className="text-center">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-500">
-                    暂无分类数据
-                  </td>
-                </tr>
-              ) : (
-                categories.map((category) => (
-                  <tr key={category.id}>
-                    <td className="font-medium">{category.name}</td>
-                    <td className="text-gray-600">{category.description || '-'}</td>
-                    <td>{category.sort_order}</td>
-                    <td>
-                      <span className={`business-badge ${category.is_active
-                          ? 'business-badge-success'
-                          : 'business-badge-error'
-                        }`}>
-                        {category.is_active ? '已启用' : '已禁用'}
-                      </span>
-                    </td>
-                    <td className="text-center space-x-2">
-                      <button
-                        onClick={() => openEditModal(category)}
-                        className="business-btn business-btn-secondary business-btn-sm"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleToggleActive(category)}
-                        className={`business-btn business-btn-sm ${category.is_active ? 'business-btn-warning' : 'business-btn-success'
-                          }`}
-                      >
-                        {category.is_active ? '禁用' : '启用'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(category.id)}
-                        className="business-btn business-btn-danger business-btn-sm"
-                      >
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentCategory ? '编辑分类' : '新增分类'}>
-        <div className="space-y-4">
-          <div>
-            <label className="business-label">分类名称 *</label>
-            <input
-              type="text"
-              name="name"
-              value={categoryForm.name}
-              onChange={handleFormChange}
-              className="business-input"
-              placeholder="请输入分类名称"
-            />
+      <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{currentCategory ? '编辑分类' : '新增分类'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">分类名称 *</label>
+              <Input
+                name="name"
+                value={categoryForm.name}
+                onChange={handleFormChange}
+                placeholder="请输入分类名称"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">描述</label>
+              <Textarea
+                name="description"
+                value={categoryForm.description}
+                onChange={handleFormChange}
+                rows={3}
+                placeholder="请输入分类描述"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">排序权重</label>
+              <Input
+                type="number"
+                name="sort_order"
+                value={categoryForm.sort_order}
+                onChange={handleFormChange}
+                placeholder="数字越小排序越靠前"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={categoryForm.is_active}
+                onCheckedChange={(v) => setCategoryForm(prev => ({ ...prev, is_active: !!v }))}
+              />
+              <span className="text-sm">启用</span>
+            </div>
           </div>
-          <div>
-            <label className="business-label">描述</label>
-            <textarea
-              name="description"
-              value={categoryForm.description}
-              onChange={handleFormChange}
-              rows="3"
-              className="business-textarea"
-              placeholder="请输入分类描述"
-            ></textarea>
-          </div>
-          <div>
-            <label className="business-label">排序权重</label>
-            <input
-              type="number"
-              name="sort_order"
-              value={categoryForm.sort_order}
-              onChange={handleFormChange}
-              className="business-input"
-              placeholder="数字越小排序越靠前"
-            />
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="is_active"
-              checked={categoryForm.is_active}
-              onChange={handleFormChange}
-              className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-            />
-            <label className="ml-2 block text-sm text-gray-900">启用</label>
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="business-btn business-btn-secondary"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="business-btn business-btn-primary"
-            >
-              {currentCategory ? '更新' : '创建'}
-            </button>
-          </div>
-        </div>
-      </Modal>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>取消</Button>
+            <Button onClick={handleSubmit}>{currentCategory ? '更新' : '创建'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

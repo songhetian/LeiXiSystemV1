@@ -1,9 +1,26 @@
 import React, { useState } from 'react';
-import { Card, Button, Upload, Table, message, Space, Tag, Popconfirm } from 'antd';
-import { UploadOutlined, DownloadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import ExcelJS from 'exceljs';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '../../components/ui/table';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+
+// 导入 Lucide React 图标
+import { Upload, Download, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 
 const QuestionImport = () => {
   const { examId } = useParams();
@@ -12,6 +29,7 @@ const QuestionImport = () => {
   const [parsedData, setParsedData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [importErrors, setImportErrors] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleDownloadTemplate = () => {
     const workbook = new ExcelJS.Workbook();
@@ -76,34 +94,31 @@ const QuestionImport = () => {
       a.click();
       URL.revokeObjectURL(url);
     }).catch(error => {
-      message.error('下载模板失败');
+      toast.error('下载模板失败');
       console.error('Failed to download template:', error);
     });
   };
 
-  const props = {
-    onRemove: (file) => {
-      const newFileList = fileList.filter((item) => item.uid !== file.uid);
-      setFileList(newFileList);
-      setParsedData([]);
-      setImportErrors([]);
-    },
-    beforeUpload: (file) => {
-      const isXLSX = file.name.endsWith('.xlsx');
-      if (!isXLSX) {
-        message.error('只能上传 XLSX 文件!');
-      }
-      const isLt2M = file.size / 1024 / 1024 < 10; // 10MB limit
-      if (!isLt2M) {
-        message.error('文件大小不能超过 10MB!');
-      }
-      if (isXLSX && isLt2M) {
-        setFileList([file]);
-        parseExcel(file);
-      }
-      return false; // Prevent default upload behavior
-    },
-    fileList,
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const isXLSX = file.name.endsWith('.xlsx');
+    if (!isXLSX) {
+      toast.error('只能上传 XLSX 文件!');
+      return;
+    }
+
+    const isLt2M = file.size / 1024 / 1024 < 10; // 10MB limit
+    if (!isLt2M) {
+      toast.error('文件大小不能超过 10MB!');
+      return;
+    }
+
+    if (isXLSX && isLt2M) {
+      setFileList([file]);
+      parseExcel(file);
+    }
   };
 
   const parseExcel = async (file) => {
@@ -213,12 +228,12 @@ const QuestionImport = () => {
         setParsedData(data);
         setImportErrors(errors);
         if (errors.length > 0) {
-          message.warning(`文件解析完成，发现 ${errors.length} 条错误。`);
+          toast.warning(`文件解析完成，发现 ${errors.length} 条错误。`);
         } else {
-          message.success('文件解析成功，请确认后导入。');
+          toast.success('文件解析成功，请确认后导入。');
         }
       } catch (error) {
-        message.error('解析 Excel 文件失败');
+        toast.error('解析 Excel 文件失败');
         console.error('Failed to parse Excel:', error);
       } finally {
         setLoading(false);
@@ -229,11 +244,11 @@ const QuestionImport = () => {
 
   const handleImportConfirm = async () => {
     if (parsedData.length === 0) {
-      message.warning('没有可导入的题目。');
+      toast.warning('没有可导入的题目。');
       return;
     }
     if (importErrors.length > 0) {
-      message.error('存在错误数据，请修正后重新上传。');
+      toast.error('存在错误数据，请修正后重新上传。');
       return;
     }
 
@@ -243,87 +258,170 @@ const QuestionImport = () => {
       await axios.post(`/api/exams/${examId}/questions/batch-import`, { questions: parsedData }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('题目批量导入成功！');
+      toast.success('题目批量导入成功！');
       navigate(`/assessment/exams/${examId}`);
     } catch (error) {
-      message.error(`批量导入失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`批量导入失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to batch import questions:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const columns = [
-    { title: '行号', dataIndex: 'key', key: 'key', width: 60 },
-    { title: '题型', dataIndex: 'type', key: 'type', render: (text) => <Tag>{text}</Tag> },
-    { title: '题目内容', dataIndex: 'content', key: 'content', ellipsis: true },
-    { title: '分值', dataIndex: 'score', key: 'score', width: 80 },
-    { title: '选项', dataIndex: 'options', key: 'options', ellipsis: true },
-    { title: '正确答案', dataIndex: 'correct_answer', key: 'correct_answer', ellipsis: true },
-    { title: '解析', dataIndex: 'explanation', key: 'explanation', ellipsis: true },
-  ];
-
-  const errorColumns = [
-    { title: '行号', dataIndex: 'row', key: 'row', width: 60 },
-    { title: '错误信息', dataIndex: 'message', key: 'message' },
-    { title: '原始数据', dataIndex: 'data', key: 'data', render: (data) => JSON.stringify(data), ellipsis: true },
-  ];
+  // 自定义加载指示器组件
+  const LoadingSpinner = () => (
+    <div className="flex justify-center items-center p-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+    </div>
+  );
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card title="批量导入题目" loading={loading}>
-        <Space style={{ marginBottom: 16 }}>
-          <Button type="default" onClick={() => navigate(`/assessment/exams/${examId}`)} icon={<ArrowLeftOutlined />}>
-            返回试卷详情
-          </Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
-            下载导入模板
-          </Button>
-          <Upload {...props} accept=".xlsx">
-            <Button icon={<UploadOutlined />}>
-              上传题目文件 (.xlsx)
+    <div className="p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>批量导入题目</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading && <LoadingSpinner />}
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Button variant="outline" onClick={() => navigate(`/assessment/exams/${examId}`)} className="flex items-center">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              返回试卷详情
             </Button>
-          </Upload>
-        </Space>
+            <Button onClick={handleDownloadTemplate} className="flex items-center">
+              <Download className="h-4 w-4 mr-2" />
+              下载导入模板
+            </Button>
 
-        {parsedData.length > 0 && (
-          <Card title="导入预览" style={{ marginBottom: 16 }}>
-            <Table
-              columns={columns}
-              dataSource={parsedData}
-              pagination={{ pageSize: 5 }}
-              scroll={{ x: 'max-content' }}
-            />
-            <Space style={{ marginTop: 16 }}>
-              <Popconfirm
-                title="确认导入所有有效题目吗？"
-                onConfirm={handleImportConfirm}
-                okText="是"
-                cancelText="否"
-                disabled={parsedData.length === 0 || importErrors.length > 0}
+            <div className="relative">
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={handleFileChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
               >
-                <Button type="primary" icon={<UploadOutlined />} disabled={parsedData.length === 0 || importErrors.length > 0}>
-                  确认导入 ({parsedData.length} 条)
-                </Button>
-              </Popconfirm>
-              <Button onClick={() => { setParsedData([]); setFileList([]); setImportErrors([]); }}>
-                清空预览
-              </Button>
-            </Space>
-          </Card>
-        )}
+                <Upload className="h-4 w-4 mr-2" />
+                上传题目文件 (.xlsx)
+              </label>
+            </div>
+          </div>
 
-        {importErrors.length > 0 && (
-          <Card title="导入错误" type="inner" style={{ marginBottom: 16 }} headStyle={{ color: 'red' }}>
-            <Table
-              columns={errorColumns}
-              dataSource={importErrors}
-              pagination={{ pageSize: 5 }}
-              rowKey="row"
-              scroll={{ x: 'max-content' }}
-            />
-          </Card>
-        )}
+          {parsedData.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>导入预览</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">行号</TableHead>
+                      <TableHead>题型</TableHead>
+                      <TableHead>题目内容</TableHead>
+                      <TableHead className="w-20">分值</TableHead>
+                      <TableHead>选项</TableHead>
+                      <TableHead>正确答案</TableHead>
+                      <TableHead>解析</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {parsedData.map((item) => (
+                      <TableRow key={item.key}>
+                        <TableCell>{item.key}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{item.type}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{item.content}</TableCell>
+                        <TableCell>{item.score}</TableCell>
+                        <TableCell className="max-w-xs truncate">{item.options}</TableCell>
+                        <TableCell className="max-w-xs truncate">{item.correct_answer}</TableCell>
+                        <TableCell className="max-w-xs truncate">{item.explanation}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        className="flex items-center"
+                        disabled={parsedData.length === 0 || importErrors.length > 0}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        确认导入 ({parsedData.length} 条)
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>确认导入</DialogTitle>
+                        <DialogDescription>
+                          确认导入所有有效题目吗？
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                          取消
+                        </Button>
+                        <Button onClick={() => {
+                          setIsDialogOpen(false);
+                          handleImportConfirm();
+                        }}>
+                          确认
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setParsedData([]);
+                      setFileList([]);
+                      setImportErrors([]);
+                    }}
+                  >
+                    清空预览
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {importErrors.length > 0 && (
+            <Card className="mb-6 border-red-500">
+              <CardHeader>
+                <CardTitle className="text-red-500">导入错误</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">行号</TableHead>
+                      <TableHead>错误信息</TableHead>
+                      <TableHead>原始数据</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importErrors.map((error) => (
+                      <TableRow key={error.row}>
+                        <TableCell>{error.row}</TableCell>
+                        <TableCell className="text-red-500">{error.message}</TableCell>
+                        <TableCell className="max-w-xs truncate">{JSON.stringify(error.data)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

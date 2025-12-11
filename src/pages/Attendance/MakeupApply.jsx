@@ -1,11 +1,14 @@
+// [SHADCN-REPLACED]
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion } from 'framer-motion'
-import { DatePicker, TimePicker, Input } from 'antd';
-import dayjs from 'dayjs';
-import locale from 'antd/es/date-picker/locale/zh_CN';
+import dayjs from 'dayjs'
+import { Calendar } from '../../components/ui/calendar'
+import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover'
+import { Input } from '../../components/ui/input'
+import { Textarea } from '../../components/ui/textarea'
 
 export default function MakeupApply() {
   const [formData, setFormData] = useState({
@@ -165,13 +168,27 @@ export default function MakeupApply() {
                 {/* 补卡日期 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">补卡日期</label>
-                  <DatePicker
-                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm"
-                    onChange={(date, dateString) => handleDateChange(date, dateString, 'record_date')}
-                    locale={locale}
-                    placeholder="选择日期"
-                    value={formData.record_date ? dayjs(formData.record_date) : null}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full h-[42px] rounded-xl border border-gray-200 bg-white shadow-sm px-3 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      >
+                        {formData.record_date ? dayjs(formData.record_date).format('YYYY-MM-DD') : '选择日期'}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.record_date ? new Date(formData.record_date) : undefined}
+                        onSelect={(date) => {
+                          if (!date) return;
+                          const dateString = dayjs(date).format('YYYY-MM-DD');
+                          handleDateChange(date, dateString, 'record_date');
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {formData.record_date && (
                     <div className={`mt-2 text-sm ${isRestDay ? 'text-red-600' : 'text-green-600'}`}>
                       {checkingSchedule ? '正在检查排班...' : isRestDay ? '⚠️ 该日期为休息日，不可补打卡' : '✅ 该日期可提交补打卡申请'}
@@ -217,25 +234,24 @@ export default function MakeupApply() {
                 {/* 补卡时间 */}
                 <div className={isRestDay ? 'opacity-50 pointer-events-none' : ''}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">补卡时间</label>
-                  <TimePicker
+                  <Input
+                    type="time"
                     className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm"
-                    onChange={(time, timeString) => handleTimeChange(time, timeString, 'clock_time')}
-                    format="HH:mm"
-                    placeholder="选择时间"
-                    value={formData.clock_time ? dayjs(formData.clock_time, 'HH:mm') : null}
+                    value={formData.clock_time || ''}
+                    step={1800}
+                    onChange={(e) => setFormData(prev => ({ ...prev, clock_time: e.target.value }))}
                   />
                 </div>
 
                 {/* 补卡原因 */}
                 <div className={isRestDay ? 'opacity-50 pointer-events-none' : ''}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">补卡原因</label>
-                  <Input.TextArea
+                  <Textarea
                     rows={4}
                     value={formData.reason}
                     onChange={(e) => !isRestDay && setFormData(prev => ({ ...prev, reason: e.target.value }))}
                     placeholder="请详细说明忘记打卡的原因..."
                     className="rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow resize-none"
-                    showCount
                     maxLength={200}
                   />
                 </div>

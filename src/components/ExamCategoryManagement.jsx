@@ -3,7 +3,12 @@ import { toast } from 'react-toastify'
 import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
-import './ExamCategoryManagement.css'
+
+// 导入 shadcn UI 组件
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Textarea } from './ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 
 const ExamCategoryManagement = () => {
@@ -146,16 +151,16 @@ const ExamCategoryManagement = () => {
       {/* 操作栏 */}
       <div className="exam-category-toolbar">
         <div className="toolbar-actions">
-          <button
+          <Button
             onClick={() => {
               resetForm()
               setShowModal(true)
             }}
-            className="btn-flat-primary"
+            variant="default"
           >
             ➕ 新建分类
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={async () => {
               try {
                 const res = await axios.get(getApiUrl('/api/exam-categories/export.xlsx'), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }, responseType: 'blob' })
@@ -173,11 +178,11 @@ const ExamCategoryManagement = () => {
                 toast.error('导出失败')
               }
             }}
-            className="btn-flat-success"
+            variant="success"
           >
             ⬇️ 导出
-          </button>
-          <label className="btn-flat-info cursor-pointer">
+          </Button>
+          <Button variant="info" className="cursor-pointer">
             ⬆️ 导入
             <input type="file" className="hidden" accept=".xlsx" onChange={async (e) => {
               const file = e.target.files?.[0]
@@ -193,8 +198,8 @@ const ExamCategoryManagement = () => {
               }
               e.target.value = ''
             }} />
-          </label>
-          <input
+          </Button>
+          <Input
             type="text"
             placeholder="搜索分类..."
             value={searchTerm}
@@ -231,7 +236,7 @@ const ExamCategoryManagement = () => {
                         <div className="card-header-flat">
                           <div className="card-icon">{category.icon || '📁'}</div>
                           <div className="card-actions-flat">
-                            <button
+                            <Button
                               onClick={() => {
                                 setEditingCategory(category)
                                 setFormData({
@@ -245,18 +250,20 @@ const ExamCategoryManagement = () => {
                                 })
                                 setShowModal(true)
                               }}
-                              className="card-action-btn edit"
+                              variant="ghost"
                               title="编辑"
+                              size="icon"
                             >
                               ✏️
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => handleDelete(category.id)}
-                              className="card-action-btn delete"
+                              variant="ghost"
                               title="删除"
+                              size="icon"
                             >
                               🗑️
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
@@ -280,32 +287,37 @@ const ExamCategoryManagement = () => {
                             <span className="meta-item">📋 {usageStats[category.id] || 0} 份试卷</span>
                           </div>
                           <div className="quick-actions">
-                            <button className="quick-btn" onClick={async () => {
+                            <Button variant="outline" className="quick-btn" onClick={async () => {
                               try {
                                 const moves = [{ id: category.id, parent_id: category.parent_id, order_num: (category.order_num || 1) - 1 }]
                                 await axios.put(getApiUrl('/api/exam-categories/reorder'), { moves }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
                                 fetchCategories()
                               } catch { toast.error('上移失败') }
-                            }}>上移</button>
-                            <button className="quick-btn" onClick={async () => {
+                            }}>上移</Button>
+                            <Button variant="outline" className="quick-btn" onClick={async () => {
                               try {
                                 const moves = [{ id: category.id, parent_id: category.parent_id, order_num: (category.order_num || 1) + 1 }]
                                 await axios.put(getApiUrl('/api/exam-categories/reorder'), { moves }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
                                 fetchCategories()
                               } catch { toast.error('下移失败') }
-                            }}>下移</button>
-                            <select className="quick-btn" value={category.parent_id || ''} onChange={async (e) => {
-                              const newParent = e.target.value ? parseInt(e.target.value, 10) : null
+                            }}>下移</Button>
+                            <Select value={category.parent_id || ''} onValueChange={async (value) => {
+                              const newParent = value ? parseInt(value, 10) : null
                               try {
                                 await axios.put(getApiUrl(`/api/exam-categories/${category.id}`), { parent_id: newParent }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
                                 fetchCategories()
                               } catch { toast.error('调整父级失败') }
                             }}>
-                              <option value="">置为顶级</option>
-                              {categories.filter(c => c.id !== category.id).map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="quick-btn">
+                                <SelectValue placeholder="置为顶级" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">置为顶级</SelectItem>
+                                {categories.filter(c => c.id !== category.id).map(c => (
+                                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -327,26 +339,26 @@ const ExamCategoryManagement = () => {
               <h2 className="modal-title-flat">
                 {editingCategory ? '编辑分类' : '新建分类'}
               </h2>
-              <button
+              <Button
                 onClick={() => {
                   setShowModal(false)
                   resetForm()
                 }}
-                className="modal-close-btn"
+                variant="ghost"
+                size="icon"
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSubmit} className="modal-body-flat">
               <div className="form-group-flat">
                 <label className="form-label-flat">分类名称 *</label>
-                <input
+                <Input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="form-input-flat"
                   placeholder="如：产品知识、技能考核"
                 />
               </div>
@@ -354,23 +366,21 @@ const ExamCategoryManagement = () => {
               <div className="form-group-flat">
                 <div>
                   <label className="form-label-flat">编码 *</label>
-                  <input
+                  <Input
                     type="text"
                     required
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="form-input-flat"
                     placeholder="如：KNOWLEDGE_BASIC"
                   />
                 </div>
                 <div>
                   <label className="form-label-flat">权重</label>
-                  <input
+                  <Input
                     type="number"
                     min="0"
                     value={formData.weight}
                     onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
-                    className="form-input-flat"
                     placeholder="如：10"
                   />
                 </div>
@@ -379,37 +389,38 @@ const ExamCategoryManagement = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="form-label-flat">状态</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="form-select-flat"
-                  >
-                    <option value="active">启用</option>
-                    <option value="inactive">停用</option>
-                  </select>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger className="form-select-flat">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">启用</SelectItem>
+                      <SelectItem value="inactive">停用</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="form-label-flat">父级分类</label>
-                  <select
-                    value={formData.parent_id || ''}
-                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value ? parseInt(e.target.value, 10) : null })}
-                    className="form-select-flat"
-                  >
-                    <option value="">置为顶级</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <Select value={formData.parent_id || ''} onValueChange={(value) => setFormData({ ...formData, parent_id: value ? parseInt(value, 10) : null })}>
+                    <SelectTrigger className="form-select-flat">
+                      <SelectValue placeholder="置为顶级" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">置为顶级</SelectItem>
+                      {categories.map(c => (
+                        <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="form-group-flat">
                 <label className="form-label-flat">图标</label>
-                <input
+                <Input
                   type="text"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  className="form-input-flat"
                   placeholder="输入emoji图标"
                 />
                 <p className="form-hint-flat">
@@ -419,33 +430,32 @@ const ExamCategoryManagement = () => {
 
               <div className="form-group-flat">
                 <label className="form-label-flat">描述</label>
-                <textarea
+                <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows="3"
-                  className="form-textarea-flat"
                   placeholder="输入分类描述"
                 />
               </div>
 
               <div className="modal-footer-flat">
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     setShowModal(false)
                     resetForm()
                   }}
-                  className="btn-secondary"
+                  variant="secondary"
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={loading}
-                  className="btn-flat-primary"
+                  variant="primary"
                 >
                   {loading ? '保存中...' : '保存'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

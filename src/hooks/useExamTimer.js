@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import axios from 'axios';
-import { message, notification } from 'antd';
+import { toast } from 'react-toastify';
 
 dayjs.extend(duration);
 
@@ -67,17 +67,9 @@ const useExamTimer = (initialTimeInSeconds, onTimerEnd, resultId) => {
         const newTime = prevTime - 1;
         // Time reminders
         if (newTime === 300) { // 5 minutes
-          notification.warning({
-            message: '考试时间提醒',
-            description: '距离考试结束还有5分钟，请尽快检查并提交试卷。',
-            duration: 0,
-          });
+          toast.warning('距离考试结束还有5分钟，请尽快检查并提交试卷。');
         } else if (newTime === 60) { // 1 minute
-          notification.error({
-            message: '考试时间警告',
-            description: '距离考试结束还有1分钟，系统将自动提交试卷！',
-            duration: 0,
-          });
+          toast.error('距离考试结束还有1分钟，系统将自动提交试卷！');
         }
         return newTime;
       });
@@ -93,18 +85,18 @@ const useExamTimer = (initialTimeInSeconds, onTimerEnd, resultId) => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setPageSwitchCount((prevCount) => prevCount + 1);
-        message.warning('您已切换页面，请尽快返回考试界面。多次切换可能被记录为作弊行为。', 5);
+        toast.warning('您已切换页面，请尽快返回考试界面。多次切换可能被记录为作弊行为。');
         // TODO: Log this event to the backend for anti-cheating analysis
       }
     };
 
     const disableCopyPaste = (e) => {
-      message.warning('考试期间禁止复制粘贴！', 2);
+      toast.warning('考试期间禁止复制粘贴！');
       e.preventDefault();
     };
 
     const disableRightClick = (e) => {
-      message.warning('考试期间禁止右键操作！', 2);
+      toast.warning('考试期间禁止右键操作！');
       e.preventDefault();
     };
 

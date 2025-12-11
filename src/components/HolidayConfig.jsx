@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Modal, InputNumber, Select, message, Empty, Spin, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined } from '@ant-design/icons';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Badge } from './ui/badge';
+import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
 
 const { Option } = Select;
 
@@ -19,6 +28,9 @@ const HolidayConfig = () => {
     month: 1,
     vacation_type_id: null
   });
+
+  // 表单错误状态
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     loadData();
@@ -50,7 +62,7 @@ const HolidayConfig = () => {
         setMonthlySummary(summaryData.data);
       }
     } catch (error) {
-      message.error('加载数据失败');
+      toast.error('加载数据失败');
     } finally {
       setLoading(false);
     }
@@ -94,34 +106,48 @@ const HolidayConfig = () => {
   };
 
   const handleDelete = async (id) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个节假日配置吗？',
-      onOk: async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${getApiBaseUrl()}/holidays/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const result = await response.json();
+    if (window.confirm('确定要删除这个节假日配置吗？')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${getApiBaseUrl()}/holidays/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await response.json();
 
-          if (result.success) {
-            message.success('删除成功');
-            loadData();
-          } else {
-            message.error(result.message || '删除失败');
-          }
-        } catch (error) {
-          message.error('删除失败');
+        if (result.success) {
+          toast.success('删除成功');
+          loadData();
+        } else {
+          toast.error(result.message || '删除失败');
         }
+      } catch (error) {
+        toast.error('删除失败');
       }
-    });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.vacation_type_id) {
+      newErrors.vacation_type_id = '请选择假期类型';
+    }
+
+    if (!form.days || form.days <= 0) {
+      newErrors.days = '天数必须大于0';
+    }
+
+    if (!form.month) {
+      newErrors.month = '请选择月份';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
-    if (!form.vacation_type_id || !form.days || !form.month) {
-      message.error('请选择假期类型并填写完整信息');
+    if (!validateForm()) {
       return;
     }
 
@@ -154,14 +180,14 @@ const HolidayConfig = () => {
       const result = await response.json();
 
       if (result.success) {
-        message.success(editingHoliday ? '更新成功' : '创建成功');
+        toast.success(editingHoliday ? '更新成功' : '创建成功');
         setModalVisible(false);
         loadData();
       } else {
-        message.error(result.message || '操作失败');
+        toast.error(result.message || '操作失败');
       }
     } catch (error) {
-      message.error('操作失败');
+      toast.error('操作失败');
     }
   };
 
@@ -264,83 +290,74 @@ const HolidayConfig = () => {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium text-gray-700">年份:</span>
-          <Select
-            value={year}
-            onChange={setYear}
-            style={{ width: 120 }}
-          >
-            {[0, 1, 2, 3, 4].map(i => (
-              <Option key={i} value={dayjs().year() - 2 + i}>
-                {dayjs().year() - 2 + i}年
-              </Option>
-            ))}
+          <Select value={year.toString()} onValueChange={(value) => setYear(parseInt(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[0, 1, 2, 3, 4].map(i => (
+                <SelectItem key={i} value={(dayjs().year() - 2 + i).toString()}>
+                  {dayjs().year() - 2 + i}年
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
       </div>
 
       {/* 快速操作按钮组 */}
       <div className="flex gap-2 flex-wrap">
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('元旦', 1, 1)}>
+        <Button onClick={() => handleQuickAdd('元旦', 1, 1)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加元旦
         </Button>
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('春节', 7, 2)}>
+        <Button onClick={() => handleQuickAdd('春节', 7, 2)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加春节
         </Button>
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('清明节', 3, 4)}>
+        <Button onClick={() => handleQuickAdd('清明节', 3, 4)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加清明节
         </Button>
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('劳动节', 5, 5)}>
+        <Button onClick={() => handleQuickAdd('劳动节', 5, 5)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加劳动节
         </Button>
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('端午节', 3, 6)}>
+        <Button onClick={() => handleQuickAdd('端午节', 3, 6)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加端午节
         </Button>
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('中秋节', 3, 9)}>
+        <Button onClick={() => handleQuickAdd('中秋节', 3, 9)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加中秋节
         </Button>
-        <Button icon={<PlusOutlined />} onClick={() => handleQuickAdd('国庆节', 7, 10)}>
+        <Button onClick={() => handleQuickAdd('国庆节', 7, 10)}>
+          <Plus className="mr-2 h-4 w-4" />
           快速添加国庆节
         </Button>
       </div>
 
       {/* 月度卡片视图 */}
-      <Spin spinning={loading}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {monthNames.map((monthName, index) => {
-            const month = index + 1;
-            const monthHolidays = getMonthHolidays(month);
-            const summary = monthlySummary.find(s => s.month === month) || { total_days: 0, holiday_count: 0 };
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {monthNames.map((monthName, index) => {
+          const month = index + 1;
+          const monthHolidays = getMonthHolidays(month);
+          const summary = monthlySummary.find(s => s.month === month) || { total_days: 0, holiday_count: 0 };
 
-            return (
-              <Card
-                key={month}
-                className="shadow-sm hover:shadow-md transition-shadow"
-                title={
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <CalendarOutlined className="text-blue-500" />
-                      {monthName}
-                    </span>
-                    <Tag color="blue">{summary.total_days} 天</Tag>
-                  </div>
-                }
-                extra={
-                  <Button
-                    type="link"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => handleAdd(month)}
-                  >
-                    新增
-                  </Button>
-                }
-              >
+          return (
+            <Card key={month} className="shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="flex items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calendar className="text-blue-500 h-5 w-5" />
+                  {monthName}
+                </CardTitle>
+                <Badge variant="secondary">{summary.total_days} 天</Badge>
+              </CardHeader>
+              <CardContent>
                 {monthHolidays.length === 0 ? (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="暂无节假日"
-                    className="my-4"
-                  />
+                  <div className="my-4 text-center text-gray-500">
+                    <p>暂无节假日</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {monthHolidays.map(holiday => (
@@ -354,94 +371,108 @@ const HolidayConfig = () => {
                         </div>
                         <div className="flex gap-1">
                           <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined />}
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleEdit(holiday)}
-                          />
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button
-                            type="text"
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
+                            variant="destructive"
+                            size="sm"
                             onClick={() => handleDelete(holiday.id)}
-                          />
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </Card>
-            );
-          })}
-        </div>
-      </Spin>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* 编辑模态框 */}
-      <Modal
-        title={editingHoliday ? '编辑节假日' : '新增节假日'}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSubmit}
-        okText="保存"
-        cancelText="取消"
-      >
-        <div className="space-y-4 py-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              假期类型 <span className="text-red-500">*</span>
-            </label>
-            <Select
-              placeholder="选择假期类型"
-              value={form.vacation_type_id}
-              onChange={(value) => {
-                const selectedType = vacationTypes.find(t => t.id === value);
-                setForm({
-                  ...form,
-                  vacation_type_id: value,
-                  // 如果选择了假期类型且有基准天数，自动填充
-                  days: selectedType?.base_days > 0 ? selectedType.base_days : form.days
-                });
-              }}
-              className="w-full"
-            >
-              {vacationTypes.map(type => (
-                <Option key={type.id} value={type.id}>
-                  {type.name}
-                </Option>
-              ))}
-            </Select>
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingHoliday ? '编辑节假日' : '新增节假日'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="vacation_type_id" className="text-sm font-medium text-gray-700 mb-2">
+                假期类型 <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={form.vacation_type_id ? form.vacation_type_id.toString() : ""}
+                onValueChange={(value) => {
+                  const selectedType = vacationTypes.find(t => t.id === parseInt(value));
+                  setForm({
+                    ...form,
+                    vacation_type_id: parseInt(value),
+                    // 如果选择了假期类型且有基准天数，自动填充
+                    days: selectedType?.base_days > 0 ? selectedType.base_days : form.days
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择假期类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vacationTypes.map(type => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.vacation_type_id && <p className="text-red-500 text-sm mt-1">{errors.vacation_type_id}</p>}
+            </div>
+            <div>
+              <Label htmlFor="days" className="text-sm font-medium text-gray-700 mb-2">
+                天数 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="days"
+                type="number"
+                min="1"
+                max="31"
+                value={form.days}
+                onChange={(e) => setForm({ ...form, days: parseInt(e.target.value) || 0 })}
+                className={errors.days ? 'border-red-500' : ''}
+              />
+              {errors.days && <p className="text-red-500 text-sm mt-1">{errors.days}</p>}
+            </div>
+            <div>
+              <Label htmlFor="month" className="text-sm font-medium text-gray-700 mb-2">
+                所属月份 <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={form.month.toString()}
+                onValueChange={(value) => setForm({ ...form, month: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthNames.map((name, index) => (
+                    <SelectItem key={index + 1} value={(index + 1).toString()}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.month && <p className="text-red-500 text-sm mt-1">{errors.month}</p>}
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              天数 <span className="text-red-500">*</span>
-            </label>
-            <InputNumber
-              min={1}
-              max={31}
-              value={form.days}
-              onChange={(value) => setForm({ ...form, days: value })}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              所属月份 <span className="text-red-500">*</span>
-            </label>
-            <Select
-              value={form.month}
-              onChange={(value) => setForm({ ...form, month: value })}
-              className="w-full"
-            >
-              {monthNames.map((name, index) => (
-                <Option key={index + 1} value={index + 1}>
-                  {name}
-                </Option>
-              ))}
-            </Select>
-          </div>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <Button onClick={handleSubmit}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

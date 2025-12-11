@@ -1,7 +1,10 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react'
 import { formatDate } from '../utils/date'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../utils/apiConfig'
+import { Button } from '../components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 function EmployeeChanges() {
   const [changes, setChanges] = useState([])
@@ -658,34 +661,23 @@ function EmployeeChanges() {
               <div className="text-sm text-gray-600">共 {filteredChanges.length} 条记录</div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span>每页</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                <Select value={String(pageSize)} onValueChange={(val) => handlePageSizeChange(Number(val))}>
+                  <SelectTrigger className="w-[90px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
                 <span>条</span>
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                首页
-              </button>
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                上一页
-              </button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(1)} disabled={currentPage === 1}>首页</Button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>上一页</Button>
               <div className="flex gap-1">
                 {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                   let pageNum
@@ -699,34 +691,19 @@ function EmployeeChanges() {
                     pageNum = currentPage - 3 + i
                   }
                   return (
-                    <button
+                    <Button
                       key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-2 py-1 border rounded-lg text-sm ${
-                        currentPage === pageNum
-                          ? 'bg-primary-500 text-white border-primary-500'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
                     >
                       {pageNum}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                下一页
-              </button>
-              <button
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                末页
-              </button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>下一页</Button>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>末页</Button>
               <span className="text-sm text-gray-600 ml-2">{currentPage} / {totalPages}</span>
             </div>
           </div>

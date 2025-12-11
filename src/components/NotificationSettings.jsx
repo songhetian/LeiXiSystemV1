@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Table, Select, Button, message, Tag, Space, Typography } from 'antd'
-import { BellOutlined, SaveOutlined } from '@ant-design/icons'
 import { getApiUrl } from '../utils/apiConfig'
 import { apiGet, apiPut } from '../utils/apiClient'
+import { toast } from 'react-toastify'
 
-const { Title, Text } = Typography
-const { Option } = Select
-
+// 导入 shadcn UI 组件
+import { Card, CardContent } from './ui/card'
+import { Button } from './ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { Badge } from './ui/badge'
 const NotificationSettings = () => {
   const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState([])
@@ -43,7 +44,7 @@ const NotificationSettings = () => {
       }
     } catch (error) {
       console.error('获取数据失败:', error)
-      message.error('获取配置失败')
+      toast.error('获取配置失败')
     } finally {
       setLoading(false)
     }
@@ -71,61 +72,14 @@ const NotificationSettings = () => {
       await apiPut(`/api/notification-settings/${record.event_type}`, {
         targetRoles: record.target_roles
       })
-      message.success('保存成功')
+      toast.success('保存成功')
     } catch (error) {
       console.error('保存失败:', error)
-      message.error('保存失败')
+      toast.error('保存失败')
     } finally {
       setSaving(false)
     }
   }
-
-  const columns = [
-    {
-      title: '事件类型',
-      dataIndex: 'event_type',
-      key: 'event_type',
-      render: (text) => (
-        <Space>
-          <BellOutlined style={{ color: '#1890ff' }} />
-          <Text strong>{eventTypeMap[text] || text}</Text>
-        </Space>
-      )
-    },
-    {
-      title: '接收通知角色',
-      dataIndex: 'target_roles',
-      key: 'target_roles',
-      width: '50%',
-      render: (targetRoles, record) => (
-        <Select
-          mode="multiple"
-          style={{ width: '100%' }}
-          placeholder="请选择接收角色"
-          value={typeof targetRoles === 'string' ? JSON.parse(targetRoles) : targetRoles}
-          onChange={(value) => handleRoleChange(record.event_type, value)}
-        >
-          {roles.map(role => (
-            <Option key={role} value={role}>{role}</Option>
-          ))}
-        </Select>
-      )
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          onClick={() => handleSave(record)}
-          loading={saving}
-        >
-          保存
-        </Button>
-      )
-    }
-  ]
 
   // 确保所有定义的事件类型都显示，即使数据库中没有记录
   const displayData = Object.keys(eventTypeMap).map(type => {
@@ -135,17 +89,50 @@ const NotificationSettings = () => {
 
   return (
     <div className="p-6">
-      <Card title={<Title level={4}>通知设置</Title>} bordered={false}>
-        <div className="mb-4 text-gray-500">
-          配置各类系统事件触发时，哪些角色的用户会收到通知弹窗。
+      <Card>
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold">通知设置</h3>
+          <p className="text-gray-500 text-sm mt-1">
+            配置各类系统事件触发时，哪些角色的用户会收到通知弹窗。
+          </p>
         </div>
-        <Table
-          columns={columns}
-          dataSource={displayData}
-          rowKey="event_type"
-          loading={loading}
-          pagination={false}
-        />
+        <CardContent>
+          <div className="space-y-6">
+            {displayData.map((item) => (
+              <div key={item.event_type} className="flex items-center gap-4 p-4 border rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                    </svg>
+                    <span className="font-medium">{eventTypeMap[item.event_type] || item.event_type}</span>
+                  </div>
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">接收通知角色</label>
+                    <Select
+                      value={Array.isArray(item.target_roles) ? item.target_roles : (typeof item.target_roles === 'string' ? JSON.parse(item.target_roles) : [])}
+                      onValueChange={(value) => handleRoleChange(item.event_type, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="请选择接收角色" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map(role => (
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <Button onClick={() => handleSave(item)} disabled={saving}>
+                    {saving ? '保存中...' : '保存'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
       </Card>
     </div>
   )

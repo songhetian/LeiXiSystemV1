@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Popconfirm, Drawer, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { toast } from 'react-toastify';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import RoleDepartmentModal from '../../components/RoleDepartmentModal';
+import { Plus, Edit, Trash2, User, Users, Lock, Eye, RefreshCw, Check, X } from 'lucide-react';
 
-const { Option } = Select;
+// 导入 shadcn UI 组件
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from '../../components/ui/table';
+import { Button } from '../../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '../../components/ui/drawer';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Checkbox } from '../../components/ui/checkbox';
+
+
 
 const RoleManagement = () => {
   const [roles, setRoles] = useState([]);
@@ -68,7 +80,7 @@ const RoleManagement = () => {
         setRoles(rolesWithDepartments);
       }
     } catch (error) {
-      message.error('获取角色列表失败');
+      toast.error('获取角色列表失败');
     } finally {
       setLoading(false);
     }
@@ -81,7 +93,7 @@ const RoleManagement = () => {
         setPermissions(response.data);
       }
     } catch (error) {
-      message.error('获取权限列表失败');
+      toast.error('获取权限列表失败');
     }
   };
 
@@ -117,7 +129,7 @@ const RoleManagement = () => {
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
-      message.error('获取用户列表失败');
+      toast.error('获取用户列表失败');
     }
   };
 
@@ -176,11 +188,11 @@ const RoleManagement = () => {
     try {
       const response = await apiDelete(`/api/roles/${id}`);
       if (response.success) {
-        message.success('删除成功');
+        toast.success('删除成功');
         fetchRoles();
       }
     } catch (error) {
-      message.error('删除失败');
+      toast.error('删除失败');
     }
   };
 
@@ -209,7 +221,7 @@ const RoleManagement = () => {
       }
     } catch (error) {
       console.error('获取角色用户失败:', error);
-      message.error('获取角色用户失败');
+      toast.error('获取角色用户失败');
     }
   };
 
@@ -223,11 +235,11 @@ const RoleManagement = () => {
         userIds: values.users
       });
 
-      message.success('用户分配成功');
+      toast.success('用户分配成功');
       setDrawerVisible(false);
       fetchRoles(); // 刷新角色列表
     } catch (error) {
-      message.error('分配失败: ' + (error.message || '未知错误'));
+      toast.error('分配失败: ' + (error.message || '未知错误'));
     }
   };
 
@@ -244,15 +256,15 @@ const RoleManagement = () => {
 
       if (editingRole) {
         await apiPut(`/api/roles/${editingRole.id}`, payload);
-        message.success('更新成功');
+        toast.success('更新成功');
       } else {
         await apiPost('/api/roles', payload);
-        message.success('创建成功');
+        toast.success('创建成功');
       }
       setModalVisible(false);
       fetchRoles(); // 刷新角色列表，包括部门权限信息
     } catch (error) {
-      message.error('保存失败');
+      toast.error('保存失败');
     }
   };
 
@@ -266,10 +278,10 @@ const RoleManagement = () => {
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
-        <Space>
+        <div className="inline-flex items-center gap-1">
           <span className="font-medium text-gray-900">{text}</span>
-          {record.is_system && <Tag color="blue">系统</Tag>}
-        </Space>
+          {record.is_system && <Badge variant="secondary">系统</Badge>}
+        </div>
       )
     },
     {
@@ -286,7 +298,7 @@ const RoleManagement = () => {
       render: (_, record) => {
         if (!record.departments || record.departments.length === 0) {
           return <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-            <EyeOutlined className="mr-1 text-xs" />
+            <Eye className="mr-1 h-3 w-3" />
             未设置
           </span>;
         }
@@ -302,7 +314,7 @@ const RoleManagement = () => {
                 key={dept.id}
                 className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800"
               >
-                <EyeOutlined className="mr-1 text-xs" />
+                <Eye className="mr-1 h-3 w-3" />
                 {dept.name}
               </span>
             ))}
@@ -322,7 +334,7 @@ const RoleManagement = () => {
         const count = record.permissions ? record.permissions.length : 0;
         return (
           <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-            <LockOutlined className="mr-1 text-xs" />
+            <Lock className="mr-1 h-3 w-3" />
             {count}
           </span>
         );
@@ -335,41 +347,43 @@ const RoleManagement = () => {
       render: (_, record) => (
         <div className="flex flex-wrap gap-1">
           <Button
-            size="small"
-            type="primary"
-            ghost
-            icon={<UserOutlined />}
+            size="sm"
+            variant="outline"
             onClick={() => handleAssignUsers(record)}
             title="分配用户"
-          />
+            className="flex items-center gap-1"
+          >
+            <User className="h-4 w-4" />
+          </Button>
           <Button
-            size="small"
-            icon={<EyeOutlined />}
+            size="sm"
+            variant="outline"
             onClick={() => handleManageDepartments(record)}
             title="部门权限"
-          />
+            className="flex items-center gap-1"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
           <Button
-            size="small"
-            icon={<EditOutlined />}
+            size="sm"
+            variant="outline"
             onClick={() => handleEdit(record)}
             disabled={record.name === '超级管理员'}
             title="编辑角色"
-          />
+            className="flex items-center gap-1"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
           {!record.is_system && (
-            <Popconfirm
-              title="确定删除该角色吗？"
-              description="删除后将无法恢复"
-              onConfirm={() => handleDelete(record.id)}
-              okText="确定"
-              cancelText="取消"
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleDelete(record.id)}
+              title="删除角色"
+              className="flex items-center gap-1"
             >
-              <Button
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                title="删除角色"
-              />
-            </Popconfirm>
+              <Trash2 className="h-4 w-4" />
+            </Button>
           )}
         </div>
       ),
@@ -421,11 +435,11 @@ const RoleManagement = () => {
         await withRetry(() => apiDelete(`/api/roles/${roleId}`));
         setBatchProgress(prev => ({ ...prev, done: prev.done + 1 }));
       }
-      message.success('批量删除完成');
+      toast.success('批量删除完成');
       setSelectedRoleIds([]);
       fetchRoles();
     } catch {
-      message.error('批量删除失败');
+      toast.error('批量删除失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -448,9 +462,9 @@ const RoleManagement = () => {
       setIsBatchDeptOpen(false);
       setSelectedRoleIds([]);
       fetchRoles();
-      message.success('批量设置部门权限完成');
+      toast.success('批量设置部门权限完成');
     } catch {
-      message.error('批量设置失败');
+      toast.error('批量设置失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -459,11 +473,11 @@ const RoleManagement = () => {
 
   const handleApplyTemplateToSelectedRoles = async () => {
     if (!selectedTemplateKey) {
-      message.error('请选择权限模板');
+      toast.error('请选择权限模板');
       return;
     }
     if (selectedRoleIds.length === 0) {
-      message.error('请选择至少一个角色');
+      toast.error('请选择至少一个角色');
       return;
     }
 
@@ -507,9 +521,9 @@ const RoleManagement = () => {
       setSelectedRoleIds([]);
       setSelectedTemplateKey('');
       fetchRoles();
-      message.success('模板应用完成');
+      toast.success('模板应用完成');
     } catch {
-      message.error('应用模板失败');
+      toast.error('应用模板失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -521,7 +535,7 @@ const RoleManagement = () => {
   // 过滤角色
   const filteredRoles = useMemo(() => {
     if (!searchText) return roles;
-    return roles.filter(role => 
+    return roles.filter(role =>
       role.name.toLowerCase().includes(searchText.toLowerCase()) ||
       (role.description && role.description.toLowerCase().includes(searchText.toLowerCase()))
     );
@@ -543,16 +557,18 @@ const RoleManagement = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
               onClick={handleAdd}
+              className="flex items-center gap-2"
             >
+              <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">新增角色</span>
             </Button>
             <Button
-              icon={<ReloadOutlined />}
               onClick={fetchRoles}
+              variant="outline"
+              className="flex items-center gap-2"
             >
+              <RefreshCw className="h-4 w-4" />
               <span className="hidden sm:inline">刷新</span>
             </Button>
           </div>
@@ -600,146 +616,237 @@ const RoleManagement = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                size="small"
+                size="sm"
                 onClick={() => setIsTemplateModalOpen(true)}
                 className="flex items-center gap-1"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                </svg>
+                <Users className="h-4 w-4" />
                 应用模板
               </Button>
               <Button
-                size="small"
+                size="sm"
                 onClick={openBatchDepartmentModal}
                 className="flex items-center gap-1"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+                <Users className="h-4 w-4" />
                 部门权限
               </Button>
               <Button
-                size="small"
-                danger
+                size="sm"
+                variant="destructive"
                 onClick={handleBatchDeleteRoles}
                 disabled={isProcessingBatch}
                 className="flex items-center gap-1"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                <Trash2 className="h-4 w-4" />
                 删除
               </Button>
             </div>
           </div>
         )}
 
-        <Table
-          columns={columns}
-          dataSource={filteredRoles}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`
-          }}
-          rowSelection={{
-            selectedRowKeys: selectedRoleIds,
-            onChange: (keys) => setSelectedRoleIds(keys),
-            preserveSelectedRowKeys: true,
-            columnWidth: 40
-          }}
-          scroll={{ x: 'max-content' }}
-        />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">选择</TableHead>
+              <TableHead>角色名称</TableHead>
+              <TableHead>描述</TableHead>
+              <TableHead>可查看部门</TableHead>
+              <TableHead>权限数量</TableHead>
+              <TableHead className="w-40">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRoles.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedRoleIds.includes(record.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedRoleIds([...selectedRoleIds, record.id]);
+                      } else {
+                        setSelectedRoleIds(selectedRoleIds.filter(id => id !== record.id));
+                      }
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{record.name}</span>
+                    {record.is_system && <Badge variant="secondary">系统</Badge>}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-gray-600">{record.description || '-'}</span>
+                </TableCell>
+                <TableCell>
+                  {(!record.departments || record.departments.length === 0) ? (
+                    <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                      <Eye className="mr-1 text-xs h-3 w-3" />
+                      未设置
+                    </span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {record.departments.slice(0, 2).map(dept => (
+                        <span
+                          key={dept.id}
+                          className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800"
+                        >
+                          <Eye className="mr-1 text-xs h-3 w-3" />
+                          {dept.name}
+                        </span>
+                      ))}
+                      {record.departments.length > 2 && (
+                        <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                          +{record.departments.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                    <Lock className="mr-1 text-xs h-3 w-3" />
+                    {record.permissions ? record.permissions.length : 0}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAssignUsers(record)}
+                      title="分配用户"
+                      className="flex items-center gap-1"
+                    >
+                      <User className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleManageDepartments(record)}
+                      title="部门权限"
+                      className="flex items-center gap-1"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(record)}
+                      disabled={record.name === '超级管理员'}
+                      title="编辑角色"
+                      className="flex items-center gap-1"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    {!record.is_system && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(record.id)}
+                        title="删除角色"
+                        className="flex items-center gap-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      <Modal
-        title={editingRole ? '编辑角色' : '新增角色'}
-        open={modalVisible}
-        onOk={handleSave}
-        onCancel={() => setModalVisible(false)}
-        width={600}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="角色名称"
-            rules={[{ required: true, message: '请输入角色名称' }]}
-          >
-            <Input placeholder="请输入角色名称" />
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="描述"
-          >
-            <Input.TextArea placeholder="请输入角色描述" rows={2} />
-          </Form.Item>
-          <Form.Item label="权限配置">
-            <div className="border rounded-lg p-3 max-h-80 overflow-y-auto bg-gray-50">
-              <Tree
-                checkable
-                defaultExpandAll
-                onCheck={onCheck}
-                checkedKeys={checkedKeys}
-                treeData={permissionTreeData}
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingRole ? '编辑角色' : '新增角色'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="role-name" className="text-sm font-medium mb-1 block">角色名称</Label>
+              <Input
+                id="role-name"
+                value={form.getFieldValue('name') || ''}
+                onChange={(e) => form.setFieldsValue({ name: e.target.value })}
+                placeholder="请输入角色名称"
               />
             </div>
-          </Form.Item>
-        </Form>
-      </Modal>
+            <div>
+              <Label htmlFor="role-description" className="text-sm font-medium mb-1 block">描述</Label>
+              <textarea
+                id="role-description"
+                value={form.getFieldValue('description') || ''}
+                onChange={(e) => form.setFieldsValue({ description: e.target.value })}
+                placeholder="请输入角色描述"
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium mb-1 block">权限配置</Label>
+              <div className="border rounded-lg p-3 max-h-80 overflow-y-auto bg-gray-50">
+                {/* 这里需要替换为自定义树形组件或使用其他方式展示权限 */}
+                <div>权限配置区域</div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+            <Button onClick={handleSave}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 用户分配抽屉 */}
-      <Drawer
-        title={`为 "${selectedRole?.name}" 角色分配用户`}
-        width={480}
-        onClose={() => setDrawerVisible(false)}
-        open={drawerVisible}
-        bodyStyle={{ paddingBottom: 80 }}
-      >
-        <Form form={userForm} layout="vertical">
-          <Form.Item
-            name="users"
-            label="选择用户"
-            rules={[{ required: true, message: '请选择至少一个用户' }]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="请选择用户"
-              optionLabelProp="label"
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-            >
-              {users.map(user => (
-                <Option
-                  key={user.id}
-                  value={user.id}
-                  label={`${user.real_name} (${user.username})`}
-                >
-                  <div className="flex items-center">
-                    <UserOutlined className="mr-2 text-gray-500" />
-                    <div>
-                      <div className="font-medium">{user.real_name}</div>
-                      <div className="text-xs text-gray-500">@{user.username}</div>
-                    </div>
-                  </div>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-        <div className="flex justify-end gap-3 mt-6">
-          <Button onClick={() => setDrawerVisible(false)}>
-            取消
-          </Button>
-          <Button type="primary" onClick={handleSaveUserAssignment}>
-            保存
-          </Button>
-        </div>
+      <Drawer open={drawerVisible} onOpenChange={setDrawerVisible}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>为 "{selectedRole?.name}" 角色分配用户</DrawerTitle>
+          </DrawerHeader>
+          <div className="p-4 space-y-4">
+            <div>
+              <Label htmlFor="user-select" className="text-sm font-medium mb-1 block">选择用户</Label>
+              <Select
+                value={selectedUsers.map(String)}
+                onValueChange={(value) => {
+                  const numericValues = value.map(Number);
+                  setSelectedUsers(numericValues);
+                  userForm.setFieldsValue({ users: numericValues });
+                }}
+                multiple
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择用户" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={String(user.id)}>
+                      <div className="flex items-center">
+                        <User className="mr-2 text-gray-500 h-4 w-4" />
+                        <div>
+                          <div className="font-medium">{user.real_name}</div>
+                          <div className="text-xs text-gray-500">@{user.username}</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DrawerFooter>
+            <Button variant="outline" onClick={() => setDrawerVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSaveUserAssignment}>
+              保存
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
       </Drawer>
 
       {/* 部门权限管理模态框 */}
@@ -754,366 +861,367 @@ const RoleManagement = () => {
       />
 
       {/* 模板管理模态框 */}
-      <Modal
-        title={editingTemplate ? '编辑模板' : '新建模板'}
-        open={isTemplateManageOpen}
-        onCancel={() => setIsTemplateManageOpen(false)}
-        footer={null}
-        width={720}
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板名称</label>
-              <Input
-                value={templateForm.name}
-                onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-                placeholder="请输入模板名称"
-              />
+      <Dialog open={isTemplateManageOpen} onOpenChange={setIsTemplateManageOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate ? '编辑模板' : '新建模板'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium mb-1 block">模板名称</Label>
+                <Input
+                  value={templateForm.name}
+                  onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                  placeholder="请输入模板名称"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium mb-1 block">模板描述</Label>
+                <Input
+                  value={templateForm.description}
+                  onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                  placeholder="请输入模板描述"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板描述</label>
-              <Input
-                value={templateForm.description}
-                onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
-                placeholder="请输入模板描述"
-              />
-            </div>
-          </div>
-          <div className="text-sm font-medium text-gray-700">选择权限</div>
-          <div className="max-h-64 overflow-y-auto space-y-3">
-            {Object.entries(moduleNames).map(([key, name]) => {
-              const modulePerms = permissions.filter(p => p.module === key);
-              if (modulePerms.length === 0) return null;
+            <div className="text-sm font-medium text-gray-700">选择权限</div>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {Object.entries(moduleNames).map(([key, name]) => {
+                const modulePerms = permissions.filter(p => p.module === key);
+                if (modulePerms.length === 0) return null;
 
-              return (
-                <Card key={key} size="small" title={name} className="mb-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {modulePerms.map(perm => {
-                      const checked = templateForm.permission_ids.includes(perm.id);
-                      return (
-                        <label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => {
-                              setTemplateForm({
-                                ...templateForm,
-                                permission_ids: e.target.checked
-                                  ? [...templateForm.permission_ids, perm.id]
-                                  : templateForm.permission_ids.filter(id => id !== perm.id)
-                              });
-                            }}
-                          />
-                          <span>{perm.description}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">已选择 {templateForm.permission_ids.length} 项</div>
-            <div className="flex gap-2">
-              {editingTemplate && (
-                <Button danger onClick={async () => {
+                return (
+                  <Card key={key}>
+                    <CardHeader>
+                      <CardTitle>{name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {modulePerms.map(perm => {
+                          const checked = templateForm.permission_ids.includes(perm.id);
+                          return (
+                            <label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(checked) => {
+                                  setTemplateForm({
+                                    ...templateForm,
+                                    permission_ids: checked
+                                      ? [...templateForm.permission_ids, perm.id]
+                                      : templateForm.permission_ids.filter(id => id !== perm.id)
+                                  });
+                                }}
+                              />
+                              <span>{perm.description}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-600">已选择 {templateForm.permission_ids.length} 项</div>
+              <div className="flex gap-2">
+                {editingTemplate && (
+                  <Button variant="destructive" onClick={async () => {
+                    try {
+                      await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                      await fetchPermissionTemplates();
+                      setIsTemplateManageOpen(false);
+                      setEditingTemplate(null);
+                      toast.success('模板已删除');
+                    } catch {
+                      toast.error('删除失败');
+                    }
+                  }}>删除</Button>
+                )}
+                <Button onClick={async () => {
+                  if (!templateForm.name.trim()) {
+                    toast.error('请输入模板名称');
+                    return;
+                  }
                   try {
-                    await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                    if (editingTemplate) {
+                      await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
+                    } else {
+                      await apiPost('/api/permission-templates', templateForm);
+                    }
                     await fetchPermissionTemplates();
                     setIsTemplateManageOpen(false);
                     setEditingTemplate(null);
-                    message.success('模板已删除');
+                    setTemplateForm({ name: '', description: '', permission_ids: [] });
+                    toast.success('已保存模板');
                   } catch {
-                    message.error('删除失败');
+                    toast.error('保存失败');
                   }
-                }}>删除</Button>
-              )}
-              <Button type="primary" onClick={async () => {
-                if (!templateForm.name.trim()) {
-                  message.error('请输入模板名称');
-                  return;
-                }
-                try {
-                  if (editingTemplate) {
-                    await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
-                  } else {
-                    await apiPost('/api/permission-templates', templateForm);
-                  }
-                  await fetchPermissionTemplates();
-                  setIsTemplateManageOpen(false);
-                  setEditingTemplate(null);
-                  setTemplateForm({ name: '', description: '', permission_ids: [] });
-                  message.success('已保存模板');
-                } catch {
-                  message.error('保存失败');
-                }
-              }}>保存</Button>
+                }}>保存</Button>
+              </div>
+            </div>
+            <div className="pt-4 border-t">
+              <div className="text-sm font-medium text-gray-700 mb-2">已有模板</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                {customTemplates.map(tpl => (
+                  <label key={tpl.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="tplPick"
+                      onChange={() => {
+                        setEditingTemplate(tpl);
+                        setTemplateForm({
+                          name: tpl.name,
+                          description: tpl.description || '',
+                          permission_ids: tpl.permission_ids || []
+                        });
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
+                      <div className="text-xs text-gray-500">{tpl.description || ''}</div>
+                    </div>
+                    <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
+                      {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
+                    </span>
+                  </label>
+                ))}
+                {customTemplates.length === 0 && (
+                  <div className="text-sm text-gray-400 col-span-2 text-center py-4">暂无模板</div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="pt-4 border-t">
-            <div className="text-sm font-medium text-gray-700 mb-2">已有模板</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-              {customTemplates.map(tpl => (
-                <label key={tpl.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTemplateManageOpen(false)}>关闭</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>应用权限模板到选中角色</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+              已选择 {selectedRoleIds.length} 个角色
+            </div>
+
+            <div className="text-sm font-medium text-gray-700">选择模板</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {BUILTIN_TEMPLATES.map(tpl => (
+                <label
+                  key={tpl.key}
+                  className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                    selectedTemplateKey === tpl.key
+                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
                   <input
                     type="radio"
-                    name="tplPick"
-                    onChange={() => {
-                      setEditingTemplate(tpl);
-                      setTemplateForm({
-                        name: tpl.name,
-                        description: tpl.description || '',
-                        permission_ids: tpl.permission_ids || []
-                      });
-                    }}
+                    name="permissionTemplate"
+                    value={tpl.key}
+                    checked={selectedTemplateKey === tpl.key}
+                    onChange={(e) => setSelectedTemplateKey(e.target.value)}
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {tpl.modules.map(m => moduleNames[m] || m).join('、')}
+                    </div>
+                  </div>
+                </label>
+              ))}
+              {customTemplates.map(tpl => (
+                <label
+                  key={`custom-${tpl.id}`}
+                  className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                    selectedTemplateKey === `custom:${tpl.id}`
+                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="permissionTemplate"
+                    value={`custom:${tpl.id}`}
+                    checked={selectedTemplateKey === `custom:${tpl.id}`}
+                    onChange={(e) => setSelectedTemplateKey(e.target.value)}
                   />
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
-                    <div className="text-xs text-gray-500">{tpl.description || ''}</div>
+                    <div className="text-xs text-gray-500 mt-1">{tpl.description || '自定义模板'}</div>
                   </div>
                   <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
                     {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
                   </span>
                 </label>
               ))}
-              {customTemplates.length === 0 && (
-                <div className="text-sm text-gray-400 col-span-2 text-center py-4">暂无模板</div>
-              )}
             </div>
-          </div>
-        </div>
-      </Modal>
 
-      <Modal
-        title={"应用权限模板到选中角色"}
-        open={isTemplateModalOpen}
-        onCancel={() => setIsTemplateModalOpen(false)}
-        footer={null}
-        width={720}
-      >
-        <div className="space-y-4">
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-            已选择 {selectedRoleIds.length} 个角色
-          </div>
-
-          <div className="text-sm font-medium text-gray-700">选择模板</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {BUILTIN_TEMPLATES.map(tpl => (
-              <label
-                key={tpl.key}
-                className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedTemplateKey === tpl.key
-                    ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-100'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="permissionTemplate"
-                  value={tpl.key}
-                  checked={selectedTemplateKey === tpl.key}
-                  onChange={(e) => setSelectedTemplateKey(e.target.value)}
-                />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {tpl.modules.map(m => moduleNames[m] || m).join('、')}
-                  </div>
-                </div>
-              </label>
-            ))}
-            {customTemplates.map(tpl => (
-              <label
-                key={`custom-${tpl.id}`}
-                className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedTemplateKey === `custom:${tpl.id}`
-                    ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-100'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="permissionTemplate"
-                  value={`custom:${tpl.id}`}
-                  checked={selectedTemplateKey === `custom:${tpl.id}`}
-                  onChange={(e) => setSelectedTemplateKey(e.target.value)}
-                />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">{tpl.description || '自定义模板'}</div>
-                </div>
-                <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
-                  {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
-                </span>
-              </label>
-            ))}
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="text-sm font-medium text-gray-700 mb-2">模板预览</div>
-            <div className="max-h-40 overflow-y-auto text-sm text-gray-600">
-              {getTemplatePermissionIds(selectedTemplateKey).map(pid => {
-                const p = permissions.find(x => x.id === pid);
-                return (
-                  <div key={pid} className="py-1 border-b border-gray-100 last:border-0">
-                    {p?.description || `权限 #${pid}`}
-                  </div>
-                );
-              })}
-              {getTemplatePermissionIds(selectedTemplateKey).length === 0 && (
-                <div className="text-gray-400 py-2">未选择模板或模板为空</div>
-              )}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-700 mb-2">模板预览</div>
+              <div className="max-h-40 overflow-y-auto text-sm text-gray-600">
+                {getTemplatePermissionIds(selectedTemplateKey).map(pid => {
+                  const p = permissions.find(x => x.id === pid);
+                  return (
+                    <div key={pid} className="py-1 border-b border-gray-100 last:border-0">
+                      {p?.description || `权限 #${pid}`}
+                    </div>
+                  );
+                })}
+                {getTemplatePermissionIds(selectedTemplateKey).length === 0 && (
+                  <div className="text-gray-400 py-2">未选择模板或模板为空</div>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">应用方式</label>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="applyMode"
-                  value="merge"
-                  checked={templateApplyMode === 'merge'}
-                  onChange={() => setTemplateApplyMode('merge')}
-                />
-                合并追加（不删除已有权限）
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="applyMode"
-                  value="replace"
-                  checked={templateApplyMode === 'replace'}
-                  onChange={() => setTemplateApplyMode('replace')}
-                />
-                覆盖替换（将替换为模板权限）
-              </label>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsTemplateModalOpen(false)}>取消</Button>
-            <Button type="primary" onClick={handleApplyTemplateToSelectedRoles}>应用模板</Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        title={"批量设置角色部门权限"}
-        open={isBatchDeptOpen}
-        onCancel={() => setIsBatchDeptOpen(false)}
-        footer={null}
-        width={720}
-      >
-        <div className="space-y-4">
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-            已选择 {selectedRoleIds.length} 个角色
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="text-sm text-gray-600">
-              已选择 <span className="font-semibold text-gray-900">{batchSelectedDepartments.length}</span> / {departments.length} 个部门
-            </div>
-            <Button
-              size="small"
-              onClick={() => {
-                if (batchSelectedDepartments.length === departments.length) {
-                  setBatchSelectedDepartments([])
-                } else {
-                  setBatchSelectedDepartments(departments.map(d => d.id))
-                }
-              }}
-            >
-              {batchSelectedDepartments.length === departments.length ? '取消全选' : '全选'}
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
-            {departments.map(dept => (
-              <label
-                key={dept.id}
-                className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  batchSelectedDepartments.includes(dept.id)
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={batchSelectedDepartments.includes(dept.id)}
-                  onChange={() => {
-                    if (batchSelectedDepartments.includes(dept.id)) {
-                      setBatchSelectedDepartments(batchSelectedDepartments.filter(id => id !== dept.id))
-                    } else {
-                      setBatchSelectedDepartments([...batchSelectedDepartments, dept.id])
-                    }
-                  }}
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{dept.name}</div>
-                  {dept.description && (
-                    <div className="text-xs text-gray-500 mt-0.5">{dept.description}</div>
-                  )}
-                </div>
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsBatchDeptOpen(false)} disabled={isProcessingBatch}>取消</Button>
-            <Button
-              type="primary"
-              onClick={handleBatchDepartmentsSave}
-              disabled={isProcessingBatch}
-            >
-              保存
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        title={"批量克隆选中角色"}
-        open={isCloneModalOpen}
-        onCancel={() => setIsCloneModalOpen(false)}
-        footer={null}
-      >
-        <div className="space-y-4">
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-            已选择 {selectedRoleIds.length} 个角色
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">前缀</label>
-              <Input
-                value={clonePrefix}
-                onChange={(e) => setClonePrefix(e.target.value)}
-                placeholder="如：复制-"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">应用方式</label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="applyMode"
+                    value="merge"
+                    checked={templateApplyMode === 'merge'}
+                    onChange={() => setTemplateApplyMode('merge')}
+                  />
+                  合并追加（不删除已有权限）
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="applyMode"
+                    value="replace"
+                    checked={templateApplyMode === 'replace'}
+                    onChange={() => setTemplateApplyMode('replace')}
+                  />
+                  覆盖替换（将替换为模板权限）
+                </label>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">后缀</label>
-              <Input
-                value={cloneSuffix}
-                onChange={(e) => setCloneSuffix(e.target.value)}
-                placeholder="如：-副本"
-              />
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setIsTemplateModalOpen(false)}>取消</Button>
+              <Button onClick={handleApplyTemplateToSelectedRoles}>应用模板</Button>
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={cloneCopyDepartments}
-              onChange={(e) => setCloneCopyDepartments(e.target.checked)}
-            />
-            克隆时复制部门可见范围
-          </label>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
-            <Button type="primary">开始克隆</Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBatchDeptOpen} onOpenChange={setIsBatchDeptOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>批量设置角色部门权限</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+              已选择 {selectedRoleIds.length} 个角色
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-600">
+                已选择 <span className="font-semibold text-gray-900">{batchSelectedDepartments.length}</span> / {departments.length} 个部门
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (batchSelectedDepartments.length === departments.length) {
+                    setBatchSelectedDepartments([])
+                  } else {
+                    setBatchSelectedDepartments(departments.map(d => d.id))
+                  }
+                }}
+              >
+                {batchSelectedDepartments.length === departments.length ? '取消全选' : '全选'}
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
+              {departments.map(dept => (
+                <label
+                  key={dept.id}
+                  className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    batchSelectedDepartments.includes(dept.id)
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Checkbox
+                    checked={batchSelectedDepartments.includes(dept.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setBatchSelectedDepartments([...batchSelectedDepartments, dept.id])
+                      } else {
+                        setBatchSelectedDepartments(batchSelectedDepartments.filter(id => id !== dept.id))
+                      }
+                    }}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{dept.name}</div>
+                    {dept.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{dept.description}</div>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setIsBatchDeptOpen(false)} disabled={isProcessingBatch}>取消</Button>
+              <Button
+                onClick={handleBatchDepartmentsSave}
+                disabled={isProcessingBatch}
+              >
+                保存
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCloneModalOpen} onOpenChange={setIsCloneModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>批量克隆选中角色</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+              已选择 {selectedRoleIds.length} 个角色
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-1">前缀</Label>
+                <Input
+                  value={clonePrefix}
+                  onChange={(e) => setClonePrefix(e.target.value)}
+                  placeholder="如：复制-"
+                />
+              </div>
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-1">后缀</Label>
+                <Input
+                  value={cloneSuffix}
+                  onChange={(e) => setCloneSuffix(e.target.value)}
+                  placeholder="如：-副本"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={cloneCopyDepartments}
+                onCheckedChange={(checked) => setCloneCopyDepartments(checked)}
+              />
+              克隆时复制部门可见范围
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setIsCloneModalOpen(false)}>取消</Button>
+              <Button>开始克隆</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

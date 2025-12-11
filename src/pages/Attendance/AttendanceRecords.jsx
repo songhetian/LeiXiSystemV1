@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import { useState, useEffect } from 'react'
 import { formatDate, formatBeijingDate, getBeijingDate } from '../../utils/date'
 import axios from 'axios'
@@ -14,19 +15,19 @@ import { Badge } from '../../components/ui/badge'
 import { Calendar } from '../../components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '../../components/ui/table'
 import { MotionCard } from '../../components/ui/motion-card'
 import { MotionTable, MotionTableBody, MotionTableCell, MotionTableHead, MotionTableHeader, MotionTableRow } from '../../components/ui/motion-table'
 
 // Icons
-import { 
+import {
   Calendar as CalendarIcon,
   Clock as ClockIcon,
   CheckCircle as CheckCircleIcon,
@@ -97,7 +98,7 @@ export default function AttendanceRecordsOptimized() {
     try {
       // 获取用户信息
       const user = JSON.parse(localStorage.getItem('user'))
-      
+
       // 构建查询参数
       const params = {
         page: pagination.page,
@@ -117,20 +118,20 @@ export default function AttendanceRecordsOptimized() {
       }
 
       const response = await axios.get(getApiUrl('/api/attendance/records'), { params })
-      
+
       if (response.data.success) {
         // 确保日期格式正确，避免时区问题
         const formattedRecords = response.data.data.map(record => ({
           ...record,
           record_date: formatBeijingDate(record.record_date) // 确保使用北京时间日期
         }))
-        
+
         setRecords(formattedRecords)
         setPagination({
           ...pagination,
           total: response.data.total
         })
-        
+
         // 使用后端返回的统计数据
         if (response.data.stats) {
           setStats(response.data.stats)
@@ -295,7 +296,7 @@ export default function AttendanceRecordsOptimized() {
   // 渲染统计卡片
   const renderStatsCards = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -310,7 +311,7 @@ export default function AttendanceRecordsOptimized() {
         </div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -326,7 +327,7 @@ export default function AttendanceRecordsOptimized() {
         <div className="text-xs mt-1 opacity-90">出勤率 {stats.attendance_rate}%</div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -341,7 +342,7 @@ export default function AttendanceRecordsOptimized() {
         </div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -356,7 +357,7 @@ export default function AttendanceRecordsOptimized() {
         </div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -371,7 +372,7 @@ export default function AttendanceRecordsOptimized() {
         </div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -386,7 +387,7 @@ export default function AttendanceRecordsOptimized() {
         </div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -401,7 +402,7 @@ export default function AttendanceRecordsOptimized() {
         </div>
       </MotionCard>
 
-      <MotionCard 
+      <MotionCard
         className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -428,7 +429,7 @@ export default function AttendanceRecordsOptimized() {
             {selectedMonth.getFullYear()}年{selectedMonth.getMonth() + 1}月
           </h3>
           <div className="flex justify-center">
-            <Button 
+            <Button
               onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1))}
               variant="outline"
               size="sm"
@@ -436,14 +437,14 @@ export default function AttendanceRecordsOptimized() {
             >
               ← 上月
             </Button>
-            <Button 
+            <Button
               onClick={() => setSelectedMonth(new Date())}
               variant="outline"
               size="sm"
             >
               今天
             </Button>
-            <Button 
+            <Button
               onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1))}
               variant="outline"
               size="sm"
@@ -453,7 +454,7 @@ export default function AttendanceRecordsOptimized() {
             </Button>
           </div>
         </div>
-        
+
         <Calendar
           mode="single"
           selected={selectedMonth}
@@ -496,8 +497,8 @@ export default function AttendanceRecordsOptimized() {
     <div className="bg-white rounded-lg shadow p-6">
       <div className="space-y-4">
         {records.map((record, index) => (
-          <motion.div 
-            key={record.id} 
+          <motion.div
+            key={record.id}
             className="relative"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -929,7 +930,7 @@ export default function AttendanceRecordsOptimized() {
             <h1 className="text-3xl font-bold text-gray-800">打卡记录</h1>
             <p className="text-gray-600 mt-1">查看您的考勤打卡历史记录</p>
           </div>
-          <Button 
+          <Button
             onClick={exportRecords}
             className="flex items-center gap-2"
           >

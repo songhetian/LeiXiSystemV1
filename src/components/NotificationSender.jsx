@@ -1,20 +1,25 @@
-import React from 'react';
-import { Card, Form, Input, Select, Button, Upload, message } from 'antd';
-import { UploadOutlined, SendOutlined } from '@ant-design/icons';
+// [SHADCN-REPLACED]
+import React, { useState } from 'react';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const NotificationSender = () => {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    title: '',
+    receivers: '',
+    departments: [],
+    content: '',
+    attachments: []
+  });
 
-  const onFinish = (values) => {
-    console.log('发送通知:', values);
-    message.success('通知发送成功！');
-    form.resetFields();
-  };
-
-  const onFinishFailed = (errorInfo) => {
-    console.log('发送失败:', errorInfo);
-    message.error('通知发送失败，请检查表单内容！');
-  };
+  const [selectedDepartments, setSelectedDepartments] = useState([]);
 
   const receivers = [
     { value: 'all', label: '所有用户' },
@@ -31,70 +36,155 @@ const NotificationSender = () => {
     { value: 'support', label: '客服部' },
   ];
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleReceiverChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      receivers: value
+    }));
+  };
+
+  const handleDepartmentChange = (value) => {
+    setSelectedDepartments(value);
+    setFormData(prev => ({
+      ...prev,
+      departments: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // 验证必填字段
+    if (!formData.title.trim()) {
+      toast.error('请输入通知标题');
+      return;
+    }
+
+    if (!formData.receivers) {
+      toast.error('请选择接收对象');
+      return;
+    }
+
+    if (formData.receivers === 'department' && selectedDepartments.length === 0) {
+      toast.error('请选择至少一个部门');
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      toast.error('请输入通知内容');
+      return;
+    }
+
+    console.log('发送通知:', formData);
+    toast.success('通知发送成功！');
+
+    // 重置表单
+    setFormData({
+      title: '',
+      receivers: '',
+      departments: [],
+      content: '',
+      attachments: []
+    });
+    setSelectedDepartments([]);
+  };
+
   return (
     <div className="p-6">
-      <Card title="发送通知">
-        <Form
-          form={form}
-          name="notification_form"
-          layout="vertical"
-          onFinish={onFinish}
-          onFinishFailed={onFinishFailed}
-        >
-          <Form.Item
-            label="通知标题"
-            name="title"
-            rules={[{ required: true, message: '请输入通知标题!' }]}
-          >
-            <Input placeholder="请输入通知标题" />
-          </Form.Item>
+      <Card>
+        <CardHeader>
+          <CardTitle>发送通知</CardTitle>
+          <CardDescription>向指定用户发送系统通知</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">通知标题</Label>
+              <Input
+                id="title"
+                name="title"
+                placeholder="请输入通知标题"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
 
-          <Form.Item
-            label="接收对象"
-            name="receivers"
-            rules={[{ required: true, message: '请选择接收对象!' }]}
-          >
-            <Select
-              placeholder="请选择接收对象"
-              options={receivers}
-            />
-          </Form.Item>
+            <div className="space-y-2">
+              <Label>接收对象</Label>
+              <Select onValueChange={handleReceiverChange} value={formData.receivers}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择接收对象" />
+                </SelectTrigger>
+                <SelectContent>
+                  {receivers.map(receiver => (
+                    <SelectItem key={receiver.value} value={receiver.value}>
+                      {receiver.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Form.Item
-            label="部门选择"
-            name="departments"
-            rules={[{ required: true, message: '请选择部门!' }]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="请选择部门"
-              options={departments}
-            />
-          </Form.Item>
+            {formData.receivers === 'department' && (
+              <div className="space-y-2">
+                <Label>部门选择</Label>
+                <Select onValueChange={handleDepartmentChange} value={selectedDepartments} multiple>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(department => (
+                      <SelectItem key={department.value} value={department.value}>
+                        {department.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-          <Form.Item
-            label="通知内容"
-            name="content"
-            rules={[{ required: true, message: '请输入通知内容!' }]}
-          >
-            <Input.TextArea rows={6} placeholder="请输入通知内容" />
-          </Form.Item>
+            <div className="space-y-2">
+              <Label htmlFor="content">通知内容</Label>
+              <Textarea
+                id="content"
+                name="content"
+                placeholder="请输入通知内容"
+                value={formData.content}
+                onChange={handleInputChange}
+                rows={6}
+                required
+              />
+            </div>
 
-          <Form.Item
-            label="附件"
-            name="attachments"
-          >
-            <Upload>
-              <Button icon={<UploadOutlined />}>上传附件</Button>
-            </Upload>
-          </Form.Item>
+            <div className="space-y-2">
+              <Label>附件</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  id="attachments"
+                  name="attachments"
+                  multiple
+                  className="flex-1"
+                />
+              </div>
+            </div>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" icon={<SendOutlined />}>
-              发送通知
-            </Button>
-          </Form.Item>
-        </Form>
+            <div className="flex justify-end">
+              <Button type="submit">
+                发送通知
+              </Button>
+            </div>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );

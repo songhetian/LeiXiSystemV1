@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Input, Select, Button, Tag, Space, Tooltip, Modal } from 'antd';
-import { SearchOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import VacationDetailModal from './VacationDetailModal';
+import { Search, RotateCcw, Eye } from 'lucide-react';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const { Option } = Select;
 
@@ -130,79 +137,42 @@ const VacationSummary = () => {
   };
 
   // 静态列定义
-  const columns = [
-    {
-      title: '工号',
-      dataIndex: 'employee_no',
-      key: 'employee_no',
-      width: 100,
-      fixed: 'left',
-    },
-    {
-      title: '姓名',
-      dataIndex: 'employee_name',
-      key: 'employee_name',
-      width: 100,
-      fixed: 'left',
-    },
-    {
-      title: '部门',
-      dataIndex: 'department_name',
-      key: 'department_name',
-      width: 120,
-      fixed: 'left',
-    },
-    {
-      title: '总额度 (天)',
-      key: 'total_quota',
-      width: 120,
-      render: (_, record) => {
-        const stats = getAggregatedData(record.vacation_balances);
-        return <span className="font-medium">{stats.total.toFixed(1)}</span>;
-      }
-    },
-    {
-      title: '已使用 (天)',
-      key: 'total_used',
-      width: 120,
-      render: (_, record) => {
-        const stats = getAggregatedData(record.vacation_balances);
-        return <span className="text-gray-600">{stats.used.toFixed(1)}</span>;
-      }
-    },
-    {
-      title: '剩余 (天)',
-      key: 'total_remaining',
-      width: 120,
-      render: (_, record) => {
-        const stats = getAggregatedData(record.vacation_balances);
-        const isLow = stats.remaining < 0;
-        return (
-          <span style={{
-            color: isLow ? '#ff4d4f' : '#52c41a',
-            fontWeight: 'bold'
-          }}>
+  // 自定义渲染表格行
+  const renderTableRows = (data) => {
+    return data.map((record) => {
+      const stats = getAggregatedData(record.vacation_balances);
+      const isLow = stats.remaining < 0;
+
+      return (
+        <TableRow key={record.employee_id}>
+          <TableCell className="font-medium">{record.employee_no}</TableCell>
+          <TableCell>{record.employee_name}</TableCell>
+          <TableCell>{record.department_name}</TableCell>
+          <TableCell className="font-medium">{stats.total.toFixed(1)}</TableCell>
+          <TableCell className="text-gray-600">{stats.used.toFixed(1)}</TableCell>
+          <TableCell
+            style={{
+              color: isLow ? '#ff4d4f' : '#52c41a',
+              fontWeight: 'bold'
+            }}
+          >
             {stats.remaining.toFixed(1)}
-          </span>
-        );
-      }
-    },
-    {
-      title: '操作',
-      key: 'action',
-      fixed: 'right',
-      width: 100,
-      render: (_, record) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => handleViewDetails(record)}
-        >
-          详情
-        </Button>
-      )
-    }
-  ];
+          </TableCell>
+          <TableCell>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewDetails(record)}
+              className="flex items-center gap-1"
+            >
+              <Eye className="h-4 w-4" />
+              详情
+            </Button>
+          </TableCell>
+        </TableRow>
+      );
+    });
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -211,74 +181,112 @@ const VacationSummary = () => {
           <h1 className="text-2xl font-bold text-gray-800">假期汇总</h1>
           <p className="text-gray-500">查看全员假期余额统计</p>
         </div>
-        <Space>
+        <div className="flex gap-2">
           <Button
-            icon={<ReloadOutlined />}
             onClick={loadData}
-            loading={loading}
+            disabled={loading}
+            variant="outline"
+            className="flex items-center gap-2"
           >
+            <RotateCcw className="h-4 w-4" />
             刷新
           </Button>
-          <Button onClick={showDebugInfo} size="small" type="dashed">Debug</Button>
-        </Space>
+          <Button
+            onClick={showDebugInfo}
+            variant="outline"
+            size="sm"
+          >
+            Debug
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Select
-            placeholder="选择年份"
-            value={filters.year}
-            onChange={val => setFilters({ ...filters, year: val })}
-            className="w-full"
-          >
-            {[0, 1, 2].map(i => {
-              const y = new Date().getFullYear() - 1 + i;
-              return <Option key={y} value={y}>{y}年</Option>;
-            })}
-          </Select>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="year-select" className="text-sm font-medium mb-1 block">年份</Label>
+              <Select
+                value={filters.year.toString()}
+                onValueChange={val => setFilters({ ...filters, year: parseInt(val) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择年份" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0, 1, 2].map(i => {
+                    const y = new Date().getFullYear() - 1 + i;
+                    return <SelectItem key={y} value={y.toString()}>{y}年</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Select
-            placeholder="选择部门"
-            allowClear
-            value={filters.department_id}
-            onChange={val => setFilters({ ...filters, department_id: val })}
-            className="w-full"
-          >
-            <Option value={undefined}>全部部门</Option>
-            {departments.map(d => (
-              <Option key={d.id} value={d.id}>{d.name}</Option>
-            ))}
-          </Select>
+            <div>
+              <Label htmlFor="department-select" className="text-sm font-medium mb-1 block">部门</Label>
+              <Select
+                value={filters.department_id?.toString() || ""}
+                onValueChange={val => setFilters({ ...filters, department_id: val ? parseInt(val) : undefined })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">全部部门</SelectItem>
+                  {departments.map(d => (
+                    <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Input
-            placeholder="搜索姓名/工号"
-            prefix={<SearchOutlined />}
-            value={filters.search}
-            onChange={e => setFilters({ ...filters, search: e.target.value })}
-            onPressEnter={loadData}
-            className="w-full"
-          />
+            <div>
+              <Label htmlFor="search-input" className="text-sm font-medium mb-1 block">搜索</Label>
+              <div className="relative">
+                <Input
+                  id="search-input"
+                  placeholder="搜索姓名/工号"
+                  value={filters.search}
+                  onChange={e => setFilters({ ...filters, search: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && loadData()}
+                  className="pl-10"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
 
-          <Button type="primary" onClick={loadData}>查询</Button>
-        </div>
+            <div className="flex items-end">
+              <Button onClick={loadData} className="w-full">查询</Button>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card styles={{ body: { padding: 0 } }}>
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="employee_id"
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`
-          }}
-          loading={loading}
-          onChange={handleTableChange}
-          scroll={{ x: 'max-content' }}
-          size="middle"
-        />
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">工号</TableHead>
+                <TableHead className="w-[100px]">姓名</TableHead>
+                <TableHead className="w-[120px]">部门</TableHead>
+                <TableHead className="w-[120px]">总额度 (天)</TableHead>
+                <TableHead className="w-[120px]">已使用 (天)</TableHead>
+                <TableHead className="w-[120px]">剩余 (天)</TableHead>
+                <TableHead className="w-[100px]">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {renderTableRows(data)}
+            </TableBody>
+          </Table>
+
+          {data.length === 0 && !loading && (
+            <div className="text-center py-8 text-gray-500">
+              暂无数据
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {selectedEmployee && (

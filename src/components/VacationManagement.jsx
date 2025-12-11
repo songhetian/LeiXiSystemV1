@@ -1,17 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card, Row, Col, Input, Select, Button, Table, Tag,
-  Statistic, Space, Tooltip, message, Modal, InputNumber
-} from 'antd';
-import {
-  SearchOutlined, ReloadOutlined, SettingOutlined,
-  SwapOutlined, ExportOutlined, EyeOutlined,
-  TableOutlined, AppstoreOutlined, DownloadOutlined
-} from '@ant-design/icons';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  Legend, ResponsiveContainer
-} from 'recharts';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import VacationQuotaWizard from './VacationQuotaWizard';
 import VacationTypeManagement from './VacationTypeManagement';
@@ -22,6 +9,20 @@ import VacationSearchBar from './VacationSearchBar';
 import VacationDetailModal from './VacationDetailModal';
 import VacationCard from './VacationCard';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Checkbox } from './ui/checkbox';
+import { Calendar, RefreshCw, Settings, ArrowLeftRight, Download, Eye, LayoutList, Grid3x3, BarChartHorizontal } from 'lucide-react';
 
 const { Option } = Select;
 
@@ -78,10 +79,10 @@ const VacationManagement = () => {
         setData(result.data);
         calculateStats(result.data);
       } else {
-        message.error(result.message || '加载数据失败');
+        toast.error(result.message || '加载数据失败');
       }
     } catch (error) {
-      message.error('加载数据失败');
+      toast.error('加载数据失败');
     } finally {
       setLoading(false);
     }
@@ -142,11 +143,11 @@ const VacationManagement = () => {
 
       const result = await response.json();
       if (result.success) {
-        message.success(result.message);
+        toast.success(result.message);
         setConvertModalVisible(false);
         loadData();
       } else {
-        message.error(result.message);
+        toast.error(result.message);
       }
     } catch (error) {
       message.error('转换失败');
@@ -172,7 +173,7 @@ const VacationManagement = () => {
         link.click();
         link.remove();
         window.URL.revokeObjectURL(downloadUrl);
-        message.success('导出成功');
+        toast.success('导出成功');
       } else {
         message.error('导出失败');
       }
@@ -184,7 +185,7 @@ const VacationManagement = () => {
 
   const handleBatchExport = async () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要导出的记录');
+      toast.warning('请先选择要导出的记录');
       return;
     }
 
@@ -220,10 +221,10 @@ const VacationManagement = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      message.success(`已导出 ${selectedRowKeys.length} 条记录`);
+      toast.success(`已导出 ${selectedRowKeys.length} 条记录`);
     } catch (error) {
       console.error('批量导出失败:', error);
-      message.error('批量导出失败');
+      toast.error('批量导出失败');
     }
   };
 
@@ -284,22 +285,21 @@ const VacationManagement = () => {
       width: 280,
       fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
+        <div className="flex items-center space-x-2">
           <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
+            variant="link"
+            size="sm"
             onClick={() => {
               setSelectedEmployee(record);
               setDetailModalVisible(true);
             }}
           >
+            <Eye className="h-4 w-4 mr-1" />
             详情
           </Button>
           <Button
-            type="link"
-            size="small"
-            icon={<SwapOutlined />}
+            variant="link"
+            size="sm"
             onClick={() => {
               setSelectedEmployee(record);
               // 设置转换小时数为员工的剩余加班时长
@@ -309,20 +309,21 @@ const VacationManagement = () => {
             }}
             disabled={!record.overtime_hours_total || (record.overtime_hours_total - (record.overtime_hours_converted || 0)) < 8}
           >
+            <ArrowLeftRight className="h-4 w-4 mr-1" />
             转换
           </Button>
           <Button
-            type="link"
-            size="small"
-            icon={<SettingOutlined />}
+            variant="link"
+            size="sm"
             onClick={() => {
               setSelectedEmployee(record);
               setQuotaModalVisible(true);
             }}
           >
+            <Settings className="h-4 w-4 mr-1" />
             额度
           </Button>
-        </Space>
+        </div>
       )
     }
   ];
@@ -355,48 +356,66 @@ const VacationManagement = () => {
       {/* Header Actions */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-800">假期管理</h1>
-        <Space wrap>
+        <div className="flex flex-wrap gap-2">
           {/* View Mode Toggle */}
-          <Button.Group>
+          <div className="flex rounded-md shadow-sm" role="group">
             <Button
-              icon={<TableOutlined />}
-              type={viewMode === 'table' ? 'primary' : 'default'}
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setViewMode('table')}
+              className="rounded-r-none border-r-0"
             >
+              <LayoutList className="h-4 w-4 mr-1" />
               表格
             </Button>
             <Button
-              icon={<AppstoreOutlined />}
-              type={viewMode === 'card' ? 'primary' : 'default'}
+              variant={viewMode === 'card' ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setViewMode('card')}
+              className="rounded-l-none"
             >
+              <Grid3x3 className="h-4 w-4 mr-1" />
               卡片
             </Button>
-          </Button.Group>
+          </div>
 
           {/* Batch Actions */}
           {selectedRowKeys.length > 0 && (
-            <Button.Group>
+            <div className="flex rounded-md shadow-sm" role="group">
               <Button
-                icon={<DownloadOutlined />}
+                variant="default"
+                size="sm"
                 onClick={handleBatchExport}
-                type="primary"
+                className="rounded-r-none border-r-0"
               >
+                <Download className="h-4 w-4 mr-1" />
                 导出选中 ({selectedRowKeys.length})
               </Button>
               <Button
-                icon={<SettingOutlined />}
+                variant="outline"
+                size="sm"
                 onClick={() => setBatchQuotaModalVisible(true)}
+                className="rounded-l-none"
               >
+                <Settings className="h-4 w-4 mr-1" />
                 批量额度
               </Button>
-            </Button.Group>
+            </div>
           )}
 
-          <Button icon={<SettingOutlined />} onClick={() => setWizardVisible(true)}>假期配置向导</Button>
-          <Button icon={<SettingOutlined />} onClick={() => setTypesModalVisible(true)}>假期类型</Button>
-          <Button icon={<ExportOutlined />} onClick={handleExport}>导出全部</Button>
-        </Space>
+          <Button variant="outline" size="sm" onClick={() => setWizardVisible(true)}>
+            <Settings className="h-4 w-4 mr-1" />
+            假期配置向导
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setTypesModalVisible(true)}>
+            <Settings className="h-4 w-4 mr-1" />
+            假期类型
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-1" />
+            导出全部
+          </Button>
+        </div>
       </div>
 
       {/* Expiring Soon Alert */}
@@ -419,56 +438,48 @@ const VacationManagement = () => {
       )}
 
       {/* Statistics Cards */}
-      <Row gutter={16}>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="总假期余额 (天)"
-              value={stats.totalVacationDays}
-              precision={1}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="总加班时长 (小时)"
-              value={stats.totalOvertimeHours}
-              precision={1}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="平均已用假期 (天/人)"
-              value={stats.avgUsage}
-              precision={1}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">总假期余额 (天)</div>
+            <div className="text-2xl font-bold text-green-600">{stats.totalVacationDays}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">总加班时长 (小时)</div>
+            <div className="text-2xl font-bold text-red-600">{stats.totalOvertimeHours}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">平均已用假期 (天/人)</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.avgUsage}</div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Year Selector and Search */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-700">年份:</span>
-          <Select
-            value={year}
-            onChange={setYear}
-            style={{ width: 120 }}
-          >
-            {[0, 1, 2, 3, 4].map(i => (
-              <Option key={i} value={dayjs().year() - 2 + i}>
-                {dayjs().year() - 2 + i}年
-              </Option>
-            ))}
+          <Select value={year.toString()} onValueChange={(value) => setYear(parseInt(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[0, 1, 2, 3, 4].map(i => (
+                <SelectItem key={i} value={(dayjs().year() - 2 + i).toString()}>
+                  {dayjs().year() - 2 + i}年
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={loadData}>刷新</Button>
+        <Button variant="outline" size="sm" onClick={loadData}>
+          <RefreshCw className="h-4 w-4 mr-1" />
+          刷新
+        </Button>
       </div>
 
       {/* Advanced Search Bar */}
@@ -477,23 +488,132 @@ const VacationManagement = () => {
         loading={loading}
       />
 
-      {/* Main Data Table */}
       {/* Main Data Content */}
       {viewMode === 'table' ? (
-        <Card className="shadow-sm" title="员工假期明细">
-          <Table
-            rowSelection={{
-              selectedRowKeys,
-              onChange: setSelectedRowKeys,
-              preserveSelectedRowKeys: true
-            }}
-            columns={columns}
-            dataSource={filteredData}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-            scroll={{ x: 1200 }}
-          />
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>员工假期明细</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedRowKeys.length > 0 && selectedRowKeys.length === filteredData.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedRowKeys(filteredData.map(item => item.id));
+                          } else {
+                            setSelectedRowKeys([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead>工号</TableHead>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>部门</TableHead>
+                    <TableHead>假期余额 (天)</TableHead>
+                    <TableHead>加班时长 (小时)</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredData.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedRowKeys.includes(item.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedRowKeys([...selectedRowKeys, item.id]);
+                            } else {
+                              setSelectedRowKeys(selectedRowKeys.filter(key => key !== item.id));
+                            }
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>{item.employee_no}</TableCell>
+                      <TableCell>{item.real_name}</TableCell>
+                      <TableCell>{item.department_name}</TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <span className="font-bold text-blue-600">
+                                {(parseFloat(item.annual_leave_total || 0) - parseFloat(item.annual_leave_used || 0) +
+                                  parseFloat(item.overtime_leave_total || 0) - parseFloat(item.overtime_leave_used || 0)).toFixed(1)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              年假: {(parseFloat(item.annual_leave_total || 0) - parseFloat(item.annual_leave_used || 0)).toFixed(1)} |
+                              加班假: {(parseFloat(item.overtime_leave_total || 0) - parseFloat(item.overtime_leave_used || 0)).toFixed(1)}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <span className={(parseFloat(item.overtime_hours_total || 0) - (item.overtime_hours_converted || 0)) > 0 ? 'text-green-600 font-semibold' : 'text-gray-500'}>
+                                {(parseFloat(item.overtime_hours_total || 0) - (item.overtime_hours_converted || 0)).toFixed(1)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              总计: {item.overtime_hours_total || 0}h | 已转: {item.overtime_hours_converted || 0}h
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-1">
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmployee(item);
+                              setDetailModalVisible(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            详情
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmployee(item);
+                              // 设置转换小时数为员工的剩余加班时长
+                              const remainingHours = item.overtime_hours_total - (item.overtime_hours_converted || 0);
+                              setConvertHours(remainingHours);
+                              setConvertModalVisible(true);
+                            }}
+                            disabled={!item.overtime_hours_total || (item.overtime_hours_total - (item.overtime_hours_converted || 0)) < 8}
+                          >
+                            <ArrowLeftRight className="h-4 w-4 mr-1" />
+                            转换
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmployee(item);
+                              setQuotaModalVisible(true);
+                            }}
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            额度
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -519,8 +639,8 @@ const VacationManagement = () => {
       )}
 
       {/* Charts Section */}
-      <Row gutter={16}>
-        <Col span={24}>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="col-span-1">
           <Card title="各部门假期使用情况" className="shadow-sm">
             <div style={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -536,8 +656,8 @@ const VacationManagement = () => {
               </ResponsiveContainer>
             </div>
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* Modals */}
       <VacationQuotaWizard
@@ -584,30 +704,37 @@ const VacationManagement = () => {
         year={year}
       />
 
-      <Modal
-        title="加班转假期"
-        open={convertModalVisible}
-        onCancel={() => setConvertModalVisible(false)}
-        onOk={onConvertSubmit}
-      >
-        <p>员工：{selectedEmployee?.real_name}</p>
-        <p>当前剩余加班：{selectedEmployee ? (selectedEmployee.overtime_hours_total - (selectedEmployee.overtime_hours_converted || 0)).toFixed(1) : 0} 小时</p>
-        <div className="mt-4">
-          <span className="mr-2">转换小时数:</span>
-          <Space.Compact>
-            <InputNumber
-              min={8}
-              max={selectedEmployee ? (selectedEmployee.overtime_hours_total - (selectedEmployee.overtime_hours_converted || 0)) : 8}
-              step={8}
-              value={selectedEmployee ? (selectedEmployee.overtime_hours_total - (selectedEmployee.overtime_hours_converted || 0)) : 8}
-              readOnly={true}
-              disabled={true}
-            />
-            <Input defaultValue="小时" readOnly={true} disabled={true} />
-          </Space.Compact>
-          <p className="text-gray-500 text-sm mt-2">注：每8小时转换为1天加班假</p>
-        </div>
-      </Modal>
+      <Dialog open={convertModalVisible} onOpenChange={setConvertModalVisible}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>加班转假期</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>员工：{selectedEmployee?.real_name}</p>
+            <p>当前剩余加班：{selectedEmployee ? (selectedEmployee.overtime_hours_total - (selectedEmployee.overtime_hours_converted || 0)).toFixed(1) : 0} 小时</p>
+            <div className="mt-4">
+              <Label className="mr-2">转换小时数:</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="8"
+                  max={selectedEmployee ? (selectedEmployee.overtime_hours_total - (selectedEmployee.overtime_hours_converted || 0)) : 8}
+                  step="8"
+                  value={selectedEmployee ? (selectedEmployee.overtime_hours_total - (selectedEmployee.overtime_hours_converted || 0)) : 8}
+                  readOnly={true}
+                  disabled={true}
+                  className="w-24"
+                />
+                <span>小时</span>
+              </div>
+              <p className="text-gray-500 text-sm mt-2">注：每8小时转换为1天加班假</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={onConvertSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import { useState, useEffect } from 'react'
 import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
@@ -295,7 +296,7 @@ export default function AttendanceHome({ onNavigate }) {
       absent: { text: '缺勤', variant: 'secondary' },
       leave: { text: '请假', variant: 'outline' }
     }
-    
+
     const badgeConfig = badges[status] || badges.normal
     return (
       <Badge variant={badgeConfig.variant}>
@@ -374,7 +375,7 @@ export default function AttendanceHome({ onNavigate }) {
   const isRestDay = todaySchedule && todaySchedule.shift_id == restShiftId
 
   return (
-    <motion.div 
+    <motion.div
       className="min-h-screen p-6 bg-gray-50"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -390,7 +391,7 @@ export default function AttendanceHome({ onNavigate }) {
       </div>
 
       {/* 当前时间卡片 */}
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 mb-6 text-white"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -403,7 +404,7 @@ export default function AttendanceHome({ onNavigate }) {
       </motion.div>
 
       {/* 今日打卡状态 */}
-      <motion.div 
+      <motion.div
         className="bg-white rounded-lg shadow p-6 mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -502,7 +503,7 @@ export default function AttendanceHome({ onNavigate }) {
 
       {/* 休息日提示 */}
       {isRestDay && (
-        <motion.div 
+        <motion.div
           className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -517,7 +518,7 @@ export default function AttendanceHome({ onNavigate }) {
 
       {/* 打卡按钮 */}
       {!isRestDay && (
-      <motion.div 
+      <motion.div
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -624,7 +625,7 @@ export default function AttendanceHome({ onNavigate }) {
 
       {/* 提示信息 */}
       {todayRecord?.status === 'late' && (
-        <motion.div 
+        <motion.div
           className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -638,7 +639,7 @@ export default function AttendanceHome({ onNavigate }) {
       )}
 
       {todayRecord?.status === 'early_leave' && (
-        <motion.div 
+        <motion.div
           className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -652,7 +653,7 @@ export default function AttendanceHome({ onNavigate }) {
       )}
 
       {/* 快捷入口 */}
-      <motion.div 
+      <motion.div
         className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -685,7 +686,7 @@ export default function AttendanceHome({ onNavigate }) {
       </motion.div>
 
       {/* 测试功能按钮 - 仅用于开发测试 */}
-      <motion.div 
+      <motion.div
         className="mt-6 bg-red-50 border-2 border-red-200 rounded-lg p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -742,7 +743,7 @@ export default function AttendanceHome({ onNavigate }) {
       {/* 选择班次模态框 */}
       {showShiftModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <motion.div 
+          <motion.div
             className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

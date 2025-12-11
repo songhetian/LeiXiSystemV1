@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import sessionAPI from '../api/sessionAPI.js'
-import Modal from './Modal'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import ImportSessionModal from './ImportSessionModal'; // Import the new modal
 
 const SessionManagement = () => {
@@ -122,53 +122,58 @@ const SessionManagement = () => {
         </div>
       </div>
 
-      <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title="会话详情">
-        {selectedSession && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">客户</label>
-                <p className="font-medium">{selectedSession.customer}</p>
+      <Dialog open={isDetailOpen} onOpenChange={(open) => { if (!open) setIsDetailOpen(false); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>会话详情</DialogTitle>
+          </DialogHeader>
+          {selectedSession && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-600">客户</label>
+                  <p className="font-medium">{selectedSession.customer}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">客服</label>
+                  <p className="font-medium">{selectedSession.agent}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">开始时间</label>
+                  <p className="font-medium">{selectedSession.startTime}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">时长</label>
+                  <p className="font-medium">{selectedSession.duration}</p>
+                </div>
               </div>
               <div>
-                <label className="text-sm text-gray-600">客服</label>
-                <p className="font-medium">{selectedSession.agent}</p>
+                <label className="text-sm text-gray-600 block mb-2">会话记录</label>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-64 overflow-y-auto">
+                  <div className="text-sm">
+                    <span className="font-medium text-blue-600">客户：</span>
+                    <span className="text-gray-700">你好，我想咨询一下产品问题</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-green-600">{selectedSession.agent}：</span>
+                    <span className="text-gray-700">您好！很高兴为您服务，请问有什么可以帮助您的？</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-blue-600">客户：</span>
+                    <span className="text-gray-700">产品使用过程中遇到了一些问题...</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-600">开始时间</label>
-                <p className="font-medium">{selectedSession.startTime}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">时长</label>
-                <p className="font-medium">{selectedSession.duration}</p>
-              </div>
+              <button
+                onClick={() => setIsDetailOpen(false)}
+                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                关闭
+              </button>
             </div>
-            <div>
-              <label className="text-sm text-gray-600 block mb-2">会话记录</label>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-64 overflow-y-auto">
-                <div className="text-sm">
-                  <span className="font-medium text-blue-600">客户：</span>
-                  <span className="text-gray-700">你好，我想咨询一下产品问题</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium text-green-600">{selectedSession.agent}：</span>
-                  <span className="text-gray-700">您好！很高兴为您服务，请问有什么可以帮助您的？</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium text-blue-600">客户：</span>
-                  <span className="text-gray-700">产品使用过程中遇到了一些问题...</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsDetailOpen(false)}
-              className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              关闭
-            </button>
-          </div>
-        )}
-      </Modal>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ImportSessionModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
     </div>

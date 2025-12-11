@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { TagsOutlined, SearchOutlined, CloseOutlined } from '@ant-design/icons';
+import { Tags, Search, X } from 'lucide-react';
 import qualityAPI from '../api/qualityAPI';
 import './TagSelector.css';
 
@@ -134,7 +134,7 @@ const TagSelector = ({
       >
         {showSearch && (
           <div className="tag-selector-search">
-            <SearchOutlined className="search-icon" />
+            <Search className="search-icon" />
             <input
               type="text"
               placeholder="搜索标签..."
@@ -221,7 +221,7 @@ const TagSelector = ({
         <div className="tag-selector-content">
           {selectedTags.length === 0 ? (
             <span className="tag-selector-placeholder">
-              <TagsOutlined /> {placeholder}
+              <Tags /> {placeholder}
             </span>
           ) : (
             <div className="selected-tags-display">
@@ -235,7 +235,7 @@ const TagSelector = ({
                   }}
                 >
                   {tag.name}
-                  <CloseOutlined
+                  <X
                     className="tag-remove-icon"
                     onClick={(e) => handleRemoveTag(tag.id, e)}
                   />
@@ -243,7 +243,7 @@ const TagSelector = ({
               ))}
               {selectedTags.length < maxTags && (
                 <span className="add-more-hint">
-                  <TagsOutlined /> 添加更多...
+                  <Tags /> 添加更多...
                 </span>
               )}
             </div>

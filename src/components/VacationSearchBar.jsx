@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Input, DatePicker, Button, Space, Select, Tag } from 'antd';
-import { SearchOutlined, CalendarOutlined, ClearOutlined } from '@ant-design/icons';
 import { useDebounce, getQuickDateRange, daysBetween } from '../hooks/useVacationHelpers';
 import dayjs from 'dayjs';
 
-const { RangePicker } = DatePicker;
-const { Option } = Select;
+// 导入 shadcn UI 组件
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Calendar } from 'lucide-react';
+
+
 
 const VacationSearchBar = ({ onSearch, loading }) => {
   const [searchText, setSearchText] = useState('');
@@ -72,33 +74,33 @@ const VacationSearchBar = ({ onSearch, loading }) => {
         {/* 搜索框 */}
         <div className="flex gap-3 items-center">
           <div className="flex-1">
-            <Input
-              placeholder="搜索姓名、工号或审批单号..."
-              prefix={<SearchOutlined className="text-gray-400" />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-              size="large"
-              className="rounded-lg"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <Input
+                placeholder="搜索姓名、工号或审批单号..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="pl-10 rounded-lg"
+              />
+            </div>
           </div>
 
           <Button
-            type="primary"
-            icon={<SearchOutlined />}
             onClick={handleSearch}
-            loading={loading}
-            size="large"
+            disabled={loading}
             className="px-6"
           >
-            搜索
+            {loading ? '搜索中...' : '搜索'}
           </Button>
 
           {(searchText || dateRange[0]) && (
             <Button
-              icon={<ClearOutlined />}
               onClick={handleClear}
-              size="large"
+              variant="outline"
             >
               清除
             </Button>
@@ -108,33 +110,39 @@ const VacationSearchBar = ({ onSearch, loading }) => {
         {/* 日期范围选择 */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <CalendarOutlined className="text-gray-500" />
+            <Calendar className="h-5 w-5 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">日期范围:</span>
           </div>
 
           {/* 快捷选择按钮 */}
-          <Space size="small">
+          <div className="flex gap-2 flex-wrap">
             {quickRangeOptions.map(option => (
-              <Tag
+              <button
                 key={option.value}
-                color={quickRange === option.value ? option.color : 'default'}
-                className="cursor-pointer hover:opacity-80 transition-opacity"
+                className={`px-3 py-1 text-sm rounded-full transition-opacity ${quickRange === option.value ? `bg-${option.color}-500 text-white` : 'bg-gray-200 text-gray-700 hover:opacity-80'}`}
                 onClick={() => handleQuickRange(option.value)}
               >
                 {option.label}
-              </Tag>
+              </button>
             ))}
-          </Space>
+          </div>
 
           {/* 自定义日期范围 */}
-          <RangePicker
-            value={dateRange}
-            onChange={handleDateChange}
-            disabledDate={disabledDate}
-            format="YYYY-MM-DD"
-            placeholder={['开始日期', '结束日期']}
-            className="rounded-lg"
-          />
+          <div className="flex gap-2 items-center">
+            <input
+              type="date"
+              value={dateRange[0] ? dateRange[0].format('YYYY-MM-DD') : ''}
+              onChange={(e) => handleDateChange([e.target.value ? dayjs(e.target.value) : null, dateRange[1]])}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+            <span className="text-gray-500">至</span>
+            <input
+              type="date"
+              value={dateRange[1] ? dateRange[1].format('YYYY-MM-DD') : ''}
+              onChange={(e) => handleDateChange([dateRange[0], e.target.value ? dayjs(e.target.value) : null])}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
 
           {/* 显示选中的天数 */}
           {dateRange[0] && dateRange[1] && (

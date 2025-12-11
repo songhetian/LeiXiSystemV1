@@ -1,17 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Button, Space, message, Spin, Progress, Modal, Typography, Radio, Checkbox, Input, Drawer, Skeleton, Tag } from 'antd';
-import { ArrowLeftOutlined, CheckOutlined, FlagOutlined, ClockCircleOutlined, MenuOutlined, SaveOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import { toast } from 'react-toastify';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
+import { ArrowLeft, Check, Flag, Clock, Menu, Save, CheckCircle, AlertCircle, Loader, AlertTriangle } from 'lucide-react';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Progress } from '../../components/ui/progress';
+import { Label } from '../../components/ui/label';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../../components/ui/sheet';
+import { Skeleton } from '../../components/ui/skeleton';
+import { Badge } from '../../components/ui/badge';
 
 dayjs.extend(duration);
 
-const { Title, Text } = Typography;
-const RadioGroup = Radio.Group;
-const CheckboxGroup = Checkbox.Group;
-const { TextArea } = Input;
+
 
 import useExamTimer from '../../hooks/useExamTimer';
 import useAutoSave from '../../hooks/useAutoSave';
@@ -65,7 +75,7 @@ const ExamTaking = () => {
   // Manual save function
   const handleManualSave = async () => {
     if (!resultId || Object.keys(userAnswers).length === 0) {
-      message.warning('没有需要保存的答案');
+      toast.warning('没有需要保存的答案');
       return;
     }
 
@@ -81,12 +91,12 @@ const ExamTaking = () => {
         });
       }
       setSaveStatus('success');
-      message.success('手动保存成功');
+      toast.success('手动保存成功');
       setTimeout(() => setSaveStatus('idle'), 2000);
       sendLog('MANUAL_SAVE_SUCCESS');
     } catch (error) {
       setSaveStatus('error');
-      message.error('手动保存失败，请重试');
+      toast.error('手动保存失败，请重试');
       console.error('Manual save failed:', error);
       sendLog('MANUAL_SAVE_FAILED', { error: error.message });
     }
@@ -124,7 +134,7 @@ const ExamTaking = () => {
       setUserAnswers(data.saved_answers || {});
       console.log('[ExamTaking] 设置 userAnswers 为:', data.saved_answers || {});
     } catch (error) {
-      message.error(`获取考试进度失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`获取考试进度失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to fetch exam progress:', error);
       navigate('/assessment/my-exams'); // Go back if failed to load exam
     } finally {
@@ -145,7 +155,7 @@ const ExamTaking = () => {
       setCurrentQuestionIndex((prev) => prev + 1);
       sendLog('QUESTION_NAVIGATED', { from: currentQuestionIndex, to: currentQuestionIndex + 1, direction: 'next' });
     } else {
-      message.warning('已经是最后一题');
+      toast.warning('已经是最后一题');
     }
   };
 
@@ -154,7 +164,7 @@ const ExamTaking = () => {
       setCurrentQuestionIndex((prev) => prev - 1);
       sendLog('QUESTION_NAVIGATED', { from: currentQuestionIndex, to: currentQuestionIndex - 1, direction: 'prev' });
     } else {
-      message.warning('已经是第一题');
+      toast.warning('已经是第一题');
     }
   };
 
@@ -189,11 +199,11 @@ const ExamTaking = () => {
       await axios.post(`/api/assessment-results/${resultId}/submit`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success(isTimeout ? '考试时间到，已自动提交' : '考试提交成功');
+      toast.success(isTimeout ? '考试时间到，已自动提交' : '考试提交成功');
       sendLog(isTimeout ? 'EXAM_AUTO_SUBMIT_TIMEOUT' : 'EXAM_SUBMITTED', { isTimeout });
       navigate(`/assessment/results/${resultId}/result`);
     } catch (error) {
-      message.error(`提交考试失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`提交考试失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to submit exam:', error);
       sendLog('EXAM_SUBMIT_FAILED', { error: error.message });
     } finally {
@@ -202,45 +212,38 @@ const ExamTaking = () => {
     }
   };
 
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+
   const showSubmitConfirmModal = () => {
     const unansweredCount = examData.questions.filter(q => !userAnswers[q.id]).length;
     sendLog('SUBMIT_CONFIRM_OPENED', { unansweredCount });
-    Modal.confirm({
-      title: '确认提交考试？',
-      content: unansweredCount > 0 ? `您还有 ${unansweredCount} 道题目未作答，确定要提交吗？` : '您已完成所有题目，确定要提交吗？',
-      okText: '确定提交',
-      cancelText: '取消',
-      onOk: () => {
-        sendLog('SUBMIT_CONFIRM_ACCEPTED');
-        handleSubmitExam();
-      },
-      onCancel: () => {
-        sendLog('SUBMIT_CONFIRM_CANCELLED');
-      },
-    });
+    setSubmitConfirmOpen(true);
   };
 
   // Render save status indicator
   const renderSaveStatus = () => {
     if (saveStatus === 'saving' || isSaving) {
       return (
-        <Tag icon={<LoadingOutlined />} color="processing">
+        <Badge variant="secondary" className="flex items-center gap-1">
+          <Loader className="h-3 w-3 animate-spin" />
           保存中...
-        </Tag>
+        </Badge>
       );
     }
     if (saveStatus === 'success') {
       return (
-        <Tag icon={<CheckCircleOutlined />} color="success">
+        <Badge variant="default" className="flex items-center gap-1">
+          <CheckCircle className="h-3 w-3" />
           已保存
-        </Tag>
+        </Badge>
       );
     }
     if (saveStatus === 'error' || saveError) {
       return (
-        <Tag icon={<ExclamationCircleOutlined />} color="error">
+        <Badge variant="destructive" className="flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" />
           保存失败
-        </Tag>
+        </Badge>
       );
     }
     return null;
@@ -251,16 +254,16 @@ const ExamTaking = () => {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         {/* Top Toolbar Skeleton */}
         <Card style={{ width: '100%', position: 'fixed', top: 0, zIndex: 100, borderRadius: 0 }} bodyStyle={{ padding: '10px 24px' }}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Skeleton.Input style={{ width: 200 }} active />
-            <Space>
-              <Skeleton.Avatar size="small" active />
-              <Skeleton.Input style={{ width: 80 }} active />
-              <Skeleton.Input style={{ width: 120 }} active />
-              <Skeleton.Input style={{ width: 50 }} active />
-              <Skeleton.Button active />
-            </Space>
-          </Space>
+          <div className="flex justify-between w-full">
+            <Skeleton className="w-48 h-6" />
+            <div className="flex space-x-2">
+              <Skeleton className="w-6 h-6 rounded-full" />
+              <Skeleton className="w-20 h-6" />
+              <Skeleton className="w-30 h-6" />
+              <Skeleton className="w-12 h-6" />
+              <Skeleton className="w-16 h-8" />
+            </div>
+          </div>
         </Card>
 
         <div style={{ display: 'flex', flex: 1, paddingTop: 64, overflow: 'hidden' }}>
@@ -276,11 +279,11 @@ const ExamTaking = () => {
             <Card>
               <Skeleton active paragraph={{ rows: 5 }} />
               <Skeleton active paragraph={{ rows: 8 }} style={{ marginTop: 24 }} />
-              <Space style={{ marginTop: 24, justifyContent: 'space-between', width: '100%' }}>
-                <Skeleton.Button active />
-                <Skeleton.Button active />
-                <Skeleton.Button active />
-              </Space>
+              <div className="mt-6 flex justify-between w-full">
+                <Skeleton className="w-20 h-8" />
+                <Skeleton className="w-20 h-8" />
+                <Skeleton className="w-20 h-8" />
+              </div>
             </Card>
           </div>
         </div>
@@ -293,14 +296,14 @@ const ExamTaking = () => {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <Card>
-          <Space direction="vertical" align="center">
-            <ExclamationCircleOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
-            <Title level={4}>试卷数据异常</Title>
-            <Text type="secondary">该试卷没有题目，请联系管理员检查试卷配置</Text>
-            <Button type="primary" onClick={() => navigate('/assessment/my-exams')}>
+          <div className="flex flex-col items-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+            <h4 className="text-xl font-semibold">试卷数据异常</h4>
+            <p className="text-gray-500">该试卷没有题目，请联系管理员检查试卷配置</p>
+            <Button onClick={() => navigate('/assessment/my-exams')}>
               返回考试列表
             </Button>
-          </Space>
+          </div>
         </Card>
       </div>
     );
@@ -313,14 +316,14 @@ const ExamTaking = () => {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <Card>
-          <Space direction="vertical" align="center">
-            <ExclamationCircleOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
-            <Title level={4}>题目加载失败</Title>
-            <Text type="secondary">无法加载当前题目，请刷新页面重试</Text>
-            <Button type="primary" onClick={() => navigate('/assessment/my-exams')}>
+          <div className="flex flex-col items-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+            <h4 className="text-xl font-semibold">题目加载失败</h4>
+            <p className="text-gray-500">无法加载当前题目，请刷新页面重试</p>
+            <Button onClick={() => navigate('/assessment/my-exams')}>
               返回考试列表
             </Button>
-          </Space>
+          </div>
         </Card>
       </div>
     );
@@ -343,44 +346,63 @@ const ExamTaking = () => {
         case 'single_choice':
           return (
             <RadioGroup
-              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              onValueChange={(value) => handleAnswerChange(question.id, value)}
               value={parsedAnswer}
+              className="space-y-2"
             >
-              <Space direction="vertical">
-                {question.options?.map((option, index) => {
-                  const optionLetter = String.fromCharCode(65 + index); // A, B, C, D...
-                  return (
-                    <Radio key={index} value={optionLetter}>
-                      {option}
-                    </Radio>
-                  );
-                })}
-              </Space>
+              {question.options?.map((option, index) => {
+                const optionLetter = String.fromCharCode(65 + index); // A, B, C, D...
+                return (
+                  <div key={index} className="flex items-center space-x-2">
+                    <RadioGroupItem value={optionLetter} id={`${question.id}-${optionLetter}`} />
+                    <Label htmlFor={`${question.id}-${optionLetter}`}>{option}</Label>
+                  </div>
+                );
+              })}
             </RadioGroup>
           );
         case 'multiple_choice':
-          // 将选项转换为字母索引格式
-          const checkboxOptions = question.options?.map((option, index) => ({
-            label: option,
-            value: String.fromCharCode(65 + index) // A, B, C, D...
-          }));
           return (
-            <CheckboxGroup
-              options={checkboxOptions}
-              onChange={(checkedValues) => handleAnswerChange(question.id, checkedValues)}
-              value={parsedAnswer || []}
-            />
+            <div className="space-y-2">
+              {question.options?.map((option, index) => {
+                const optionLetter = String.fromCharCode(65 + index); // A, B, C, D...
+                const isChecked = Array.isArray(parsedAnswer) && parsedAnswer.includes(optionLetter);
+                return (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`${question.id}-${optionLetter}`}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        let newValues = Array.isArray(parsedAnswer) ? [...parsedAnswer] : [];
+                        if (checked) {
+                          newValues.push(optionLetter);
+                        } else {
+                          newValues = newValues.filter(v => v !== optionLetter);
+                        }
+                        handleAnswerChange(question.id, newValues);
+                      }}
+                    />
+                    <Label htmlFor={`${question.id}-${optionLetter}`}>{option}</Label>
+                  </div>
+                );
+              })}
+            </div>
           );
         case 'true_false':
           return (
             <RadioGroup
-              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              onValueChange={(value) => handleAnswerChange(question.id, value)}
               value={parsedAnswer}
+              className="space-y-2"
             >
-              <Space direction="vertical">
-                <Radio value="A">正确</Radio>
-                <Radio value="B">错误</Radio>
-              </Space>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="A" id={`${question.id}-A`} />
+                <Label htmlFor={`${question.id}-A`}>正确</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="B" id={`${question.id}-B`} />
+                <Label htmlFor={`${question.id}-B`}>错误</Label>
+              </div>
             </RadioGroup>
           );
         case 'fill_blank':
@@ -388,36 +410,47 @@ const ExamTaking = () => {
           const currentFillBlanks = Array.isArray(parsedAnswer) ? parsedAnswer : Array(blankCount).fill('');
 
           return (
-            <Space direction="vertical" style={{ width: '100%' }}>
+            <div className="space-y-4">
               {Array.from({ length: blankCount }).map((_, index) => (
-                <Input
-                  key={index}
-                  placeholder={`填空 ${index + 1}`}
-                  value={currentFillBlanks[index]}
-                  onChange={(e) => {
-                    const newBlanks = [...currentFillBlanks];
-                    newBlanks[index] = e.target.value;
-                    handleAnswerChange(question.id, newBlanks);
-                  }}
-                />
+                <div key={index}>
+                  <Label htmlFor={`blank-${question.id}-${index}`} className="text-sm font-medium mb-1 block">
+                    填空 {index + 1}
+                  </Label>
+                  <Input
+                    id={`blank-${question.id}-${index}`}
+                    placeholder={`填空 ${index + 1}`}
+                    value={currentFillBlanks[index]}
+                    onChange={(e) => {
+                      const newBlanks = [...currentFillBlanks];
+                      newBlanks[index] = e.target.value;
+                      handleAnswerChange(question.id, newBlanks);
+                    }}
+                  />
+                </div>
               ))}
-            </Space>
+            </div>
           );
         case 'essay':
           return (
-            <TextArea
-              rows={8}
-              placeholder="请输入您的答案"
-              value={parsedAnswer}
-              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-            />
+            <div>
+              <Label htmlFor={`essay-${question.id}`} className="text-sm font-medium mb-1 block">
+                答案
+              </Label>
+              <Textarea
+                id={`essay-${question.id}`}
+                rows={8}
+                placeholder="请输入您的答案"
+                value={parsedAnswer}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              />
+            </div>
           );
         default:
-          return <Text type="danger">未知题型</Text>;
+          return <p className="text-destructive">未知题型</p>;
       }
     } catch (e) {
       console.error("Error rendering answer input or parsing answer:", e);
-      return <Text type="danger">答案解析错误</Text>;
+      return <p className="text-destructive">答案解析错误</p>;
     }
   };
 
@@ -428,34 +461,26 @@ const ExamTaking = () => {
         style={{ width: '100%', position: 'fixed', top: 0, zIndex: 100, borderRadius: 0 }}
         bodyStyle={{ padding: '10px 24px' }}
       >
-        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Space>
+        <div className="flex justify-between w-full">
+          <div>
             {isMobile && (
-              <Button icon={<MenuOutlined />} onClick={() => setDrawerVisible(true)} />
-            )}
-            <Title level={4} style={{ margin: 0 }}>{examData.exam_title}</Title>
-          </Space>
-          <Space>
-            <ClockCircleOutlined />
-            <Text strong style={{ color: timeLeft <= 300 ? 'red' : 'inherit' }}>
-              {formatTime(timeLeft)}
-            </Text>
-            {renderSaveStatus()}
-            {saveStatus === 'error' && (
-              <Button
-                size="small"
-                icon={<SaveOutlined />}
-                onClick={handleManualSave}
-                type="link"
-              >
-                手动保存
+              <Button variant="ghost" size="icon" onClick={() => setDrawerVisible(true)}>
+                <Menu className="h-4 w-4" />
               </Button>
             )}
-            <Progress percent={progressPercent} size="small" style={{ width: 120, margin: 0 }} />
-            <Text>{answeredCount}/{totalQuestions}</Text>
-            <Button type="primary" onClick={showSubmitConfirmModal}>提交考试</Button>
-          </Space>
-        </Space>
+            <h4 className="text-lg font-semibold m-0 inline-block ml-2">{examData.exam_title}</h4>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Clock className="h-4 w-4" />
+            <span className="font-semibold" style={{ color: timeLeft <= 300 ? 'red' : 'inherit' }}>
+              {formatTime(timeLeft)}
+            </span>
+            {renderSaveStatus()}
+            <Progress value={progressPercent} className="w-32" />
+            <span>{answeredCount}/{totalQuestions}</span>
+            <Button onClick={showSubmitConfirmModal}>提交考试</Button>
+          </div>
+        </div>
       </Card>
 
       <div style={{ display: 'flex', flex: 1, paddingTop: 64, overflow: 'hidden' }}>
@@ -476,9 +501,9 @@ const ExamTaking = () => {
         {/* Question Display Area */}
         <div style={{ flex: 1, padding: isMobile ? 16 : 24, overflowY: 'auto' }}>
           <Card>
-            <Title level={5}>
+            <h5 className="text-lg font-medium">
               {currentQuestionIndex + 1}. [{currentQuestion.type}] (分值: {currentQuestion.score})
-            </Title>
+            </h5>
             <LazyImageRenderer htmlContent={currentQuestion.content} />
 
             {/* Answer Input Area */}
@@ -487,66 +512,53 @@ const ExamTaking = () => {
             </div>
 
             {/* Navigation and Control */}
-            <Space style={{ marginTop: 24, justifyContent: 'space-between', width: '100%' }}>
+            <div className="mt-6 flex justify-between w-full">
               <Button
                 onClick={handlePrevQuestion}
                 disabled={isFirstQuestion}
-                type={!isFirstQuestion && !isLastQuestion ? 'primary' : 'default'}
-                style={{
-                  backgroundColor: isFirstQuestion ? '#d9d9d9' : (!isLastQuestion ? undefined : undefined),
-                  borderColor: isFirstQuestion ? '#d9d9d9' : undefined,
-                  color: isFirstQuestion ? 'rgba(0, 0, 0, 0.25)' : undefined,
-                  cursor: isFirstQuestion ? 'not-allowed' : 'pointer'
-                }}
+                variant={isFirstQuestion ? 'secondary' : 'default'}
               >
                 上一题
               </Button>
               <Button
-                icon={<FlagOutlined />}
                 onClick={() => handleToggleMark(currentQuestion.id)}
-                type={markedQuestions[currentQuestion.id] ? 'primary' : 'default'}
+                variant={markedQuestions[currentQuestion.id] ? 'default' : 'outline'}
+                className="flex items-center gap-2"
               >
+                <Flag className="h-4 w-4" />
                 {markedQuestions[currentQuestion.id] ? '取消标记' : '标记题目'}
               </Button>
               <Button
                 onClick={handleNextQuestion}
                 disabled={isLastQuestion}
-                type={!isFirstQuestion && !isLastQuestion ? 'primary' : 'default'}
-                style={{
-                  backgroundColor: isLastQuestion ? '#d9d9d9' : (!isFirstQuestion ? undefined : undefined),
-                  borderColor: isLastQuestion ? '#d9d9d9' : undefined,
-                  color: isLastQuestion ? 'rgba(0, 0, 0, 0.25)' : undefined,
-                  cursor: isLastQuestion ? 'not-allowed' : 'pointer'
-                }}
+                variant={isLastQuestion ? 'secondary' : 'default'}
               >
                 下一题
               </Button>
-            </Space>
+            </div>
           </Card>
         </div>
       </div>
 
       {/* Mobile Drawer for Question Navigation */}
       {isMobile && (
-        <Drawer
-          title="题目导航"
-          placement="left"
-          closable={true}
-          onClose={() => setDrawerVisible(false)}
-          visible={drawerVisible}
-          key="question-nav-drawer"
-          width="80%"
-          bodyStyle={{ padding: 0 }}
-        >
-          <QuestionNav
-            questions={examData.questions}
-            currentQuestionIndex={currentQuestionIndex}
-            onQuestionChange={handleJumpToQuestion}
-            answeredQuestions={new Set(Object.keys(userAnswers).filter(qId => userAnswers[qId] !== undefined && userAnswers[qId] !== null && userAnswers[qId] !== ''))}
-            markedQuestions={new Set(Object.keys(markedQuestions).filter(qId => markedQuestions[qId]))}
-            onToggleMark={handleToggleMark}
-          />
-        </Drawer>
+        <Sheet open={drawerVisible} onOpenChange={setDrawerVisible}>
+          <SheetContent side="left" className="w-4/5 p-0">
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle>题目导航</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <QuestionNav
+                questions={examData.questions}
+                currentQuestionIndex={currentQuestionIndex}
+                onQuestionChange={handleJumpToQuestion}
+                answeredQuestions={new Set(Object.keys(userAnswers).filter(qId => userAnswers[qId] !== undefined && userAnswers[qId] !== null && userAnswers[qId] !== ''))}
+                markedQuestions={new Set(Object.keys(markedQuestions).filter(qId => markedQuestions[qId]))}
+                onToggleMark={handleToggleMark}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   );

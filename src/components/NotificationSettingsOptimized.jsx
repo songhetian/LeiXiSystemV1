@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Save, User, Users, FileText, Clock } from 'lucide-react';

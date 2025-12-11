@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Tag, Spin, message, DatePicker, Button, Space } from 'antd';
-import { CalendarOutlined, ReloadOutlined, SwapOutlined } from '@ant-design/icons';
+import { toast } from 'react-toastify';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import { formatDateTime } from '../utils/date';
 import dayjs from 'dayjs';
 import OvertimeConversionModal from './OvertimeConversionModal';
+import { Calendar, RotateCw, ArrowUpDown } from 'lucide-react';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow, TableCell } from './ui/table';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 
 const VacationMonthlyView = ({ employeeId, year: initialYear }) => {
   const [loading, setLoading] = useState(false);
@@ -53,11 +59,11 @@ const VacationMonthlyView = ({ employeeId, year: initialYear }) => {
       if (result.success) {
         setData(result.data);
       } else {
-        message.error(result.message || '加载月度数据失败');
+        toast.error(result.message || '加载月度数据失败');
       }
     } catch (error) {
       console.error('加载月度数据失败:', error);
-      message.error('加载月度数据失败');
+      toast.error('加载月度数据失败');
     } finally {
       setLoading(false);
     }
@@ -65,79 +71,43 @@ const VacationMonthlyView = ({ employeeId, year: initialYear }) => {
 
   const getChangeTypeTag = (type) => {
     const typeMap = {
-      'addition': { color: 'green', text: '增加' },
-      'deduction': { color: 'red', text: '扣减' },
-      'conversion': { color: 'blue', text: '转换' },
-      'adjustment': { color: 'orange', text: '调整' }
+      'addition': { variant: 'default', text: '增加' },
+      'deduction': { variant: 'destructive', text: '扣减' },
+      'conversion': { variant: 'secondary', text: '转换' },
+      'adjustment': { variant: 'outline', text: '调整' }
     };
-    const config = typeMap[type] || { color: 'default', text: type };
-    return <Tag color={config.color}>{config.text}</Tag>;
+    const config = typeMap[type] || { variant: 'default', text: type };
+    return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
   const getLeaveTypeTag = (type) => {
     const typeMap = {
-      'annual_leave': { color: 'blue', text: '年假' },
-      'sick_leave': { color: 'orange', text: '病假' },
-      'overtime_leave': { color: 'green', text: '加班假' },
-      'personal_leave': { color: 'default', text: '事假' }
+      'annual_leave': { variant: 'default', text: '年假' },
+      'sick_leave': { variant: 'secondary', text: '病假' },
+      'overtime_leave': { variant: 'default', text: '加班假' },
+      'personal_leave': { variant: 'outline', text: '事假' }
     };
-    const config = typeMap[type] || { color: 'default', text: type };
-    return <Tag color={config.color}>{config.text}</Tag>;
+    const config = typeMap[type] || { variant: 'default', text: type };
+    return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
-  const columns = [
-    {
-      title: '日期',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 180,
-      render: (text) => formatDateTime(text)
-    },
-    {
-      title: '变更类型',
-      dataIndex: 'change_type',
-      key: 'change_type',
-      width: 100,
-      render: (type) => getChangeTypeTag(type)
-    },
-    // {
-    //   title: '假期类型',
-    //   dataIndex: 'leave_type',
-    //   key: 'leave_type',
-    //   width: 100,
-    //   render: (type) => getLeaveTypeTag(type)
-    // },
-    {
-      title: '变更数量',
-      dataIndex: 'amount',
-      key: 'amount',
-      width: 120,
-      render: (amount) => (
-        <span className={amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-          {amount > 0 ? '+' : ''}{amount} 天
-        </span>
-      )
-    },
-    {
-      title: '变更后余额',
-      dataIndex: 'balance_after',
-      key: 'balance_after',
-      width: 120,
-      render: (val) => val != null ? `${val} 天` : '-'
-    },
-    {
-      title: '原因',
-      dataIndex: 'reason',
-      key: 'reason',
-      ellipsis: true
-    },
-    {
-      title: '操作人',
-      dataIndex: 'operator_name',
-      key: 'operator_name',
-      width: 100
-    }
-  ];
+  // 自定义渲染表格行
+  const renderTableRows = (data) => {
+    return data.map((item) => (
+      <TableRow key={item.id}>
+        <TableCell className="w-44">{formatDateTime(item.created_at)}</TableCell>
+        <TableCell className="w-24">{getChangeTypeTag(item.change_type)}</TableCell>
+        <TableCell className="w-30">
+          <span className={item.amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+            {item.amount > 0 ? '+' : ''}{item.amount} 天
+          </span>
+        </TableCell>
+        <TableCell className="w-30">{item.balance_after != null ? `${item.balance_after} 天` : '-'}</TableCell>
+        <TableCell className="truncate">{item.reason}</TableCell>
+        <TableCell className="w-24">{item.operator_name}</TableCell>
+      </TableRow>
+    ));
+  };
 
   // Calculate monthly summary
   const summary = data.reduce((acc, item) => {
@@ -150,40 +120,42 @@ const VacationMonthlyView = ({ employeeId, year: initialYear }) => {
   }, { totalUsed: 0, totalAdded: 0 });
 
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <CalendarOutlined />
+    <Card className="shadow-sm">
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-5 w-5" />
           <span>月度使用明细</span>
-        </div>
-      }
-      extra={
-        <Space>
+        </CardTitle>
+        <div className="flex flex-wrap gap-2">
           <Button
-            type="primary"
-            icon={<SwapOutlined />}
             onClick={() => setConversionModalVisible(true)}
+            className="flex items-center gap-2"
           >
+            <ArrowUpDown className="h-4 w-4" />
             加班转假期
           </Button>
-          <DatePicker
-            picker="month"
-            value={dayjs(`${year}-${String(month).padStart(2, '0')}`)}
-            onChange={(date) => {
-              if (date) {
-                setYear(date.year());
-                setMonth(date.month() + 1);
+          <input
+            type="month"
+            value={`${year}-${String(month).padStart(2, '0')}`}
+            onChange={(e) => {
+              if (e.target.value) {
+                const [y, m] = e.target.value.split('-');
+                setYear(parseInt(y));
+                setMonth(parseInt(m));
               }
             }}
-            format="YYYY年MM月"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
           />
-          <Button icon={<ReloadOutlined />} onClick={loadMonthlyData}>
+          <Button
+            variant="outline"
+            onClick={loadMonthlyData}
+            className="flex items-center gap-2"
+          >
+            <RotateCw className="h-4 w-4" />
             刷新
           </Button>
-        </Space>
-      }
-      className="shadow-sm"
-    >
+        </div>
+      </CardHeader>
       {/* Summary Row */}
       <div className="mb-4 space-y-4">
         {/* Special Dates Alert */}
@@ -217,15 +189,29 @@ const VacationMonthlyView = ({ employeeId, year: initialYear }) => {
         </div>
       </div>
 
-      <Spin spinning={loading}>
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          size="small"
-        />
-      </Spin>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-44">日期</TableHead>
+                <TableHead className="w-24">变更类型</TableHead>
+                <TableHead className="w-30">变更数量</TableHead>
+                <TableHead className="w-30">变更后余额</TableHead>
+                <TableHead>原因</TableHead>
+                <TableHead className="w-24">操作人</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {renderTableRows(data)}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
 
       <OvertimeConversionModal
         visible={conversionModalVisible}

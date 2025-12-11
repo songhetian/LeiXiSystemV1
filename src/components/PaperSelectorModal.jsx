@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../api';
-import './PaperSelectorModal.css';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Badge } from './ui/badge';
+import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import { Card, CardContent } from './ui/card';
+import { X, Search, ListChecks, Star, Clock } from 'lucide-react';
 
 const PaperSelectorModal = ({ isOpen, onSelect, onClose }) => {
   const [exams, setExams] = useState([]);
@@ -31,76 +37,73 @@ const PaperSelectorModal = ({ isOpen, onSelect, onClose }) => {
     exam.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content paper-selector" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>选择试卷</h3>
-          <button onClick={onClose} className="close-btn">
-            <span className="material-icons">close</span>
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span>选择试卷</span>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="search-box">
-          <span className="material-icons">search</span>
-          <input
-            type="text"
-            placeholder="搜索试卷..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="搜索试卷..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-        {loading && <div className="loading">加载中...</div>}
-
-        <div className="exam-list">
-          {filteredExams.length === 0 && !loading && (
-            <div className="empty-state">
-              <span className="material-icons">assignment</span>
-              <p>暂无已发布的试卷</p>
-            </div>
+          {loading && (
+            <Alert>
+              <AlertTitle>加载中...</AlertTitle>
+              <AlertDescription>请稍候</AlertDescription>
+            </Alert>
           )}
 
-          {filteredExams.map(exam => (
-            <div key={exam.id} className="exam-item">
-              <div className="exam-info">
-                <h4>{exam.title}</h4>
-                <div className="exam-meta">
-                  <span className="meta-item">
-                    <span className="material-icons">quiz</span>
-                    {exam.question_count} 题
-                  </span>
-                  <span className="meta-item">
-                    <span className="material-icons">grade</span>
-                    {exam.total_score} 分
-                  </span>
-                  <span className="meta-item">
-                    <span className="material-icons">schedule</span>
-                    {exam.duration} 分钟
-                  </span>
-                  {exam.difficulty && (
-                    <span className={`difficulty ${exam.difficulty}`}>
-                      {exam.difficulty === 'easy' ? '简单' : exam.difficulty === 'medium' ? '中等' : '困难'}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  onSelect(exam);
-                  onClose();
-                }}
-                className="btn-select"
-              >
-                选择
-              </button>
+          {!loading && filteredExams.length === 0 ? (
+            <Alert className="bg-gray-50">
+              <AlertTitle>暂无已发布的试卷</AlertTitle>
+              <AlertDescription>请稍后重试或调整搜索关键词</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-3">
+              {filteredExams.map((exam) => (
+                <Card key={exam.id} className="hover:shadow-md transition-all">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-gray-800">{exam.title}</h4>
+                      <div className="flex gap-4 flex-wrap items-center text-sm text-gray-600 mt-2">
+                        <span className="flex items-center gap-1"><ListChecks className="h-4 w-4" />{exam.question_count} 题</span>
+                        <span className="flex items-center gap-1"><Star className="h-4 w-4" />{exam.total_score} 分</span>
+                        <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{exam.duration} 分钟</span>
+                        {exam.difficulty && (
+                          <Badge className={`text-xs ${exam.difficulty === 'easy' ? 'bg-green-600 text-white' : exam.difficulty === 'medium' ? 'bg-orange-500 text-white' : 'bg-red-600 text-white'}`}>
+                            {exam.difficulty === 'easy' ? '简单' : exam.difficulty === 'medium' ? '中等' : '困难'}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => { onSelect(exam); onClose(); }}
+                      className="font-semibold"
+                    >
+                      选择
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

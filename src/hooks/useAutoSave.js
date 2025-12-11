@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import debounce from 'lodash.debounce';
 import axios from 'axios';
-import { message } from 'antd';
+import { toast } from 'react-toastify';
 
 const useAutoSave = (saveFunction, resultId, delay = 3000, syncInterval = 30000) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -24,10 +24,10 @@ const useAutoSave = (saveFunction, resultId, delay = 3000, syncInterval = 30000)
       try {
         await saveFunctionRef.current(resultIdRef.current, dataToSave);
         lastSavedDataRef.current = dataToSave; // Update last saved data
-        message.success('答案已自动保存', 1);
+        toast.success('答案已自动保存');
       } catch (error) {
         setSaveError(error);
-        message.error('自动保存失败');
+        toast.error('自动保存失败');
         console.error('Auto-save failed:', error);
       } finally {
         setIsSaving(false);
@@ -76,8 +76,8 @@ const useAutoSave = (saveFunction, resultId, delay = 3000, syncInterval = 30000)
 
   // Network status detection (basic)
   useEffect(() => {
-    const handleOnline = () => message.success('网络已恢复，答案将继续自动保存。');
-    const handleOffline = () => message.warning('网络连接已断开，请检查您的网络。答案将暂时保存到本地。');
+    const handleOnline = () => toast.success('网络已恢复，答案将继续自动保存。');
+    const handleOffline = () => toast.warning('网络连接已断开，请检查您的网络。答案将暂时保存到本地。');
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);

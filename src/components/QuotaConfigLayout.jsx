@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Tabs } from 'antd';
-import { CalendarOutlined, SettingOutlined } from '@ant-design/icons';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Calendar, Settings } from 'lucide-react';
 import HolidayConfig from './HolidayConfig';
 import SystemConfigPage from './SystemConfigPage';
 import VacationQuotaSettings from './VacationQuotaSettings';
@@ -10,44 +10,32 @@ const QuotaConfigLayout = () => {
 
   return (
     <div className="quota-config-layout">
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        type="card"
-        size="large"
-        items={[
-          {
-            key: 'quota',
-            label: (
-              <span>
-                <CalendarOutlined />
-                员工额度
-              </span>
-            ),
-            children: <VacationQuotaSettings />,
-          },
-          {
-            key: 'holiday',
-            label: (
-              <span>
-                <CalendarOutlined />
-                节假日配置
-              </span>
-            ),
-            children: <HolidayConfig />,
-          },
-          {
-            key: 'system',
-            label: (
-              <span>
-                <SettingOutlined />
-                系统配置
-              </span>
-            ),
-            children: <SystemConfigPage />,
-          },
-        ]}
-      />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="quota">
+            <Calendar className="mr-2 h-4 w-4" />
+            员工额度
+          </TabsTrigger>
+          <TabsTrigger value="holiday">
+            <Calendar className="mr-2 h-4 w-4" />
+            节假日配置
+          </TabsTrigger>
+          <TabsTrigger value="system">
+            <Settings className="mr-2 h-4 w-4" />
+            系统配置
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="quota">
+          <VacationQuotaSettings />
+        </TabsContent>
+        <TabsContent value="holiday">
+          <HolidayConfig />
+        </TabsContent>
+        <TabsContent value="system">
+          <SystemConfigPage />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

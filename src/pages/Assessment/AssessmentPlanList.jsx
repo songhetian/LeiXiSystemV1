@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Select, Space, Tag, message, Popconfirm, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, PublishOutlined, SwapOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
 
-const { Search } = Input;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Plus, Edit, Trash2, Eye, Send, RotateCcw } from 'lucide-react';
+
+
 
 const AssessmentPlanList = () => {
   const navigate = useNavigate();
@@ -18,10 +21,10 @@ const AssessmentPlanList = () => {
     pageSize: 10,
     total: 0,
   });
-  const [filters, setFilters] = useState({
-    status: undefined,
-    dateRange: [], // [start_time, end_time]
-  });
+
+  // State for filters
+  const [statusFilter, setStatusFilter] = useState(undefined);
+  const [dateRange, setDateRange] = useState([null, null]);
 
   const fetchAssessmentPlans = async (params = {}) => {
     setLoading(true);
@@ -30,9 +33,9 @@ const AssessmentPlanList = () => {
         params: {
           page: params.pagination?.current || pagination.current,
           pageSize: params.pagination?.pageSize || pagination.pageSize,
-          status: filters.status,
-          start_time: filters.dateRange[0] ? filters.dateRange[0].format('YYYY-MM-DD') : undefined,
-          end_time: filters.dateRange[1] ? filters.dateRange[1].format('YYYY-MM-DD') : undefined,
+          status: statusFilter,
+          start_time: dateRange[0] ? dayjs(dateRange[0]).format('YYYY-MM-DD') : undefined,
+          end_time: dateRange[1] ? dayjs(dateRange[1]).format('YYYY-MM-DD') : undefined,
         },
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -46,7 +49,7 @@ const AssessmentPlanList = () => {
         total: response.data.data.total,
       });
     } catch (error) {
-      message.error('获取考核计划列表失败');
+      toast.error('获取考核计划列表失败');
       console.error('Failed to fetch assessment plans:', error);
     } finally {
       setLoading(false);
@@ -55,110 +58,89 @@ const AssessmentPlanList = () => {
 
   useEffect(() => {
     fetchAssessmentPlans();
-  }, [pagination.current, pagination.pageSize, filters]);
+  }, [pagination.current, pagination.pageSize, statusFilter, dateRange]);
 
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      [key]: value,
-    }));
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
     setPagination((prevPagination) => ({ ...prevPagination, current: 1 })); // Reset to first page on filter change
   };
 
-  const getStatusTag = (status) => {
+  const handleDateRangeChange = (dates) => {
+    setDateRange(dates || [null, null]);
+    setPagination((prevPagination) => ({ ...prevPagination, current: 1 })); // Reset to first page on filter change
+  };
+
+  const getStatusBadge = (status) => {
     switch (status) {
       case 'draft':
-        return <Tag color="default">草稿</Tag>;
+        return <Badge variant="secondary">草稿</Badge>;
       case 'published':
-        return <Tag color="processing">已发布</Tag>;
+        return <Badge variant="default">已发布</Badge>;
       case 'ongoing':
-        return <Tag color="blue">进行中</Tag>;
+        return <Badge variant="default">进行中</Badge>;
       case 'completed':
-        return <Tag color="success">已完成</Tag>;
+        return <Badge variant="secondary">已完成</Badge>;
       case 'cancelled':
-        return <Tag color="error">已取消</Tag>;
+        return <Badge variant="destructive">已取消</Badge>;
       default:
-        return <Tag>{status}</Tag>;
+        return <Badge>{status}</Badge>;
     }
   };
 
-  const columns = [
-    {
-      title: '标题',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: '试卷',
-      dataIndex: 'exam_title',
-      key: 'exam_title',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: getStatusTag,
-    },
-    {
-      title: '开始时间',
-      dataIndex: 'start_time',
-      key: 'start_time',
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'),
-    },
-    {
-      title: '结束时间',
-      dataIndex: 'end_time',
-      key: 'end_time',
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'),
-    },
-    {
-      title: '参与情况',
-      dataIndex: 'participant_stats',
-      key: 'participant_stats',
-      render: (stats) => `${stats.completed_count || 0} / ${stats.total_participants || 0}`,
-    },
-    {
-      title: '通过率',
-      dataIndex: 'pass_rate',
-      key: 'pass_rate',
-      render: (rate) => `${(rate * 100).toFixed(2)}%`,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => handleView(record.id)}>查看</Button>
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record.id)}>编辑</Button>
-          {record.status === 'draft' && (
-            <Button icon={<PublishOutlined />} onClick={() => handlePublish(record.id)} type="primary">发布</Button>
-          )}
-          {(record.status === 'published' || record.status === 'ongoing') && (
-            <Popconfirm
-              title="确定取消此考核计划吗？"
-              onConfirm={() => handleCancel(record.id)}
-              okText="是"
-              cancelText="否"
-            >
-              <Button danger>取消</Button>
-            </Popconfirm>
-          )}
-          <Popconfirm
-            title="确定删除此考核计划吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="是"
-            cancelText="否"
-          >
-            <Button icon={<DeleteOutlined />} danger>删除</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  // Render table rows directly since we're not using Ant Design's Table anymore
+  const renderTableRows = () => {
+    return plans.map((record) => (
+      <tr key={record.id} className="border-b hover:bg-gray-50">
+        <td className="p-3">{record.title}</td>
+        <td className="p-3">{record.exam_title}</td>
+        <td className="p-3">{getStatusBadge(record.status)}</td>
+        <td className="p-3">{dayjs(record.start_time).format('YYYY-MM-DD HH:mm')}</td>
+        <td className="p-3">{dayjs(record.end_time).format('YYYY-MM-DD HH:mm')}</td>
+        <td className="p-3">{`${record.participant_stats.completed_count || 0} / ${record.participant_stats.total_participants || 0}`}</td>
+        <td className="p-3">{(record.pass_rate * 100).toFixed(2)}%</td>
+        <td className="p-3">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleView(record.id)}>
+              <Eye className="mr-1 h-4 w-4" />
+              查看
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleEdit(record.id)}>
+              <Edit className="mr-1 h-4 w-4" />
+              编辑
+            </Button>
+            {record.status === 'draft' && (
+              <Button size="sm" onClick={() => handlePublish(record.id)}>
+                <Send className="mr-1 h-4 w-4" />
+                发布
+              </Button>
+            )}
+            {(record.status === 'published' || record.status === 'ongoing') && (
+              <Button variant="outline" size="sm" onClick={() => {
+                if (window.confirm("确定取消此考核计划吗？")) {
+                  handleCancel(record.id);
+                }
+              }}>
+                <RotateCcw className="mr-1 h-4 w-4" />
+                取消
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => {
+              if (window.confirm("确定删除此考核计划吗？")) {
+                handleDelete(record.id);
+              }
+            }}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              删除
+            </Button>
+          </div>
+        </td>
+      </tr>
+    ));
+  };
 
   const handleAdd = () => {
     navigate('/assessment/plans/new');
@@ -177,10 +159,10 @@ const AssessmentPlanList = () => {
       await axios.put(`/api/assessment-plans/${id}/status`, { status: 'published' }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('考核计划发布成功');
+      toast.success('考核计划发布成功');
       fetchAssessmentPlans();
     } catch (error) {
-      message.error(`发布失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`发布失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to publish plan:', error);
     }
   };
@@ -190,10 +172,10 @@ const AssessmentPlanList = () => {
       await axios.put(`/api/assessment-plans/${id}/status`, { status: 'cancelled' }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('考核计划已取消');
+      toast.success('考核计划已取消');
       fetchAssessmentPlans();
     } catch (error) {
-      message.error(`取消失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`取消失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to cancel plan:', error);
     }
   };
@@ -203,53 +185,123 @@ const AssessmentPlanList = () => {
       await axios.delete(`/api/assessment-plans/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      message.success('考核计划删除成功');
+      toast.success('考核计划删除成功');
       fetchAssessmentPlans();
     } catch (error) {
-      message.error(`删除失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`删除失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to delete plan:', error);
     }
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        title="考核计划列表"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+    <div className="p-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>考核计划列表</CardTitle>
+          <Button onClick={handleAdd}>
+            <Plus className="mr-2 h-4 w-4" />
             创建考核计划
           </Button>
-        }
-      >
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'flex-start' }}>
-          <Select
-            placeholder="筛选状态"
-            style={{ width: 120 }}
-            onChange={(value) => handleFilterChange('status', value)}
-            allowClear
-          >
-            <Option value="draft">草稿</Option>
-            <Option value="published">已发布</Option>
-            <Option value="ongoing">进行中</Option>
-            <Option value="completed">已完成</Option>
-            <Option value="cancelled">已取消</Option>
-          </Select>
-          <RangePicker
-            showTime
-            format="YYYY-MM-DD HH:mm"
-            onChange={(dates) => handleFilterChange('dateRange', dates)}
-            value={filters.dateRange}
-          />
-        </Space>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 mb-6">
+            <select
+              className="border border-gray-300 rounded-md px-3 py-2"
+              value={statusFilter || ''}
+              onChange={(e) => handleStatusFilterChange(e.target.value || undefined)}
+            >
+              <option value="">全部状态</option>
+              <option value="draft">草稿</option>
+              <option value="published">已发布</option>
+              <option value="ongoing">进行中</option>
+              <option value="completed">已完成</option>
+              <option value="cancelled">已取消</option>
+            </select>
 
-        <Table
-          columns={columns}
-          dataSource={plans}
-          rowKey="id"
-          loading={loading}
-          pagination={pagination}
-          onChange={handleTableChange}
-        />
+            <div className="flex gap-2 items-center">
+              <input
+                type="date"
+                className="border border-gray-300 rounded-md px-3 py-2"
+                value={dateRange[0] ? dayjs(dateRange[0]).format('YYYY-MM-DD') : ''}
+                onChange={(e) => handleDateRangeChange([e.target.value ? dayjs(e.target.value) : null, dateRange[1]])}
+              />
+              <span>至</span>
+              <input
+                type="date"
+                className="border border-gray-300 rounded-md px-3 py-2"
+                value={dateRange[1] ? dayjs(dateRange[1]).format('YYYY-MM-DD') : ''}
+                onChange={(e) => handleDateRangeChange([dateRange[0], e.target.value ? dayjs(e.target.value) : null])}
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-3 text-left">标题</th>
+                  <th className="p-3 text-left">试卷</th>
+                  <th className="p-3 text-left">状态</th>
+                  <th className="p-3 text-left">开始时间</th>
+                  <th className="p-3 text-left">结束时间</th>
+                  <th className="p-3 text-left">参与情况</th>
+                  <th className="p-3 text-left">通过率</th>
+                  <th className="p-3 text-left">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="p-6 text-center">
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mr-2"></div>
+                        加载中...
+                      </div>
+                    </td>
+                  </tr>
+                ) : plans.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="p-6 text-center text-gray-500">
+                      暂无数据
+                    </td>
+                  </tr>
+                ) : (
+                  renderTableRows()
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {plans.length > 0 && (
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-gray-500">
+                共 {pagination.total} 条记录
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTableChange({ ...pagination, current: pagination.current - 1 })}
+                  disabled={pagination.current === 1}
+                >
+                  上一页
+                </Button>
+                <span className="self-center">
+                  第 {pagination.current} 页，共 {Math.ceil(pagination.total / pagination.pageSize)} 页
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTableChange({ ...pagination, current: pagination.current + 1 })}
+                  disabled={pagination.current === Math.ceil(pagination.total / pagination.pageSize)}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

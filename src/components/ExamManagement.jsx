@@ -3,10 +3,12 @@ import { formatDate } from '../utils/date'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { toast } from 'react-toastify'
 import api from '../api'
-import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
 import debounce from 'lodash.debounce'
 
+// 导入 shadcn UI 组件
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog'
+import { Button } from './ui/button'
 
 const ExamManagement = () => {
   const [exams, setExams] = useState([])
@@ -1165,347 +1167,314 @@ const ExamManagement = () => {
       </div>
 
       {/* 创建/编辑试卷Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false)
-          resetForm()
-        }}
-        title={editingExam ? '编辑试卷' : '新建试卷'}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">试卷标题 *</label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="输入试卷标题"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">试卷描述</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows="3"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="输入试卷描述"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingExam ? '编辑试卷' : '新建试卷'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">分类</label>
-              <select
-                value={formData.category_id}
-                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">请选择分类</option>
-                {categoryOptions.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">难度 *</label>
-              <select
-                required
-                value={formData.difficulty}
-                onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="easy">简单</option>
-                <option value="medium">中等</option>
-                <option value="hard">困难</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">考试时长(分钟) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">试卷标题 *</label>
               <input
-                type="number"
+                type="text"
                 required
-                min="1"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="输入试卷标题"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">总分 *</label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.total_score}
-                onChange={(e) => setFormData({ ...formData, total_score: parseInt(e.target.value) })}
+              <label className="block text-sm font-medium text-gray-700 mb-2">试卷描述</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows="3"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="输入试卷描述"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">及格分 *</label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.pass_score}
-                onChange={(e) => setFormData({ ...formData, pass_score: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">状态 *</label>
-            <select
-              required
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="draft" disabled={editingExam?.status !== 'draft'}>草稿</option>
-              <option value="published" disabled={editingExam?.status === 'published'}>已发布</option>
-              <option value="archived" disabled={editingExam?.status !== 'published'}>已归档</option>
-            </select>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => updateExamStatus(editingExam?.id || selectedExam?.id, editingExam?.status || selectedExam?.status, formData.status)}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >更新状态</button>
-              <span className="text-xs text-gray-500 self-center">允许：草稿→已发布，已发布→已归档，已归档→已发布</span>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => {
-                setShowModal(false)
-                resetForm()
-              }}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
-              {loading ? '保存中...' : '保存'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
-        isOpen={showRecycleBin}
-        onClose={() => setShowRecycleBin(false)}
-        title="回收站"
-        size="custom800"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              value={deletedSearch}
-              onChange={(e) => { setDeletedSearch(e.target.value); setDeletedPage(1); fetchDeletedExams(1, e.target.value) }}
-              placeholder="按试卷标题搜索..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-            />
-          </div>
-
-          <div className="border rounded-lg">
-            <table className="w-full table-auto">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">试卷标题</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">删除时间</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deletedExams.length === 0 ? (
-                  <tr><td colSpan="3" className="px-4 py-6 text-center text-gray-500">暂无删除的试卷</td></tr>
-                ) : (
-                  deletedExams.map((exam) => (
-                    <tr key={exam.id} className="border-b">
-                      <td className="px-4 py-3">{exam.title}</td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(exam.delete_time)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleRestoreExam(exam.id)}
-                          className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                        >
-                          还原
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">共 {deletedTotal} 条</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { const p = Math.max(1, deletedPage - 1); setDeletedPage(p); fetchDeletedExams(p, deletedSearch) }}
-                disabled={deletedPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-              >上一页</button>
-              <span className="text-sm">第 {deletedPage} 页</span>
-              <button
-                onClick={() => { const totalPages = Math.ceil(deletedTotal / deletedPageSize); const p = Math.min(totalPages || 1, deletedPage + 1); setDeletedPage(p); fetchDeletedExams(p, deletedSearch) }}
-                disabled={deletedPage >= Math.ceil(deletedTotal / deletedPageSize)}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-              >下一页</button>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button onClick={() => setShowRecycleBin(false)} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">关闭</button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={showExamInfo}
-        onClose={() => { setShowExamInfo(false); setExamInfo(null) }}
-        title="试卷信息"
-        size="medium"
-        footer={(
-          <div className="flex items-center justify-end gap-2 w-full">
-            <button onClick={downloadTemplateXlsx} className="px-4 py-2 border border-primary-300 text-primary-700 rounded hover:bg-primary-50">
-              {downloadingTpl ? `下载中 ${downloadProgress}%` : '下载导入模板'}
-            </button>
-            <button onClick={() => setShowImportModal(true)} className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">试题导入</button>
-            <button onClick={() => { setShowExamInfo(false); setExamInfo(null) }} className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">关闭</button>
-          </div>
-        )}
-      >
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2"><span className="text-gray-600">标题</span><span className="font-medium">{examInfo?.title || selectedExam?.title}</span></div>
-          <div className="flex items-center gap-2"><span className="text-gray-600">总分</span><span className="font-medium">{examInfo?.total_score ?? selectedExam?.total_score}</span></div>
-          <div className="flex items-center gap-2"><span className="text-gray-600">题量</span><span className="font-medium">{examInfo?.question_count ?? '-'}</span></div>
-          <div className="flex items-center gap-2"><span className="text-gray-600">分类</span><span className="font-medium">{examInfo?.category ?? '-'}</span></div>
-          <div className="flex items-center gap-2"><span className="text-gray-600">难度</span><span className="font-medium">{examInfo?.difficulty ?? '-'}</span></div>
-          <div className="flex items-center gap-2"><span className="text-gray-600">时长</span><span className="font-medium">{examInfo?.duration ?? '-'}</span></div>
-          <div className="flex items-center gap-2"><span className="text-gray-600">创建时间</span><span className="font-medium">{examInfo?.created_at ? formatDate(examInfo.created_at) : (selectedExam?.created_at ? formatDate(selectedExam.created_at) : '-')}</span></div>
-
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={showImportModal}
-        onClose={() => { setShowImportModal(false); setImportResult(null); setImportProgress(0) }}
-        title="试题导入"
-        size="large"
-      >
-        <div className="space-y-4">
-          <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50" onDragOver={(e)=>{e.preventDefault()}} onDrop={(e)=>{e.preventDefault(); const f=e.dataTransfer.files?.[0]; if(f) handleFileImport(f)}}>
-            <div className="text-gray-700 mb-2">拖拽文件到此处，或点击选择文件</div>
-            <input type="file" accept=".txt,.docx,.pdf" onChange={(e) => e.target.files?.[0] && handleFileImport(e.target.files[0])} className="hidden" id="import-file-input" />
-            <label htmlFor="import-file-input" className="inline-block px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 cursor-pointer">选择文件</label>
-            {importing && (
-              <div className="mt-3 w-full bg-gray-200 rounded h-2">
-                <div className="bg-primary-600 h-2 rounded" style={{ width: `${importProgress}%` }}></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">分类</label>
+                <select
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">请选择分类</option>
+                  {categoryOptions.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.displayName}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-            {importResult && (
-              <div className="mt-3 text-sm text-gray-700">成功 {importResult.success} · 失败 {importResult.failed}</div>
-            )}
-            <div className="mt-4 text-sm">
-              <button onClick={downloadTemplateXlsx} className="px-3 py-1.5 border border-primary-300 text-primary-700 rounded hover:bg-primary-50">下载导入模板</button>
-              <a href="#/knowledge-base" target="_blank" className="ml-3 text-primary-700 hover:underline">模板使用说明</a>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">难度 *</label>
+                <select
+                  required
+                  value={formData.difficulty}
+                  onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="easy">简单</option>
+                  <option value="medium">中等</option>
+                  <option value="hard">困难</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">考试时长(分钟) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.duration}
+                  onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">总分 *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.total_score}
+                  onChange={(e) => setFormData({ ...formData, total_score: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">及格分 *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.pass_score}
+                  onChange={(e) => setFormData({ ...formData, pass_score: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">状态 *</label>
+              <select
+                required
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="draft" disabled={editingExam?.status !== 'draft'}>草稿</option>
+                <option value="published" disabled={editingExam?.status === 'published'}>已发布</option>
+                <option value="archived" disabled={editingExam?.status !== 'published'}>已归档</option>
+              </select>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateExamStatus(editingExam?.id || selectedExam?.id, editingExam?.status || selectedExam?.status, formData.status)}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >更新状态</button>
+                <span className="text-xs text-gray-500 self-center">允许：草稿→已发布，已发布→已归档，已归档→已发布</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowModal(false)
+                  resetForm()
+                }}
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? '保存中...' : '保存'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showRecycleBin} onOpenChange={setShowRecycleBin}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>回收站</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={deletedSearch}
+                onChange={(e) => { setDeletedSearch(e.target.value); setDeletedPage(1); fetchDeletedExams(1, e.target.value) }}
+                placeholder="按试卷标题搜索..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+              />
+            </div>
+
+            <div className="border rounded-lg">
+              <table className="w-full table-auto">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">试卷标题</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">删除时间</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deletedExams.length === 0 ? (
+                    <tr><td colSpan="3" className="px-4 py-6 text-center text-gray-500">暂无删除的试卷</td></tr>
+                  ) : (
+                    deletedExams.map((exam) => (
+                      <tr key={exam.id} className="border-b">
+                        <td className="px-4 py-3">{exam.title}</td>
+                        <td className="px-4 py-3 text-gray-600">{formatDate(exam.delete_time)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleRestoreExam(exam.id)}
+                            className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                          >
+                            还原
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">共 {deletedTotal} 条</div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { const p = Math.max(1, deletedPage - 1); setDeletedPage(p); fetchDeletedExams(p, deletedSearch) }}
+                  disabled={deletedPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >上一页</button>
+                <span className="text-sm">第 {deletedPage} 页</span>
+                <button
+                  onClick={() => { const totalPages = Math.ceil(deletedTotal / deletedPageSize); const p = Math.min(totalPages || 1, deletedPage + 1); setDeletedPage(p); fetchDeletedExams(p, deletedSearch) }}
+                  disabled={deletedPage >= Math.ceil(deletedTotal / deletedPageSize)}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >下一页</button>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setShowRecycleBin(false)}>关闭</Button>
             </div>
           </div>
-          <div className="text-xs text-gray-500">支持 .txt、.docx、.pdf。当前版本优先支持文本格式。</div>
-        </div>
-      </Modal>
-
-
-
-      <Modal
-        isOpen={showDeleteConfirm}
-        onClose={() => { setShowDeleteConfirm(false); setDeleteTargetId(null) }}
-        title="确认删除题目"
-        size="small"
-        zIndex={2000}
-        footer={(
-          <div className="w-full flex items-center justify-end gap-2">
-            <button onClick={() => { setShowDeleteConfirm(false); setDeleteTargetId(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
-            <button onClick={confirmDeleteQuestion} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">确认删除</button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showExamInfo} onOpenChange={setShowExamInfo}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>试卷信息</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2"><span className="text-gray-600">标题</span><span className="font-medium">{examInfo?.title || selectedExam?.title}</span></div>
+            <div className="flex items-center gap-2"><span className="text-gray-600">总分</span><span className="font-medium">{examInfo?.total_score ?? selectedExam?.total_score}</span></div>
+            <div className="flex items-center gap-2"><span className="text-gray-600">题量</span><span className="font-medium">{examInfo?.question_count ?? '-'}</span></div>
+            <div className="flex items-center gap-2"><span className="text-gray-600">分类</span><span className="font-medium">{examInfo?.category ?? '-'}</span></div>
+            <div className="flex items-center gap-2"><span className="text-gray-600">难度</span><span className="font-medium">{examInfo?.difficulty ?? '-'}</span></div>
+            <div className="flex items-center gap-2"><span className="text-gray-600">时长</span><span className="font-medium">{examInfo?.duration ?? '-'}</span></div>
+            <div className="flex items-center gap-2"><span className="text-gray-600">创建时间</span><span className="font-medium">{examInfo?.created_at ? formatDate(examInfo.created_at) : (selectedExam?.created_at ? formatDate(selectedExam.created_at) : '-')}</span></div>
           </div>
-        )}
-      >
-        <div className="text-gray-700">确定要删除这道题目吗？删除后将无法撤销。</div>
-      </Modal>
+          <DialogFooter>
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button variant="outline" onClick={downloadTemplateXlsx}>
+                {downloadingTpl ? `下载中 ${downloadProgress}%` : '下载导入模板'}
+              </Button>
+              <Button onClick={() => setShowImportModal(true)}>试题导入</Button>
+              <Button variant="outline" onClick={() => { setShowExamInfo(false); setExamInfo(null) }}>关闭</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>试题导入</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50" onDragOver={(e)=>{e.preventDefault()}} onDrop={(e)=>{e.preventDefault(); const f=e.dataTransfer.files?.[0]; if(f) handleFileImport(f)}}>
+              <div className="text-gray-700 mb-2">拖拽文件到此处，或点击选择文件</div>
+              <input type="file" accept=".txt,.docx,.pdf" onChange={(e) => e.target.files?.[0] && handleFileImport(e.target.files[0])} className="hidden" id="import-file-input" />
+              <label htmlFor="import-file-input" className="inline-block px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 cursor-pointer">选择文件</label>
+              {importing && (
+                <div className="mt-3 w-full bg-gray-200 rounded h-2">
+                  <div className="bg-primary-600 h-2 rounded" style={{ width: `${importProgress}%` }}></div>
+                </div>
+              )}
+              {importResult && (
+                <div className="mt-3 text-sm text-gray-700">成功 {importResult.success} · 失败 {importResult.failed}</div>
+              )}
+              <div className="mt-4 text-sm">
+                <Button variant="outline" onClick={downloadTemplateXlsx}>下载导入模板</Button>
+                <a href="#/knowledge-base" target="_blank" className="ml-3 text-primary-700 hover:underline">模板使用说明</a>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500">支持 .txt、.docx、.pdf。当前版本优先支持文本格式。</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={(open) => { if (!open) { setShowDeleteConfirm(false); setDeleteTargetId(null) } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>确认删除题目</DialogTitle>
+          </DialogHeader>
+          <div className="text-gray-700 py-4">确定要删除这道题目吗？删除后将无法撤销。</div>
+          <DialogFooter>
+            <div className="w-full flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteTargetId(null) }}>取消</Button>
+              <Button variant="destructive" onClick={confirmDeleteQuestion}>确认删除</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 删除试卷确认Modal */}
-      <Modal
-        isOpen={showDeleteExamModal}
-        onClose={() => { setShowDeleteExamModal(false); setExamToDelete(null) }}
-        title="确认删除试卷"
-        size="small"
-        zIndex={2000}
-        footer={(
-          <div className="w-full flex items-center justify-end gap-2">
-            <button onClick={() => { setShowDeleteExamModal(false); setExamToDelete(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
-            <button onClick={confirmDeleteExam} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">确认删除</button>
+      <Dialog open={showDeleteExamModal} onOpenChange={(open) => { if (!open) { setShowDeleteExamModal(false); setExamToDelete(null) } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>确认删除试卷</DialogTitle>
+          </DialogHeader>
+          <div className="text-gray-700 py-4">
+            确定要删除试卷 <span className="font-semibold text-gray-900">"{examToDelete?.title}"</span> 吗？
+            <div className="mt-2 text-sm text-gray-600">删除后试卷将移入回收站,可以在回收站中恢复。</div>
           </div>
-        )}
-      >
-        <div className="text-gray-700">
-          确定要删除试卷 <span className="font-semibold text-gray-900">"{examToDelete?.title}"</span> 吗？
-          <div className="mt-2 text-sm text-gray-600">删除后试卷将移入回收站,可以在回收站中恢复。</div>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <div className="w-full flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => { setShowDeleteExamModal(false); setExamToDelete(null) }}>取消</Button>
+              <Button variant="destructive" onClick={confirmDeleteExam}>确认删除</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       {/* 拖拽编辑器Modal */}
-      <Modal
-        isOpen={showEditorModal && selectedExam}
-        onClose={() => {
-          setShowEditorModal(false)
-          setSelectedExam(null)
-          setQuestions([])
-        }}
-        title={selectedExam ? `${selectedExam.title} - 题目编辑` : '题目编辑'}
-        size="wide"
-        footer={(
-          <>
-            <div className="text-sm text-gray-600">雷犀® 考核系统 · © 2025 LeiXi</div>
-            <div className="flex items-center gap-2">
-              <button onClick={saveOrder} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">保存顺序</button>
-              <button onClick={undoLast} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">撤销</button>
-              <button
-                onClick={() => {
-                  setShowEditorModal(false)
-                  setSelectedExam(null)
-                  setQuestions([])
-                }}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >关闭编辑</button>
-            </div>
-          </>
-        )}
-      >
-        <div className="flex-1 overflow-hidden flex flex-row gap-4">
+      <Dialog open={showEditorModal && selectedExam} onOpenChange={(open) => { if (!open) { setShowEditorModal(false); setSelectedExam(null); setQuestions([]) } }}>
+        <DialogContent className="max-w-[85vw] max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <DialogTitle>{selectedExam ? `${selectedExam.title} - 题目编辑` : '题目编辑'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden flex flex-row gap-4">
           {/* 左侧：题目列表 */}
           <div className="w-2/3 border-r border-gray-200 flex flex-col">
             <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -1849,69 +1818,79 @@ const ExamManagement = () => {
             </div>
           </div>
         </div>
-      </Modal>
+        <DialogFooter className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">雷犀® 考核系统 · © 2025 LeiXi</div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={saveOrder}>保存顺序</Button>
+            <Button variant="outline" onClick={undoLast}>撤销</Button>
+            <Button onClick={() => { setShowEditorModal(false); setSelectedExam(null); setQuestions([]) }}>关闭编辑</Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-      <Modal
-        isOpen={scoreModalOpen}
-        onClose={() => setScoreModalOpen(false)}
-        title="总分超出限制"
-        size="medium"
-      >
-        <div className="space-y-3">
-          <div className="text-red-600 font-semibold">试卷题目累计总分超过试卷设置总分</div>
-          <div className="text-sm text-gray-700">
-            当前总分：<span className="font-bold text-red-600">{scoreInfo.currentSum}</span>，试卷设置总分：<span className="font-bold">{scoreInfo.examTotal}</span>
+      <Dialog open={scoreModalOpen} onOpenChange={(open) => { if (!open) setScoreModalOpen(false) }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>总分超出限制</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="text-red-600 font-semibold">试卷题目累计总分超过试卷设置总分</div>
+            <div className="text-sm text-gray-700">
+              当前总分：<span className="font-bold text-red-600">{scoreInfo.currentSum}</span>，试卷设置总分：<span className="font-bold">{scoreInfo.examTotal}</span>
+            </div>
+            <div className="text-sm text-gray-600">请调整题目分值或数量，使累计总分不超过试卷设置总分。</div>
+            <div className="pt-2">
+              <Button onClick={() => setScoreModalOpen(false)}>确认</Button>
+            </div>
           </div>
-          <div className="text-sm text-gray-600">请调整题目分值或数量，使累计总分不超过试卷设置总分。</div>
-          <div className="pt-2">
-            <button onClick={() => setScoreModalOpen(false)} className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">确认</button>
-          </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* 已发布试卷编辑警告模态框 */}
-      <Modal
-        isOpen={showPublishedWarning}
-        onClose={() => setShowPublishedWarning(false)}
-        title="无法编辑已发布的试卷"
-        size="medium"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <span className="text-3xl">⚠️</span>
-            <div>
-              <div className="font-semibold text-yellow-800">该试卷已发布</div>
-              <div className="text-sm text-yellow-700 mt-1">
-                已发布的试卷不允许编辑，以确保考试的公平性和一致性。
+      <Dialog open={showPublishedWarning} onOpenChange={(open) => { if (!open) setShowPublishedWarning(false) }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>无法编辑已发布的试卷</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <span className="text-3xl">⚠️</span>
+              <div>
+                <div className="font-semibold text-yellow-800">该试卷已发布</div>
+                <div className="text-sm text-yellow-700 mt-1">
+                  已发布的试卷不允许编辑，以确保考试的公平性和一致性。
+                </div>
               </div>
             </div>
-          </div>
 
-          {selectedExam && (
-            <div className="text-sm text-gray-600 space-y-1">
-              <div><span className="font-medium">试卷名称：</span>{selectedExam.title}</div>
-              <div><span className="font-medium">发布状态：</span><span className="text-green-600 font-semibold">已发布</span></div>
+            {selectedExam && (
+              <div className="text-sm text-gray-600 space-y-1">
+                <div><span className="font-medium">试卷名称：</span>{selectedExam.title}</div>
+                <div><span className="font-medium">发布状态：</span><span className="text-green-600 font-semibold">已发布</span></div>
+              </div>
+            )}
+
+            <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+              <div className="font-medium mb-1">💡 建议：</div>
+              <ul className="list-disc list-inside space-y-1">
+                <li>如需修改，请先将试卷归档</li>
+                <li>或者创建一个新的试卷副本进行编辑</li>
+              </ul>
             </div>
-          )}
 
-          <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-            <div className="font-medium mb-1">💡 建议：</div>
-            <ul className="list-disc list-inside space-y-1">
-              <li>如需修改，请先将试卷归档</li>
-              <li>或者创建一个新的试卷副本进行编辑</li>
-            </ul>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowPublishedWarning(false)}
+                className="flex-1"
+              >
+                我知道了
+              </Button>
+            </div>
           </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => setShowPublishedWarning(false)}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              我知道了
-            </button>
-          </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

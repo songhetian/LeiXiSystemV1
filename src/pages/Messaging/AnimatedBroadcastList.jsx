@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -200,7 +201,7 @@ export default function AnimatedBroadcastList() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* 头部区域 - 带动画效果 */}
-      <motion.div 
+      <motion.div
         className="bg-white border-b border-gray-200 shadow-sm"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -209,7 +210,7 @@ export default function AnimatedBroadcastList() {
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-6">
             <div className="flex items-center gap-4">
-              <motion.div 
+              <motion.div
                 className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -217,7 +218,7 @@ export default function AnimatedBroadcastList() {
                 <SpeakerWaveIcon className="w-8 h-8 text-white" />
               </motion.div>
               <div>
-                <motion.h1 
+                <motion.h1
                   className="text-3xl font-bold text-gray-900"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -225,7 +226,7 @@ export default function AnimatedBroadcastList() {
                 >
                   系统广播
                 </motion.h1>
-                <motion.p 
+                <motion.p
                   className="text-gray-600 mt-1"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -235,13 +236,13 @@ export default function AnimatedBroadcastList() {
                 </motion.p>
               </div>
             </div>
-            <motion.div 
+            <motion.div
               className="flex gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <Button 
+              <Button
                 onClick={loadBroadcasts}
                 className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-medium shadow-md flex items-center gap-2"
                 whileHover={{ scale: 1.05 }}
@@ -258,7 +259,7 @@ export default function AnimatedBroadcastList() {
       </motion.div>
 
       {/* 快捷筛选按钮区域 */}
-      <motion.div 
+      <motion.div
         className="bg-white border-b border-gray-200 shadow-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -299,7 +300,7 @@ export default function AnimatedBroadcastList() {
       </motion.div>
 
       {/* 筛选区域 */}
-      <motion.div 
+      <motion.div
         className="bg-white border-b border-gray-200 shadow-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -320,7 +321,7 @@ export default function AnimatedBroadcastList() {
               </Button>
 
               {(filters.type || filters.isRead) && (
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -406,7 +407,7 @@ export default function AnimatedBroadcastList() {
                   </div>
 
                   {(filters.type || filters.isRead || quickFilter) && (
-                    <motion.div 
+                    <motion.div
                       className="mt-4 flex items-center justify-between"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -439,7 +440,7 @@ export default function AnimatedBroadcastList() {
           <div className="flex items-center justify-center h-full p-4">
             <MotionCard className="max-w-2xl w-full">
               <CardContent className="p-12 text-center">
-                <motion.div 
+                <motion.div
                   className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-blue-50"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -478,7 +479,7 @@ export default function AnimatedBroadcastList() {
           </div>
         ) : (
           <div className="h-full flex flex-col">
-            <motion.div 
+            <motion.div
               className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
               variants={containerVariants}
               initial="hidden"
@@ -563,7 +564,7 @@ export default function AnimatedBroadcastList() {
             </motion.div>
 
             {pagination.total > 0 && (
-              <motion.div 
+              <motion.div
                 className="bg-white border-t border-gray-200 p-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -685,7 +686,7 @@ export default function AnimatedBroadcastList() {
               </DialogHeader>
 
               <div className="p-8 overflow-y-auto max-h-[60vh]">
-                <motion.h2 
+                <motion.h2
                   className="text-2xl font-bold text-gray-900 mb-6"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -711,7 +712,7 @@ export default function AnimatedBroadcastList() {
                   transition={{ delay: 0.3 }}
                 >
                   <div className="flex items-center">
-                    <Badge 
+                    <Badge
                       className={`
                         px-3 py-1.5 rounded-full text-sm font-medium
                         ${selectedBroadcast.is_read

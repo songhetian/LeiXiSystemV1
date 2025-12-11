@@ -7,7 +7,7 @@ import { useTokenVerification } from './hooks/useTokenVerification'
 import { getApiUrl } from './utils/apiConfig'
 import { tokenManager, apiPost } from './utils/apiClient'
 import { clearPermissions } from './utils/permission'
-import { Spin } from 'antd'; // Import Spin for fallback
+// Removed Ant Design Spin import
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFound from './pages/NotFound'
 import { wsManager } from './services/websocket'
@@ -558,7 +558,7 @@ function App() {
                 onNavigate={handleSetActiveTab}
               />
               <div className="flex-1 overflow-auto">
-                <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
+                <Suspense fallback={<div className="flex justify-center items-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>}>
                   {renderContent()}
                 </Suspense>
               </div>

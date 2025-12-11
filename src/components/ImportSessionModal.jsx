@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Modal from './Modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { toast } from 'react-toastify';
 import qualityAPI from '../api/qualityAPI.js';
 import ExcelJS from 'exceljs';
-import { CloudUploadOutlined } from '@ant-design/icons';
+import { UploadCloud } from 'lucide-react';
 
 const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
     const [currentStep, setCurrentStep] = useState(1);
@@ -352,8 +352,12 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="导入会话">
-            <div className="p-6 min-w-[600px]">
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>导入会话</DialogTitle>
+                </DialogHeader>
+                <div className="p-2">
                 {/* Stepper */}
                 <div className="flex items-center justify-center mb-8">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getStepClass(1)}`}>
@@ -434,7 +438,7 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                                         onDrop={handleDrop}
                                     >
                                         <div className="space-y-1 text-center">
-                                            <CloudUploadOutlined className="mx-auto h-12 w-12 text-gray-400" style={{ fontSize: '48px' }} />
+                                            <UploadCloud className="mx-auto h-12 w-12 text-gray-400" style={{ fontSize: '48px' }} />
                                             <div className="flex text-sm text-gray-600">
                                                 <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
                                                     <span>{file ? file.name : '拖拽文件到此处 或 点击上传'}</span>
@@ -550,8 +554,9 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                         )}
                     </div>
                 </div>
-            </div>
-        </Modal>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 };
 

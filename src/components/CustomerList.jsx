@@ -3,6 +3,11 @@ import { toast } from 'react-toastify'
 import customerAPI from '../api/customerAPI.js'
 import Modal from './Modal'
 import CustomerForm from './CustomerForm'
+// 导入shadcn UI组件
+import { Button } from './ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { Card, CardContent } from './ui/card'
+import { Badge } from './ui/badge'
 
 const CustomerList = () => {
   const [customers, setCustomers] = useState([])
@@ -75,81 +80,78 @@ const CustomerList = () => {
 
   return (
     <div className="p-8">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">客服人员管理</h2>
-            <p className="text-gray-500 text-sm mt-1">共 {customers.length} 名客服人员</p>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">客服人员管理</h2>
+              <p className="text-gray-500 text-sm mt-1">共 {customers.length} 名客服人员</p>
+            </div>
+            <Button onClick={handleAdd}>
+              添加客服
+            </Button>
           </div>
-          <button
-            onClick={handleAdd}
-            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
-          >
-            <span className="text-xl">+</span>
-            <span>添加客服</span>
-          </button>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-primary-100 text-primary-800">
-                <th className="px-4 py-3 text-left rounded-tl-lg">姓名</th>
-                <th className="px-4 py-3 text-left">邮箱</th>
-                <th className="px-4 py-3 text-left">电话</th>
-                <th className="px-4 py-3 text-left">部门</th>
-                <th className="px-4 py-3 text-left">评级</th>
-                <th className="px-4 py-3 text-left">状态</th>
-                <th className="px-4 py-3 text-center rounded-tr-lg">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                    暂无数据
-                  </td>
-                </tr>
-              ) : (
-                customers.map((customer, index) => (
-                  <tr key={customer.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-4 py-3 font-medium">{customer.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{customer.email}</td>
-                    <td className="px-4 py-3 text-gray-600">{customer.phone}</td>
-                    <td className="px-4 py-3 text-gray-600">{customer.department || '客服部'}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-yellow-500">{'⭐'.repeat(customer.rating || 3)}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        customer.status === 'active'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {customer.status === 'active' ? '在职' : '离职'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleEdit(customer)}
-                        className="px-4 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mr-2"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="px-4 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                      >
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="rounded-tl-lg">姓名</TableHead>
+                  <TableHead>邮箱</TableHead>
+                  <TableHead>电话</TableHead>
+                  <TableHead>部门</TableHead>
+                  <TableHead>评级</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead className="text-center rounded-tr-lg">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                      暂无数据
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  customers.map((customer, index) => (
+                    <TableRow key={customer.id} className={index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'}>
+                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell>{customer.email}</TableCell>
+                      <TableCell>{customer.phone}</TableCell>
+                      <TableCell>{customer.department || '客服部'}</TableCell>
+                      <TableCell>
+                        <span className="text-yellow-500">{'⭐'.repeat(customer.rating || 3)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
+                          {customer.status === 'active' ? '在职' : '离职'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="mr-2"
+                          onClick={() => handleEdit(customer)}
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(customer.id)}
+                        >
+                          删除
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingCustomer ? '编辑客服' : '添加客服'}>
         <CustomerForm customer={editingCustomer} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />

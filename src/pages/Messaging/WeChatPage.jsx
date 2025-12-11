@@ -1,16 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import {
-  ArrowLeftOutlined,
-  MoreOutlined,
-  SmileOutlined,
-  AudioOutlined,
-  PhoneOutlined,
-  VideoCameraOutlined,
-  PictureOutlined,
-  FileOutlined,
-  CameraOutlined,
-  EnvironmentOutlined,
-} from '@ant-design/icons';
+import { Smile } from 'lucide-react';
 import { tokenManager, apiGet, apiPost } from '../../utils/apiClient';
 import "./BroadcastPage.css";
 
@@ -768,7 +757,7 @@ const WeChatPage = () => {
             selectedContact ? (
               <div className="input-controls">
                 <div className="input-btn">
-                  <SmileOutlined />
+                  <Smile />
                 </div>
                 <div className="input-wrapper">
                   <input

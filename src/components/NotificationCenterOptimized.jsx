@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
@@ -77,7 +78,7 @@ const NotificationCenterOptimized = () => {
   };
 
   const markAsRead = (id) => {
-    setNotifications(notifications.map(notification => 
+    setNotifications(notifications.map(notification =>
       notification.id === id ? { ...notification, read: true } : notification
     ));
     toast.success('通知已标记为已读');
@@ -111,7 +112,7 @@ const NotificationCenterOptimized = () => {
     return notifications.filter(n => !n.read).length;
   };
 
-  
+
 
   return (
     <motion.div
@@ -148,8 +149,8 @@ const NotificationCenterOptimized = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.2 }}
                   className={`p-4 rounded-lg border transition-all hover:shadow-md ${
-                    !notification.read 
-                      ? 'bg-blue-50 border-blue-200' 
+                    !notification.read
+                      ? 'bg-blue-50 border-blue-200'
                       : 'bg-white border-gray-200'
                   }`}
                 >
@@ -167,10 +168,10 @@ const NotificationCenterOptimized = () => {
                             <Badge variant="destructive">未读</Badge>
                           )}
                           <Badge className={getColorByType(notification.type)}>
-                            {notification.type === 'system' 
-                              ? '系统' 
-                              : notification.type === 'warning' 
-                                ? '警告' 
+                            {notification.type === 'system'
+                              ? '系统'
+                              : notification.type === 'warning'
+                                ? '警告'
                                 : '成功'}
                           </Badge>
                         </div>
@@ -182,9 +183,9 @@ const NotificationCenterOptimized = () => {
                         <span>{notification.time}</span>
                         <div className="flex space-x-2">
                           {!notification.read && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 markAsRead(notification.id);
@@ -193,9 +194,9 @@ const NotificationCenterOptimized = () => {
                               标记已读
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteNotification(notification.id);

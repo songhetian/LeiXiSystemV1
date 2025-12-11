@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, message, Spin, Typography, Tag, Descriptions, Table, Timeline } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Line, Radar, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, RadialLinearScale, Filler, BarElement, Title as ChartTitle, Tooltip, Legend } from 'chart.js';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, RadialLinearScale, Filler, BarElement, ChartTitle, Tooltip, Legend);
-
-const { Title, Text, Paragraph } = Typography;
 
 const UserAnalysis = () => {
   const { userId } = useParams();
@@ -29,7 +32,7 @@ const UserAnalysis = () => {
       });
       setUserAnalysis(response.data.data);
     } catch (error) {
-      message.error(`获取用户分析失败: ${error.response?.data?.message || error.message}`);
+      toast.error(`获取用户分析失败: ${error.response?.data?.message || error.message}`);
       console.error('Failed to fetch user analysis:', error);
       navigate('/users'); // Navigate back to user list or dashboard
     } finally {
@@ -118,20 +121,27 @@ const UserAnalysis = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <Spin size="large" tip="加载中..." />
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-lg">加载中...</span>
       </div>
     );
   }
 
   if (!userAnalysis) {
     return (
-      <div style={{ padding: 24 }}>
-        <Card title="用户成绩分析">
-          <p>无法加载用户成绩分析数据。</p>
-          <Button type="primary" onClick={() => navigate('/users')} icon={<ArrowLeftOutlined />}>
-            返回用户列表
-          </Button>
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>用户成绩分析</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">无法加载用户成绩分析数据。</p>
+            <Button onClick={() => navigate('/users')} className="flex items-center">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回用户列表
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -140,82 +150,134 @@ const UserAnalysis = () => {
   const { user_info, overall_stats, exam_history } = userAnalysis;
 
   return (
-    <div style={{ padding: 24 }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="default" onClick={() => navigate('/users')} icon={<ArrowLeftOutlined />}>
+    <div className="p-6">
+      <div className="mb-4">
+        <Button variant="outline" onClick={() => navigate('/users')} className="flex items-center">
+          <ArrowLeft className="mr-2 h-4 w-4" />
           返回用户列表
         </Button>
-      </Space>
+      </div>
 
-      <Card title={`用户成绩分析 - ${user_info.real_name || user_info.username}`} style={{ marginBottom: 16 }}>
-        {/* 个人成绩概览卡片 */}
-        <Card title="个人成绩概览" style={{ marginBottom: 16 }}>
-          <Descriptions bordered column={{ xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}>
-            <Descriptions.Item label="参加考试次数">{overall_stats.total_exams}</Descriptions.Item>
-            <Descriptions.Item label="平均分">{overall_stats.average_score?.toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="通过率">{`${(overall_stats.pass_rate * 100).toFixed(2)}%`}</Descriptions.Item>
-            <Descriptions.Item label="最佳成绩">{overall_stats.best_score?.toFixed(2)}</Descriptions.Item>
-          </Descriptions>
-        </Card>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>用户成绩分析 - {user_info.real_name || user_info.username}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* 个人成绩概览卡片 */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>个人成绩概览</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="border rounded-lg p-4">
+                  <div className="text-sm text-gray-500">参加考试次数</div>
+                  <div className="text-2xl font-bold">{overall_stats.total_exams}</div>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <div className="text-sm text-gray-500">平均分</div>
+                  <div className="text-2xl font-bold">{overall_stats.average_score?.toFixed(2)}</div>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <div className="text-sm text-gray-500">通过率</div>
+                  <div className="text-2xl font-bold">{`${(overall_stats.pass_rate * 100).toFixed(2)}%`}</div>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <div className="text-sm text-gray-500">最佳成绩</div>
+                  <div className="text-2xl font-bold">{overall_stats.best_score?.toFixed(2)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* 成绩趋势图 */}
-        <Card title="成绩趋势" style={{ marginBottom: 16 }}>
-          <div style={{ height: '300px' }}>
-            {getScoreTrendData().labels.length > 0 ? (
-              <Line data={getScoreTrendData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '成绩趋势' } } }} />
-            ) : (
-              <Paragraph>暂无成绩趋势数据。</Paragraph>
-            )}
-          </div>
-        </Card>
+          {/* 成绩趋势图 */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>成绩趋势</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ height: '300px' }}>
+                {getScoreTrendData().labels.length > 0 ? (
+                  <Line data={getScoreTrendData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '成绩趋势' } } }} />
+                ) : (
+                  <p>暂无成绩趋势数据。</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* 强弱项分析（雷达图） */}
-        <Card title="强弱项分析 (按题型)" style={{ marginBottom: 16 }}>
-          <div style={{ height: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {getStrengthsWeaknessesData().labels.length > 0 ? (
-              <Radar data={getStrengthsWeaknessesData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '题型正确率' } }, scales: { r: { beginAtZero: true, min: 0, max: 100 } } }} />
-            ) : (
-              <Paragraph>暂无强弱项分析数据。</Paragraph>
-            )}
-          </div>
-        </Card>
+          {/* 强弱项分析（雷达图） */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>强弱项分析 (按题型)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ height: '300px' }} className="flex justify-center items-center">
+                {getStrengthsWeaknessesData().labels.length > 0 ? (
+                  <Radar data={getStrengthsWeaknessesData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '题型正确率' } }, scales: { r: { beginAtZero: true, min: 0, max: 100 } } }} />
+                ) : (
+                  <p>暂无强弱项分析数据。</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* 与平均分对比（柱状图） */}
-        <Card title="与平均分对比" style={{ marginBottom: 16 }}>
-          <div style={{ height: '300px' }}>
-            {getComparisonWithAverageData().labels.length > 0 ? (
-              <Bar data={getComparisonWithAverageData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '我的成绩与平均分对比' } } }} />
-            ) : (
-              <Paragraph>暂无对比数据。</Paragraph>
-            )}
-          </div>
-        </Card>
+          {/* 与平均分对比（柱状图） */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>与平均分对比</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div style={{ height: '300px' }}>
+                {getComparisonWithAverageData().labels.length > 0 ? (
+                  <Bar data={getComparisonWithAverageData()} options={{ responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '我的成绩与平均分对比' } } }} />
+                ) : (
+                  <p>暂无对比数据。</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* 考试历史记录（时间轴） */}
-        <Card title="考试历史记录">
-          {exam_history.length > 0 ? (
-            <Timeline mode="left">
-              {exam_history.map((record, index) => (
-                <Timeline.Item key={index} color={record.is_passed ? 'green' : 'red'}>
-                  <Paragraph>
-                    <Text strong>{dayjs(record.submit_time).format('YYYY-MM-DD HH:mm')}</Text> - {record.exam_title}
-                  </Paragraph>
-                  <Paragraph>
-                    成绩: <Text strong>{record.score?.toFixed(2)}</Text> / {record.total_score}
-                    <Tag color={record.is_passed ? 'success' : 'error'} style={{ marginLeft: 8 }}>
-                      {record.is_passed ? '通过' : '未通过'}
-                    </Tag>
-                  </Paragraph>
-                  <Button size="small" onClick={() => navigate(`/assessment/results/${record.result_id}/result`)}>
-                    查看详情
-                  </Button>
-                </Timeline.Item>
-              ))}
-            </Timeline>
-          ) : (
-            <Paragraph>暂无考试历史记录。</Paragraph>
-          )}
-        </Card>
+          {/* 考试历史记录（时间轴） */}
+          <Card>
+            <CardHeader>
+              <CardTitle>考试历史记录</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {exam_history.length > 0 ? (
+                <div className="space-y-6">
+                  {exam_history.map((record, index) => (
+                    <div key={index} className="flex">
+                      <div className="flex flex-col items-center mr-4">
+                        <div className={`w-3 h-3 rounded-full ${record.is_passed ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        {index !== exam_history.length - 1 && <div className="h-full w-0.5 bg-gray-200"></div>}
+                      </div>
+                      <div className="flex-1 pb-6">
+                        <div className="font-semibold">{dayjs(record.submit_time).format('YYYY-MM-DD HH:mm')} - {record.exam_title}</div>
+                        <div className="mt-2">
+                          成绩: <span className="font-semibold">{record.score?.toFixed(2)}</span> / {record.total_score}
+                          <Badge variant={record.is_passed ? "default" : "destructive"} className="ml-2">
+                            {record.is_passed ? '通过' : '未通过'}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => navigate(`/assessment/results/${record.result_id}/result`)}
+                        >
+                          查看详情
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>暂无考试历史记录。</p>
+              )}
+            </CardContent>
+          </Card>
+        </CardContent>
       </Card>
     </div>
   );

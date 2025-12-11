@@ -1,18 +1,19 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Bell, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  Calendar, 
-  FileText, 
-  Trash2, 
-  Search, 
-  Filter, 
-  X, 
-  Check, 
-  ChevronDown, 
+import {
+  Bell,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Calendar,
+  FileText,
+  Trash2,
+  Search,
+  Filter,
+  X,
+  Check,
+  ChevronDown,
   ChevronUp,
   Eye,
   CheckCheck,
@@ -100,7 +101,7 @@ export default function MyNotificationsOptimized({ unreadCount: propUnreadCount,
     try {
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       // 模拟通知数据
       const mockNotifications = [
         {
@@ -214,8 +215,8 @@ export default function MyNotificationsOptimized({ unreadCount: propUnreadCount,
       return;
     }
     try {
-      setNotifications(prev => 
-        prev.map(n => 
+      setNotifications(prev =>
+        prev.map(n =>
           selectedIds.includes(n.id) ? { ...n, is_read: true } : n
         )
       );
@@ -410,8 +411,8 @@ export default function MyNotificationsOptimized({ unreadCount: propUnreadCount,
                 </Button>
               </>
             )}
-            <Button 
-              onClick={markAllAsRead} 
+            <Button
+              onClick={markAllAsRead}
               variant="outline"
               disabled={unreadCount === 0}
             >
@@ -476,22 +477,22 @@ export default function MyNotificationsOptimized({ unreadCount: propUnreadCount,
 
           {/* 快速日期筛选 */}
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('today')}
             >
               今天
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('week')}
             >
               本周
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('month')}
             >
@@ -769,7 +770,7 @@ export default function MyNotificationsOptimized({ unreadCount: propUnreadCount,
                 </div>
               </div>
             </DialogHeader>
-            
+
             <div className="py-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">{selectedNotification.title}</h3>
               <div className="bg-gray-50 p-4 rounded-lg text-gray-700 leading-relaxed whitespace-pre-wrap">

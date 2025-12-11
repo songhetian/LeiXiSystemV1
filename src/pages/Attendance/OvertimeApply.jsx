@@ -1,11 +1,14 @@
+// [SHADCN-REPLACED]
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion } from 'framer-motion'
-import { DatePicker, TimePicker, Input } from 'antd';
-import dayjs from 'dayjs';
-import locale from 'antd/es/date-picker/locale/zh_CN';
+import dayjs from 'dayjs'
+import { Calendar } from '../../components/ui/calendar'
+import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover'
+import { Input } from '../../components/ui/input'
+import { Textarea } from '../../components/ui/textarea'
 
 export default function OvertimeApply() {
   const [formData, setFormData] = useState({
@@ -184,45 +187,50 @@ export default function OvertimeApply() {
                     明天
                   </button>
                 </div>
-                <DatePicker
-                  className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
-                  onChange={(date, dateString) => handleDateChange(date, dateString, 'overtime_date')}
-                  locale={locale}
-                  placeholder="选择日期"
-                  value={formData.overtime_date ? dayjs(formData.overtime_date) : null}
-                  disabledDate={(current) => {
-                    // 不能选择今天之前的日期
-                    return current && current < dayjs().startOf('day');
-                  }}
-                  format="YYYY-MM-DD"
-                  allowClear
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full h-[42px] rounded-xl border border-gray-200 bg-white shadow-sm px-3 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                      {formData.overtime_date ? dayjs(formData.overtime_date).format('YYYY-MM-DD') : '选择日期'}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.overtime_date ? new Date(formData.overtime_date) : undefined}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        const dateString = dayjs(date).format('YYYY-MM-DD');
+                        handleDateChange(date, dateString, 'overtime_date');
+                      }}
+                      disabled={{ before: dayjs().startOf('day').toDate() }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* 时间范围 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">开始时间</label>
-                  <TimePicker
-                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
-                    onChange={(time, timeString) => handleTimeChange(time, timeString, 'start_time')}
-                    format="HH:mm"
-                    placeholder="选择时间"
-                    value={formData.start_time ? dayjs(formData.start_time, 'HH:mm') : null}
-                    minuteStep={30}
-                    allowClear
+                  <Input
+                    type="time"
+                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    value={formData.start_time || ''}
+                    step={1800}
+                    onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">结束时间</label>
-                  <TimePicker
-                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
-                    onChange={(time, timeString) => handleTimeChange(time, timeString, 'end_time')}
-                    format="HH:mm"
-                    placeholder="选择时间"
-                    value={formData.end_time ? dayjs(formData.end_time, 'HH:mm') : null}
-                    minuteStep={30}
-                    allowClear
+                  <Input
+                    type="time"
+                    className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    value={formData.end_time || ''}
+                    step={1800}
+                    onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
                   />
                 </div>
               </div>
@@ -263,13 +271,12 @@ export default function OvertimeApply() {
               {/* 加班原因 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">加班原因</label>
-                <Input.TextArea
+                <Textarea
                   rows={4}
                   value={formData.reason}
                   onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
                   placeholder="请详细说明加班原因和工作内容..."
                   className="rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow resize-none"
-                  showCount
                   maxLength={200}
                 />
               </div>

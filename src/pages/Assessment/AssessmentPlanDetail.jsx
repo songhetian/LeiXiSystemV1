@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Descriptions, Button, Space, Tag, message, Spin, Table } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EditOutlined, ArrowLeftOutlined, ExportOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { toast } from 'react-toastify';
+
+// 导入 shadcn UI 组件
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Edit, ArrowLeft, Download, Eye } from 'lucide-react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -30,7 +35,7 @@ const AssessmentPlanDetail = () => {
       });
       setPlan(response.data.data);
     } catch (error) {
-      message.error('获取考核计划详情失败');
+      toast.error('获取考核计划详情失败');
       console.error('Failed to fetch assessment plan details:', error);
     } finally {
       setLoading(false);
@@ -44,7 +49,7 @@ const AssessmentPlanDetail = () => {
       });
       setParticipants(response.data.data.participants);
     } catch (error) {
-      message.error('获取参与者列表失败');
+      toast.error('获取参与者列表失败');
       console.error('Failed to fetch participants:', error);
     }
   };
@@ -88,96 +93,53 @@ const AssessmentPlanDetail = () => {
     }
   };
 
-  const getStatusTag = (status) => {
+  const getStatusBadge = (status) => {
     switch (status) {
       case 'draft':
-        return <Tag color="default">草稿</Tag>;
+        return <Badge variant="secondary">草稿</Badge>;
       case 'published':
-        return <Tag color="processing">已发布</Tag>;
+        return <Badge variant="default">已发布</Badge>;
       case 'ongoing':
-        return <Tag color="blue">进行中</Tag>;
+        return <Badge variant="default">进行中</Badge>;
       case 'completed':
-        return <Tag color="success">已完成</Tag>;
+        return <Badge variant="secondary">已完成</Badge>;
       case 'cancelled':
-        return <Tag color="error">已取消</Tag>;
+        return <Badge variant="destructive">已取消</Badge>;
       default:
-        return <Tag>{status}</Tag>;
+        return <Badge>{status}</Badge>;
     }
   };
 
-  const participantColumns = [
-    {
-      title: '用户',
-      dataIndex: 'username',
-      key: 'username',
-      render: (text, record) => record.real_name || text,
-    },
-    {
-      title: '完成状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        switch (status) {
-          case 'in_progress': return <Tag color="blue">进行中</Tag>;
-          case 'submitted': return <Tag color="warning">待评分</Tag>;
-          case 'graded': return <Tag color="success">已评分</Tag>;
-          case 'expired': return <Tag color="error">已过期</Tag>;
-          default: return <Tag>{status}</Tag>;
-        }
-      },
-    },
-    {
-      title: '考试成绩',
-      dataIndex: 'score',
-      key: 'score',
-      render: (score) => score !== null ? score.toFixed(2) : '-',
-    },
-    {
-      title: '通过',
-      dataIndex: 'is_passed',
-      key: 'is_passed',
-      render: (isPassed) => isPassed ? <Tag color="success">是</Tag> : <Tag color="error">否</Tag>,
-    },
-    {
-      title: '尝试次数',
-      dataIndex: 'attempt_number',
-      key: 'attempt_number',
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => navigate(`/assessment/results/${record.result_id}/result`)}>查看结果</Button>
-          {record.status === 'submitted' && (
-            <Button icon={<EditOutlined />} onClick={() => message.info('人工评分功能待实现')}>人工评分</Button>
-          )}
-        </Space>
-      ),
-    },
-  ];
-
   const handleExport = () => {
-    message.info('导出功能待实现');
+    toast.info('导出功能待实现');
     // Implement Excel export logic here
   };
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <Spin size="large" tip="加载中..." />
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mr-2"></div>
+        <span>加载中...</span>
       </div>
     );
   }
 
   if (!plan) {
     return (
-      <div style={{ padding: 24 }}>
-        <Card title="考核计划详情">
-          <p>考核计划不存在或加载失败。</p>
-          <Button type="primary" onClick={() => navigate('/assessment/plans')} icon={<ArrowLeftOutlined />}>
-            返回计划列表
-          </Button>
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>考核计划详情</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>考核计划不存在或加载失败。</p>
+            <div className="mt-4">
+              <Button onClick={() => navigate('/assessment/plans')}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                返回计划列表
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -188,58 +150,166 @@ const AssessmentPlanDetail = () => {
   const passRate = plan.pass_rate !== undefined ? (plan.pass_rate * 100).toFixed(2) : 'N/A';
   const averageScore = plan.average_score !== undefined ? plan.average_score.toFixed(2) : 'N/A';
 
+  // Render table rows directly since we're not using Ant Design's Table anymore
+  const renderParticipantRows = () => {
+    return participants.map((record) => (
+      <tr key={record.result_id} className="border-b">
+        <td className="p-2">{record.real_name || record.username}</td>
+        <td className="p-2">
+          {(() => {
+            switch (record.status) {
+              case 'in_progress': return <Badge variant="default">进行中</Badge>;
+              case 'submitted': return <Badge variant="secondary">待评分</Badge>;
+              case 'graded': return <Badge variant="secondary">已评分</Badge>;
+              case 'expired': return <Badge variant="destructive">已过期</Badge>;
+              default: return <Badge>{record.status}</Badge>;
+            }
+          })()}
+        </td>
+        <td className="p-2">{record.score !== null ? record.score.toFixed(2) : '-'}</td>
+        <td className="p-2">
+          {record.is_passed ? <Badge variant="secondary">是</Badge> : <Badge variant="destructive">否</Badge>}
+        </td>
+        <td className="p-2">{record.attempt_number}</td>
+        <td className="p-2">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/assessment/results/${record.result_id}/result`)}>
+              <Eye className="mr-1 h-4 w-4" />
+              查看结果
+            </Button>
+            {record.status === 'submitted' && (
+              <Button variant="outline" size="sm" onClick={() => toast.info('人工评分功能待实现')}>
+                <Edit className="mr-1 h-4 w-4" />
+                人工评分
+              </Button>
+            )}
+          </div>
+        </td>
+      </tr>
+    ));
+  };
+
   return (
-    <div style={{ padding: 24 }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="default" onClick={() => navigate('/assessment/plans')} icon={<ArrowLeftOutlined />}>
+    <div className="p-6">
+      <div className="flex gap-2 mb-4">
+        <Button variant="outline" onClick={() => navigate('/assessment/plans')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
           返回计划列表
         </Button>
-        <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/assessment/plans/${id}/edit`)}>
+        <Button onClick={() => navigate(`/assessment/plans/${id}/edit`)}>
+          <Edit className="mr-2 h-4 w-4" />
           编辑计划
         </Button>
-        <Button icon={<ExportOutlined />} onClick={handleExport}>
+        <Button variant="outline" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" />
           导出数据
         </Button>
-      </Space>
+      </div>
 
-      <Card title="计划基本信息" style={{ marginBottom: 16 }}>
-        <Descriptions bordered column={{ xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}>
-          <Descriptions.Item label="标题">{plan.title}</Descriptions.Item>
-          <Descriptions.Item label="试卷">{plan.exam_title}</Descriptions.Item>
-          <Descriptions.Item label="状态">{getStatusTag(plan.status)}</Descriptions.Item>
-          <Descriptions.Item label="开始时间">{dayjs(plan.start_time).format('YYYY-MM-DD HH:mm')}</Descriptions.Item>
-          <Descriptions.Item label="结束时间">{dayjs(plan.end_time).format('YYYY-MM-DD HH:mm')}</Descriptions.Item>
-          <Descriptions.Item label="最大尝试次数">{plan.max_attempts}</Descriptions.Item>
-          <Descriptions.Item label="描述" span={3}>{plan.description || '无'}</Descriptions.Item>
-        </Descriptions>
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>计划基本信息</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border rounded p-3">
+              <div className="text-sm text-gray-500">标题</div>
+              <div className="font-medium">{plan.title}</div>
+            </div>
+            <div className="border rounded p-3">
+              <div className="text-sm text-gray-500">试卷</div>
+              <div className="font-medium">{plan.exam_title}</div>
+            </div>
+            <div className="border rounded p-3">
+              <div className="text-sm text-gray-500">状态</div>
+              <div className="font-medium">{getStatusBadge(plan.status)}</div>
+            </div>
+            <div className="border rounded p-3">
+              <div className="text-sm text-gray-500">开始时间</div>
+              <div className="font-medium">{dayjs(plan.start_time).format('YYYY-MM-DD HH:mm')}</div>
+            </div>
+            <div className="border rounded p-3">
+              <div className="text-sm text-gray-500">结束时间</div>
+              <div className="font-medium">{dayjs(plan.end_time).format('YYYY-MM-DD HH:mm')}</div>
+            </div>
+            <div className="border rounded p-3">
+              <div className="text-sm text-gray-500">最大尝试次数</div>
+              <div className="font-medium">{plan.max_attempts}</div>
+            </div>
+            <div className="border rounded p-3 md:col-span-3">
+              <div className="text-sm text-gray-500">描述</div>
+              <div className="font-medium">{plan.description || '无'}</div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card title="完成情况统计" style={{ marginBottom: 16 }}>
-        <Descriptions bordered column={{ xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}>
-          <Descriptions.Item label="总人数">{totalParticipants}</Descriptions.Item>
-          <Descriptions.Item label="已完成">{completedCount}</Descriptions.Item>
-          <Descriptions.Item label="未完成">{totalParticipants - completedCount}</Descriptions.Item>
-          <Descriptions.Item label="通过率">{passRate}%</Descriptions.Item>
-          <Descriptions.Item label="平均分">{averageScore}</Descriptions.Item>
-        </Descriptions>
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>完成情况统计</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="border rounded p-3 text-center">
+              <div className="text-sm text-gray-500">总人数</div>
+              <div className="text-2xl font-bold">{totalParticipants}</div>
+            </div>
+            <div className="border rounded p-3 text-center">
+              <div className="text-sm text-gray-500">已完成</div>
+              <div className="text-2xl font-bold">{completedCount}</div>
+            </div>
+            <div className="border rounded p-3 text-center">
+              <div className="text-sm text-gray-500">未完成</div>
+              <div className="text-2xl font-bold">{totalParticipants - completedCount}</div>
+            </div>
+            <div className="border rounded p-3 text-center">
+              <div className="text-sm text-gray-500">通过率</div>
+              <div className="text-2xl font-bold">{passRate}%</div>
+            </div>
+            <div className="border rounded p-3 text-center">
+              <div className="text-sm text-gray-500">平均分</div>
+              <div className="text-2xl font-bold">{averageScore}</div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card title="参与者列表" style={{ marginBottom: 16 }}>
-        <Table
-          columns={participantColumns}
-          dataSource={participants}
-          rowKey="result_id"
-          pagination={{ pageSize: 5 }}
-          scroll={{ x: 'max-content' }}
-        />
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>参与者列表</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-2 text-left">用户</th>
+                  <th className="p-2 text-left">完成状态</th>
+                  <th className="p-2 text-left">考试成绩</th>
+                  <th className="p-2 text-left">通过</th>
+                  <th className="p-2 text-left">尝试次数</th>
+                  <th className="p-2 text-left">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {renderParticipantRows()}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card title="成绩分布图表">
-        {scoreDistributionData.labels ? (
-          <Bar data={scoreDistributionData} options={{ responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: '成绩分布' } } }} />
-        ) : (
-          <p>暂无成绩分布数据。</p>
-        )}
+      <Card>
+        <CardHeader>
+          <CardTitle>成绩分布图表</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {scoreDistributionData.labels ? (
+            <Bar data={scoreDistributionData} options={{ responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: '成绩分布' } } }} />
+          ) : (
+            <p>暂无成绩分布数据。</p>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

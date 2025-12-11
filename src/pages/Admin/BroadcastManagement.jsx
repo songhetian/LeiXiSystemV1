@@ -1,25 +1,24 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { getApiUrl } from '../../utils/apiConfig'
-import { Table, Button, Modal, Form, Input, Select, Tag, message, Card, Space, Tooltip, Tabs } from 'antd'
-import {
-  SoundOutlined,
-  PlusOutlined,
-  UserOutlined,
-  TeamOutlined,
-  ApartmentOutlined,
-  InfoCircleOutlined,
-  WarningOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  NotificationOutlined
-} from '@ant-design/icons'
-import './BroadcastManagement.css'
+import { toast } from 'react-toastify'
 
-const { Option } = Select
-const { TextArea } = Input
-const { TabPane } = Tabs
-
+// 导入 shadcn UI 组件
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Textarea } from "../../components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
+import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card"
+import { Badge } from "../../components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs"
+import { Avatar, AvatarFallback } from "../../components/ui/avatar"
+import { ScrollArea } from "../../components/ui/scroll-area"
+import { Label } from "../../components/ui/label"
+import { Switch } from "../../components/ui/switch"
+import { Separator } from "../../components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip"
 const BroadcastManagement = () => {
   const [broadcasts, setBroadcasts] = useState([])
   const [loading, setLoading] = useState(false)
@@ -27,8 +26,16 @@ const BroadcastManagement = () => {
   const [departments, setDepartments] = useState([])
   const [employees, setEmployees] = useState([])
   const [submitting, setSubmitting] = useState(false)
-  const [form] = Form.useForm()
-
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    type: 'info',
+    priority: 'normal',
+    targetType: 'all',
+    targetDepartments: [],
+    targetRoles: [],
+    targetUsers: []
+  })
   // 新增状态用于广播模式
   const [activeTab, setActiveTab] = useState('management') // 'management' 管理模式, 'broadcast' 广播模式
   const [broadcastTitle, setBroadcastTitle] = useState('')
@@ -166,7 +173,7 @@ const BroadcastManagement = () => {
       }
     } catch (error) {
       console.error('加载广播列表失败:', error)
-      message.error('加载广播列表失败')
+      toast.error('加载广播列表失败')
     } finally {
       setLoading(false)
     }
@@ -198,14 +205,18 @@ const BroadcastManagement = () => {
     }
   }
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async () => {
     setSubmitting(true)
     try {
       const payload = {
-        ...values,
-        targetDepartments: values.targetType === 'department' ? JSON.stringify(values.targetDepartments) : null,
-        targetRoles: values.targetType === 'role' ? JSON.stringify(values.targetRoles) : null,
-        targetUsers: values.targetType === 'individual' ? JSON.stringify(values.targetUsers) : null
+        title: formData.title,
+        content: formData.content,
+        type: formData.type,
+        priority: formData.priority,
+        targetType: formData.targetType,
+        targetDepartments: formData.targetType === 'department' ? JSON.stringify(formData.targetDepartments) : null,
+        targetRoles: formData.targetType === 'role' ? JSON.stringify(formData.targetRoles) : null,
+        targetUsers: formData.targetType === 'individual' ? JSON.stringify(formData.targetUsers) : null
       }
 
       const response = await axios.post(getApiUrl('/api/broadcasts'), payload, {
@@ -213,23 +224,31 @@ const BroadcastManagement = () => {
       })
 
       if (response.data.success) {
-        message.success(`广播发送成功！已发送给 ${response.data.data.recipientCount} 人`)
+        toast.success(`广播发送成功！已发送给 ${response.data.data.recipientCount} 人`)
         setModalVisible(false)
-        form.resetFields()
+        setFormData({
+          title: '',
+          content: '',
+          type: 'info',
+          priority: 'normal',
+          targetType: 'all',
+          targetDepartments: [],
+          targetRoles: [],
+          targetUsers: []
+        })
         loadBroadcasts()
       }
     } catch (error) {
       console.error('发送广播失败:', error)
-      message.error(error.response?.data?.message || '发送失败')
+      toast.error(error.response?.data?.message || '发送失败')
     } finally {
       setSubmitting(false)
     }
   }
-
   // 处理发送广播（广播模式）
   const handleSendBroadcast = async () => {
     if (!broadcastContent.trim() || selectedRecipients.length === 0) {
-      message.error('请填写广播内容并选择接收人')
+      toast.error('请填写广播内容并选择接收人')
       return
     }
 
@@ -264,7 +283,7 @@ const BroadcastManagement = () => {
       })
 
       if (response.data.success) {
-        message.success(`广播发送成功！已发送给 ${response.data.data.recipientCount} 人`)
+        toast.success(`广播发送成功！已发送给 ${response.data.data.recipientCount} 人`)
         // 重置表单
         setBroadcastTitle('')
         setBroadcastContent('')
@@ -273,7 +292,7 @@ const BroadcastManagement = () => {
       }
     } catch (error) {
       console.error('发送广播失败:', error)
-      message.error(error.response?.data?.message || '发送失败')
+      toast.error(error.response?.data?.message || '发送失败')
     } finally {
       setSubmitting(false)
     }
@@ -308,39 +327,56 @@ const BroadcastManagement = () => {
   }
 
   const typeOptions = [
-    { value: 'info', label: '信息', icon: <InfoCircleOutlined style={{ color: '#1890ff' }} /> },
-    { value: 'warning', label: '警告', icon: <WarningOutlined style={{ color: '#faad14' }} /> },
-    { value: 'success', label: '成功', icon: <CheckCircleOutlined style={{ color: '#52c41a' }} /> },
-    { value: 'error', label: '错误', icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> },
-    { value: 'announcement', label: '公告', icon: <NotificationOutlined style={{ color: '#722ed1' }} /> }
+    { value: 'info', label: '信息', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="#1890ff">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+      </svg> },
+    { value: 'warning', label: '警告', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="#faad14">
+        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+      </svg> },
+    { value: 'success', label: '成功', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="#52c41a">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+      </svg> },
+    { value: 'error', label: '错误', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="#ff4d4f">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+      </svg> },
+    { value: 'announcement', label: '公告', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="#722ed1">
+        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+      </svg> }
   ]
 
   const priorityOptions = [
-    { value: 'low', label: '低', color: 'default' },
-    { value: 'normal', label: '普通', color: 'blue' },
-    { value: 'high', label: '高', color: 'orange' },
-    { value: 'urgent', label: '紧急', color: 'red' }
+    { value: 'low', label: '低', color: 'secondary' },
+    { value: 'normal', label: '普通', color: 'default' },
+    { value: 'high', label: '高', color: 'warning' },
+    { value: 'urgent', label: '紧急', color: 'destructive' }
   ]
 
   const targetTypeOptions = [
-    { value: 'all', label: '全体员工', icon: <TeamOutlined /> },
-    { value: 'department', label: '指定部门', icon: <ApartmentOutlined /> },
-    { value: 'role', label: '指定角色', icon: <UserOutlined /> },
-    { value: 'individual', label: '指定个人', icon: <UserOutlined /> }
+    { value: 'all', label: '全体员工', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+      </svg> },
+    { value: 'department', label: '指定部门', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+      </svg> },
+    { value: 'role', label: '指定角色', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+      </svg> },
+    { value: 'individual', label: '指定个人', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+      </svg> }
   ]
 
   const roleOptions = ['超级管理员', '部门管理员', '普通员工']
-
   const columns = [
     {
       title: '标题',
       dataIndex: 'title',
       key: 'title',
       render: (text, record) => (
-        <Space>
+        <div className="flex items-center gap-2">
           {typeOptions.find(t => t.value === record.type)?.icon}
           <span style={{ fontWeight: 500 }}>{text}</span>
-        </Space>
+        </div>
       )
     },
     {
@@ -349,7 +385,7 @@ const BroadcastManagement = () => {
       key: 'type',
       render: (type) => {
         const option = typeOptions.find(t => t.value === type)
-        return <Tag>{option?.label || type}</Tag>
+        return <Badge variant="secondary">{option?.label || type}</Badge>
       }
     },
     {
@@ -358,7 +394,7 @@ const BroadcastManagement = () => {
       key: 'priority',
       render: (priority) => {
         const option = priorityOptions.find(p => p.value === priority)
-        return <Tag color={option?.color}>{option?.label || priority}</Tag>
+        return <Badge variant={option?.color}>{option?.label || priority}</Badge>
       }
     },
     {
@@ -371,9 +407,16 @@ const BroadcastManagement = () => {
       title: '接收/已读',
       key: 'stats',
       render: (_, record) => (
-        <Tooltip title={`接收: ${record.recipient_count} / 已读: ${record.read_count}`}>
-          <Tag color="blue">{record.read_count} / {record.recipient_count}</Tag>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="secondary">{record.read_count} / {record.recipient_count}</Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>接收: {record.recipient_count} / 已读: {record.read_count}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )
     },
     {
@@ -386,150 +429,80 @@ const BroadcastManagement = () => {
 
   return (
     <div className="p-6">
-      <Card
-        title={
-          <Space>
-            <SoundOutlined />
-            <span>系统广播管理</span>
-          </Space>
-        }
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-2xl font-bold">系统广播管理</CardTitle>
+          <Button onClick={() => setModalVisible(true)}>
             发送广播
           </Button>
-        }
-        bordered={false}
-      >
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="广播管理" key="management">
-            <Table
-              columns={columns}
-              dataSource={broadcasts}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                pageSize: 10,
-                showTotal: (total) => `共 ${total} 条`,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                position: ['bottomRight']
-              }}
-            />
-          </TabPane>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="management">广播管理</TabsTrigger>
+              <TabsTrigger value="broadcast">发送广播</TabsTrigger>
+            </TabsList>
+            <TabsContent value="management">
+              {/* 广播管理表格将在这里实现 */}
+              <div className="text-center py-8 text-muted-foreground">
+                广播管理功能待实现
+              </div>
+            </TabsContent>
 
-          <TabPane tab="发送广播" key="broadcast">
-            <div style={{ display: 'flex', gap: '20px', height: '70vh' }}>
-              {/* 左侧联系人列表 */}
-              <div style={{
-                width: '300px',
-                border: '1px solid #d9d9d9',
-                borderRadius: '6px',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                {/* 搜索区域 */}
-                <div style={{ padding: '12px', borderBottom: '1px solid #d9d9d9' }}>
-                  {/* 类型选择按钮 */}
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                    <button
-                      onClick={() => setSearchType('department')}
-                      style={{
-                        flex: 1,
-                        padding: '8px 4px',
-                        backgroundColor: searchType === 'department' ? '#07c160' : '#f0f0f0',
-                        color: searchType === 'department' ? 'white' : '#333',
-                        border: 'none',
-                        borderRadius: '6px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                      onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                      onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                    >
-                      部门
-                    </button>
-                    <button
-                      onClick={() => setSearchType('individual')}
-                      style={{
-                        flex: 1,
-                        padding: '8px 4px',
-                        backgroundColor: searchType === 'individual' ? '#07c160' : '#f0f0f0',
-                        color: searchType === 'individual' ? 'white' : '#333',
-                        border: 'none',
-                        borderRadius: '6px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                      onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                      onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                    >
-                      个人
-                    </button>
-                    <button
-                      onClick={() => setSearchType('all')}
-                      style={{
-                        flex: 1,
-                        padding: '8px 4px',
-                        backgroundColor: searchType === 'all' ? '#07c160' : '#f0f0f0',
-                        color: searchType === 'all' ? 'white' : '#333',
-                        border: 'none',
-                        borderRadius: '6px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                      onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                      onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                    >
-                      全体
-                    </button>
-                  </div>
+            <TabsContent value="broadcast">
+              <div className="flex gap-5 h-[70vh]">
+                {/* 左侧联系人列表 */}
+                <div className="w-80 border rounded-lg flex flex-col">
+                  {/* 搜索区域 */}
+                  <div className="p-3 border-b">
+                    {/* 类型选择按钮 */}
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        variant={searchType === 'department' ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSearchType('department')}
+                      >
+                        部门
+                      </Button>
+                      <Button
+                        variant={searchType === 'individual' ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSearchType('individual')}
+                      >
+                        个人
+                      </Button>
+                      <Button
+                        variant={searchType === 'all' ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSearchType('all')}
+                      >
+                        全体
+                      </Button>
+                    </div>
 
-                  {/* 搜索框 */}
-                  <div style={{ marginBottom: '12px' }}>
-                    <input
-                      type="text"
-                      placeholder={`搜索${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}...`}
-                      value={searchContact}
-                      onChange={(e) => setSearchContact(e.target.value)}
-                      className="form-group"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    />
-
-                    {/* 部门搜索框 - 仅在搜索个人时显示 */}
-                    {searchType === 'individual' && (
-                      <input
+                    {/* 搜索框 */}
+                    <div style={{ marginBottom: '12px' }}>
+                      <Input
                         type="text"
-                        placeholder="按部门筛选..."
-                        value={searchDepartment}
-                        onChange={(e) => setSearchDepartment(e.target.value)}
-                        className="form-group"
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: '1px solid #d9d9d9',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          marginTop: '8px'
-                        }}
+                        placeholder={`搜索${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}...`}
+                        value={searchContact}
+                        onChange={(e) => setSearchContact(e.target.value)}
                       />
-                    )}
+
+                      {/* 部门搜索框 - 仅在搜索个人时显示 */}
+                      {searchType === 'individual' && (
+                        <Input
+                          type="text"
+                          placeholder="按部门筛选..."
+                          value={searchDepartment}
+                          onChange={(e) => setSearchDepartment(e.target.value)}
+                          className="mt-2"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* 常用联系人 */}
-                {savedRecipients.length > 0 && (
+                {/* 常用联系人 */}                {savedRecipients.length > 0 && (
                   <div style={{ padding: '0 12px 12px 12px', borderBottom: '1px solid #d9d9d9' }}>
                     <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#666' }}>常用联系人</h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -742,173 +715,187 @@ const BroadcastManagement = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </TabPane>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
-      <Modal
-        title={
-          <Space>
-            <SoundOutlined />
-            <span>发送系统广播</span>
-          </Space>
-        }
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        footer={null}
-        width={600}
-        destroyOnClose
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{
-            type: 'info',
-            priority: 'normal',
-            targetType: 'all'
-          }}
-        >
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入广播标题' }]}
-          >
-            <Input placeholder="请输入广播标题" maxLength={50} showCount />
-          </Form.Item>
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 12c0-2.21-.895-4.21-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 12a5.983 5.983 0 01-.757 2.829 1 1 0 11-1.415-1.414A3.987 3.987 0 0013 12a3.987 3.987 0 00-.172-1.415 1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              发送系统广播
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">标题</Label>
+              <Input
+                id="title"
+                placeholder="请输入广播标题"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                maxLength={50}
+              />
+            </div>
 
-          <Form.Item
-            name="content"
-            label="内容"
-            rules={[{ required: true, message: '请输入广播内容' }]}
-          >
-            <TextArea placeholder="请输入广播内容" rows={4} maxLength={500} showCount />
-          </Form.Item>
+            <div className="space-y-2">
+              <Label htmlFor="content">内容</Label>
+              <Textarea
+                id="content"
+                placeholder="请输入广播内容"
+                value={formData.content}
+                onChange={(e) => setFormData({...formData, content: e.target.value})}
+                rows={4}
+                maxLength={500}
+              />
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item name="type" label="类型">
-              <Select>
-                {typeOptions.map(option => (
-                  <Option key={option.value} value={option.value}>
-                    <Space>
-                      {option.icon}
-                      {option.label}
-                    </Space>
-                  </Option>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">类型</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({...formData, type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {typeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          {option.icon}
+                          {option.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority">优先级</Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => setFormData({...formData, priority: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择优先级" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {priorityOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <Badge variant={option.color}>{option.label}</Badge>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="targetType">发送目标</Label>
+              <Select
+                value={formData.targetType}
+                onValueChange={(value) => {
+                  // Reset dependent fields when target type changes
+                  setFormData({
+                    ...formData,
+                    targetType: value,
+                    targetDepartments: [],
+                    targetRoles: [],
+                    targetUsers: []
+                  })
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择发送目标" />
+                </SelectTrigger>
+                <SelectContent>
+                  {targetTypeOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        {option.icon}
+                        {option.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </Form.Item>
+            </div>
 
-            <Form.Item name="priority" label="优先级">
-              <Select>
-                {priorityOptions.map(option => (
-                  <Option key={option.value} value={option.value}>
-                    <Tag color={option.color}>{option.label}</Tag>
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </div>
+            {formData.targetType === 'department' && (
+              <div className="space-y-2">
+                <Label htmlFor="targetDepartments">选择部门</Label>
+                <Select
+                  value={formData.targetDepartments}
+                  onValueChange={(value) => setFormData({...formData, targetDepartments: [...formData.targetDepartments, value]})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-          <Form.Item name="targetType" label="发送目标">
-            <Select onChange={() => {
-              // Reset dependent fields when target type changes
-              form.setFieldsValue({
-                targetDepartments: [],
-                targetRoles: [],
-                targetUsers: []
-              })
-            }}>
-              {targetTypeOptions.map(option => (
-                <Option key={option.value} value={option.value}>
-                  <Space>
-                    {option.icon}
-                    {option.label}
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+            {formData.targetType === 'role' && (
+              <div className="space-y-2">
+                <Label htmlFor="targetRoles">选择角色</Label>
+                <Select
+                  value={formData.targetRoles}
+                  onValueChange={(value) => setFormData({...formData, targetRoles: [...formData.targetRoles, value]})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择角色" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roleOptions.map(role => (
+                      <SelectItem key={role} value={role}>{role}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.targetType !== currentValues.targetType}
-          >
-            {({ getFieldValue }) => {
-              const targetType = getFieldValue('targetType')
+            {formData.targetType === 'individual' && (
+              <div className="space-y-2">
+                <Label htmlFor="targetUsers">选择员工</Label>
+                <Select
+                  value={formData.targetUsers}
+                  onValueChange={(value) => setFormData({...formData, targetUsers: [...formData.targetUsers, value]})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择员工" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.user_id} value={emp.user_id}>
+                        {emp.real_name} ({emp.username})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-              if (targetType === 'department') {
-                return (
-                  <Form.Item
-                    name="targetDepartments"
-                    label="选择部门"
-                    rules={[{ required: true, message: '请选择部门' }]}
-                  >
-                    <Select mode="multiple" placeholder="请选择部门" optionFilterProp="children">
-                      {departments.map(dept => (
-                        <Option key={dept.id} value={dept.id}>{dept.name}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                )
-              }
-
-              if (targetType === 'role') {
-                return (
-                  <Form.Item
-                    name="targetRoles"
-                    label="选择角色"
-                    rules={[{ required: true, message: '请选择角色' }]}
-                  >
-                    <Select mode="multiple" placeholder="请选择角色">
-                      {roleOptions.map(role => (
-                        <Option key={role} value={role}>{role}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                )
-              }
-
-              if (targetType === 'individual') {
-                return (
-                  <Form.Item
-                    name="targetUsers"
-                    label="选择员工"
-                    rules={[{ required: true, message: '请选择员工' }]}
-                  >
-                    <Select
-                      mode="multiple"
-                      placeholder="请选择员工"
-                      optionFilterProp="children"
-                      filterOption={(input, option) =>
-                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                      }
-                    >
-                      {employees.map(emp => (
-                        <Option key={emp.user_id} value={emp.user_id}>
-                          {emp.real_name} ({emp.username})
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                )
-              }
-
-              return null
-            }}
-          </Form.Item>
-
-          <Form.Item className="flex justify-end mb-0">
-            <Space>
-              <Button onClick={() => setModalVisible(false)}>取消</Button>
-              <Button type="primary" htmlType="submit" loading={submitting}>
-                发送广播
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+              <Button onClick={handleSubmit} disabled={submitting}>
+                {submitting ? '发送中...' : '发送广播'}
               </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

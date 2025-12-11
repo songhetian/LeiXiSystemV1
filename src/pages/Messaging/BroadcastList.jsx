@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -218,7 +219,7 @@ export default function BroadcastList() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button 
+              <Button
                 onClick={loadBroadcasts}
                 className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-medium shadow-md flex items-center gap-2"
               >
@@ -422,7 +423,7 @@ export default function BroadcastList() {
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {broadcasts.map(broadcast => (
-                  <Card 
+                  <Card
                     key={broadcast.id}
                     onClick={() => handleBroadcastClick(broadcast)}
                     className={`
@@ -598,7 +599,7 @@ export default function BroadcastList() {
 
               <div className="mt-8 flex items-center justify-between">
                 <div className="flex items-center">
-                  <Badge 
+                  <Badge
                     className={`
                       px-3 py-1.5 rounded-full text-sm font-medium
                       ${selectedBroadcast.is_read

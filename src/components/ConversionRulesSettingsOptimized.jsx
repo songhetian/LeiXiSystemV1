@@ -1,3 +1,4 @@
+// [SHADCN-REPLACED]
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
@@ -7,20 +8,20 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '../components/ui/table';
 import { MotionCard } from '../components/ui/motion-card';
 import { MotionTable, MotionTableBody, MotionTableCell, MotionTableHead, MotionTableHeader, MotionTableRow } from '../components/ui/motion-table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 // Icons
-import { 
+import {
   Plus,
   Edit,
   Trash2,
@@ -223,7 +224,7 @@ const ConversionRulesSettingsOptimized = ({ visible, onClose, standalone = false
           </MotionTableHeader>
           <MotionTableBody>
             {rules.map((record, index) => (
-              <MotionTableRow 
+              <MotionTableRow
                 key={record.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -283,7 +284,7 @@ const ConversionRulesSettingsOptimized = ({ visible, onClose, standalone = false
           <DialogHeader>
             <DialogTitle>{editingRule ? '编辑规则' : '新增规则'}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">规则名称</Label>
@@ -342,7 +343,7 @@ const ConversionRulesSettingsOptimized = ({ visible, onClose, standalone = false
               </ul>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalVisible(false)}>
               取消
