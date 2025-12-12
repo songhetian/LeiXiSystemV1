@@ -125,7 +125,7 @@ const UnreadMemoPopup = ({ onClose }) => {
             <i className="fas fa-bell"></i>
             <span>未读备忘录</span>
           </div>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <Button onClick={onClose}>×</Button>
         </div>
 
         <div className="popup-body">
@@ -180,9 +180,9 @@ const UnreadMemoPopup = ({ onClose }) => {
           </div>
 
           <div className="actions">
-            <button className="btn-secondary" onClick={onClose}>
+            <Button onClick={onClose}>
               稍后查看
-            </button>
+            </Button>
             <button className="btn-primary" onClick={handleMarkRead}>
               <i className="fas fa-check"></i> 标记已读
             </button>

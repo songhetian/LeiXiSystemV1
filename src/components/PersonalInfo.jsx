@@ -217,7 +217,7 @@ const PersonalInfo = () => {
                 <p className="text-sm text-gray-600 mt-1">管理您的个人信息和账户设置</p>
               </div>
             </div>
-            <Button onClick={() => setShowPasswordModal(true)}>
+            <Button onClick={setShowPasswordModal(true)} className="() =>">
               <span className="text-lg">🔒</span>
               修改密码
             </Button>
@@ -258,21 +258,15 @@ const PersonalInfo = () => {
                 基本信息
               </h3>
               {!editing ? (
-                <Button onClick={() => setEditing(true)} variant="ghost">
+                <Button onClick={setEditing(true)} className="() =>" variant="ghost">
                   <span>✏️</span>
                   编辑信息
                 </Button>
               ) : (
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setEditing(false)
-                      loadUserInfo()
-                    }}
-                    className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-                  >
+                  <Button >
                     取消
-                  </button>
+                  </Button>
                   <Button onClick={handleSave} disabled={loading}>
                     <span>💾</span>
                     {loading ? '保存中...' : '保存'}
@@ -393,13 +387,7 @@ const PersonalInfo = () => {
           {/* 提交按钮 */}
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
-              onClick={() => {
-                setShowPasswordModal(false)
-                setPasswordData({
-                  oldPassword: '',
-                  newPassword: '',
-                  confirmPassword: ''
-                })
+              onClick={setShowPasswordModal(false)} className="() => setPasswordData( oldPassword: '' newPassword: '' confirmPassword: ''")
               }}
               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
             >

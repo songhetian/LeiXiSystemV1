@@ -134,7 +134,7 @@ const ExamResult = () => {
         <div className="empty-state">
           <Card title="考试结果">
             <p>无法加载考试结果。</p>
-            <Button type="primary" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
+            <Button type="primary" onClick={navigate('/assessment/my-exams')} className="() =>" icon={<ArrowLeftOutlined />}>
               返回我的考试
             </Button>
           </Card>
@@ -196,7 +196,7 @@ const ExamResult = () => {
           <Button className="result-action-btn btn-view-details" icon={<EyeOutlined />} onClick={() => navigate(`/assessment/results/${resultId}/answers`)}>
             查看答题详情
           </Button>
-          <Button className="result-action-btn btn-back" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
+          <Button className="result-action-btn btn-back" onClick={navigate('/assessment/my-exams')} className="() =>" icon={<ArrowLeftOutlined />}>
             返回我的考试
           </Button>
           {canRetake && (

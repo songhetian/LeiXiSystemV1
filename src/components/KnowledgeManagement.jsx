@@ -115,10 +115,10 @@ const KnowledgeManagement = () => {
 
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div className="flex gap-3">
-          <Button onClick={() => setShowCategoryModal(true)}>
+          <Button onClick={setShowCategoryModal(true)} className="() =>">
             📁 管理分类
           </Button>
-          <Button onClick={() => setShowTrashModal(true)} variant="destructive">
+          <Button onClick={setShowTrashModal(true)} className="() =>" variant="destructive">
             🗑️ 垃圾箱 ({getDeletedArticles().length})
           </Button>
         </div>
@@ -150,13 +150,9 @@ const KnowledgeManagement = () => {
                     <option key={icon.value} value={icon.value}>{icon.label}</option>
                   ))}
                 </select>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
+                <Button>
                   {editingCategory ? '更新' : '添加'}
-                </button>
+                </Button>
               </form>
 
               <div className="space-y-2">
@@ -205,34 +201,18 @@ const KnowledgeManagement = () => {
                       >
                         {cat.is_hidden === 1 ? '👁️ 显示' : '🔒 隐藏'}
                       </button>
-                      <button
-                        onClick={() => {
-                          setEditingCategory(cat)
-                          setCategoryFormData({
-                            name: cat.name,
-                            description: cat.description || '',
-                            icon: cat.icon || '📚'
-                          })
-                        }}
-                        className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                      >
+                      <Button  size="icon">
                         ✏️ 编辑
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="flex justify-end pt-4 mt-4 border-t">
-                <button
-                  onClick={() => {
-                    setShowCategoryModal(false)
-                    resetCategoryForm()
-                  }}
-                  className="px-6 py-2 border rounded-lg hover:bg-gray-50"
-                >
+                <Button >
                   关闭
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -266,10 +246,10 @@ const KnowledgeManagement = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={() => handleRestoreArticle(article.id)}>
+                        <Button onClick={handleRestoreArticle(article.id)} className="() =>">
                           ↩️ 还原
                         </Button>
-                        <Button onClick={() => handlePermanentDelete(article.id)} variant="destructive">
+                        <Button onClick={handlePermanentDelete(article.id)} className="() =>" variant="destructive">
                           🗑️ 永久删除
                         </Button>
                       </div>
@@ -278,7 +258,7 @@ const KnowledgeManagement = () => {
                 </div>
               )}
               <div className="flex justify-end pt-4 mt-4 border-t">
-                <Button onClick={() => setShowTrashModal(false)}>
+                <Button onClick={setShowTrashModal(false)} className="() =>">
                   关闭
                 </Button>
               </div>

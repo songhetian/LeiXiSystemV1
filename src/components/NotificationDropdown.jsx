@@ -153,13 +153,9 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
             </span>
           )}
         </div>
-        <button
-          onClick={markAllAsRead}
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline disabled:opacity-50 disabled:no-underline"
-          disabled={unreadCount === 0}
-        >
+        <Button >
           全部已读
-        </button>
+        </Button>
       </div>
 
       {/* List */}
@@ -218,15 +214,9 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
 
       {/* Footer */}
       <div className="p-2 border-t border-gray-100 bg-gray-50/50">
-        <button
-          onClick={() => {
-            onNavigate('my-notifications');
-            onClose();
-          }}
-          className="w-full py-2 text-center text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors rounded-lg hover:bg-white"
-        >
+        <Button >
           查看全部通知
-        </button>
+        </Button>
       </div>
     </div>
   );

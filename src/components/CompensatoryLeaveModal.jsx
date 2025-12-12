@@ -312,7 +312,7 @@ const CompensatoryLeaveModal = ({ isOpen, onClose, onSuccess }) => {
           <div className="flex justify-end gap-3">
             <Button
               variant="outline"
-              onClick={() => setShowConfirmModal(false)}
+              onClick={setShowConfirmModal(false)} className="() =>"
               disabled={loading}
             >
               返回修改

@@ -157,7 +157,7 @@ const IconPicker = ({ value, onChange, onClose }) => {
       <div className="icon-picker-modal" onClick={(e) => e.stopPropagation()}>
         <div className="icon-picker-header">
           <h3>选择图标</h3>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <Button onClick={onClose}>×</Button>
         </div>
 
         <div className="icon-picker-search">

@@ -420,18 +420,14 @@ const CategoryManagement = () => {
             
             <div className="form-actions">
               <Button type="button"
-                onClick={() => setShowModal(false)}
+                onClick={setShowModal(false)} className="() =>"
                 className="btn-secondary"
               >
                 取消
               </Button>
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={loading}
-              >
+              <Button>
                 {loading ? '保存中...' : '保存'}
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>
@@ -452,16 +448,12 @@ const CategoryManagement = () => {
               删除后将移至回收站，您仍可以恢复它。
             </p>
             <div className="confirm-actions">
-              <Button onClick={() => setShowDeleteModal(false)}>
+              <Button onClick={setShowDeleteModal(false)} className="() =>">
                 取消
               </Button>
-              <button
-                onClick={confirmDeleteCategory}
-                className="btn-danger"
-                disabled={loading}
-              >
+              <Button onClick={btn-danger} variant="destructive">
                 {loading ? '删除中...' : '确定删除'}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
@@ -482,16 +474,12 @@ const CategoryManagement = () => {
               <strong>此操作不可恢复！</strong>
             </p>
             <div className="confirm-actions">
-              <Button onClick={() => setShowPermanentDeleteModal(false)}>
+              <Button onClick={setShowPermanentDeleteModal(false)} className="() =>">
                 取消
               </Button>
-              <button
-                onClick={confirmPermanentDelete}
-                className="btn-danger"
-                disabled={loading}
-              >
+              <Button onClick={btn-danger} variant="destructive">
                 {loading ? '删除中...' : '永久删除'}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

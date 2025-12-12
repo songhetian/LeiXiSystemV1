@@ -82,7 +82,7 @@ export default function AttendanceRecordsOptimized() {
     try {
       // 获取用户信息
       const user = JSON.parse(localStorage.getItem('user'))
-      
+
       // 构建查询参数
       const params = {
         page: pagination.page,
@@ -102,20 +102,20 @@ export default function AttendanceRecordsOptimized() {
       }
 
       const response = await axios.get(getApiUrl('/api/attendance/records'), { params })
-      
+
       if (response.data.success) {
         // 确保日期格式正确，避免时区问题
         const formattedRecords = response.data.data.map(record => ({
           ...record,
           record_date: formatBeijingDate(record.record_date) // 确保使用北京时间日期
         }))
-        
+
         setRecords(formattedRecords)
         setPagination({
           ...pagination,
           total: response.data.total
         })
-        
+
         // 使用后端返回的统计数据
         if (response.data.stats) {
           setStats(response.data.stats)
@@ -406,13 +406,13 @@ export default function AttendanceRecordsOptimized() {
       <div className="bg-white rounded-lg shadow p-6">
         {/* 月份选择器 */}
         <div className="flex items-center justify-between mb-6">
-          <Button onClick={() => setSelectedMonth(new Date(year, month - 1))}>
+          <Button onClick={setSelectedMonth(new Date(year, month - 1)} className="() => )">
             ← 上月
           </Button>
           <h3 className="text-xl font-bold">
             {year}年{month + 1}月
           </h3>
-          <Button onClick={() => setSelectedMonth(new Date(year, month + 1))}>
+          <Button onClick={setSelectedMonth(new Date(year, month + 1)} className="() => )">
             下月 →
           </Button>
         </div>
@@ -710,13 +710,9 @@ export default function AttendanceRecordsOptimized() {
                 <span className="text-sm text-gray-600">
                   第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
                 </span>
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  disabled={pagination.page === 1}
-                  className="px-4 py-2 border rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
+                <Button >
                   上一页
-                </button>
+                </Button>
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                   disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
@@ -745,7 +741,7 @@ export default function AttendanceRecordsOptimized() {
               <h3 className="text-xl font-bold">打卡详情</h3>
               <p className="text-sm opacity-90 mt-1">{formatDate(selectedRecord.record_date)}</p>
             </div>
-            <Button onClick={() => setShowDetailModal(false)}>
+            <Button onClick={setShowDetailModal(false)} className="() =>">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -884,7 +880,7 @@ export default function AttendanceRecordsOptimized() {
 
           {/* 模态框底部 */}
           <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
-            <Button onClick={() => setShowDetailModal(false)} variant="ghost">
+            <Button onClick={setShowDetailModal(false)} className="() =>" variant="ghost">
               关闭
             </Button>
           </div>
@@ -952,13 +948,13 @@ export default function AttendanceRecordsOptimized() {
               >
                 今天
               </button>
-              <Button onClick={() => handleQuickFilter('week')}>
+              <Button onClick={handleQuickFilter('week')} className="() =>">
                 本周
               </Button>
-              <Button onClick={() => handleQuickFilter('month')}>
+              <Button onClick={handleQuickFilter('month')} className="() =>">
                 本月
               </Button>
-              <Button onClick={() => handleQuickFilter('all')}>
+              <Button onClick={handleQuickFilter('all')} className="() =>">
                 全部
               </Button>
             </div>

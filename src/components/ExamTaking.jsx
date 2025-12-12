@@ -363,13 +363,9 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                 </>
               )}
             </div>
-            <button
-              onClick={() => setShowConfirmSubmit(true)}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              disabled={isSubmitting || examEnded}
-            >
+            <Button >
               {isSubmitting ? '提交中...' : '提交试卷'}
-            </button>
+            </Button>
           </div>
 
           <div className="flex-1 flex overflow-hidden">
@@ -402,7 +398,7 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
               {totalPages > 1 && (
                 <div className="flex flex-col gap-2 mb-3">
                   <div className="flex justify-center gap-1">
-                    <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+                    <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
                       ←
                     </Button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
@@ -417,7 +413,7 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                         {page}
                       </button>
                     ))}
-                    <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+                    <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
                       →
                     </Button>
                   </div>
@@ -582,10 +578,10 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
               )}
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <Button onClick={() => setShowConfirmSubmit(false)}>
+              <Button onClick={setShowConfirmSubmit(false)} className="() =>">
                 继续答题
               </Button>
-              <Button onClick={() => handleSubmitExam(false)}>
+              <Button onClick={handleSubmitExam(false)} className="() =>">
                 确认提交
               </Button>
             </div>

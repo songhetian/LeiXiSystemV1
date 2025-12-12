@@ -380,7 +380,7 @@ const ResultManagement = () => {
             <Button type="primary" htmlType="submit" loading={loading}>
               保存评分
             </Button>
-            <Button onClick={() => setGradingModalVisible(false)}>
+            <Button onClick={setGradingModalVisible(false)} className="() =>">
               取消
             </Button>
           </Space>

@@ -320,7 +320,7 @@ function DepartmentManagement() {
             />
             显示已删除
           </Label>
-          <Button onClick={() => setIsModalOpen(true)}>
+          <Button onClick={setIsModalOpen(true)} className="() =>">
             + 新增部门
           </Button>
         </div>
@@ -344,13 +344,9 @@ function DepartmentManagement() {
               {getCurrentPageData().map((dept) => (
               <TableRow key={dept.id} className="hover:bg-primary-50/30 transition-colors">
                 <TableCell className="px-6 py-4 text-center">
-                  <button
-                    onClick={() => handleViewDetail(dept)}
-                    className="text-sm font-medium text-primary-600 hover:text-primary-800 hover:underline"
-                    title="点击查看部门详情"
-                  >
+                  <Button >
                     {dept.name}
-                  </button>
+                  </Button>
                 </TableCell>
                 <TableCell className="px-6 py-4 text-center text-sm text-gray-600">{dept.description || '-'}</TableCell>
                 <TableCell className="px-6 py-4 text-center">
@@ -381,7 +377,7 @@ function DepartmentManagement() {
                 <TableCell className="px-6 py-4">
                   <div className="flex items-center justify-center gap-2">
                     {dept.status === 'deleted' ? (
-                      <Button onClick={() => handleRestore(dept.id)} size="sm">
+                      <Button onClick={handleRestore(dept.id)} className="() =>" size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -389,13 +385,13 @@ function DepartmentManagement() {
                       </Button>
                     ) : (
                       <>
-                        <Button onClick={() => handleEdit(dept)} size="sm">
+                        <Button onClick={handleEdit(dept)} className="() =>" size="sm">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                           编辑
                         </Button>
-                        <Button onClick={() => handleDelete(dept)} variant="destructive" size="sm">
+                        <Button onClick={handleDelete(dept)} className="() =>" variant="destructive" size="sm">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
@@ -422,7 +418,7 @@ function DepartmentManagement() {
             >
               {/* 卡片头部 */}
               <div className="flex items-start justify-between mb-3">
-                <Button onClick={() => handleViewDetail(dept)} size="lg">
+                <Button onClick={handleViewDetail(dept)} className="() =>" size="lg">
                   {dept.name}
                 </Button>
                 {dept.status === 'deleted' ? (
@@ -465,7 +461,7 @@ function DepartmentManagement() {
               {/* 操作按钮 */}
               <div className="flex gap-2 pt-3 border-t border-gray-100">
                 {dept.status === 'deleted' ? (
-                  <Button onClick={() => handleRestore(dept.id)}>
+                  <Button onClick={handleRestore(dept.id)} className="() =>">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
@@ -473,13 +469,13 @@ function DepartmentManagement() {
                   </Button>
                 ) : (
                   <>
-                    <Button onClick={() => handleEdit(dept)}>
+                    <Button onClick={handleEdit(dept)} className="() =>">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       编辑
                     </Button>
-                    <Button onClick={() => handleDelete(dept)} variant="destructive">
+                    <Button onClick={handleDelete(dept)} className="() =>" variant="destructive">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
@@ -517,10 +513,10 @@ function DepartmentManagement() {
 
           {/* 右侧：分页按钮 */}
           <div className="flex items-center gap-2">
-            <Button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
+            <Button onClick={handlePageChange(1)} className="() =>" disabled={currentPage === 1}>
               首页
             </Button>
-            <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+            <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
               上一页
             </Button>
 
@@ -554,10 +550,10 @@ function DepartmentManagement() {
               })}
             </div>
 
-            <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+            <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
               下一页
             </Button>
-            <Button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
+            <Button onClick={handlePageChange(totalPages)} className="() =>" disabled={currentPage === totalPages}>
               末页
             </Button>
 
@@ -600,20 +596,14 @@ function DepartmentManagement() {
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
-              onClick={() => {
-                setIsModalOpen(false)
-                resetForm()
-              }}
+              onClick={setIsModalOpen(false)} className="() => resetForm()"}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
             </Button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
+            <Button>
               {editingDept ? '更新' : '创建'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -687,16 +677,9 @@ function DepartmentManagement() {
 
             {/* 关闭按钮 */}
             <div className="flex justify-end pt-4 border-t">
-              <button
-                onClick={() => {
-                  setIsDetailModalOpen(false)
-                  setViewingDept(null)
-                  setDeptDetails(null)
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >
+              <Button >
                 关闭
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -787,15 +770,9 @@ function DepartmentManagement() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <button
-                onClick={() => {
-                  setIsStatusModalOpen(false)
-                  setStatusChangingDept(null)
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
+              <Button >
                 取消
-              </button>
+              </Button>
             </div>
           </div>
         )}

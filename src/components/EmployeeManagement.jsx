@@ -894,27 +894,15 @@ function EmployeeManagement() {
                     </TableCell>
                     <TableCell className="px-3 py-2">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => handleManageUserDepartments(emp)}
-                          className="px-2 py-1 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-sm"
-                          title="部门权限"
-                        >
+                        <Button onClick={() => {}}>
                           部门权限
-                        </button>
-                        <button
-                          onClick={() => handleEdit(emp)}
-                          className="px-2 py-1 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-sm"
-                          title="编辑"
-                        >
+                        </Button>
+                        <Button onClick={() => {}}>
                           编辑
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(emp)}
-                          className="px-2 py-1 text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-sm"
-                          title="删除"
-                        >
+                        </Button>
+                        <Button variant="destructive" onClick={() => {}}>
                           删除
-                        </button>
+                        </Button>
                       </div>
                     </TableCell>
 
@@ -1225,19 +1213,16 @@ function EmployeeManagement() {
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
               onClick={() => {
-                setIsModalOpen(false)
-                resetForm()
+                setIsModalOpen(false);
+                resetForm();
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
             </Button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
+            <Button>
               {editingEmp ? '更新' : '创建'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -1283,8 +1268,8 @@ function EmployeeManagement() {
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
               onClick={() => {
-                setIsDeleteModalOpen(false)
-                setDeletingEmp(null)
+                setIsDeleteModalOpen(false);
+                setDeletingEmp(null);
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
@@ -1372,8 +1357,8 @@ function EmployeeManagement() {
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
               onClick={() => {
-                setIsStatusModalOpen(false)
-                setStatusChangingEmp(null)
+                setIsStatusModalOpen(false);
+                setStatusChangingEmp(null);
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >

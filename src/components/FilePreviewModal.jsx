@@ -82,44 +82,17 @@ const FilePreviewModal = ({ file, onClose, getFileIcon, formatFileSize, modalWid
             <div className="flex gap-1">
               {!isMaximized && (
                 <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const widths = ['max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl']
-                      const currentIndex = widths.indexOf(actualModalWidth)
-                      const nextIndex = (currentIndex + 1) % widths.length
-                      setActualModalWidth(widths[nextIndex])
-                    }}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg"
-                    title="调整宽度"
-                  >
+                  <Button className="w-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg">
                     ↔️
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const heights = ['max-h-[90vh]', 'max-h-[95vh]', 'max-h-[98vh]']
-                      const currentIndex = heights.indexOf(actualModalHeight)
-                      const nextIndex = (currentIndex + 1) % heights.length
-                      setActualModalHeight(heights[nextIndex])
-                    }}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg"
-                    title="调整高度"
-                  >
+                  </Button>
+                  <Button className="w-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg">
                     ↕️
-                  </button>
+                  </Button>
                 </>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleMaximize();
-                }}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg"
-                title={isMaximized ? "恢复窗口" : "最大化"}
-              >
+              <Button className="w-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg">
                 {isMaximized ? '⛶' : '⛶'}
-              </button>
+              </Button>
             </div>
             <Button onClick={onClose} variant="ghost">
               ✕

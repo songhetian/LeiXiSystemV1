@@ -123,7 +123,7 @@ const ExamDetail = () => {
       <div style={{ padding: 24 }}>
         <Card title="试卷详情">
           <p>试卷不存在或加载失败。</p>
-          <Button type="primary" onClick={() => navigate('/assessment/exams')} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" onClick={navigate('/assessment/exams')} className="() =>" icon={<ArrowLeftOutlined />}>
             返回试卷列表
           </Button>
         </Card>
@@ -134,7 +134,7 @@ const ExamDetail = () => {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="default" onClick={() => navigate('/assessment/exams')} icon={<ArrowLeftOutlined />}>
+        <Button type="default" onClick={navigate('/assessment/exams')} className="() =>" icon={<ArrowLeftOutlined />}>
           返回试卷列表
         </Button>
         <Button type="primary" icon={<EditOutlined />} onClick={handleEditExam}>

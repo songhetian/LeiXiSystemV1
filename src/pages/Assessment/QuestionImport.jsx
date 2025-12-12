@@ -281,7 +281,7 @@ const QuestionImport = () => {
     <div style={{ padding: 24 }}>
       <Card title="批量导入题目" loading={loading}>
         <Space style={{ marginBottom: 16 }}>
-          <Button type="default" onClick={() => navigate(`/assessment/exams/${examId}`)} icon={<ArrowLeftOutlined />}>
+          <Button type="default" className="() => navigate(`/assessment/exams/$ examId"`)} icon={<ArrowLeftOutlined />}>
             返回试卷详情
           </Button>
           <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
@@ -314,7 +314,7 @@ const QuestionImport = () => {
                   确认导入 ({parsedData.length} 条)
                 </Button>
               </Popconfirm>
-              <Button onClick={() => { setParsedData([]); setFileList([]); setImportErrors([]); }}>
+              <Button onClick={setParsedData([])} className="() => ; setFileList([]); setImportErrors([]);"}>
                 清空预览
               </Button>
             </Space>

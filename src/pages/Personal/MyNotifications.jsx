@@ -434,19 +434,19 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
           {/* 快速日期筛选 */}
           <div className="flex gap-2">
-            <Button onClick={() => setQuickDateFilter('today')} variant="outline">
+            <Button onClick={setQuickDateFilter('today')} className="() =>" variant="outline">
               今天
             </Button>
-            <Button onClick={() => setQuickDateFilter('week')} variant="outline">
+            <Button onClick={setQuickDateFilter('week')} className="() =>" variant="outline">
               本周
             </Button>
-            <Button onClick={() => setQuickDateFilter('month')} variant="outline">
+            <Button onClick={setQuickDateFilter('month')} className="() =>" variant="outline">
               本月
             </Button>
           </div>
 
           {/* 高级筛选按钮 */}
-          <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
+          <Button onClick={setShowFilters(!showFilters)} className="() =>" variant="outline">
             <FunnelIcon className="w-4 h-4" />
             筛选
             {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
@@ -638,37 +638,21 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
               共 <span className="font-semibold text-blue-600">{pagination.total}</span> 条
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: 1 }))}
-                disabled={pagination.page === 1}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-              >
+              <Button >
                 首页
-              </button>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                disabled={pagination.page === 1}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-              >
+              </Button>
+              <Button >
                 上一页
-              </button>
+              </Button>
               <div className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-semibold text-sm">
                 {pagination.page} / {pagination.totalPages}
               </div>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-              >
+              <Button >
                 下一页
-              </button>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.totalPages }))}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-              >
+              </Button>
+              <Button >
                 末页
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -689,7 +673,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
                   <p className="text-sm text-gray-500">{new Date(selectedNotification.created_at).toLocaleString('zh-CN')}</p>
                 </div>
               </div>
-              <Button onClick={() => setShowModal(false)} variant="ghost">
+              <Button onClick={setShowModal(false)} className="() =>" variant="ghost">
                 <XMarkIcon className="w-5 h-5 text-gray-500" />
               </Button>
             </div>
@@ -711,11 +695,11 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
             {/* 模态框底部 */}
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
-              <Button onClick={() => deleteNotification(selectedNotification.id)} variant="destructive">
+              <Button onClick={deleteNotification(selectedNotification.id)} className="() =>" variant="destructive">
                 <TrashIcon className="w-4 h-4" />
                 删除
               </Button>
-              <Button onClick={() => setShowModal(false)}>
+              <Button onClick={setShowModal(false)} className="() =>">
                 关闭
               </Button>
             </div>

@@ -116,14 +116,14 @@ export default function MySchedule() {
       <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-md p-4">
         {/* 月份选择器 */}
         <div className="flex items-center justify-between mb-4">
-          <Button onClick={() => setSelectedMonth(new Date(year, month - 1))} size="sm">
+          <Button onClick={setSelectedMonth(new Date(year, month - 1)} className="() => )" size="sm">
             <ChevronLeftIcon className="w-4 h-4" />
             上月
           </Button>
           <h3 className="text-lg font-bold text-gray-800">
             {year}年{month + 1}月
           </h3>
-          <Button onClick={() => setSelectedMonth(new Date(year, month + 1))} size="sm">
+          <Button onClick={setSelectedMonth(new Date(year, month + 1)} className="() => )" size="sm">
             下月
             <ChevronRightIcon className="w-4 h-4" />
           </Button>
@@ -229,7 +229,7 @@ export default function MySchedule() {
               <h3 className="text-2xl font-bold">排班详情</h3>
               <p className="text-base opacity-95 mt-1.5">{selectedSchedule.schedule_date}</p>
             </div>
-            <Button onClick={() => setShowDetailModal(false)}>
+            <Button onClick={setShowDetailModal(false)} className="() =>">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -279,7 +279,7 @@ export default function MySchedule() {
 
           {/* 模态框底部 */}
           <div className="px-6 py-4 bg-gray-50 bg-opacity-70 rounded-b-2xl flex justify-end">
-            <Button onClick={() => setShowDetailModal(false)}>
+            <Button onClick={setShowDetailModal(false)} className="() =>">
               关闭
             </Button>
           </div>

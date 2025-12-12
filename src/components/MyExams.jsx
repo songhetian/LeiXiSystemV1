@@ -373,23 +373,15 @@ const MyExams = ({ onNavigate }) => {
       {/* 分页控件 */}
       {!loading && totalPages > 1 && (
         <div className="pagination-container">
-          <button
-            className="pagination-btn"
-            disabled={currentPage === 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
+          <Button onClick={handlePageChange(currentPage - 1)} className="() =>">
             上一页
-          </button>
+          </Button>
           <span className="pagination-info">
             第 {currentPage} 页 / 共 {totalPages} 页
           </span>
-          <button
-            className="pagination-btn"
-            disabled={currentPage === totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
+          <Button onClick={handlePageChange(currentPage + 1)} className="() =>">
             下一页
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -294,7 +294,7 @@ export default function BroadcastList() {
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button onClick={() => setShowFilters(!showFilters)}>
+              <Button onClick={setShowFilters(!showFilters)} className="() =>">
                 <FunnelIcon className="w-4 h-4" />
                 筛选选项
                 {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
@@ -564,7 +564,7 @@ export default function BroadcastList() {
                   </div>
                 </div>
               </div>
-              <Button onClick={() => setShowModal(false)}>
+              <Button onClick={setShowModal(false)} className="() =>">
                 <XMarkIcon className="w-6 h-6 text-gray-500" />
               </Button>
             </div>
@@ -593,7 +593,7 @@ export default function BroadcastList() {
 
             {/* 模态框底部 */}
             <div className="px-8 py-5 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
-              <Button onClick={() => setShowModal(false)}>
+              <Button onClick={setShowModal(false)} className="() =>">
                 关闭
               </Button>
             </div>

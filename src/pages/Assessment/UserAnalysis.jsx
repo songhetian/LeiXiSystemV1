@@ -135,7 +135,7 @@ const UserAnalysis = () => {
       <div style={{ padding: 24 }}>
         <Card title="用户成绩分析">
           <p>无法加载用户成绩分析数据。</p>
-          <Button type="primary" onClick={() => navigate('/users')} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" onClick={navigate('/users')} className="() =>" icon={<ArrowLeftOutlined />}>
             返回用户列表
           </Button>
         </Card>
@@ -148,7 +148,7 @@ const UserAnalysis = () => {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="default" onClick={() => navigate('/users')} icon={<ArrowLeftOutlined />}>
+        <Button type="default" onClick={navigate('/users')} className="() =>" icon={<ArrowLeftOutlined />}>
           返回用户列表
         </Button>
       </Space>
@@ -212,7 +212,7 @@ const UserAnalysis = () => {
                       {record.is_passed ? '通过' : '未通过'}
                     </Tag>
                   </Paragraph>
-                  <Button size="small" onClick={() => navigate(`/assessment/results/${record.result_id}/result`)}>
+                  <Button size="small" className="() => navigate(`/assessment/results/$ record.result_id"/result`)}>
                     查看详情
                   </Button>
                 </Timeline.Item>

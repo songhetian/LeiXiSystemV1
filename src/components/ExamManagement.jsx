@@ -938,17 +938,9 @@ const ExamManagement = () => {
             <Button onClick={downloadTemplateXlsx}>
               {downloadingTpl ? `下载中 ${downloadProgress}%` : '下载导入模板'}
             </Button>
-            <button
-              onClick={() => {
-                setShowRecycleBin(true)
-                setDeletedPage(1)
-                setDeletedSearch('')
-                fetchDeletedExams(1, '')
-              }}
-              className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
-            >
+            <Button  variant="destructive">
               回收站
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -1026,7 +1018,7 @@ const ExamManagement = () => {
                 getCurrentPageData().map((exam, index) => (
                   <TableRow key={exam.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
                     <TableCell className="px-4 py-3">
-                      <Button onClick={() => openExamInfo(exam)}>{exam.title}</Button>
+                      <Button onClick={openExamInfo(exam)} className="() =>">{exam.title}</Button>
                       <div className="text-xs text-gray-500">{exam.description}</div>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-center text-gray-600">{exam.category || '-'}</TableCell>
@@ -1036,33 +1028,16 @@ const ExamManagement = () => {
                     <TableCell className="px-4 py-3 text-center">{getStatusBadge(exam.status)}</TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        <Button onClick={() => handleOpenEditor(exam)} size="sm">
+                        <Button onClick={handleOpenEditor(exam)} className="() =>" size="sm">
                           编辑题目
                         </Button>
-                        <button
-                          onClick={() => {
-                            setEditingExam(exam)
-                            setFormData({
-                              title: exam.title,
-                              description: exam.description || '',
-                              category: exam.category || '',
-                              category_id: exam.category_id || '',
-                              difficulty: exam.difficulty,
-                              duration: exam.duration,
-                              total_score: exam.total_score,
-                              pass_score: exam.pass_score,
-                              status: exam.status
-                            })
-                            setShowModal(true)
-                          }}
-                          className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1 whitespace-nowrap"
-                        >
+                        <Button >
                           编辑信息
-                        </button>
-                        <Button onClick={() => publishExam(exam)} size="sm">
+                        </Button>
+                        <Button onClick={publishExam(exam)} className="() =>" size="sm">
                           发布试卷
                         </Button>
-                        <Button onClick={() => handleDeleteExam(exam)} variant="destructive" size="sm">
+                        <Button onClick={handleDeleteExam(exam)} className="() =>" variant="destructive" size="sm">
                           删除
                         </Button>
                       </div>
@@ -1104,11 +1079,11 @@ const ExamManagement = () => {
                         <div>总分：{exam.total_score}</div>
                       </div>
                       <div className="mt-4 flex items-center gap-2">
-                        <Button onClick={() => openExamInfo(exam)} size="sm">查看信息</Button>
-                        <Button onClick={() => handleOpenEditor(exam)} size="sm">编辑题目</Button>
-                        <button onClick={() => { setEditingExam(exam); setFormData({ title: exam.title, description: exam.description || '', category: exam.category || '', difficulty: exam.difficulty, duration: exam.duration, total_score: exam.total_score, pass_score: exam.pass_score, status: exam.status }); setShowModal(true) }} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">编辑信息</button>
-                        <Button onClick={() => publishExam(exam)} size="sm">发布试卷</Button>
-                        <Button onClick={() => handleDeleteExam(exam)} variant="destructive" size="sm">删除</Button>
+                        <Button onClick={openExamInfo(exam)} className="() =>" size="sm">查看信息</Button>
+                        <Button onClick={handleOpenEditor(exam)} className="() =>" size="sm">编辑题目</Button>
+                        <Button >编辑信息</Button>
+                        <Button onClick={publishExam(exam)} className="() =>" size="sm">发布试卷</Button>
+                        <Button onClick={handleDeleteExam(exam)} className="() =>" variant="destructive" size="sm">删除</Button>
                       </div>
                     </div>
                   </div>
@@ -1135,13 +1110,13 @@ const ExamManagement = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+              <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
                 上一页
               </Button>
               <span className="text-sm text-gray-600">
                 第 {currentPage} / {totalPages} 页
               </span>
-              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+              <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
                 下一页
               </Button>
             </div>
@@ -1265,7 +1240,7 @@ const ExamManagement = () => {
             </select>
             <div className="mt-2 flex gap-2">
               <Button type="button"
-                onClick={() => updateExamStatus(editingExam?.id || selectedExam?.id, editingExam?.status || selectedExam?.status, formData.status)}
+                onClick={updateExamStatus(editingExam?.id || selectedExam?.id, editingExam?.status || selectedExam?.status, formData.status)} className="() =>"
                 className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
               >更新状态</Button>
               <span className="text-xs text-gray-500 self-center">允许：草稿→已发布，已发布→已归档，已归档→已发布</span>
@@ -1274,21 +1249,14 @@ const ExamManagement = () => {
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
-              onClick={() => {
-                setShowModal(false)
-                resetForm()
-              }}
+              onClick={setShowModal(false)} className="() => resetForm()"}
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               取消
             </Button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
+            <Button>
               {loading ? '保存中...' : '保存'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -1328,7 +1296,7 @@ const ExamManagement = () => {
                       <TableCell className="px-4 py-3">{exam.title}</TableCell>
                       <TableCell className="px-4 py-3 text-gray-600">{formatDate(exam.delete_time)}</TableCell>
                       <TableCell className="px-4 py-3 text-center">
-                        <Button onClick={() => handleRestoreExam(exam.id)} size="sm">
+                        <Button onClick={handleRestoreExam(exam.id)} className="() =>" size="sm">
                           还原
                         </Button>
                       </TableCell>
@@ -1342,11 +1310,7 @@ const ExamManagement = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">共 {deletedTotal} 条</div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => { const p = Math.max(1, deletedPage - 1); setDeletedPage(p); fetchDeletedExams(p, deletedSearch) }}
-                disabled={deletedPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-              >上一页</button>
+              <Button  variant="destructive">上一页</Button>
               <span className="text-sm">第 {deletedPage} 页</span>
               <button
                 onClick={() => { const totalPages = Math.ceil(deletedTotal / deletedPageSize); const p = Math.min(totalPages || 1, deletedPage + 1); setDeletedPage(p); fetchDeletedExams(p, deletedSearch) }}
@@ -1357,7 +1321,7 @@ const ExamManagement = () => {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={() => setShowRecycleBin(false)}>关闭</Button>
+            <Button onClick={setShowRecycleBin(false)} className="() =>">关闭</Button>
           </div>
         </div>
       </Modal>
@@ -1372,8 +1336,8 @@ const ExamManagement = () => {
             <Button onClick={downloadTemplateXlsx}>
               {downloadingTpl ? `下载中 ${downloadProgress}%` : '下载导入模板'}
             </Button>
-            <Button onClick={() => setShowImportModal(true)}>试题导入</Button>
-            <button onClick={() => { setShowExamInfo(false); setExamInfo(null) }} className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">关闭</button>
+            <Button onClick={setShowImportModal(true)} className="() =>">试题导入</Button>
+            <Button >关闭</Button>
           </div>
         )}
       >
@@ -1427,7 +1391,7 @@ const ExamManagement = () => {
         zIndex={2000}
         footer={(
           <div className="w-full flex items-center justify-end gap-2">
-            <button onClick={() => { setShowDeleteConfirm(false); setDeleteTargetId(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+            <Button  variant="destructive">取消</Button>
             <Button onClick={confirmDeleteQuestion} variant="destructive">确认删除</Button>
           </div>
         )}
@@ -1444,7 +1408,7 @@ const ExamManagement = () => {
         zIndex={2000}
         footer={(
           <div className="w-full flex items-center justify-end gap-2">
-            <button onClick={() => { setShowDeleteExamModal(false); setExamToDelete(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+            <Button  variant="destructive">取消</Button>
             <Button onClick={confirmDeleteExam} variant="destructive">确认删除</Button>
           </div>
         )}
@@ -1472,14 +1436,7 @@ const ExamManagement = () => {
             <div className="flex items-center gap-2">
               <Button onClick={saveOrder}>保存顺序</Button>
               <Button onClick={undoLast}>撤销</Button>
-              <button
-                onClick={() => {
-                  setShowEditorModal(false)
-                  setSelectedExam(null)
-                  setQuestions([])
-                }}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >关闭编辑</button>
+              <Button >关闭编辑</Button>
             </div>
           </>
         )}
@@ -1587,13 +1544,9 @@ const ExamManagement = () => {
                         </div>
 
                         <div className="flex-shrink-0 flex flex-col gap-2">
-                          <button
-                            onClick={() => handleDeleteQuestion(question.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="删除"
-                          >
+                          <Button onClick={p-2} variant="destructive">
                             🗑️
-                          </button>
+                          </Button>
                           <div className="p-2 text-gray-400 cursor-grab active:cursor-grabbing" title="拖拽排序">
                             ⋮⋮
                           </div>
@@ -1686,12 +1639,7 @@ const ExamManagement = () => {
                     ))}
                   </div>
                   <Button type="button"
-                    onClick={() => {
-                      if (newQuestion.options.length < 6) {
-                        setNewQuestion({
-                          ...newQuestion,
-                          options: [...newQuestion.options, '']
-                        })
+                    className="() => if (newQuestion.options.length < 6) setNewQuestion( ...newQuestion options: [...newQuestion.options '']")
                       }
                     }}
                     className="mt-2 text-sm text-primary-600 hover:text-primary-700"
@@ -1768,7 +1716,7 @@ const ExamManagement = () => {
                 <div className="flex items-center gap-2">
                   <Button type="button"
                     className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                    onClick={() => { const v = Math.max(1, (parseInt(newQuestion.score, 10) || 0) - 1); setNewQuestion({ ...newQuestion, score: v }); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
+                    onClick={max(1, (parseInt(newQuestion.score, 10)} className="() => const v = Math. || 0) - 1); setNewQuestion( ...newQuestion score: v"); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
                   >
                     -
                   </Button>
@@ -1782,7 +1730,7 @@ const ExamManagement = () => {
                   />
                   <Button type="button"
                     className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                    onClick={() => { const v = (parseInt(newQuestion.score, 10) || 0) + 1; setNewQuestion({ ...newQuestion, score: v }); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
+                    onClick={parseInt(newQuestion.score, 10)} className="() => const v = ( || 0) + 1; setNewQuestion( ...newQuestion score: v"); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
                   >
                     +
                   </Button>
@@ -1812,7 +1760,7 @@ const ExamManagement = () => {
                 />
               </div>
 
-              <Button onClick={editingQuestion ? handleUpdateQuestion : handleAddQuestion}>
+              <Button className="editingQuestion ? handleUpdateQuestion : handleAddQuestion">
                 {editingQuestion ? '更新题目' : '➕ 添加题目'}
               </Button>
             </div>
@@ -1833,7 +1781,7 @@ const ExamManagement = () => {
           </div>
           <div className="text-sm text-gray-600">请调整题目分值或数量，使累计总分不超过试卷设置总分。</div>
           <div className="pt-2">
-            <Button onClick={() => setScoreModalOpen(false)}>确认</Button>
+            <Button onClick={setScoreModalOpen(false)} className="() =>">确认</Button>
           </div>
         </div>
       </Modal>
@@ -1872,7 +1820,7 @@ const ExamManagement = () => {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button onClick={() => setShowPublishedWarning(false)}>
+            <Button onClick={setShowPublishedWarning(false)} className="() =>">
               我知道了
             </Button>
           </div>

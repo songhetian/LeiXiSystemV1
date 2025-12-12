@@ -132,7 +132,7 @@ export default function LeaveRecords({ onNavigate }) {
           <h1 className="text-2xl font-bold text-gray-800">请假记录</h1>
           <p className="text-gray-600 mt-1">查看您的请假申请历史</p>
         </div>
-        <Button onClick={() => onNavigate && onNavigate('attendance-leave-apply')}>
+        <Button onClick={onNavigate('attendance-leave-apply')} className="() => onNavigate &&">
           + 新建请假
         </Button>
       </div>
@@ -228,7 +228,7 @@ export default function LeaveRecords({ onNavigate }) {
               {/* 操作按钮 */}
               {record.status === 'pending' && (
                 <div className="mt-4 pt-3 border-t">
-                  <Button onClick={() => handleCancelClick(record.id)} variant="destructive">
+                  <Button onClick={handleCancelClick(record.id)} className="() =>" variant="destructive">
                     撤销申请
                   </Button>
                 </div>
@@ -263,13 +263,9 @@ export default function LeaveRecords({ onNavigate }) {
               <span className="text-sm text-gray-600">
                 第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
               </span>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button >
                 上一页
-              </button>
+              </Button>
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                 disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
@@ -288,15 +284,9 @@ export default function LeaveRecords({ onNavigate }) {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">确认撤销</h3>
             <p className="text-gray-600 mb-6">确定要撤销这个请假申请吗？撤销后将无法恢复。</p>
             <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowCancelModal(false)
-                  setCancelRecordId(null)
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
+              <Button >
                 取消
-              </button>
+              </Button>
               <Button onClick={handleCancelConfirm} variant="destructive">
                 确认撤销
               </Button>

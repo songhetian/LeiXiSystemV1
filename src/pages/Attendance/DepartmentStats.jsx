@@ -551,13 +551,9 @@ export default function DepartmentStats() {
                   <span className="text-xs text-gray-600 mr-1">
                     第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
                   </span>
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
-                    className="px-2.5 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium text-gray-700 shadow-sm transition-colors"
-                  >
+                  <Button >
                     上一页
-                  </button>
+                  </Button>
                   <button
                     onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
@@ -580,7 +576,7 @@ export default function DepartmentStats() {
               <h2 className="text-lg font-bold text-gray-800">
                 {selectedEmployeeForDetails?.real_name} - 考勤明细
               </h2>
-              <Button onClick={() => setShowDetailsModal(false)}>
+              <Button onClick={setShowDetailsModal(false)} className="() =>">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

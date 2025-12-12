@@ -350,13 +350,13 @@ export default function ShiftManagement() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button onClick={() => handleEdit(shift)}>
+                    <Button onClick={handleEdit(shift)} className="() =>">
                       编辑
                     </Button>
-                    <Button onClick={() => handleToggle(shift.id)}>
+                    <Button onClick={handleToggle(shift.id)} className="() =>">
                       {shift.is_active ? '禁用' : '启用'}
                     </Button>
-                    <Button onClick={() => handleDelete(shift.id)} variant="destructive">
+                    <Button onClick={handleDelete(shift.id)} className="() =>" variant="destructive">
                       删除
                     </Button>
                   </div>
@@ -393,10 +393,10 @@ export default function ShiftManagement() {
                   <span className="text-sm text-gray-600">
                     第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
                   </span>
-                  <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
+                  <Button onClick={handlePageChange(pagination.page - 1)} className="() =>" disabled={pagination.page === 1}>
                     上一页
                   </Button>
-                  <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}>
+                  <Button onClick={handlePageChange(pagination.page + 1)} className="() =>" disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}>
                     下一页
                   </Button>
                 </div>
@@ -571,19 +571,7 @@ export default function ShiftManagement() {
                       className="h-10 w-20 p-1 rounded border cursor-pointer"
                     />
                     <Button type="button"
-                      onClick={() => {
-                        // 鲜艳的随机颜色
-                        const vibrantColors = [
-                          '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-                          '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
-                          '#E74C3C', '#3498DB', '#9B59B6', '#1ABC9C', '#F39C12',
-                          '#E67E22', '#16A085', '#27AE60', '#2980B9', '#8E44AD',
-                          '#FF85A2', '#FFB6C1', '#87CEEB', '#98FB98', '#DDA0DD',
-                          '#F0E68C', '#B0E0E6', '#FFDAB9', '#E0BBE4', '#FFDFD3',
-                          '#FFD700', '#FF1493'
-                        ]
-                        const randomColor = vibrantColors[Math.floor(Math.random() * vibrantColors.length)]
-                        setFormData({ ...formData, color: randomColor })
+                      onClick={floor(Math.random()} className="() => // 鲜艳的随机颜色 const vibrantColors = [ '#FF6B6B' '#4ECDC4' '#45B7D1' '#FFA07A' '#98D8C8' '#F7DC6F' '#BB8FCE' '#85C1E2' '#F8B739' '#52B788' '#E74C3C' '#3498DB' '#9B59B6' '#1ABC9C' '#F39C12' '#E67E22' '#16A085' '#27AE60' '#2980B9' '#8E44AD' '#FF85A2' '#FFB6C1' '#87CEEB' '#98FB98' '#DDA0DD' '#F0E68C' '#B0E0E6' '#FFDAB9' '#E0BBE4' '#FFDFD3' '#FFD700' '#FF1493' ] const randomColor = vibrantColors[Math. * vibrantColors.length)] setFormData( ...formData color: randomColor")
                       }}
                       className="px-4 py-2 border-2 border-gray-300 hover:border-blue-400 rounded-lg shadow-sm hover:shadow-md transition-all text-white font-medium"
                       style={{ backgroundColor: formData.color }}
@@ -632,14 +620,11 @@ export default function ShiftManagement() {
               </div>
 
               <div className="flex gap-3 mt-6">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition-colors"
-                >
+                <Button>
                   {editingShift ? '更新' : '创建'}
-                </button>
+                </Button>
                 <Button type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={setShowModal(false)} className="() =>"
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded transition-colors"
                 >
                   取消

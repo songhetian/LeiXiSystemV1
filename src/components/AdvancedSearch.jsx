@@ -634,31 +634,19 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                       {(onEdit || onMove || onDelete) && (
                         <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                           {onMove && (
-                            <button
-                              onClick={() => onMove(article)}
-                              className="px-2 py-1 text-purple-600 hover:bg-purple-50 rounded transition-colors text-xs"
-                              title="移动到其他分类"
-                            >
+                            <Button >
                               📁 移动
-                            </button>
+                            </Button>
                           )}
                           {onEdit && (
-                            <button
-                              onClick={() => onEdit(article)}
-                              className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors text-xs"
-                              title="编辑"
-                            >
+                            <Button >
                               ✏️ 编辑
-                            </button>
+                            </Button>
                           )}
                           {onDelete && (
-                            <button
-                              onClick={() => onDelete(article.id)}
-                              className="px-2 py-1 text-red-600 hover:bg-red-50 rounded transition-colors text-xs"
-                              title="删除"
-                            >
+                            <Button  variant="destructive">
                               🗑️ 删除
-      </button>
+      </Button>
                           )}
                         </div>
                       )}

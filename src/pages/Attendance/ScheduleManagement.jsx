@@ -729,7 +729,7 @@ export default function ScheduleManagement() {
               <Button onClick={handleScheduleSubmit} disabled={submitting}>
                 {submitting ? '保存中...' : '确定'}
               </Button>
-              <Button onClick={() => setShowScheduleModal(false)} disabled={submitting}>
+              <Button onClick={setShowScheduleModal(false)} className="() =>" disabled={submitting}>
                 取消
               </Button>
             </div>
@@ -844,14 +844,11 @@ export default function ScheduleManagement() {
               </div>
 
               <div className="flex gap-3 mt-6">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition-colors"
-                >
+                <Button>
                   确定
-                </button>
+                </Button>
                 <Button type="button"
-                  onClick={() => setShowBatchModal(false)}
+                  onClick={setShowBatchModal(false)} className="() =>"
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded transition-colors"
                 >
                   取消

@@ -365,28 +365,10 @@ const AssessmentPlanManagement = () => {
 
                 {/* 操作按钮 */}
                 <div className="px-4 py-3 border-t border-gray-100 flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setEditingPlan(plan);
-                      const targetDeptIds = plan.target_department_ids ||
-                        (Array.isArray(plan.target_departments) ? plan.target_departments.map(d => d.id) : []);
-
-                      setFormData({
-                        title: plan.title,
-                        description: plan.description || '',
-                        exam_id: plan.exam_id,
-                        start_time: plan.start_time.split('.')[0],
-                        end_time: plan.end_time.split('.')[0],
-                        target_departments: targetDeptIds,
-                        max_attempts: plan.max_attempts,
-                      });
-                      setShowModal(true);
-                    }}
-                    className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
+                  <Button >
                     编辑
-                  </button>
-                  <Button onClick={() => handleDeletePlan(plan.id)} variant="destructive" size="sm">
+                  </Button>
+                  <Button onClick={handleDeletePlan(plan.id)} className="() =>" variant="destructive" size="sm">
                     删除
                   </Button>
                 </div>
@@ -412,13 +394,13 @@ const AssessmentPlanManagement = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+              <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
                 上一页
               </Button>
               <span className="px-4 py-1.5 text-gray-700 text-sm">
                 第 {currentPage} / {totalPages} 页
               </span>
-              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+              <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
                 下一页
               </Button>
             </div>
@@ -567,21 +549,14 @@ const AssessmentPlanManagement = () => {
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button type="button"
-              onClick={() => {
-                setShowModal(false);
-                resetForm();
-              }}
+              onClick={setShowModal(false)} className="() => ; resetForm();"}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               取消
             </Button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-            >
+            <Button>
               {loading ? '保存中...' : '保存'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -679,10 +654,7 @@ const AssessmentPlanManagement = () => {
           </div>
           <div className="confirm-actions">
             <Button type="button"
-              onClick={() => {
-                setShowDeleteModal(false);
-                setPlanToDelete(null);
-              }}
+              onClick={setShowDeleteModal(false)} className="() => ; setPlanToDelete(null);"}
               className="btn-secondary"
             >
               取消

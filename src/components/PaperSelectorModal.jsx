@@ -93,15 +93,9 @@ const PaperSelectorModal = ({ isOpen, onSelect, onClose }) => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  onSelect(exam);
-                  onClose();
-                }}
-                className="btn-select"
-              >
+              <Button onClick={btn-select}>
                 选择
-              </button>
+              </Button>
             </div>
           ))}
         </div>

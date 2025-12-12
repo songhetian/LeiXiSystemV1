@@ -67,9 +67,9 @@ const CreateGroupPage = () => {
         <div className="header-title">
           <h2>群组管理</h2>
         </div>
-        <button className="header-btn">
+        <Button>
           {/* Empty button for spacing */}
-        </button>
+        </Button>
       </div>
 
       {/* Tab Navigation */}
@@ -134,12 +134,9 @@ const CreateGroupPage = () => {
                       <div key={member.id} className="selected-member-item">
                         <div className="member-avatar selected">{member.avatar}</div>
                         <span className="member-name">{member.name}</span>
-                        <button
-                          className="remove-member-btn"
-                          onClick={() => toggleMemberSelection(member)}
-                        >
+                        <Button onClick={toggleMemberSelection(member)} className="() =>" variant="destructive">
                           ×
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -194,7 +191,7 @@ const CreateGroupPage = () => {
 
             {/* Action Buttons */}
             <div className="action-buttons">
-              <button className="cancel-btn">取消</button>
+              <Button>取消</Button>
               <button
                 className={`create-btn ${selectedMembers.length === 0 ? 'disabled' : ''}`}
                 disabled={selectedMembers.length === 0 || !groupName.trim()}

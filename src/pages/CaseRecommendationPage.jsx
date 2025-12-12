@@ -136,9 +136,9 @@ const CaseRecommendationPage = () => {
                         {caseItem.collect_count || 0}
                       </span>
                     </div>
-                    <button className="text-primary-600 hover:text-primary-800 font-medium transition-colors">
+                    <Button variant="link">
                       查看详情 →
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -147,7 +147,7 @@ const CaseRecommendationPage = () => {
             {/* Pagination */}
             {pagination.totalPages > 1 && (
               <div className="flex justify-center items-center mt-8 space-x-2">
-                <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
+                <Button onClick={handlePageChange(pagination.page - 1)} className="() =>" disabled={pagination.page === 1}>
                   上一页
                 </Button>
                 {Array.from({ length: Math.min(pagination.totalPages, 10) }, (_, i) => {
@@ -183,7 +183,7 @@ const CaseRecommendationPage = () => {
                   }
                   return null;
                 })}
-                <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages}>
+                <Button onClick={handlePageChange(pagination.page + 1)} className="() =>" disabled={pagination.page === pagination.totalPages}>
                   下一页
                 </Button>
               </div>

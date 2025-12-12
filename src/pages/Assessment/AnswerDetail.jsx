@@ -80,7 +80,7 @@ const { Panel } = Collapse;
       <div style={{ padding: 24 }}>
         <Card title="答题详情">
           <p>无法加载答题详情。</p>
-          <Button type="primary" onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" className="() => navigate(`/assessment/results/$ resultId"/result`)} icon={<ArrowLeftOutlined />}>
             返回考试结果
           </Button>
         </Card>
@@ -101,7 +101,7 @@ const { Panel } = Collapse;
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Title level={4} style={{ margin: 0 }}>答题详情 - {exam_title}</Title>
           <Space>
-            <Button onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
+            <Button className="() => navigate(`/assessment/results/$ resultId"/result`)} icon={<ArrowLeftOutlined />}>
               返回考试结果
             </Button>
             <Button icon={<PrinterOutlined />} onClick={handlePrint}>
@@ -121,7 +121,7 @@ const { Panel } = Collapse;
                 key={q.question_id}
                 type={currentQuestionIndex === index ? 'primary' : 'default'}
                 danger={q.is_correct === 0} // Incorrect answers in red
-                onClick={() => setCurrentQuestionIndex(index)}
+                onClick={setCurrentQuestionIndex(index)} className="() =>"
                 style={{
                   backgroundColor: q.is_correct === 1 ? '#e6ffe6' : (q.is_correct === 0 ? '#ffe6e6' : undefined),
                   borderColor: q.is_correct === 1 ? 'green' : (q.is_correct === 0 ? 'red' : undefined),
@@ -198,7 +198,7 @@ const AnswerDetail = () => {
       <div style={{ padding: 24 }}>
         <Card title="答题详情">
           <p>无法加载答题详情。</p>
-          <Button type="primary" onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" className="() => navigate(`/assessment/results/$ resultId"/result`)} icon={<ArrowLeftOutlined />}>
             返回考试结果
           </Button>
         </Card>
@@ -219,7 +219,7 @@ const AnswerDetail = () => {
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Title level={4} style={{ margin: 0 }}>答题详情 - {exam_title}</Title>
           <Space>
-            <Button onClick={() => navigate(`/assessment/results/${resultId}/result`)} icon={<ArrowLeftOutlined />}>
+            <Button className="() => navigate(`/assessment/results/$ resultId"/result`)} icon={<ArrowLeftOutlined />}>
               返回考试结果
             </Button>
             <Button icon={<PrinterOutlined />} onClick={handlePrint}>
@@ -239,7 +239,7 @@ const AnswerDetail = () => {
                 key={q.question_id}
                 type={currentQuestionIndex === index ? 'primary' : 'default'}
                 danger={q.is_correct === 0} // Incorrect answers in red
-                onClick={() => setCurrentQuestionIndex(index)}
+                onClick={setCurrentQuestionIndex(index)} className="() =>"
                 style={{
                   backgroundColor: q.is_correct === 1 ? '#e6ffe6' : (q.is_correct === 0 ? '#ffe6e6' : undefined),
                   borderColor: q.is_correct === 1 ? 'green' : (q.is_correct === 0 ? 'red' : undefined),
@@ -312,10 +312,10 @@ const AnswerDetail = () => {
             </Card>
           )}
           <Space style={{ marginTop: 16, justifyContent: 'space-between', width: '100%' }}>
-            <Button onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))} disabled={currentQuestionIndex === 0}>
+            <Button onClick={setCurrentQuestionIndex(prev => Math.max(0, prev - 1)} className="() => )" disabled={currentQuestionIndex === 0}>
               上一题
             </Button>
-            <Button onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))} disabled={currentQuestionIndex === questions.length - 1}>
+            <Button onClick={setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1)} className="() => )" disabled={currentQuestionIndex === questions.length - 1}>
               下一题
             </Button>
           </Space>

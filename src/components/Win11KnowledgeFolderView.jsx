@@ -1066,19 +1066,9 @@ const Win11KnowledgeFolderView = () => {
 
                           {/* 操作按钮 */}
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                if (currentFolderCategory) {
-                                  setShowCreateArticleModal(true);
-                                  setCreatingCategory(currentFolderCategory);
-                                } else {
-                                  setShowCreateCategoryModal(true);
-                                }
-                              }}
-                              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm whitespace-nowrap"
-                            >
+                            <Button >
                               {currentFolderCategory ? '添加文档' : '添加分类'}
-                            </button>
+                            </Button>
 
                             <button
                               onClick={() => {
@@ -1144,24 +1134,9 @@ const Win11KnowledgeFolderView = () => {
                 <span className="text-2xl">🗑️</span>
                 回收站
               </h2>
-              <button
-                onClick={async () => {
-                  if (!window.confirm('清空回收站后数据将无法恢复，确定要继续吗？')) return;
-                  try {
-                    await axios.post(getApiUrl('/api/knowledge/recycle-bin/empty'), { type: 'all' });
-                    toast.success('已清空回收站');
-                    await fetchRecycleBinData();
-                    await fetchCategories();
-                    await fetchArticles();
-                  } catch (error) {
-                    console.error('清空回收站失败:', error);
-                    toast.error('清空回收站失败');
-                  }
-                }}
-                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 text-sm flex items-center gap-1 border border-red-200 transition-colors"
-              >
+              <Button >
                 🗑️ 清空回收站
-              </button>
+              </Button>
             </div>
 
             {recycleLoading ? (
@@ -1187,39 +1162,12 @@ const Win11KnowledgeFolderView = () => {
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await axios.post(getApiUrl(`/api/knowledge/recycle-bin/categories/${category.id}/restore`), { restoreArticles: true });
-                                  toast.success('分类及其文档已还原');
-                                  fetchRecycleBinData();
-                                  fetchCategories();
-                                  fetchArticles();
-                                } catch (error) {
-                                  console.error('还原失败:', error);
-                                  toast.error('还原失败');
-                                }
-                              }}
-                              className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                            >
+                            <Button >
                               恢复
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm('确定要永久删除吗？此操作不可撤销！')) return;
-                                try {
-                                  await axios.delete(getApiUrl(`/api/knowledge/recycle-bin/categories/${category.id}/permanent`));
-                                  toast.success('永久删除成功');
-                                  fetchRecycleBinData();
-                                } catch (error) {
-                                  console.error('永久删除失败:', error);
-                                  toast.error('永久删除失败');
-                                }
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50"
-                            >
+                            </Button>
+                            <Button  variant="destructive">
                               彻底删除
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -1246,39 +1194,12 @@ const Win11KnowledgeFolderView = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await axios.post(getApiUrl(`/api/knowledge/recycle-bin/articles/${article.id}/restore`));
-                                  toast.success('文档已还原');
-                                  fetchRecycleBinData();
-                                  fetchCategories();
-                                  fetchArticles();
-                                } catch (error) {
-                                  console.error('还原失败:', error);
-                                  toast.error('还原失败');
-                                }
-                              }}
-                              className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                            >
+                            <Button >
                               恢复
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm('确定要永久删除吗？此操作不可撤销！')) return;
-                                try {
-                                  await axios.delete(getApiUrl(`/api/knowledge/recycle-bin/articles/${article.id}/permanent`));
-                                  toast.success('永久删除成功');
-                                  fetchRecycleBinData();
-                                } catch (error) {
-                                  console.error('永久删除失败:', error);
-                                  toast.error('永久删除失败');
-                                }
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50"
-                            >
+                            </Button>
+                            <Button  variant="destructive">
                               彻底删除
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -1452,10 +1373,10 @@ const Win11KnowledgeFolderView = () => {
                     </select>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <Button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(1)} className="() =>" disabled={currentPage === 1}>
                       首页
                     </Button>
-                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(p => Math.max(1, p - 1)} className="() => )" disabled={currentPage === 1}>
                       上一页
                     </Button>
 
@@ -1485,10 +1406,10 @@ const Win11KnowledgeFolderView = () => {
                       );
                     })}
 
-                    <Button onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))} disabled={currentPage === getTotalPages()}>
+                    <Button onClick={setCurrentPage(p => Math.min(getTotalPages()} className="() => p + 1))" disabled={currentPage === getTotalPages()}>
                       下一页
                     </Button>
-                    <Button onClick={() => setCurrentPage(getTotalPages())} disabled={currentPage === getTotalPages()}>
+                    <Button onClick={setCurrentPage(getTotalPages()} className="() => )" disabled={currentPage === getTotalPages()}>
                       末页
                     </Button>
                   </div>
@@ -1536,26 +1457,12 @@ const Win11KnowledgeFolderView = () => {
                               <div className="absolute inset-0 bg-white/60 rounded-lg pointer-events-none" />
                             )}
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleCategoryVisibility(category.id, category.is_hidden === 1 ? 0 : 1);
-                              }}
-                              className="text-xs p-1 rounded hover:bg-gray-200"
-                              title={category.is_hidden === 1 ? '公开分类' : '不公开分类'}
-                            >
+                            <Button >
                               {category.is_hidden === 1 ? '🌐' : '🔒'}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteCategory(category.id);
-                              }}
-                              className="text-xs p-1 rounded hover:bg-gray-200 text-red-500"
-                              title="删除分类"
-                            >
+                            </Button>
+                            <Button  variant="destructive">
                               🗑️
-                            </button>
+                            </Button>
                           </div>
                           <div className="absolute top-2 left-2 text-xs px-2 py-1 rounded-full border bg-white/70">
                             {category.is_public === 1 ? '🌐 公开' : '🔒 私有'}
@@ -1574,16 +1481,9 @@ const Win11KnowledgeFolderView = () => {
                         onContextMenu={(e) => handleContextMenu(e, 'folder', { id: 'uncategorized', name: '未分类', icon: '📂' })}
                       >
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toast.info('未分类文件夹不能隐藏');
-                            }}
-                            className="text-xs p-1 rounded hover:bg-gray-200 cursor-not-allowed"
-                            title="未分类文件夹不能隐藏"
-                          >
+                          <Button >
                             🔒
-                          </button>
+                          </Button>
                         </div>
                         <div className="text-7xl mb-3">📂</div>
                         <h3 className="font-medium text-gray-900 text-center text-base">未分类</h3>
@@ -1654,10 +1554,10 @@ const Win11KnowledgeFolderView = () => {
                     </select>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <Button onClick={() => setCategoryCurrentPage(1)} disabled={categoryCurrentPage === 1}>
+                    <Button onClick={setCategoryCurrentPage(1)} className="() =>" disabled={categoryCurrentPage === 1}>
                       首页
                     </Button>
-                    <Button onClick={() => setCategoryCurrentPage(p => Math.max(1, p - 1))} disabled={categoryCurrentPage === 1}>
+                    <Button onClick={setCategoryCurrentPage(p => Math.max(1, p - 1)} className="() => )" disabled={categoryCurrentPage === 1}>
                       上一页
                     </Button>
 
@@ -1687,10 +1587,10 @@ const Win11KnowledgeFolderView = () => {
                       );
                     })}
 
-                    <Button onClick={() => setCategoryCurrentPage(p => Math.min(categoryTotalPages, p + 1))} disabled={categoryCurrentPage === categoryTotalPages}>
+                    <Button onClick={setCategoryCurrentPage(p => Math.min(categoryTotalPages, p + 1)} className="() => )" disabled={categoryCurrentPage === categoryTotalPages}>
                       下一页
                     </Button>
-                    <Button onClick={() => setCategoryCurrentPage(categoryTotalPages)} disabled={categoryCurrentPage === categoryTotalPages}>
+                    <Button onClick={setCategoryCurrentPage(categoryTotalPages)} className="() =>" disabled={categoryCurrentPage === categoryTotalPages}>
                       末页
                     </Button>
                   </div>
@@ -1728,42 +1628,17 @@ const Win11KnowledgeFolderView = () => {
                 </button>
                 {/* 调整宽高按钮 */}
                 <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      const widths = ['max-w-2xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl', 'w-full'];
-                      const currentIndex = widths.indexOf(previewModalWidth);
-                      const nextIndex = (currentIndex + 1) % widths.length;
-                      setPreviewModalWidth(widths[nextIndex]);
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-sm"
-                    title="调整宽度"
-                  >
+                  <Button className="w-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-sm">
                     ↔️
-                  </button>
-                  <button
-                    onClick={() => {
-                      const heights = ['max-h-[70vh]', 'max-h-[80vh]', 'max-h-[90vh]', 'max-h-[95vh]', 'h-full'];
-                      const currentIndex = heights.indexOf(previewModalHeight);
-                      const nextIndex = (currentIndex + 1) % heights.length;
-                      setPreviewModalHeight(heights[nextIndex]);
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-sm"
-                    title="调整高度"
-                  >
+                  </Button>
+                  <Button className="w-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-sm">
                     ↕️
-                  </button>
-                  <button
-                    onClick={() => {
-                      setPreviewModalWidth('w-full');
-                      setPreviewModalHeight('h-full');
-                    }}
-                    className="px-3 py-1 text-sm rounded-lg bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md"
-                    title="全屏"
-                  >
+                  </Button>
+                  <Button >
                     全屏
-                  </button>
+                  </Button>
                 </div>
-                <Button onClick={() => setPreviewFile(null)} variant="ghost">
+                <Button onClick={setPreviewFile(null)} className="() =>" variant="ghost">
                   ✕
                 </Button>
               </div>
@@ -1847,7 +1722,7 @@ const Win11KnowledgeFolderView = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end bg-gray-50">
-              <Button onClick={() => setPreviewFile(null)}>
+              <Button onClick={setPreviewFile(null)} className="() =>">
                 关闭
               </Button>
             </div>
@@ -1867,7 +1742,7 @@ const Win11KnowledgeFolderView = () => {
 
                     <h2 className="text-lg font-bold text-gray-900 truncate">{attachmentToPreview.name}</h2>
 
-                    <Button onClick={() => setAttachmentToPreview(null)} variant="ghost">
+                    <Button onClick={setAttachmentToPreview(null)} className="() =>" variant="ghost">
 
                       ✕
 
@@ -1944,16 +1819,9 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">删除分类</h2>
-              <button
-                onClick={() => {
-                  setShowDeleteCategoryModal(false);
-                  setCategoryToDelete(null);
-                  setDeleteCategoryArticleCount(0);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all" variant="destructive">
                 ✕
-              </button>
+              </Button>
             </div>
             <div className="p-6 space-y-4">
               <p className="text-gray-800">
@@ -1967,16 +1835,9 @@ const Win11KnowledgeFolderView = () => {
                 </p>
               )}
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setShowDeleteCategoryModal(false);
-                    setCategoryToDelete(null);
-                    setDeleteCategoryArticleCount(0);
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button  variant="destructive">
                   取消
-                </button>
+                </Button>
                 <Button onClick={confirmDeleteCategory} disabled={loading} variant="destructive">
                   {loading ? '删除中...' : '确定删除'}
                 </Button>
@@ -1992,15 +1853,9 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">删除文档</h2>
-              <button
-                onClick={() => {
-                  setShowDeleteArticleModal(false);
-                  setArticleToDelete(null);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all" variant="destructive">
                 ✕
-              </button>
+              </Button>
             </div>
             <div className="p-6 space-y-4">
               <p className="text-gray-800">
@@ -2009,15 +1864,9 @@ const Win11KnowledgeFolderView = () => {
                 吗？删除后可以在回收站中恢复。
               </p>
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setShowDeleteArticleModal(false);
-                    setArticleToDelete(null);
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button  variant="destructive">
                   取消
-                </button>
+                </Button>
                 <Button onClick={confirmDeleteArticle} disabled={loading} variant="destructive">
                   {loading ? '删除中...' : '确定删除'}
                 </Button>
@@ -2033,7 +1882,7 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">文件操作</h2>
-              <Button onClick={() => setNonPreviewableFile(null)} variant="ghost">
+              <Button onClick={setNonPreviewableFile(null)} className="() =>" variant="ghost">
                 ✕
               </Button>
             </div>
@@ -2059,7 +1908,7 @@ const Win11KnowledgeFolderView = () => {
                 <span>📥</span>
                 <span>下载文件</span>
               </button>
-              <Button onClick={() => setNonPreviewableFile(null)}>
+              <Button onClick={setNonPreviewableFile(null)} className="() =>">
                 取消
               </Button>
             </div>
@@ -2072,17 +1921,9 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">保存到我的知识库</h2>
-              <button
-                onClick={() => {
-                  setShowSaveToMyKnowledgeModal(false);
-                  setSelectedArticleToSave(null);
-                  setTargetCategory('');
-                  setNewCategoryName('');
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all">
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -2123,17 +1964,9 @@ const Win11KnowledgeFolderView = () => {
               )}
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  onClick={() => {
-                    setShowSaveToMyKnowledgeModal(false);
-                    setSelectedArticleToSave(null);
-                    setTargetCategory('');
-                    setNewCategoryName('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button >
                   取消
-                </button>
+                </Button>
                 <Button onClick={handleSaveToMyKnowledge} disabled={loading || !targetCategory || (targetCategory === 'new' && !newCategoryName.trim())}>
                   {loading ? '保存中...' : '保存'}
                 </Button>
@@ -2148,16 +1981,9 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">移动文档到分类</h2>
-              <button
-                onClick={() => {
-                  setShowMoveArticleModal(false);
-                  setArticleToMove(null);
-                  setMoveTargetCategory('');
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all">
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -2182,16 +2008,9 @@ const Win11KnowledgeFolderView = () => {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  onClick={() => {
-                    setShowMoveArticleModal(false);
-                    setArticleToMove(null);
-                    setMoveTargetCategory('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button >
                   取消
-                </button>
+                </Button>
                 <Button onClick={handleMoveArticle} disabled={loading || !articleToMove}>
                   {loading ? '移动中...' : '确定移动'}
                 </Button>
@@ -2207,16 +2026,9 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">重命名分类</h2>
-              <button
-                onClick={() => {
-                  setShowRenameCategoryModal(false);
-                  setRenamingCategory(null);
-                  setRenameCategoryName('');
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all">
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -2235,16 +2047,9 @@ const Win11KnowledgeFolderView = () => {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  onClick={() => {
-                    setShowRenameCategoryModal(false);
-                    setRenamingCategory(null);
-                    setRenameCategoryName('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button >
                   取消
-                </button>
+                </Button>
                 <Button onClick={handleRenameCategory} disabled={loading || !renameCategoryName.trim()}>
                   {loading ? '保存中...' : '保存'}
                 </Button>
@@ -2268,26 +2073,9 @@ const Win11KnowledgeFolderView = () => {
                 </h2>
                 <p className="text-xs text-gray-500 mt-1">标题、摘要、内容、类型、状态、图标和附件均可在此配置。</p>
               </div>
-              <button
-                onClick={() => {
-                  setShowCreateArticleModal(false);
-                  setCreatingCategory(null);
-                  setEditingArticle(null);
-                  setArticleFormData({
-                    title: '',
-                    category_id: '',
-                    summary: '',
-                    content: '',
-                    type: 'common',
-                    status: 'published',
-                    icon: '📄',
-                    attachments: []
-                  });
-                }}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow"
-              >
+              <Button className="w-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow" size="icon">
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-gray-50">
@@ -2357,7 +2145,7 @@ const Win11KnowledgeFolderView = () => {
                             <span className="truncate max-w-xs" title={file.name}>{file.name}</span>
                           </div>
                           <Button type="button"
-                            onClick={() => handleRemoveAttachment(index)}
+                            onClick={handleRemoveAttachment(index)} className="() =>"
                             className="text-gray-400 hover:text-red-500 ml-3"
                           >
                             ✕
@@ -2371,26 +2159,9 @@ const Win11KnowledgeFolderView = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 bg-white flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowCreateArticleModal(false);
-                  setCreatingCategory(null);
-                  setEditingArticle(null);
-                  setArticleFormData({
-                    title: '',
-                    category_id: '',
-                    summary: '',
-                    content: '',
-                    type: 'common',
-                    status: 'published',
-                    icon: '📄',
-                    attachments: []
-                  });
-                }}
-                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-              >
+              <Button  size="icon">
                 取消
-              </button>
+              </Button>
               <Button onClick={handleCreateArticle} disabled={loading || !articleFormData.title.trim()}>
                 {loading ? '保存中...' : '保存'}
               </Button>
@@ -2405,15 +2176,9 @@ const Win11KnowledgeFolderView = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">新建分类</h2>
-              <button
-                onClick={() => {
-                  setShowCreateCategoryModal(false);
-                  setNewCategoryName('');
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all">
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -2432,15 +2197,9 @@ const Win11KnowledgeFolderView = () => {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  onClick={() => {
-                    setShowCreateCategoryModal(false);
-                    setNewCategoryName('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button >
                   取消
-                </button>
+                </Button>
                 <Button onClick={handleCreateCategory} disabled={loading || !newCategoryName.trim()}>
                   {loading ? '创建中...' : '创建'}
                 </Button>

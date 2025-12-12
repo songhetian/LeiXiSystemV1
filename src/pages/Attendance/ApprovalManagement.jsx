@@ -272,13 +272,13 @@ export default function ApprovalManagement() {
 
         {isPending && (
           <div className="flex gap-3 pt-2 border-t border-gray-100">
-            <Button onClick={() => handleQuickApproval(record, true)}>
+            <Button onClick={handleQuickApproval(record, true)} className="() =>">
               通过
             </Button>
-            <Button onClick={() => handleQuickApproval(record, false)} variant="destructive">
+            <Button onClick={handleQuickApproval(record, false)} className="() =>" variant="destructive">
               驳回
             </Button>
-            <Button onClick={() => handleApprove(record)} variant="ghost">
+            <Button onClick={handleApprove(record)} className="() =>" variant="ghost">
               详情
             </Button>
           </div>
@@ -372,12 +372,9 @@ export default function ApprovalManagement() {
             className="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-        <button
-          onClick={() => setFilters({ status: 'pending', start_date: '', end_date: '' })}
-          className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-medium transition-colors"
-        >
+        <Button >
           重置
-        </button>
+        </Button>
       </div>
 
       {/* Content */}
@@ -445,10 +442,10 @@ export default function ApprovalManagement() {
                   <TableCell className="px-6 py-4 text-right text-sm font-medium">
                     {record.status === 'pending' && (
                       <div className="flex justify-end gap-2">
-                        <Button onClick={() => handleQuickApproval(record, true)}>
+                        <Button onClick={handleQuickApproval(record, true)} className="() =>">
                           通过
                         </Button>
-                        <Button onClick={() => handleQuickApproval(record, false)}>
+                        <Button onClick={handleQuickApproval(record, false)} className="() =>">
                           驳回
                         </Button>
                       </div>
@@ -464,13 +461,9 @@ export default function ApprovalManagement() {
       {/* Pagination */}
       {pagination.total > pagination.limit && (
         <div className="mt-8 flex justify-center gap-2">
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-            disabled={pagination.page === 1}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button >
             上一页
-          </button>
+          </Button>
           <span className="px-4 py-2 text-sm text-gray-600 flex items-center">
             第 {pagination.page} 页 / 共 {Math.ceil(pagination.total / pagination.limit)} 页
           </span>
@@ -522,13 +515,13 @@ export default function ApprovalManagement() {
               </div>
             </div>
             <div className="p-6 bg-gray-50 flex gap-3">
-              <Button onClick={() => setShowModal(false)} variant="outline">
+              <Button onClick={setShowModal(false)} className="() =>" variant="outline">
                 取消
               </Button>
-              <Button onClick={() => handleSubmitApproval(false)} variant="destructive">
+              <Button onClick={handleSubmitApproval(false)} className="() =>" variant="destructive">
                 驳回
               </Button>
-              <Button onClick={() => handleSubmitApproval(true)}>
+              <Button onClick={handleSubmitApproval(true)} className="() =>">
                 通过
               </Button>
             </div>
@@ -556,7 +549,7 @@ export default function ApprovalManagement() {
               您确定要{confirmAction.approved ? '通过' : '驳回'} {confirmAction.record.employee_name} 的申请吗？
             </p>
             <div className="flex gap-3">
-              <Button onClick={() => setShowConfirmModal(false)}>
+              <Button onClick={setShowConfirmModal(false)} className="() =>">
                 取消
               </Button>
               <button

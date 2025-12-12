@@ -558,7 +558,7 @@ const UserRoleManagement = () => {
             <div className="flex flex-wrap gap-2">
               <Button
                 size="small"
-                onClick={() => setIsBatchAssignOpen(true)}
+                onClick={setIsBatchAssignOpen(true)} className="() =>"
                 className="flex items-center gap-1"
               >
                 <TeamOutlined className="text-xs" />
@@ -567,7 +567,7 @@ const UserRoleManagement = () => {
               <Button
                 size="small"
                 danger
-                onClick={() => setIsBatchRemoveOpen(true)}
+                onClick={setIsBatchRemoveOpen(true)} className="() =>"
                 disabled={isProcessingBatch}
                 className="flex items-center gap-1"
               >
@@ -641,7 +641,7 @@ const UserRoleManagement = () => {
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={() => setModalVisible(false)}>取消</Button>
+            <Button onClick={setModalVisible(false)} className="() =>">取消</Button>
             <Button type="primary" onClick={handleSaveRoles}>保存</Button>
           </div>
         </div>
@@ -672,7 +672,7 @@ const UserRoleManagement = () => {
             </Select>
           </div>
           <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsBatchAssignOpen(false)}>取消</Button>
+            <Button onClick={setIsBatchAssignOpen(false)} className="() =>">取消</Button>
             <Button
               type="primary"
               onClick={handleBatchAssignRoles}
@@ -701,7 +701,7 @@ const UserRoleManagement = () => {
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsBatchRemoveOpen(false)}>取消</Button>
+            <Button onClick={setIsBatchRemoveOpen(false)} className="() =>">取消</Button>
             <Button
               type="primary"
               danger

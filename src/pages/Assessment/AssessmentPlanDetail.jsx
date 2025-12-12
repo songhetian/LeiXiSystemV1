@@ -183,7 +183,7 @@ const AssessmentPlanDetail = () => {
       <div style={{ padding: 24 }}>
         <Card title="考核计划详情">
           <p>考核计划不存在或加载失败。</p>
-          <Button type="primary" onClick={() => navigate('/assessment/plans')} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" onClick={navigate('/assessment/plans')} className="() =>" icon={<ArrowLeftOutlined />}>
             返回计划列表
           </Button>
         </Card>
@@ -199,7 +199,7 @@ const AssessmentPlanDetail = () => {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="default" onClick={() => navigate('/assessment/plans')} icon={<ArrowLeftOutlined />}>
+        <Button type="default" onClick={navigate('/assessment/plans')} className="() =>" icon={<ArrowLeftOutlined />}>
           返回计划列表
         </Button>
         <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/assessment/plans/${id}/edit`)}>

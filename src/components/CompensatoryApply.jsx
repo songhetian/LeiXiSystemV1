@@ -37,7 +37,7 @@ const CompensatoryApply = () => {
               </ul>
             </div>
 
-            <Button onClick={() => setShowModal(true)} size="lg">
+            <Button onClick={setShowModal(true)} className="() =>" size="lg">
               开始申请调休
             </Button>
           </div>

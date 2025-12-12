@@ -278,22 +278,12 @@ const CompensatoryApproval = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-            >
+            <Button>
               搜索
-            </button>
+            </Button>
             {(searchTerm || Object.values(dateFilters).some(v => v)) && (
               <Button type="button"
-                onClick={() => {
-                  setSearchTerm('')
-                  setDateFilters({
-                    申请时间_start: '',
-                    申请时间_end: '',
-                    调休日期_start: '',
-                    调休日期_end: ''
-                  })
+                onClick={setSearchTerm('')} className="() => setDateFilters( 申请时间_start: '' 申请时间_end: '' 调休日期_start: '' 调休日期_end: ''")
                   setPagination(prev => ({ ...prev, page: 1 }))
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
@@ -454,7 +444,7 @@ const CompensatoryApproval = () => {
                       <p className="text-xs text-gray-400">申请时间</p>
                       <p className="text-sm font-medium text-gray-600">{formatDateTime(request.created_at)}</p>
                     </div>
-                    <Button onClick={() => openDetailModal(request)}>
+                    <Button onClick={openDetailModal(request)} className="() =>">
                       <Eye size={18} />
                       审核详情
                     </Button>
@@ -473,13 +463,9 @@ const CompensatoryApproval = () => {
               共 <span className="font-medium">{Number(pagination.total || 0)}</span> 条记录
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+              <Button >
                 上一页
-              </button>
+              </Button>
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                 disabled={pagination.page >= totalPages}

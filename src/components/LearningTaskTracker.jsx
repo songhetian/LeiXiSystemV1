@@ -132,10 +132,10 @@ const LearningTaskTracker = () => {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button onClick={() => markTaskAsCompleted(task.id)} size="sm">
+                        <Button onClick={markTaskAsCompleted(task.id)} className="() =>" size="sm">
                           标记完成
                         </Button>
-                        <Button onClick={() => deleteTask(task.id)} variant="destructive" size="sm">
+                        <Button onClick={deleteTask(task.id)} className="() =>" variant="destructive" size="sm">
                           删除
                         </Button>
                       </div>
@@ -164,7 +164,7 @@ const LearningTaskTracker = () => {
                           <span>完成时间: {new Date(task.completed_at).toLocaleString()}</span>
                         </div>
                       </div>
-                      <Button onClick={() => deleteTask(task.id)} variant="destructive" size="sm">
+                      <Button onClick={deleteTask(task.id)} className="() =>" variant="destructive" size="sm">
                         删除
                       </Button>
                     </div>

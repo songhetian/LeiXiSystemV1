@@ -344,7 +344,7 @@ const MyMemos = () => {
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editMode ? '编辑备忘录' : '新建备忘录'}</h3>
-              <button className="close-btn" onClick={() => setShowEditor(false)}>×</button>
+              <Button onClick={setShowEditor(false)} className="() =>">×</Button>
             </div>
 
             <div className="modal-body">
@@ -383,8 +383,8 @@ const MyMemos = () => {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowEditor(false)}>取消</button>
-              <button className="btn-primary" onClick={handleSave}>保存</button>
+              <Button onClick={setShowEditor(false)} className="() =>">取消</Button>
+              <Button onClick={handleSave}>保存</Button>
             </div>
           </div>
         </div>
@@ -396,7 +396,7 @@ const MyMemos = () => {
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{currentMemo.title}</h3>
-              <button className="close-btn" onClick={() => setShowDetail(false)}>×</button>
+              <Button onClick={setShowDetail(false)} className="() =>">×</Button>
             </div>
 
             <div className="modal-body">
@@ -427,21 +427,15 @@ const MyMemos = () => {
             <div className="modal-footer">
               {currentMemo.type === 'personal' && (
                 <>
-                  <button className="btn-danger" onClick={() => {
-                    setShowDetail(false)
-                    handleDelete(currentMemo)
-                  }}>
+                  <Button onClick={setShowDetail(false)} className="() => handleDelete(currentMemo)" variant="destructive">
                     删除
-                  </button>
-                  <button className="btn-primary" onClick={() => {
-                    setShowDetail(false)
-                    handleEdit(currentMemo)
-                  }}>
+                  </Button>
+                  <Button onClick={setShowDetail(false)} className="() => handleEdit(currentMemo)">
                     编辑
-                  </button>
+                  </Button>
                 </>
               )}
-              <button className="btn-secondary" onClick={() => setShowDetail(false)}>关闭</button>
+              <Button onClick={setShowDetail(false)} className="() =>">关闭</Button>
             </div>
           </div>
         </div>

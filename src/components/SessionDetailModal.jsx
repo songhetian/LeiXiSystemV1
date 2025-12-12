@@ -699,7 +699,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                                         加入案例
                                     </Button>
                                 </div>
-                                <Button onClick={() => setShowConfirmSave(true)}>
+                                <Button onClick={setShowConfirmSave(true)} className="() =>">
                                     <CheckCircleIcon className="w-5 h-5" />
                                     保存所有修改
                                 </Button>
@@ -723,7 +723,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                 <div className="py-4">
                     <p className="text-gray-600 mb-4">确定要保存对该会话的所有修改吗？</p>
                     <div className="flex justify-end gap-3">
-                        <Button onClick={() => setShowConfirmSave(false)} variant="ghost">
+                        <Button onClick={setShowConfirmSave(false)} className="() =>" variant="ghost">
                             取消
                         </Button>
                         <Button onClick={handleSave} disabled={isSaving}>
@@ -752,7 +752,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                         onChange={(e) => setMessageEditContent(e.target.value)}
                     />
                     <div className="flex justify-end gap-3">
-                        <Button onClick={() => setShowEditSession(false)} variant="ghost">
+                        <Button onClick={setShowEditSession(false)} className="() =>" variant="ghost">
                             取消
                         </Button>
                         <button
@@ -831,7 +831,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                         />
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
-                        <Button onClick={() => setShowAddToCase(false)} variant="ghost">
+                        <Button onClick={setShowAddToCase(false)} className="() =>" variant="ghost">
                             取消
                         </Button>
                         <Button onClick={handleAddToCase}>

@@ -404,29 +404,13 @@ const KnowledgeFolderView = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                if (selectedCategory) {
-                  // 添加文档逻辑
-                  setShowArticleModal(true);
-                } else {
-                  // 添加分类逻辑
-                  resetCategoryForm();
-                  setShowCategoryModal(true);
-                }
-              }}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
-            >
+            <Button >
               {selectedCategory ? '📄 添加文档' : '📁 添加分类'}
-            </button>
+            </Button>
             
-            <button
-              onClick={() => setShowRecycleBin(true)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="回收站"
-            >
+            <Button onClick={p-2}>
               🗑️
-            </button>
+            </Button>
             
             <button
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
@@ -498,32 +482,12 @@ const KnowledgeFolderView = () => {
                       onContextMenu={(e) => handleContextMenu(e, 'folder', category)}
                     >
                       <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingCategory(category)
-                            setCategoryFormData({
-                              name: category.name,
-                              description: category.description || '',
-                              icon: category.icon || '📁'
-                            })
-                            setShowCategoryModal(true)
-                          }}
-                          className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
-                          title="编辑分类"
-                        >
+                        <Button  size="icon">
                           ✏️
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteCategory(category.id)
-                          }}
-                          className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-                          title="删除分类"
-                        >
+                        </Button>
+                        <Button  variant="destructive">
                           🗑️
-                        </button>
+                        </Button>
                       </div>
 
                       <div
@@ -590,7 +554,7 @@ const KnowledgeFolderView = () => {
                       共 {categories.length} 个分类，第 {categoryPage} / {getCategoryTotalPages()} 页
                     </div>
                     <div className="flex gap-2">
-                      <Button onClick={() => setCategoryPage(p => Math.max(1, p - 1))} disabled={categoryPage === 1}>
+                      <Button onClick={setCategoryPage(p => Math.max(1, p - 1)} className="() => )" disabled={categoryPage === 1}>
                         ← 上一页
                       </Button>
 
@@ -622,7 +586,7 @@ const KnowledgeFolderView = () => {
                         )
                       })}
 
-                      <Button onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))} disabled={categoryPage === getCategoryTotalPages()}>
+                      <Button onClick={setCategoryPage(p => Math.min(getCategoryTotalPages()} className="() => p + 1))" disabled={categoryPage === getCategoryTotalPages()}>
                         下一页 →
                       </Button>
                     </div>
@@ -649,22 +613,16 @@ const KnowledgeFolderView = () => {
                   )}
                 </div>
               </div>
-              <Button onClick={() => setShowFolderModal(false)} variant="ghost">
+              <Button onClick={setShowFolderModal(false)} className="() =>" variant="ghost">
                 ✕
               </Button>
             </div>
 
             {/* 操作栏 */}
             <div className="p-6 border-b border-gray-200 flex flex-wrap items-center gap-4 bg-gray-50">
-              <button
-                onClick={() => {
-                  handleCreateArticle(currentFolderCategory)
-                  setShowFolderModal(false)
-                }}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center gap-3 text-lg font-medium shadow-md"
-              >
+              <Button >
                 ➕ 新建文档
-              </button>
+              </Button>
               <div className="flex-1 min-w-[200px]">
                 <input
                   type="text"
@@ -753,26 +711,12 @@ const KnowledgeFolderView = () => {
                       {/* 操作按钮 */}
                       <div className="mt-auto pt-4 border-t border-gray-100 flex-shrink-0">
                         <div className="flex items-center justify-center gap-2 mb-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewArticle(article)
-                            }}
-                            className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all flex items-center gap-1 text-base font-medium"
-                            title="预览"
-                          >
+                          <Button >
                             👁️ 预览
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteArticle(article)
-                            }}
-                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1 text-base font-medium"
-                            title="删除"
-                          >
+                          </Button>
+                          <Button  variant="destructive">
                             🗑️ 删除
-                          </button>
+                          </Button>
                         </div>
 
                         {/* 附件信息 */}
@@ -795,7 +739,7 @@ const KnowledgeFolderView = () => {
                     第 {currentPage} / {getTotalPages()} 页
                   </div>
                   <div className="flex gap-3 flex-wrap">
-                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(p => Math.max(1, p - 1)} className="() => )" disabled={currentPage === 1}>
                       ← 上一页
                     </Button>
 
@@ -827,7 +771,7 @@ const KnowledgeFolderView = () => {
                       )
                     })}
 
-                    <Button onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))} disabled={currentPage === getTotalPages()}>
+                    <Button onClick={setCurrentPage(p => Math.min(getTotalPages()} className="() => p + 1))" disabled={currentPage === getTotalPages()}>
                       下一页 →
                     </Button>
                   </div>
@@ -857,32 +801,14 @@ const KnowledgeFolderView = () => {
               <div className="flex items-center gap-2">
                 {/* 调整宽高按钮 */}
                 <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      const widths = ['max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl']
-                      const currentIndex = widths.indexOf(articleModalWidth)
-                      const nextIndex = (currentIndex + 1) % widths.length
-                      setArticleModalWidth(widths[nextIndex])
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm"
-                    title="调整宽度"
-                  >
+                  <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm">
                     ↔️
-                  </button>
-                  <button
-                    onClick={() => {
-                      const heights = ['max-h-[80vh]', 'max-h-[85vh]', 'max-h-[90vh]', 'max-h-[95vh]']
-                      const currentIndex = heights.indexOf(articleModalHeight)
-                      const nextIndex = (currentIndex + 1) % heights.length
-                      setArticleModalHeight(heights[nextIndex])
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm"
-                    title="调整高度"
-                  >
+                  </Button>
+                  <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm">
                     ↕️
-                  </button>
+                  </Button>
                 </div>
-                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
+                <Button onClick={setShowArticleModal(false)} className="() =>" variant="ghost">
                   ✕
                 </Button>
               </div>
@@ -971,7 +897,7 @@ const KnowledgeFolderView = () => {
               )}
 
               <div className="p-6 border-t border-gray-200 flex items-center justify-end">
-                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
+                <Button onClick={setShowArticleModal(false)} className="() =>" variant="ghost">
                   关闭
                 </Button>
               </div>
@@ -1040,21 +966,14 @@ const KnowledgeFolderView = () => {
 
               <div className="flex items-center justify-end gap-3 pt-4">
                 <Button type="button"
-                  onClick={() => {
-                    setShowCategoryModal(false)
-                    resetCategoryForm()
-                  }}
+                  onClick={setShowCategoryModal(false)} className="() => resetCategoryForm()"}
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   取消
                 </Button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
-                >
+                <Button>
                   {loading ? '保存中...' : editingCategory ? '更新' : '创建'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

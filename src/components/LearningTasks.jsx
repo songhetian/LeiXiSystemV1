@@ -145,15 +145,9 @@ const LearningTasks = () => {
           <div className="text-center py-12 text-gray-500">
             <div className="text-6xl mb-4">📋</div>
             <p>暂无学习任务</p>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowModal(true);
-              }}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
+            <Button onClick={mt-4}>
               创建第一个任务
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -193,14 +187,14 @@ const LearningTasks = () => {
                   </div>
                   <div className="flex space-x-2">
                     {task.status !== 'completed' && (
-                      <Button onClick={() => markTaskAsCompleted(task.id)} size="sm">
+                      <Button onClick={markTaskAsCompleted(task.id)} className="() =>" size="sm">
                         标记完成
                       </Button>
                     )}
-                    <Button onClick={() => handleEdit(task)} size="sm">
+                    <Button onClick={handleEdit(task)} className="() =>" size="sm">
                       编辑
                     </Button>
-                    <Button onClick={() => deleteTask(task.id)} variant="destructive" size="sm">
+                    <Button onClick={deleteTask(task.id)} className="() =>" variant="destructive" size="sm">
                       删除
                     </Button>
                   </div>
@@ -272,22 +266,15 @@ const LearningTasks = () => {
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <Button type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    resetForm();
-                  }}
+                  onClick={setShowModal(false)} className="() => ; resetForm();"}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   disabled={loading}
                 >
                   取消
                 </Button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={loading}
-                >
+                <Button>
                   {loading ? '提交中...' : (editingTask ? '更新' : '创建')}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

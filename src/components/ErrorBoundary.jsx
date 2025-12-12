@@ -75,7 +75,7 @@ class ErrorBoundary extends React.Component {
               <Button onClick={this.handleReset}>
                 重试
               </Button>
-              <Button onClick={() => window.location.href = '/'}>
+              <Button className="() => window.location.href = '/'">
                 返回首页
               </Button>
             </div>

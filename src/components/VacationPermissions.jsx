@@ -34,8 +34,8 @@ const VacationPermissions = () => {
       key: 'action',
       render: (_, record) => (
         <Space size="middle">
-          <Button type="link" onClick={() => handleEdit(record)}>编辑</Button>
-          <Button type="link" danger onClick={() => handleDelete(record)}>删除</Button>
+          <Button type="link" onClick={handleEdit(record)} className="() =>">编辑</Button>
+          <Button type="link" danger onClick={handleDelete(record)} className="() =>">删除</Button>
         </Space>
       ),
     },

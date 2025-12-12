@@ -106,18 +106,9 @@ export default function AttendanceStats() {
           <Button onClick={handlePrevMonth} size="sm">← 上月</Button>
           <div className="font-semibold text-sm">{selectedMonth.year}年 {selectedMonth.month}月</div>
           <div className="flex gap-1.5">
-            <button
-              onClick={() => {
-                if (employee) {
-                  const startDate = `${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}-01`
-                  const endDate = `${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}-31`
-                  window.open(getApiUrl(`/api/export/attendance/${employee.id}?startDate=${startDate}&endDate=${endDate}`), '_blank')
-                }
-              }}
-              className="px-2.5 py-1.5 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-            >
+            <Button >
               📥 导出
-            </button>
+            </Button>
             <Button onClick={handleNextMonth} size="sm">下月 →</Button>
           </div>
         </div>

@@ -901,7 +901,7 @@ const BroadcastManagement = () => {
 
           <Form.Item className="flex justify-end mb-0">
             <Space>
-              <Button onClick={() => setModalVisible(false)}>取消</Button>
+              <Button onClick={setModalVisible(false)} className="() =>">取消</Button>
               <Button type="primary" htmlType="submit" loading={submitting}>
                 发送广播
               </Button>

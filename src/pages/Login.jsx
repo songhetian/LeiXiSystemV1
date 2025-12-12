@@ -354,11 +354,11 @@ const Login = ({ onLoginSuccess }) => {
           </Button>
           <Button
             onClick={() => {
-              setIsLogin(false)
-              setFormData({ username: '', password: '', real_name: '', email: '', phone: '' })
-              setFieldErrors({})
-              setUsernameAvailable(null)
-              setUsernameSuggestions([])
+              setIsLogin(false);
+              setFormData({ username: '', password: '', real_name: '', email: '', phone: '' });
+              setFieldErrors({});
+              setUsernameAvailable(null);
+              setUsernameSuggestions([]);
             }}
             variant={!isLogin ? "default" : "ghost"}
             className="flex-1"
@@ -460,8 +460,8 @@ const Login = ({ onLoginSuccess }) => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setFormData({...formData, username: suggestion})
-                        checkUsername(suggestion, formData.real_name)
+                        setFormData({ ...formData, username: suggestion });
+                        checkUsername(suggestion, formData.real_name);
                       }}
                       className="border-yellow-300 hover:bg-yellow-100"
                     >
@@ -592,51 +592,12 @@ const Login = ({ onLoginSuccess }) => {
 
             {/* 按钮组 */}
             <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false)
-                  setLoading(false)
-                }}
-                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-              >
+              <Button onClick={() => {}} className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
                 取消
-              </button>
-              <button
-                onClick={async () => {
-                  setLoading(true)
-                  try {
-                    await performLogin(true)
-                    // 确保在任何情况下都关闭loading状态
-                    if (loading) {
-                      setLoading(false)
-                    }
-                  } catch (error) {
-                    console.error('强制登录失败:', error)
-                    setShowConfirmModal(false)
-
-                    // 显示错误信息
-                    if (error.response) {
-                      const message = error.response.data?.message
-                      if (error.response.status === 401) {
-                        setErrorMessage('用户名或密码错误')
-                        toast.error('❌ 用户名或密码错误')
-                      } else if (message) {
-                        setErrorMessage(message)
-                        toast.error(`❌ ${message}`)
-                      }
-                    } else {
-                      setErrorMessage('登录失败，请稍后重试')
-                      toast.error('❌ 登录失败')
-                    }
-                  } finally {
-                    setLoading(false)
-                  }
-                }}
-                disabled={loading}
-                className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              </Button>
+              <Button onClick={handleLogin} className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? '登录中...' : '确认登录'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -673,15 +634,9 @@ const Login = ({ onLoginSuccess }) => {
               </div>
 
               {/* 按钮 */}
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false)
-                  setIsLogin(true)
-                }}
-                className="w-full py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg"
-              >
+              <Button onClick={() => setShowSuccessModal(false)} className="w-full py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg">
                 好的，我知道了
-              </button>
+              </Button>
             </div>
           </div>
         </div>

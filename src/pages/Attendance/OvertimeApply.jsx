@@ -235,19 +235,19 @@ export default function OvertimeApply() {
               {/* 快捷时间选择 */}
               <div className="flex flex-wrap gap-2">
                 <Button type="button"
-                  onClick={() => setTimeRange('18:00', '20:00')}
+                  onClick={setTimeRange('18:00', '20:00')} className="() =>"
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   18:00-20:00 (2小时)
                 </Button>
                 <Button type="button"
-                  onClick={() => setTimeRange('18:00', '21:00')}
+                  onClick={setTimeRange('18:00', '21:00')} className="() =>"
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   18:00-21:00 (3小时)
                 </Button>
                 <Button type="button"
-                  onClick={() => setTimeRange('18:00', '22:00')}
+                  onClick={setTimeRange('18:00', '22:00')} className="() =>"
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   18:00-22:00 (4小时)
@@ -280,7 +280,7 @@ export default function OvertimeApply() {
             {/* 提交按钮 */}
             <div className="flex gap-4 pt-4">
               <Button type="button"
-                onClick={() => window.history.back()}
+                onClick={back()} className="() => window.history."
                 className="px-6 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
               >
                 取消

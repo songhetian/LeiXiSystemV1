@@ -167,10 +167,10 @@ const QualityInspection = () => {
               onChange={handleFilterChange}
               className="business-input w-40"
             />
-            <Button onClick={() => setIsPlatformShopModalOpen(true)}>
+            <Button onClick={setIsPlatformShopModalOpen(true)} className="() =>">
               平台店铺管理
             </Button>
-            <Button onClick={() => setIsImportModalOpen(true)}>
+            <Button onClick={setIsImportModalOpen(true)} className="() =>">
               导入会话
             </Button>
           </div>
@@ -228,15 +228,15 @@ const QualityInspection = () => {
                     <TableCell className="text-center">
                       <div className="flex gap-2 justify-center">
                         {inspection.quality_status === 'pending' ? (
-                          <Button onClick={() => handleInspect(inspection)}>
+                          <Button onClick={handleInspect(inspection)} className="() =>">
                             开始质检
                           </Button>
                         ) : (
-                          <Button onClick={() => handleInspect(inspection)}>
+                          <Button onClick={handleInspect(inspection)} className="() =>">
                             查看详情
                           </Button>
                         )}
-                        <Button onClick={() => handleDelete(inspection.id)}>
+                        <Button onClick={handleDelete(inspection.id)} className="() =>">
                           删除
                         </Button>
                       </div>
@@ -252,10 +252,10 @@ const QualityInspection = () => {
         {pagination.totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
             <div className="flex flex-1 justify-between sm:hidden">
-              <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
+              <Button onClick={handlePageChange(pagination.page - 1)} className="() =>" disabled={pagination.page === 1}>
                 上一页
               </Button>
-              <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages}>
+              <Button onClick={handlePageChange(pagination.page + 1)} className="() =>" disabled={pagination.page === pagination.totalPages}>
                 下一页
               </Button>
             </div>
@@ -269,7 +269,7 @@ const QualityInspection = () => {
               </div>
               <div>
                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
+                  <Button onClick={handlePageChange(pagination.page - 1)} className="() =>" disabled={pagination.page === 1}>
                     <span className="sr-only">上一页</span>
                     <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
@@ -287,13 +287,9 @@ const QualityInspection = () => {
 
                     if (startPage > 1) {
                       pages.push(
-                        <button
-                          key={1}
-                          onClick={() => handlePageChange(1)}
-                          className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                        >
+                        <Button className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
                           1
-                        </button>
+                        </Button>
                       );
                       if (startPage > 2) {
                         pages.push(
@@ -328,19 +324,15 @@ const QualityInspection = () => {
                         );
                       }
                       pages.push(
-                        <button
-                          key={pagination.totalPages}
-                          onClick={() => handlePageChange(pagination.totalPages)}
-                          className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                        >
+                        <Button className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
                           {pagination.totalPages}
-                        </button>
+                        </Button>
                       );
                     }
 
                     return pages;
                   })()}
-                  <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages}>
+                  <Button onClick={handlePageChange(pagination.page + 1)} className="() =>" disabled={pagination.page === pagination.totalPages}>
                     <span className="sr-only">下一页</span>
                     <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />

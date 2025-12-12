@@ -678,10 +678,10 @@ function EmployeeChanges() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
+              <Button onClick={handlePageChange(1)} className="() =>" disabled={currentPage === 1}>
                 首页
               </Button>
-              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+              <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
                 上一页
               </Button>
               <div className="flex gap-1">
@@ -711,10 +711,10 @@ function EmployeeChanges() {
                   )
                 })}
               </div>
-              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+              <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
                 下一页
               </Button>
-              <Button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
+              <Button onClick={handlePageChange(totalPages)} className="() =>" disabled={currentPage === totalPages}>
                 末页
               </Button>
               <span className="text-sm text-gray-600 ml-2">{currentPage} / {totalPages}</span>

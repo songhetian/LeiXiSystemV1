@@ -261,7 +261,7 @@ const ExamForm = () => {
               <Button type="primary" onClick={handlePublish} loading={loading}>
                 发布试卷
               </Button>
-              <Button onClick={() => navigate('/assessment/exams')} disabled={loading}>
+              <Button onClick={navigate('/assessment/exams')} className="() =>" disabled={loading}>
                 取消
               </Button>
             </Space>

@@ -138,13 +138,13 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
           <div className="flex gap-4">
             <Button
               type={settings.entry_date_rule === 'prorated' ? 'primary' : 'default'}
-              onClick={() => setSettings({ ...settings, entry_date_rule: 'prorated' })}
+              className="() => setSettings( ...settings entry_date_rule: 'prorated'")}
             >
               按比例折算
             </Button>
             <Button
               type={settings.entry_date_rule === 'full' ? 'primary' : 'default'}
-              onClick={() => setSettings({ ...settings, entry_date_rule: 'full' })}
+              className="() => setSettings( ...settings entry_date_rule: 'full'")}
             >
               全额发放
             </Button>
@@ -208,9 +208,9 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">节假日与调休设置 ({year}年)</h3>
         <Space>
-          <Button onClick={() => setYear(year - 1)}>上一年</Button>
+          <Button onClick={setYear(year - 1)} className="() =>">上一年</Button>
           <span className="font-bold">{year}</span>
-          <Button onClick={() => setYear(year + 1)}>下一年</Button>
+          <Button onClick={setYear(year + 1)} className="() =>">下一年</Button>
         </Space>
       </div>
 
@@ -444,7 +444,7 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
           {currentStep < steps.length - 1 && (
             <Button
               type="primary"
-              onClick={currentStep === 0 || currentStep === 2 ? handleSaveSettings : next}
+              className="currentStep === 0 || currentStep === 2 ? handleSaveSettings : next"
               icon={<ArrowRightOutlined />}
             >
               保存并下一步
@@ -454,11 +454,7 @@ const VacationQuotaWizard = ({ visible, onClose, onSuccess }) => {
           {currentStep === steps.length - 1 && (
             <Button
               type="primary"
-              onClick={() => {
-                message.success('配置完成');
-                onSuccess?.();
-                onClose();
-              }}
+              onClick={success('配置完成')} className="() => message.; onSuccess?.(); onClose();"}
               icon={<CheckCircleOutlined />}
             >
               完成配置

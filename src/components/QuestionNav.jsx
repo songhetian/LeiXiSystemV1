@@ -82,7 +82,7 @@ const QuestionNav = ({
               key={q.id}
               type={buttonType}
               style={{ ...buttonStyle, padding: '4px 8px', fontSize: 12, height: 'auto' }}
-              onClick={() => onQuestionChange(actualIndex)}
+              onClick={onQuestionChange(actualIndex)} className="() =>"
               size="small"
             >
               <Space size={2} style={{ fontSize: 12 }}>
@@ -109,7 +109,7 @@ const QuestionNav = ({
                 key={page}
                 size="small"
                 type={page === currentPage ? 'primary' : 'default'}
-                onClick={() => handlePageChange(page)}
+                onClick={handlePageChange(page)} className="() =>"
                 style={{
                   minWidth: 24,
                   padding: '0 6px',

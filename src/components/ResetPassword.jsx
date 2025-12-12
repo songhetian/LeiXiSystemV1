@@ -283,15 +283,9 @@ const ResetPassword = () => {
                         </span>
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => {
-                            setSelectedEmployee(employee)
-                            setShowResetModal(true)
-                          }}
-                          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm hover:shadow-md"
-                        >
+                        <Button className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm hover:shadow-md">
                           🔑 重置密码
-                        </button>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -308,10 +302,10 @@ const ResetPassword = () => {
                     共 <span className="font-semibold text-gray-900">{filteredEmployees.length}</span> 条记录
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(1)} className="() =>" disabled={currentPage === 1}>
                       首页
                     </Button>
-                    <Button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(prev => Math.max(1, prev - 1)} className="() => )" disabled={currentPage === 1}>
                       上一页
                     </Button>
 
@@ -345,10 +339,10 @@ const ResetPassword = () => {
                       })}
                     </div>
 
-                    <Button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
+                    <Button onClick={setCurrentPage(prev => Math.min(totalPages, prev + 1)} className="() => )" disabled={currentPage === totalPages}>
                       下一页
                     </Button>
-                    <Button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                    <Button onClick={setCurrentPage(totalPages)} className="() =>" disabled={currentPage === totalPages}>
                       末页
                     </Button>
                   </div>
@@ -409,17 +403,9 @@ const ResetPassword = () => {
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowResetModal(false)
-                  setNewPassword('')
-                  setConfirmPassword('')
-                  setSelectedEmployee(null)
-                }}
-                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-              >
+              <Button >
                 取消
-              </button>
+              </Button>
               <Button onClick={handleResetPassword} disabled={loading}>
                 {loading ? '重置中...' : '确认重置'}
               </Button>

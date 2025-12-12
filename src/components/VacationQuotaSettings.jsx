@@ -218,7 +218,7 @@ const VacationQuotaSettings = () => {
           </div>
         </div>
 
-        <Button onClick={() => setShowBatchModal(true)}>
+        <Button onClick={setShowBatchModal(true)} className="() =>">
           <Settings size={18} />
           批量调整
         </Button>
@@ -269,12 +269,9 @@ const VacationQuotaSettings = () => {
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-          >
+          <Button>
             查询
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -379,7 +376,7 @@ const VacationQuotaSettings = () => {
                           {emp.compensatory_leave_total}
                         </TableCell>
                         <TableCell className="px-6 py-4 text-center">
-                          <Button onClick={() => handleEdit(emp)}>
+                          <Button onClick={handleEdit(emp)} className="() =>">
                             调整
                           </Button>
                         </TableCell>
@@ -398,23 +395,15 @@ const VacationQuotaSettings = () => {
             共 {pagination.total} 条记录
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-              disabled={pagination.page === 1}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-            >
+            <Button >
               上一页
-            </button>
+            </Button>
             <span className="px-3 py-1 text-gray-600">
               第 {pagination.page} 页
             </span>
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-              disabled={employees.length < pagination.limit}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-            >
+            <Button >
               下一页
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -427,7 +416,7 @@ const VacationQuotaSettings = () => {
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-800">批量调整假期额度</h2>
-              <Button onClick={() => setShowBatchModal(false)} variant="ghost">
+              <Button onClick={setShowBatchModal(false)} className="() =>" variant="ghost">
                 <X size={24} className="text-gray-500" />
               </Button>
             </div>
@@ -532,7 +521,7 @@ const VacationQuotaSettings = () => {
             </div>
 
             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-              <Button onClick={() => setShowBatchModal(false)}>
+              <Button onClick={setShowBatchModal(false)} className="() =>">
                 取消
               </Button>
               <Button onClick={handleBatchSave}>

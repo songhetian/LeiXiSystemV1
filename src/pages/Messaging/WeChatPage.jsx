@@ -760,13 +760,9 @@ const WeChatPage = () => {
                     }}
                   />
                 </div>
-                <button
-                  className="send-btn"
-                  onClick={handleSendBroadcast}
-                  disabled={!broadcastContent.trim() || selectedRecipients.length === 0}
-                >
+                <Button onClick={handleSendBroadcast}>
                   发送
-                </button>
+                </Button>
               </div>
             </>
           ) : (
@@ -790,13 +786,9 @@ const WeChatPage = () => {
                     className="message-input"
                   />
                 </div>
-                <button
-                  className="send-btn"
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim()}
-                >
+                <Button onClick={handleSendMessage}>
                   发送
-                </button>
+                </Button>
               </div>
             ) : null
           )}

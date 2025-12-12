@@ -408,7 +408,7 @@ export default function AttendanceHome({ onNavigate }) {
               )}
             </div>
           ) : (
-            <Button onClick={() => setShowShiftModal(true)}>
+            <Button onClick={setShowShiftModal(true)} className="() =>">
               <span>📅</span>
               <span>选择班次排班</span>
             </Button>
@@ -478,12 +478,9 @@ export default function AttendanceHome({ onNavigate }) {
         {/* 上班打卡按钮 */}
         <div>
           {todayRecord?.clock_in_time ? (
-            <button
-              disabled
-              className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
-            >
+            <Button variant="secondary" size="lg">
               已打上班卡
-            </button>
+            </Button>
           ) : (
             <>
               <button
@@ -518,20 +515,14 @@ export default function AttendanceHome({ onNavigate }) {
         {/* 下班打卡按钮 */}
         <div>
           {todayRecord?.clock_out_time ? (
-            <button
-              disabled
-              className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
-            >
+            <Button variant="secondary" size="lg">
               已打下班卡
-            </button>
+            </Button>
           ) : !todayRecord?.clock_in_time ? (
             <>
-              <button
-                disabled
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
-              >
+              <Button variant="secondary" size="lg">
                 请先打上班卡
-              </button>
+              </Button>
               <div className="mt-2 text-center text-sm text-gray-500">
                 需要先完成上班打卡
               </div>
@@ -598,24 +589,12 @@ export default function AttendanceHome({ onNavigate }) {
               )}
 
               <div className="flex gap-3">
-                <Button onClick={() => setShowTimeoutModal(false)}>
+                <Button onClick={setShowTimeoutModal(false)} className="() =>">
                   取消
                 </Button>
-                <button
-                  onClick={() => {
-                    setShowTimeoutModal(false)
-                    // 直接打卡，不区分补打卡
-                    if (!todayRecord?.clock_in_time) {
-                      handleClockIn()  // 上班打卡
-                    } else {
-                      handleClockOut()  // 下班打卡
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                >
+                <Button >
                   {loading ? '打卡中...' : '确认打卡'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -643,19 +622,19 @@ export default function AttendanceHome({ onNavigate }) {
 
       {/* 快捷入口 */}
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Button onClick={() => navigate('attendance-records')}>
+        <Button onClick={navigate('attendance-records')} className="() =>">
           <div className="text-2xl mb-2">📋</div>
           <div className="text-sm font-medium">打卡记录</div>
         </Button>
-        <Button onClick={() => navigate('attendance-leave-apply')}>
+        <Button onClick={navigate('attendance-leave-apply')} className="() =>">
           <div className="text-2xl mb-2">🏖️</div>
           <div className="text-sm font-medium">请假申请</div>
         </Button>
-        <Button onClick={() => navigate('attendance-overtime-apply')}>
+        <Button onClick={navigate('attendance-overtime-apply')} className="() =>">
           <div className="text-2xl mb-2">⏰</div>
           <div className="text-sm font-medium">加班申请</div>
         </Button>
-        <Button onClick={() => navigate('attendance-stats')}>
+        <Button onClick={navigate('attendance-stats')} className="() =>">
           <div className="text-2xl mb-2">📊</div>
           <div className="text-sm font-medium">考勤统计</div>
         </Button>
@@ -668,44 +647,13 @@ export default function AttendanceHome({ onNavigate }) {
           <h3 className="text-sm font-semibold text-red-800">测试功能（仅删除当天记录）</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
-            onClick={async () => {
-              if (!window.confirm('确定要删除今天的打卡记录吗？此操作不可恢复！')) return
-              try {
-                const today = formatBeijingDate() // 使用统一的日期处理函数，避免时区问题
-                await axios.delete(getApiUrl('/api/attendance/today'), {
-                  params: { employee_id: employee?.id, date: today }
-                })
-                toast.success('今日打卡记录已删除')
-                fetchTodayRecord()
-              } catch (error) {
-                toast.error('删除失败: ' + (error.response?.data?.message || error.message))
-              }
-            }}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
-          >
+          <Button  variant="destructive">
             🗑️ 删除打卡记录
-          </button>
+          </Button>
 
-          <button
-            onClick={async () => {
-              if (!window.confirm('确定要删除今天的班次安排吗？此操作不可恢复！')) return
-              try {
-                const today = formatBeijingDate(); // 使用统一的日期处理函数
-                await axios.delete(getApiUrl('/api/schedules/today'), {
-                  params: { employee_id: employee?.id, schedule_date: today }
-                })
-                toast.success('今日班次已删除')
-                setTodaySchedule(null)
-                fetchTodaySchedule()
-              } catch (error) {
-                toast.error('删除失败: ' + (error.response?.data?.message || error.message))
-              }
-            }}
-            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
-          >
+          <Button  variant="destructive">
             🗑️ 删除班次
-          </button>
+          </Button>
         </div>
         <p className="text-xs text-red-600 mt-2">⚠️ 警告：这些按钮仅用于测试，只会删除当天的记录</p>
       </div>
@@ -776,15 +724,9 @@ export default function AttendanceHome({ onNavigate }) {
               </div>
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowShiftModal(false)
-                    setSelectedShift(null)
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button >
                   取消
-                </button>
+                </Button>
                 <button
                   onClick={handleSelectShift}
                   disabled={!selectedShift || loading}

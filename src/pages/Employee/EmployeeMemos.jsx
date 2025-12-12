@@ -299,9 +299,9 @@ const EmployeeMemos = () => {
     <div className="employee-memos-container">
       <div className="page-header">
         <h2>员工备忘录管理</h2>
-        <button className="btn-primary" onClick={handleCreate}>
+        <Button onClick={handleCreate}>
           发送备忘录
-        </button>
+        </Button>
       </div>
 
       {/* 备忘录列表 */}
@@ -406,7 +406,7 @@ const EmployeeMemos = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>发送备忘录</h3>
-              <button className="close-btn" onClick={() => setShowCreateModal(false)}>×</button>
+              <Button onClick={setShowCreateModal(false)} className="() =>">×</Button>
             </div>
 
             <div className="modal-body">
@@ -441,17 +441,13 @@ const EmployeeMemos = () => {
                 <div className="send-mode-toggle">
                   <Button type="button"
                     className={`toggle-btn ${formData.sendMode === 'department' ? 'active' : ''}`}
-                    onClick={() => setFormData({
-                      ...formData,
-                      sendMode: 'department',
-                      targetUserId: ''
-                    })}
+                    className="() => setFormData( ...formData sendMode: 'department' targetUserId: ''")}
                   >
                     <span>整个部门</span>
                   </Button>
                   <Button type="button"
                     className={`toggle-btn ${formData.sendMode === 'individual' ? 'active' : ''}`}
-                    onClick={() => setFormData({ ...formData, sendMode: 'individual' })}
+                    className="() => setFormData( ...formData sendMode: 'individual'")}
                   >
                     <span>指定员工</span>
                   </Button>
@@ -527,10 +523,10 @@ const EmployeeMemos = () => {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowCreateModal(false)}>取消</button>
-              <button className="btn-primary" onClick={handleSend}>
+              <Button onClick={setShowCreateModal(false)} className="() =>">取消</Button>
+              <Button onClick={handleSend}>
                 发送
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -542,7 +538,7 @@ const EmployeeMemos = () => {
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{currentMemo.title}</h3>
-              <button className="close-btn" onClick={() => setShowRecipientsModal(false)}>×</button>
+              <Button onClick={setShowRecipientsModal(false)} className="() =>">×</Button>
             </div>
 
             <div className="modal-body">
@@ -604,7 +600,7 @@ const EmployeeMemos = () => {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowRecipientsModal(false)}>关闭</button>
+              <Button onClick={setShowRecipientsModal(false)} className="() =>">关闭</Button>
             </div>
           </div>
         </div>
@@ -621,13 +617,13 @@ const EmployeeMemos = () => {
                 {modalConfig.type === 'info' && <i className="fas fa-info-circle"></i>}
                 {' '}{modalConfig.title}
               </h3>
-              <button className="close-btn" onClick={closeModal}>×</button>
+              <Button onClick={closeModal}>×</Button>
             </div>
             <div className="modal-body">
               <p>{modalConfig.message}</p>
             </div>
             <div className="modal-footer">
-              <button className="btn-primary" onClick={closeModal}>确定</button>
+              <Button onClick={closeModal}>确定</Button>
             </div>
           </div>
         </div>

@@ -299,7 +299,7 @@ const PlatformShopManagement = () => {
 
                             {/* Add Shop Button */}
                             <div className="card-footer">
-                                <Button onClick={() => handleAddShop(platform)}>
+                                <Button onClick={handleAddShop(platform)} className="() =>">
                                     <PlusIcon className="btn-icon-small" />
                                     添加店铺
                                 </Button>
@@ -317,14 +317,14 @@ const PlatformShopManagement = () => {
                             <div className="list-item-header">
                                 <h3 className="list-item-title">{platform.name}</h3>
                                 <div className="list-item-actions">
-                                    <Button onClick={() => handleAddShop(platform)}>
+                                    <Button onClick={handleAddShop(platform)} className="() =>">
                                         <PlusIcon className="btn-icon-small" />
                                         添加店铺
                                     </Button>
-                                    <Button onClick={() => handleEditPlatform(platform)}>
+                                    <Button onClick={handleEditPlatform(platform)} className="() =>">
                                         编辑平台
                                     </Button>
-                                    <Button onClick={() => handleDeletePlatform(platform.id)}>
+                                    <Button onClick={handleDeletePlatform(platform.id)} className="() =>">
                                         删除平台
                                     </Button>
                                 </div>
@@ -343,10 +343,10 @@ const PlatformShopManagement = () => {
                                             <TableRow key={shop.id}>
                                                 <TableCell>{shop.name}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button onClick={() => handleEditShop(shop, platform)}>
+                                                    <Button onClick={handleEditShop(shop, platform)} className="() =>">
                                                         编辑
                                                     </Button>
-                                                    <Button onClick={() => handleDeleteShop(shop.id)}>
+                                                    <Button onClick={handleDeleteShop(shop.id)} className="() =>">
                                                         删除
                                                     </Button>
                                                 </TableCell>
@@ -369,13 +369,13 @@ const PlatformShopManagement = () => {
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="pagination-container">
-                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(p => Math.max(1, p - 1)} className="() => )" disabled={currentPage === 1}>
                         上一页
                     </Button>
                     <span className="pagination-info">
                         第 {currentPage} 页 / 共 {totalPages} 页
                     </span>
-                    <Button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <Button onClick={setCurrentPage(p => Math.min(totalPages, p + 1)} className="() => )" disabled={currentPage === totalPages}>
                         下一页
                     </Button>
                 </div>
@@ -428,7 +428,7 @@ const PlatformShopManagement = () => {
                     </p>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t">
-                    <Button onClick={() => setIsDeleteModalOpen(false)} variant="outline">
+                    <Button onClick={setIsDeleteModalOpen(false)} className="() =>" variant="outline">
                         取消
                     </Button>
                     <Button onClick={confirmDelete} variant="destructive">

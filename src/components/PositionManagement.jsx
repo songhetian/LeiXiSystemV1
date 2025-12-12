@@ -307,7 +307,7 @@ function PositionManagement() {
               </svg>
             </button>
           </div>
-          <Button onClick={() => setIsModalOpen(true)}>
+          <Button onClick={setIsModalOpen(true)} className="() =>">
             + 新增职位
           </Button>
         </div>
@@ -379,13 +379,13 @@ function PositionManagement() {
                   </TableCell>
                   <TableCell className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      <Button onClick={() => handleEdit(pos)} size="sm">
+                      <Button onClick={handleEdit(pos)} className="() =>" size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         编辑
                       </Button>
-                      <Button onClick={() => handleDelete(pos.id)} variant="destructive" size="sm">
+                      <Button onClick={handleDelete(pos.id)} className="() =>" variant="destructive" size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -439,13 +439,13 @@ function PositionManagement() {
 
               {/* 操作按钮 */}
               <div className="flex gap-2 pt-3 border-t border-gray-100">
-                <Button onClick={() => handleEdit(pos)}>
+                <Button onClick={handleEdit(pos)} className="() =>">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                   编辑
                 </Button>
-                <Button onClick={() => handleDelete(pos.id)} variant="destructive">
+                <Button onClick={handleDelete(pos.id)} className="() =>" variant="destructive">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
@@ -477,10 +477,10 @@ function PositionManagement() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
+            <Button onClick={handlePageChange(1)} className="() =>" disabled={currentPage === 1}>
               首页
             </Button>
-            <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+            <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
               上一页
             </Button>
 
@@ -513,10 +513,10 @@ function PositionManagement() {
               })}
             </div>
 
-            <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+            <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
               下一页
             </Button>
-            <Button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
+            <Button onClick={handlePageChange(totalPages)} className="() =>" disabled={currentPage === totalPages}>
               末页
             </Button>
 
@@ -571,20 +571,14 @@ function PositionManagement() {
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button"
-              onClick={() => {
-                setIsModalOpen(false)
-                resetForm()
-              }}
+              onClick={setIsModalOpen(false)} className="() => resetForm()"}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
             </Button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
+            <Button>
               {editingPos ? '更新' : '创建'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -666,15 +660,9 @@ function PositionManagement() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <button
-                onClick={() => {
-                  setIsStatusModalOpen(false)
-                  setStatusChangingPos(null)
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
+              <Button >
                 取消
-              </button>
+              </Button>
             </div>
           </div>
         )}

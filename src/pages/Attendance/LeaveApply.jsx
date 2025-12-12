@@ -463,18 +463,14 @@ export default function LeaveApply() {
             {/* 提交按钮 */}
             <div className="flex gap-4 pt-4">
               <Button type="button"
-                onClick={() => window.history.back()}
+                onClick={back()} className="() => window.history."
                 className="px-6 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
               >
                 取消
               </Button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-blue-300 transform hover:-translate-y-0.5"
-              >
+              <Button size="lg">
                 {loading ? '提交中...' : '提交申请'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

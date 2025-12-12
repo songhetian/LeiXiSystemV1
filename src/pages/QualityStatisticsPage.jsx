@@ -110,18 +110,12 @@ const QualityStatisticsPage = () => {
         <div className="business-card-header">
           <h2 className="business-card-title">质检统计分析</h2>
           <div className="flex gap-3">
-            <button
-              className="business-btn business-btn-primary"
-              onClick={() => handleExport('sessions')}
-            >
+            <Button onClick={handleExport('sessions')} className="() =>">
               导出质检会话
-            </button>
-            <button
-              className="business-btn business-btn-success"
-              onClick={() => handleExport('cases')}
-            >
+            </Button>
+            <Button onClick={handleExport('cases')} className="() =>">
               导出案例数据
-            </button>
+            </Button>
           </div>
         </div>
 

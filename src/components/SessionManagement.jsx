@@ -65,7 +65,7 @@ const SessionManagement = () => {
             <p className="text-gray-500 text-sm mt-1">共 {sessions.length} 个会话</p>
           </div>
           <div className="flex gap-3">
-             <Button onClick={() => setIsImportModalOpen(true)}>
+             <Button onClick={setIsImportModalOpen(true)} className="() =>">
               <span className="text-xl">↑</span>
               <span>导入会话</span>
             </Button>
@@ -105,11 +105,11 @@ const SessionManagement = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={() => handleViewDetail(session)}>
+                  <Button onClick={handleViewDetail(session)} className="() =>">
                     查看详情
                   </Button>
                   {session.status === 'active' && (
-                    <Button onClick={() => handleEndSession(session.id)}>
+                    <Button onClick={handleEndSession(session.id)} className="() =>">
                       结束会话
                     </Button>
                   )}
@@ -158,7 +158,7 @@ const SessionManagement = () => {
                 </div>
               </div>
             </div>
-            <Button onClick={() => setIsDetailOpen(false)}>
+            <Button onClick={setIsDetailOpen(false)} className="() =>">
               关闭
             </Button>
           </div>

@@ -224,7 +224,7 @@ const MyExamResults = ({ onNavigate }) => {
         <div className="exam-results-pagination">
           <Button
             disabled={pagination.current === 1}
-            onClick={() => handleTableChange({ current: pagination.current - 1, pageSize: pagination.pageSize })}
+            className="() => handleTableChange( current: pagination.current - 1 pageSize: pagination.pageSize")}
           >
             上一页
           </Button>
@@ -233,7 +233,7 @@ const MyExamResults = ({ onNavigate }) => {
           </span>
           <Button
             disabled={pagination.current === Math.ceil(pagination.total / pagination.pageSize)}
-            onClick={() => handleTableChange({ current: pagination.current + 1, pageSize: pagination.pageSize })}
+            className="() => handleTableChange( current: pagination.current + 1 pageSize: pagination.pageSize")}
           >
             下一页
           </Button>

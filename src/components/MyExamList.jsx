@@ -170,20 +170,17 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                         {exam.status === 'not_started' && (
-                          <Button onClick={() => onStartExam(exam.id, exam.plan_id)} size="sm">
+                          <Button onClick={onStartExam(exam.id, exam.plan_id)} className="() =>" size="sm">
                             开始考试
                           </Button>
                         )}
                         {exam.status === 'in_progress' && (
-                          <button
-                            onClick={() => alert(`继续考试: ${exam.title}`)} // TODO: Implement continue exam logic
-                            className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1 whitespace-nowrap shadow-md hover:shadow-lg"
-                          >
+                          <Button >
                             继续考试
-                          </button>
+                          </Button>
                         )}
                         {exam.status === 'completed' && (
-                          <Button onClick={() => onViewResult(exam.result_id)} size="sm">
+                          <Button onClick={onViewResult(exam.result_id)} className="() =>" size="sm">
                             查看结果
                           </Button>
                         )}
@@ -218,13 +215,13 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+              <Button onClick={handlePageChange(currentPage - 1)} className="() =>" disabled={currentPage === 1}>
                 上一页
               </Button>
               <span className="text-sm text-gray-600">
                 第 {currentPage} / {totalPages} 页
               </span>
-              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+              <Button onClick={handlePageChange(currentPage + 1)} className="() =>" disabled={currentPage === totalPages}>
                 下一页
               </Button>
             </div>

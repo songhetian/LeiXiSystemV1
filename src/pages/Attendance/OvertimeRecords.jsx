@@ -123,7 +123,7 @@ export default function OvertimeRecords({ onNavigate }) {
           <h1 className="text-2xl font-bold text-gray-800">加班记录</h1>
           <p className="text-gray-600 mt-1">查看您的加班申请历史</p>
         </div>
-        <Button onClick={() => onNavigate?.('/attendance/overtime/apply')}>
+        <Button className="() => onNavigate?.('/attendance/overtime/apply')">
           + 新建加班
         </Button>
       </div>
@@ -246,13 +246,9 @@ export default function OvertimeRecords({ onNavigate }) {
               <span className="text-sm text-gray-600">
                 第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
               </span>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button >
                 上一页
-              </button>
+              </Button>
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                 disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}

@@ -236,7 +236,7 @@ const QuestionEditor = () => {
                     </Space>
                   ))}
                   <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                    <Button type="dashed" onClick={add()} className="() =>" block icon={<PlusOutlined />}>
                       添加选项
                     </Button>
                   </Form.Item>
@@ -324,7 +324,7 @@ const QuestionEditor = () => {
                     </Space>
                   ))}
                   <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                    <Button type="dashed" onClick={add()} className="() =>" block icon={<PlusOutlined />}>
                       添加填空项
                     </Button>
                   </Form.Item>
@@ -362,7 +362,7 @@ const QuestionEditor = () => {
               <Button type="primary" htmlType="submit" loading={loading}>
                 保存题目
               </Button>
-              <Button onClick={() => navigate(`/assessment/exams/${examId}`)} disabled={loading}>
+              <Button className="() => navigate(`/assessment/exams/$ examId"`)} disabled={loading}>
                 取消
               </Button>
             </Space>

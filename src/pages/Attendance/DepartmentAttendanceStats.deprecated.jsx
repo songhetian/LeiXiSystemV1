@@ -386,13 +386,13 @@ export default function DepartmentAttendanceStats() {
           <div className="lg:col-span-2">
             <Label className="block text-sm font-medium text-gray-700 mb-2">快捷选择</Label>
             <div className="flex gap-2">
-              <Button onClick={() => handleQuickDate('thisMonth')}>
+              <Button onClick={handleQuickDate('thisMonth')} className="() =>">
                 本月
               </Button>
-              <Button onClick={() => handleQuickDate('lastMonth')}>
+              <Button onClick={handleQuickDate('lastMonth')} className="() =>">
                 上月
               </Button>
-              <Button onClick={() => handleQuickDate('thisYear')}>
+              <Button onClick={handleQuickDate('thisYear')} className="() =>">
                 本年
               </Button>
             </div>

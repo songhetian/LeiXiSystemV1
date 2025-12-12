@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Popconfirm, Drawer, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
@@ -529,7 +523,7 @@ const RoleManagement = () => {
   // 过滤角色
   const filteredRoles = useMemo(() => {
     if (!searchText) return roles;
-    return roles.filter(role => 
+    return roles.filter(role =>
       role.name.toLowerCase().includes(searchText.toLowerCase()) ||
       (role.description && role.description.toLowerCase().includes(searchText.toLowerCase()))
     );
@@ -609,7 +603,7 @@ const RoleManagement = () => {
             <div className="flex flex-wrap gap-2">
               <Button
                 size="small"
-                onClick={() => setIsTemplateModalOpen(true)}
+                onClick={setIsTemplateModalOpen(true)} className="() =>"
                 className="flex items-center gap-1"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -664,14 +658,12 @@ const RoleManagement = () => {
         />
       </div>
 
-      <Modal
-        title={editingRole ? '编辑角色' : '新增角色'}
-        open={modalVisible}
-        onOk={handleSave}
-        onCancel={() => setModalVisible(false)}
-        width={600}
-      >
-        <Form form={form} layout="vertical">
+      <Dialog open={modalVisible} onOpenChange={(open) => { if (!open) setModalVisible(false); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editingRole ? '编辑角色' : '新增角色'}</DialogTitle>
+          </DialogHeader>
+          <Form form={form} layout="vertical">
           <Form.Item
             name="name"
             label="角色名称"
@@ -696,8 +688,13 @@ const RoleManagement = () => {
               />
             </div>
           </Form.Item>
-        </Form>
-      </Modal>
+          </Form>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button onClick={() => setModalVisible(false)}>取消</Button>
+            <Button type="primary" onClick={handleSave}>保存</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 用户分配抽屉 */}
       <Drawer
@@ -761,15 +758,13 @@ const RoleManagement = () => {
         onSuccess={handleDepartmentSuccess}
       />
 
-      {/* 模板管理模态框 */}
-      <Modal
-        title={editingTemplate ? '编辑模板' : '新建模板'}
-        open={isTemplateManageOpen}
-        onCancel={() => setIsTemplateManageOpen(false)}
-        footer={null}
-        width={720}
-      >
-        <div className="space-y-4">
+      {/* 模板管理对话框 */}
+      <Dialog open={isTemplateManageOpen} onOpenChange={(open) => { if (!open) setIsTemplateManageOpen(false); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate ? '编辑模板' : '新建模板'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-1">模板名称</Label>
@@ -826,38 +821,48 @@ const RoleManagement = () => {
             <div className="text-sm text-gray-600">已选择 {templateForm.permission_ids.length} 项</div>
             <div className="flex gap-2">
               {editingTemplate && (
-                <Button danger onClick={async () => {
+                <Button
+                  danger
+                  onClick={async () => {
+                    try {
+                      await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                      await fetchPermissionTemplates();
+                      setIsTemplateManageOpen(false);
+                      setEditingTemplate(null);
+                      message.success('模板已删除');
+                    } catch {
+                      message.error('删除失败');
+                    }
+                  }}
+                >
+                  删除
+                </Button>
+              )}
+              <Button
+                type="primary"
+                onClick={async () => {
+                  if (!templateForm.name.trim()) {
+                    message.error('请输入模板名称');
+                    return;
+                  }
                   try {
-                    await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                    if (editingTemplate) {
+                      await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
+                    } else {
+                      await apiPost('/api/permission-templates', templateForm);
+                    }
                     await fetchPermissionTemplates();
                     setIsTemplateManageOpen(false);
                     setEditingTemplate(null);
-                    message.success('模板已删除');
+                    setTemplateForm({ name: '', description: '', permission_ids: [] });
+                    message.success('已保存模板');
                   } catch {
-                    message.error('删除失败');
+                    message.error('保存失败');
                   }
-                }}>删除</Button>
-              )}
-              <Button type="primary" onClick={async () => {
-                if (!templateForm.name.trim()) {
-                  message.error('请输入模板名称');
-                  return;
-                }
-                try {
-                  if (editingTemplate) {
-                    await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
-                  } else {
-                    await apiPost('/api/permission-templates', templateForm);
-                  }
-                  await fetchPermissionTemplates();
-                  setIsTemplateManageOpen(false);
-                  setEditingTemplate(null);
-                  setTemplateForm({ name: '', description: '', permission_ids: [] });
-                  message.success('已保存模板');
-                } catch {
-                  message.error('保存失败');
-                }
-              }}>保存</Button>
+                }}
+              >
+                保存
+              </Button>
             </div>
           </div>
           <div className="pt-4 border-t">
@@ -891,17 +896,16 @@ const RoleManagement = () => {
               )}
             </div>
           </div>
-        </div>
-      </Modal>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      <Modal
-        title={"应用权限模板到选中角色"}
-        open={isTemplateModalOpen}
-        onCancel={() => setIsTemplateModalOpen(false)}
-        footer={null}
-        width={720}
-      >
-        <div className="space-y-4">
+      <Dialog open={isTemplateModalOpen} onOpenChange={(open) => { if (!open) setIsTemplateModalOpen(false); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>应用权限模板到选中角色</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
             已选择 {selectedRoleIds.length} 个角色
           </div>
@@ -1004,16 +1008,15 @@ const RoleManagement = () => {
             <Button onClick={() => setIsTemplateModalOpen(false)}>取消</Button>
             <Button type="primary" onClick={handleApplyTemplateToSelectedRoles}>应用模板</Button>
           </div>
-        </div>
-      </Modal>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      <Modal
-        title={"批量设置角色部门权限"}
-        open={isBatchDeptOpen}
-        onCancel={() => setIsBatchDeptOpen(false)}
-        footer={null}
-        width={720}
-      >
+      <Dialog open={isBatchDeptOpen} onOpenChange={(open) => { if (!open) setIsBatchDeptOpen(false); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>批量设置角色部门权限</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
             已选择 {selectedRoleIds.length} 个角色
@@ -1026,9 +1029,9 @@ const RoleManagement = () => {
               size="small"
               onClick={() => {
                 if (batchSelectedDepartments.length === departments.length) {
-                  setBatchSelectedDepartments([])
+                  setBatchSelectedDepartments([]);
                 } else {
-                  setBatchSelectedDepartments(departments.map(d => d.id))
+                  setBatchSelectedDepartments(departments.map(d => d.id));
                 }
               }}
             >
@@ -1075,7 +1078,8 @@ const RoleManagement = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       <Modal
         title={"批量克隆选中角色"}
@@ -1114,7 +1118,7 @@ const RoleManagement = () => {
             克隆时复制部门可见范围
           </Label>
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
+            <Button onClick={setIsCloneModalOpen(false)} className="() =>">取消</Button>
             <Button type="primary">开始克隆</Button>
           </div>
         </div>

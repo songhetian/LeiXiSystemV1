@@ -92,7 +92,7 @@ const ExamAnalysis = () => {
       <div style={{ padding: 24 }}>
         <Card title="试卷分析">
           <p>无法加载试卷分析数据。</p>
-          <Button type="primary" onClick={() => navigate('/assessment/exams')} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" onClick={navigate('/assessment/exams')} className="() =>" icon={<ArrowLeftOutlined />}>
             返回试卷列表
           </Button>
         </Card>
@@ -105,7 +105,7 @@ const ExamAnalysis = () => {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="default" onClick={() => navigate('/assessment/exams')} icon={<ArrowLeftOutlined />}>
+        <Button type="default" onClick={navigate('/assessment/exams')} className="() =>" icon={<ArrowLeftOutlined />}>
           返回试卷列表
         </Button>
       </Space>

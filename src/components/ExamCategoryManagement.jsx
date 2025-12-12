@@ -153,37 +153,12 @@ const ExamCategoryManagement = () => {
       {/* 操作栏 */}
       <div className="exam-category-toolbar">
         <div className="toolbar-actions">
-          <button
-            onClick={() => {
-              resetForm()
-              setShowModal(true)
-            }}
-            className="btn-flat-primary"
-          >
+          <Button onClick={btn-flat-primary}>
             ➕ 新建分类
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                const res = await axios.get(getApiUrl('/api/exam-categories/export.xlsx'), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }, responseType: 'blob' })
-                const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = '考试分类.xlsx'
-                document.body.appendChild(a)
-                a.click()
-                document.body.removeChild(a)
-                URL.revokeObjectURL(url)
-                toast.success('导出成功')
-              } catch (e) {
-                toast.error('导出失败')
-              }
-            }}
-            className="btn-flat-success"
-          >
+          </Button>
+          <Button onClick={btn-flat-success}>
             ⬇️ 导出
-          </button>
+          </Button>
           <Label className="btn-flat-info cursor-pointer">
             ⬆️ 导入
             <input type="file" className="hidden" accept=".xlsx" onChange={async (e) => {
@@ -238,32 +213,12 @@ const ExamCategoryManagement = () => {
                         <div className="card-header-flat">
                           <div className="card-icon">{category.icon || '📁'}</div>
                           <div className="card-actions-flat">
-                            <button
-                              onClick={() => {
-                                setEditingCategory(category)
-                                setFormData({
-                                  name: category.name,
-                                  code: category.code || '',
-                                  weight: category.weight || 0,
-                                  status: category.status || 'active',
-                                  parent_id: category.parent_id || null,
-                                  description: category.description || '',
-                                  icon: category.icon || '📚'
-                                })
-                                setShowModal(true)
-                              }}
-                              className="card-action-btn edit"
-                              title="编辑"
-                            >
+                            <Button className="card-action-btn edit" size="icon">
                               ✏️
-                            </button>
-                            <button
-                              onClick={() => handleDelete(category.id)}
-                              className="card-action-btn delete"
-                              title="删除"
-                            >
+                            </Button>
+                            <Button className="card-action-btn delete" variant="destructive">
                               🗑️
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
@@ -287,20 +242,8 @@ const ExamCategoryManagement = () => {
                             <span className="meta-item">📋 {usageStats[category.id] || 0} 份试卷</span>
                           </div>
                           <div className="quick-actions">
-                            <button className="quick-btn" onClick={async () => {
-                              try {
-                                const moves = [{ id: category.id, parent_id: category.parent_id, order_num: (category.order_num || 1) - 1 }]
-                                await axios.put(getApiUrl('/api/exam-categories/reorder'), { moves }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-                                fetchCategories()
-                              } catch { toast.error('上移失败') }
-                            }}>上移</button>
-                            <button className="quick-btn" onClick={async () => {
-                              try {
-                                const moves = [{ id: category.id, parent_id: category.parent_id, order_num: (category.order_num || 1) + 1 }]
-                                await axios.put(getApiUrl('/api/exam-categories/reorder'), { moves }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-                                fetchCategories()
-                              } catch { toast.error('下移失败') }
-                            }}>下移</button>
+                            <Button className="async () => try const moves = [ id: category.id parent_id: category.parent_id order_num: (category.order_num || 1) - 1">上移</Button>
+                            <Button className="async () => try const moves = [ id: category.id parent_id: category.parent_id order_num: (category.order_num || 1) + 1">下移</Button>
                             <select className="quick-btn" value={category.parent_id || ''} onChange={async (e) => {
                               const newParent = e.target.value ? parseInt(e.target.value, 10) : null
                               try {
@@ -334,15 +277,9 @@ const ExamCategoryManagement = () => {
               <h2 className="modal-title-flat">
                 {editingCategory ? '编辑分类' : '新建分类'}
               </h2>
-              <button
-                onClick={() => {
-                  setShowModal(false)
-                  resetForm()
-                }}
-                className="modal-close-btn"
-              >
+              <Button onClick={modal-close-btn}>
                 ✕
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSubmit} className="modal-body-flat">
@@ -436,21 +373,14 @@ const ExamCategoryManagement = () => {
 
               <div className="modal-footer-flat">
                 <Button type="button"
-                  onClick={() => {
-                    setShowModal(false)
-                    resetForm()
-                  }}
+                  onClick={setShowModal(false)} className="() => resetForm()"}
                   className="btn-secondary"
                 >
                   取消
                 </Button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-flat-primary"
-                >
+                <Button>
                   {loading ? '保存中...' : '保存'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

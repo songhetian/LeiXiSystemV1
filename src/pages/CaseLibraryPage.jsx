@@ -260,20 +260,14 @@ const CaseLibraryPage = () => {
         variant="danger"
         footer={
           <div className="flex justify-end gap-3">
-            <button
-              className="business-btn business-btn-secondary"
-              onClick={closeDeleteModal}
-            >
+            <Button onClick={closeDeleteModal}>
               取消
-            </button>
-            <button
-              className="business-btn business-btn-danger"
-              onClick={confirmDelete}
-            >
+            </Button>
+            <Button onClick={confirmDelete} variant="destructive">
               {deleteModal.type === 'soft' ? '移至回收站' :
                deleteModal.type === 'permanent' ? '永久删除' :
                '确认清空'}
-            </button>
+            </Button>
           </div>
         }
       >
@@ -570,18 +564,12 @@ const CaseLibraryPage = () => {
         variant="danger"
         footer={
           <div className="flex justify-end gap-3">
-            <button
-              className="business-btn business-btn-secondary"
-              onClick={closeDeleteModal}
-            >
+            <Button onClick={closeDeleteModal}>
               取消
-            </button>
-            <button
-              className="business-btn business-btn-danger"
-              onClick={confirmDelete}
-            >
+            </Button>
+            <Button onClick={confirmDelete} variant="destructive">
               {deleteModal.type === 'soft' ? '移至回收站' : '永久删除'}
-            </button>
+            </Button>
           </div>
         }
       >

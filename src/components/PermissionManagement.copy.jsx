@@ -904,16 +904,9 @@ function PermissionManagement() {
             >
               批量克隆角色
             </button>
-            <button
-              onClick={() => {
-                setEditingTemplate(null)
-                setTemplateForm({ name: '', description: '', permission_ids: [] })
-                setIsTemplateManageOpen(true)
-              }}
-              className="px-3 py-2 rounded-lg text-sm bg-gray-100 text-gray-800 hover:bg-gray-200"
-            >
+            <Button >
               模板管理
-            </button>
+            </Button>
             <select
               value={batchModuleKey}
               onChange={(e) => setBatchModuleKey(e.target.value)}
@@ -983,19 +976,19 @@ function PermissionManagement() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <Button onClick={() => handleManagePermissions(role)} size="sm">
+                    <Button onClick={handleManagePermissions(role)} className="() =>" size="sm">
                       配置权限
                     </Button>
-                    <Button onClick={() => handleManageDepartments(role)} size="sm">
+                    <Button onClick={handleManageDepartments(role)} className="() =>" size="sm">
                       部门权限
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => handleEditRole(role)} size="sm">
+                    <Button onClick={handleEditRole(role)} className="() =>" size="sm">
                       编辑
                     </Button>
                     {!role.is_system && (
-                      <Button onClick={() => handleDeleteRole(role.id)} variant="destructive" size="sm">
+                      <Button onClick={handleDeleteRole(role.id)} className="() =>" variant="destructive" size="sm">
                         删除
                       </Button>
                     )}
@@ -1078,16 +1071,10 @@ function PermissionManagement() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  // 全选全部（当前筛选结果中的所有用户）
-                  setSelectedUsers(filteredUsers.map(u => u.id))
-                }}
-                className="px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"
-              >
+              <Button >
                 全选全部
-              </button>
-              <Button onClick={() => setSelectedUsers([])} variant="ghost">
+              </Button>
+              <Button onClick={setSelectedUsers([])} className="() =>" variant="ghost">
                 清空选择
               </Button>
               <button
@@ -1184,7 +1171,7 @@ function PermissionManagement() {
                         {user.created_at ? formatDate(user.created_at) : '-'}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-center">
-                        <Button onClick={() => handleManageUserRoles(user)} size="sm">
+                        <Button onClick={handleManageUserRoles(user)} className="() =>" size="sm">
                           管理角色
                         </Button>
                     </TableCell>
@@ -1314,7 +1301,7 @@ function PermissionManagement() {
 
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button onClick={() => setIsRoleModalOpen(false)}>
+            <Button onClick={setIsRoleModalOpen(false)} className="() =>">
               取消
             </Button>
             <Button onClick={handleSaveRole}>
@@ -1442,15 +1429,9 @@ function PermissionManagement() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              onClick={() => {
-                setIsBatchModalOpen(false)
-                setBatchRole('')
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
+            <Button >
               取消
-            </button>
+            </Button>
             <button
               onClick={handleBatchSubmit}
               disabled={!batchRole}
@@ -1592,7 +1573,7 @@ function PermissionManagement() {
             ))}
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsBatchRoleDeptModalOpen(false)} disabled={isProcessingBatch}>
+            <Button onClick={setIsBatchRoleDeptModalOpen(false)} className="() =>" disabled={isProcessingBatch}>
               取消
             </Button>
             <Button onClick={handleBatchDepartmentsSave} disabled={isProcessingBatch}>
@@ -1663,7 +1644,7 @@ function PermissionManagement() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsTemplateModalOpen(false)}>取消</Button>
+            <Button onClick={setIsTemplateModalOpen(false)} className="() =>">取消</Button>
             <Button onClick={handleApplyTemplateToSelectedRoles}>应用模板</Button>
           </div>
         </div>
@@ -1691,7 +1672,7 @@ function PermissionManagement() {
           </Label>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">将克隆 {selectedRoleIds.length} 个角色，保留描述与权限</div>
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
+            <Button onClick={setIsCloneModalOpen(false)} className="() =>">取消</Button>
             <Button onClick={handleCloneSelectedRoles}>开始克隆</Button>
           </div>
         </div>
@@ -1720,21 +1701,9 @@ function PermissionManagement() {
               <div key={moduleData.key} className="border rounded">
                 <div className="bg-gray-50 px-3 py-2 flex items-center justify-between">
                   <div className="text-sm font-medium text-gray-800">{moduleName}</div>
-                  <button
-                    onClick={() => {
-                      const ids = moduleData.permissions.map(p => p.id)
-                      const hasAll = ids.every(id => templateForm.permission_ids.includes(id))
-                      setTemplateForm({
-                        ...templateForm,
-                        permission_ids: hasAll
-                          ? templateForm.permission_ids.filter(id => !ids.includes(id))
-                          : Array.from(new Set([...templateForm.permission_ids, ...ids]))
-                      })
-                    }}
-                    className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200"
-                  >
+                  <Button >
                     全选/取消
-                  </button>
+                  </Button>
                 </div>
                 <div className="p-3 grid grid-cols-2 gap-2 bg-white">
                   {moduleData.permissions.map(perm => {
@@ -1761,48 +1730,13 @@ function PermissionManagement() {
             <div className="text-sm text-gray-600">已选择 {templateForm.permission_ids.length} 项</div>
             <div className="flex gap-2">
               {editingTemplate && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await apiDelete(`/api/permission-templates/${editingTemplate.id}`)
-                      await fetchPermissionTemplates()
-                      setIsTemplateManageOpen(false)
-                      setEditingTemplate(null)
-                      toast.success('模板已删除')
-                    } catch (e) {
-                      toast.error('删除失败')
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                >
+                <Button  variant="destructive">
                   删除
-                </button>
+                </Button>
               )}
-              <button
-                onClick={async () => {
-                  if (!templateForm.name.trim()) {
-                    toast.error('请输入模板名称')
-                    return
-                  }
-                  try {
-                    if (editingTemplate) {
-                      await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm)
-                    } else {
-                      await apiPost('/api/permission-templates', templateForm)
-                    }
-                    await fetchPermissionTemplates()
-                    setIsTemplateManageOpen(false)
-                    setEditingTemplate(null)
-                    setTemplateForm({ name: '', description: '', permission_ids: [] })
-                    toast.success('已保存模板')
-                  } catch (e) {
-                    toast.error('保存失败')
-                  }
-                }}
-                className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-              >
+              <Button >
                 保存
-              </button>
+              </Button>
             </div>
           </div>
           <div className="pt-4 border-t">

@@ -304,7 +304,7 @@ const ExamTaking = () => {
             <ExclamationCircleOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
             <Title level={4}>试卷数据异常</Title>
             <Text type="secondary">该试卷没有题目，请联系管理员检查试卷配置</Text>
-            <Button type="primary" onClick={() => navigate('/assessment/my-exams')}>
+            <Button type="primary" onClick={navigate('/assessment/my-exams')} className="() =>">
               返回考试列表
             </Button>
           </Space>
@@ -324,7 +324,7 @@ const ExamTaking = () => {
             <ExclamationCircleOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
             <Title level={4}>题目加载失败</Title>
             <Text type="secondary">无法加载当前题目，请刷新页面重试</Text>
-            <Button type="primary" onClick={() => navigate('/assessment/my-exams')}>
+            <Button type="primary" onClick={navigate('/assessment/my-exams')} className="() =>">
               返回考试列表
             </Button>
           </Space>

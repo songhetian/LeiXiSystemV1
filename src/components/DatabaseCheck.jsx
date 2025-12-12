@@ -99,7 +99,7 @@ const DatabaseCheck = ({ children }) => {
                 <li>刷新当前页面或重新启动应用</li>
               </ol>
             </div>
-            <Button onClick={() => window.location.reload()}>
+            <Button onClick={reload()} className="() => window.location.">
               重新检查连接
             </Button>
           </div>

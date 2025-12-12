@@ -426,12 +426,9 @@ const QualityTagManagement = () => {
               className="form-input"
               placeholder="#3B82F6"
             />
-            <button
-              onClick={() => setCategoryForm({ ...categoryForm, color: generateRandomColor() })}
-              className="btn-secondary"
-            >
+            <Button onClick={btn-secondary}>
               随机
-            </button>
+            </Button>
           </div>
         </div>
         <div className="form-group">
@@ -444,7 +441,7 @@ const QualityTagManagement = () => {
           />
         </div>
         <div className="modal-actions">
-          <Button onClick={() => setIsCategoryModalOpen(false)}>
+          <Button onClick={setIsCategoryModalOpen(false)} className="() =>">
             <CloseOutlined /> 取消
           </Button>
           <Button onClick={handleSaveCategory}>
@@ -526,12 +523,9 @@ const QualityTagManagement = () => {
               className="form-input"
               placeholder="#10B981"
             />
-            <button
-              onClick={() => setTagForm({ ...tagForm, color: generateRandomColor() })}
-              className="btn-secondary"
-            >
+            <Button onClick={btn-secondary}>
               随机
-            </button>
+            </Button>
           </div>
           <div className="color-preview">
             <span className="tag-badge" style={{ backgroundColor: tagForm.color, color: '#fff' }}>
@@ -540,7 +534,7 @@ const QualityTagManagement = () => {
           </div>
         </div>
         <div className="modal-actions">
-          <Button onClick={() => setIsTagModalOpen(false)}>
+          <Button onClick={setIsTagModalOpen(false)} className="() =>">
             <CloseOutlined /> 取消
           </Button>
           <Button onClick={handleSaveTag}>

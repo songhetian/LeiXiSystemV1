@@ -573,15 +573,9 @@ const KnowledgeBase = () => {
                 }
               }}
             />
-            <button
-              onClick={() => {
-                setArticlePage(1)
-                fetchArticles()
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
-            >
+            <Button >
               🔍 搜索
-            </button>
+            </Button>
             <button
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
               className={`px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
@@ -736,17 +730,9 @@ const KnowledgeBase = () => {
                     onContextMenu={(e) => handleContextMenu(e, 'folder', { id: 'uncategorized', name: '未分类', icon: '📂', description: '未指定分类的文档' })}
                   >
                     <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // 未分类文件夹不能隐藏，所以只显示信息
-                          toast.info('未分类文件夹不能隐藏');
-                        }}
-                        className="px-2 py-1 bg-gray-400 text-white rounded text-xs cursor-not-allowed"
-                        title="未分类文件夹不能隐藏"
-                      >
+                      <Button >
                         🔒
-                      </button>
+                      </Button>
                     </div>
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4">
@@ -779,7 +765,7 @@ const KnowledgeBase = () => {
                       共 {categories.length} 个分类，第 {categoryPage} / {getCategoryTotalPages()} 页
                     </div>
                     <div className="flex gap-2">
-                      <Button onClick={() => setCategoryPage(p => Math.max(1, p - 1))} disabled={categoryPage === 1}>
+                      <Button onClick={setCategoryPage(p => Math.max(1, p - 1)} className="() => )" disabled={categoryPage === 1}>
                         ← 上一页
                       </Button>
 
@@ -811,7 +797,7 @@ const KnowledgeBase = () => {
                         )
                       })}
 
-                      <Button onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))} disabled={categoryPage === getCategoryTotalPages()}>
+                      <Button onClick={setCategoryPage(p => Math.min(getCategoryTotalPages()} className="() => p + 1))" disabled={categoryPage === getCategoryTotalPages()}>
                         下一页 →
                       </Button>
                     </div>
@@ -837,7 +823,7 @@ const KnowledgeBase = () => {
                   )}
                 </div>
               </div>
-              <Button onClick={() => setShowFolderModal(false)} variant="ghost">
+              <Button onClick={setShowFolderModal(false)} className="() =>" variant="ghost">
                 ✕
               </Button>
             </div>
@@ -945,21 +931,9 @@ const KnowledgeBase = () => {
                         )}
                         {/* 预览按钮 */}
                         <div className="mt-3 flex justify-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFilePreview({
-                                name: article.title,
-                                type: 'article',
-                                size: 0,
-                                url: article.content
-                              });
-                            }}
-                            className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-xs whitespace-nowrap"
-                            title="预览"
-                          >
+                          <Button >
                             👁️ 预览
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -1004,21 +978,9 @@ const KnowledgeBase = () => {
 
                       {/* 操作按钮 */}
                       <div className="flex-shrink-0 flex flex-col gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFilePreview({
-                              name: article.title,
-                              type: 'article',
-                              size: 0,
-                              url: article.content
-                            });
-                          }}
-                          className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-xs whitespace-nowrap"
-                          title="预览"
-                        >
+                        <Button >
                           👁️ 预览
-                        </button>
+                        </Button>
                         <div className="text-gray-400 text-xs flex items-center justify-center">
                           →
                         </div>
@@ -1036,7 +998,7 @@ const KnowledgeBase = () => {
                     第 {currentPage} / {getTotalPages()} 页
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button onClick={setCurrentPage(p => Math.max(1, p - 1)} className="() => )" disabled={currentPage === 1}>
                       ← 上一页
                     </Button>
 
@@ -1068,7 +1030,7 @@ const KnowledgeBase = () => {
                       )
                     })}
 
-                    <Button onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))} disabled={currentPage === getTotalPages()}>
+                    <Button onClick={setCurrentPage(p => Math.min(getTotalPages()} className="() => p + 1))" disabled={currentPage === getTotalPages()}>
                       下一页 →
                     </Button>
                   </div>
@@ -1097,32 +1059,14 @@ const KnowledgeBase = () => {
               <div className="flex items-center gap-2">
                 {/* 调整宽高按钮 */}
                 <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      const widths = ['max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl']
-                      const currentIndex = widths.indexOf(articleModalWidth)
-                      const nextIndex = (currentIndex + 1) % widths.length
-                      setArticleModalWidth(widths[nextIndex])
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm"
-                    title="调整宽度"
-                  >
+                  <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm">
                     ↔️
-                  </button>
-                  <button
-                    onClick={() => {
-                      const heights = ['max-h-[80vh]', 'max-h-[85vh]', 'max-h-[90vh]', 'max-h-[95vh]']
-                      const currentIndex = heights.indexOf(articleModalHeight)
-                      const nextIndex = (currentIndex + 1) % heights.length
-                      setArticleModalHeight(heights[nextIndex])
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm"
-                    title="调整高度"
-                  >
+                  </Button>
+                  <Button className="w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors text-sm">
                     ↕️
-                  </button>
+                  </Button>
                 </div>
-                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
+                <Button onClick={setShowArticleModal(false)} className="() =>" variant="ghost">
                   ✕
                 </Button>
               </div>
@@ -1170,14 +1114,14 @@ const KnowledgeBase = () => {
 
             <div className="p-6 border-t border-gray-200 flex items-center justify-between bg-gray-50">
               <div className="flex gap-3">
-                <Button onClick={() => handleLike(selectedArticle.id)} variant="destructive">
+                <Button onClick={handleLike(selectedArticle.id)} className="() =>" variant="destructive">
                   ❤️ 点赞 ({selectedArticle.like_count || 0})
                 </Button>
                 <Button onClick={handleSaveToMyKnowledge}>
                   ⭐ 保存到我的知识库
                 </Button>
               </div>
-              <Button onClick={() => setShowArticleModal(false)} variant="ghost">
+              <Button onClick={setShowArticleModal(false)} className="() =>" variant="ghost">
                 关闭
               </Button>
             </div>
@@ -1236,7 +1180,7 @@ const KnowledgeBase = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
-              <Button onClick={() => setShowSaveModal(false)} variant="ghost">
+              <Button onClick={setShowSaveModal(false)} className="() =>" variant="ghost">
                 取消
               </Button>
               <Button onClick={handleConfirmSave}>
@@ -1265,32 +1209,14 @@ const KnowledgeBase = () => {
               <div className="flex items-center gap-2">
                 {/* 调整宽高按钮 */}
                 <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      const widths = ['max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl']
-                      const currentIndex = widths.indexOf(previewModalWidth)
-                      const nextIndex = (currentIndex + 1) % widths.length
-                      setPreviewModalWidth(widths[nextIndex])
-                    }}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg"
-                    title="调整宽度"
-                  >
+                  <Button className="w-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg">
                     ↔️
-                  </button>
-                  <button
-                    onClick={() => {
-                      const heights = ['max-h-[90vh]', 'max-h-[95vh]', 'max-h-[98vh]']
-                      const currentIndex = heights.indexOf(previewModalHeight)
-                      const nextIndex = (currentIndex + 1) % heights.length
-                      setPreviewModalHeight(heights[nextIndex])
-                    }}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg"
-                    title="调整高度"
-                  >
+                  </Button>
+                  <Button className="w-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-lg">
                     ↕️
-                  </button>
+                  </Button>
                 </div>
-                <Button onClick={() => setPreviewFile(null)} variant="ghost">
+                <Button onClick={setPreviewFile(null)} className="() =>" variant="ghost">
                   ✕
                 </Button>
               </div>
@@ -1390,17 +1316,10 @@ const KnowledgeBase = () => {
 
             <div className="p-8 border-t border-gray-200 flex gap-4 justify-between bg-gray-50">
               <div className="flex gap-4">
-                <button
-                  onClick={() => {
-                    setSelectedArticle(previewFile)
-                    setPreviewFile(null) // 关闭预览模态框
-                    setShowSaveModal(true)
-                  }}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all flex items-center gap-3 text-lg font-medium shadow-md"
-                >
+                <Button >
                   💾 保存到我的知识库
-                </button>
-                <Button onClick={() => handleAddToPlan(previewFile)} size="lg">
+                </Button>
+                <Button onClick={handleAddToPlan(previewFile)} className="() =>" size="lg">
                   📅 添加到学习计划
                 </Button>
               </div>
@@ -1416,7 +1335,7 @@ const KnowledgeBase = () => {
                 >
                   ❤️ {likedArticles.has(previewFile.id) ? '已点赞' : '点赞'} ({previewFile.like_count || 0})
                 </button>
-                <Button onClick={() => setPreviewFile(null)} variant="ghost" size="lg">
+                <Button onClick={setPreviewFile(null)} className="() =>" variant="ghost" size="lg">
                   关闭
                 </Button>
               </div>
@@ -1464,16 +1383,9 @@ const KnowledgeBase = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowAddToPlanModal(false)
-                  setSelectedArticleForPlan(null)
-                  setSelectedPlanId('')
-                }}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
+              <Button >
                 取消
-              </button>
+              </Button>
               <Button onClick={confirmAddToPlan}>
                 确认添加
               </Button>

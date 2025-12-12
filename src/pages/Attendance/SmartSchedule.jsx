@@ -338,7 +338,7 @@ const SmartSchedule = () => {
             </div>
             {!loading && (
               <div className="modal-footer">
-                <Button onClick={() => setShowModal(false)}>
+                <Button onClick={setShowModal(false)} className="() =>">
                   关闭
                 </Button>
               </div>
@@ -468,13 +468,9 @@ const SmartSchedule = () => {
                 </div>
 
                 {scheduleRules.length > 1 && (
-                  <button
-                    onClick={() => removeRule(rule.id)}
-                    className="btn-remove-rule"
-                    title="删除此规则"
-                  >
+                  <Button onClick={btn-remove-rule} variant="destructive">
                     ❌
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}

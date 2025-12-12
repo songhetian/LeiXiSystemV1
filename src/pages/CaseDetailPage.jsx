@@ -174,7 +174,7 @@ const CaseDetailPage = () => {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* 返回按钮 */}
-      <Button onClick={() => navigate(-1)}>
+      <Button onClick={navigate(-1)} className="() =>">
         ← 返回列表
       </Button>
 
@@ -282,7 +282,7 @@ const CaseDetailPage = () => {
           {replyTo && (
             <div className="mb-2 text-sm text-gray-600">
               回复评论
-              <Button onClick={() => setReplyTo(null)}>取消</Button>
+              <Button onClick={setReplyTo(null)} className="() =>">取消</Button>
             </div>
           )}
           <Textarea value={newComment}
@@ -305,7 +305,7 @@ const CaseDetailPage = () => {
                   <span className="font-medium">{comment.user_name}</span>
                   <span className="text-sm text-gray-500 ml-2">{formatDate(comment.created_at)}</span>
                 </div>
-                <Button onClick={() => setReplyTo(comment.id)}>
+                <Button onClick={setReplyTo(comment.id)} className="() =>">
                   回复
                 </Button>
               </div>

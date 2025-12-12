@@ -135,10 +135,10 @@ const CustomerList = () => {
                       </span>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-center">
-                      <Button onClick={() => handleEdit(customer)} size="sm">
+                      <Button onClick={handleEdit(customer)} className="() =>" size="sm">
                         编辑
                       </Button>
-                      <Button onClick={() => handleDelete(customer.id)} variant="destructive" size="sm">
+                      <Button onClick={handleDelete(customer.id)} className="() =>" variant="destructive" size="sm">
                         删除
                       </Button>
                     </TableCell>

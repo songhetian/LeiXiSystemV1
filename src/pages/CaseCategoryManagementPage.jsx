@@ -174,7 +174,7 @@ const CaseCategoryManagementPage = () => {
                       </span>
                     </TableCell>
                     <TableCell className="text-center space-x-2">
-                      <Button onClick={() => openEditModal(category)}>
+                      <Button onClick={openEditModal(category)} className="() =>">
                         编辑
                       </Button>
                       <button
@@ -184,7 +184,7 @@ const CaseCategoryManagementPage = () => {
                       >
                         {category.is_active ? '禁用' : '启用'}
                       </button>
-                      <Button onClick={() => handleDelete(category.id)}>
+                      <Button onClick={handleDelete(category.id)} className="() =>">
                         删除
                       </Button>
                     </TableCell>
@@ -238,7 +238,7 @@ const CaseCategoryManagementPage = () => {
             <Label className="ml-2 block text-sm text-gray-900">启用</Label>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={() => setIsModalOpen(false)}>
+            <Button onClick={setIsModalOpen(false)} className="() =>">
               取消
             </Button>
             <Button onClick={handleSubmit}>

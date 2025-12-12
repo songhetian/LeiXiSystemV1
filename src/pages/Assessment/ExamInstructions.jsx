@@ -71,7 +71,7 @@ const ExamInstructions = () => {
       <div style={{ padding: 24 }}>
         <Card title="考试须知">
           <p>无法加载考试须知，请检查考核计划ID。</p>
-          <Button type="primary" onClick={() => navigate('/assessment/my-exams')} icon={<ArrowLeftOutlined />}>
+          <Button type="primary" onClick={navigate('/assessment/my-exams')} className="() =>" icon={<ArrowLeftOutlined />}>
             返回我的考试
           </Button>
         </Card>
@@ -130,7 +130,7 @@ const ExamInstructions = () => {
           <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleStartExam} loading={loading}>
             确认并开始考试
           </Button>
-          <Button onClick={() => navigate('/assessment/my-exams')} disabled={loading} icon={<ArrowLeftOutlined />}>
+          <Button onClick={navigate('/assessment/my-exams')} className="() =>" disabled={loading} icon={<ArrowLeftOutlined />}>
             取消并返回
           </Button>
         </Space>

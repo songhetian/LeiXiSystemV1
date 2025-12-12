@@ -507,7 +507,7 @@ function EmployeeApproval() {
             )}
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button onClick={() => setIsDetailModalOpen(false)}>
+              <Button onClick={setIsDetailModalOpen(false)} className="() =>">
                 {statusFilter === 'active' || statusFilter === 'rejected' ? '关闭' : '取消'}
               </Button>
 
