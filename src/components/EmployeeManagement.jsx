@@ -188,9 +188,18 @@ function EmployeeManagement() {
     }
 
     setFilteredEmployees(filtered)
-    setTotalPages(Math.ceil(filtered.length / pageSize))
-    setCurrentPage(1) // 筛选后重置到第一页
-  }, [searchFilters, employees, pageSize])
+    
+    // 只有在数据实际发生变化时才更新总页数和重置当前页
+    const newTotalPages = Math.ceil(filtered.length / pageSize);
+    if (totalPages !== newTotalPages) {
+      setTotalPages(newTotalPages);
+    }
+    
+    // 筛选后重置到第一页，但只在必要时
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchFilters, employees, pageSize, totalPages, currentPage])
 
   // 获取当前页的数据
   const getCurrentPageData = () => {
