@@ -1,0 +1,212 @@
+/* ========================================
+   Sonner Toast - 简洁优雅样式
+   ======================================== */
+
+:root {
+  --toast-bg: #ffffff;
+  --toast-border: #e5e7eb;
+  --toast-text: #0f172a;
+  --toast-text-secondary: #64748b;
+
+  /* 商务配色 */
+  --toast-info: #0ea5e9;
+  --toast-success: #10b981;
+  --toast-warning: #f59e0b;
+  --toast-error: #ef4444;
+}
+
+/* Toast容器 - 调整宽度 */
+[data-sonner-toaster] {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  width: 380px !important;
+  max-width: 380px !important;
+}
+
+/* Toast基础样式 - 简洁设计 */
+[data-sonner-toast] {
+  background: var(--toast-bg) !important;
+  border: 1px solid var(--toast-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  padding: 18px 20px !important;
+  min-height: 80px !important;
+  transition: box-shadow 0.2s ease !important;
+  width: 100% !important;
+}
+
+/* 鼠标悬停时增强阴影 */
+[data-sonner-toast]:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Toast内容区域 */
+[data-sonner-toast] [data-content] {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* 图标样式 */
+[data-sonner-toast] [data-icon] {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+/* 标题和描述 */
+[data-sonner-toast] [data-title] {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  color: var(--toast-text) !important;
+  margin: 0 !important;
+}
+
+[data-sonner-toast] [data-description] {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  color: var(--toast-text-secondary) !important;
+  margin-top: 4px !important;
+}
+
+/* 关闭按钮 */
+[data-sonner-toast] [data-close-button] {
+  background: transparent !important;
+  border: none !important;
+  color: var(--toast-text-secondary) !important;
+  opacity: 0.5 !important;
+  transition: opacity 0.2s ease !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  opacity: 1 !important;
+}
+
+/* Info类型 */
+[data-sonner-toast][data-type='info'] [data-icon] {
+  color: var(--toast-info) !important;
+}
+
+/* Success类型 */
+[data-sonner-toast][data-type='success'] [data-icon] {
+  color: var(--toast-success) !important;
+}
+
+/* Warning类型 */
+[data-sonner-toast][data-type='warning'] [data-icon] {
+  color: var(--toast-warning) !important;
+}
+
+/* Error类型 */
+[data-sonner-toast][data-type='error'] [data-icon] {
+  color: var(--toast-error) !important;
+}
+
+/* 广播Toast样式 - 保持简洁 */
+[data-sonner-toast].broadcast-toast {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+[data-sonner-toast].broadcast-toast [data-title] {
+  font-weight: 700 !important;
+  font-size: 16px !important;
+}
+
+/* 加载状态 */
+[data-sonner-toast][data-type='loading'] [data-icon] {
+  color: var(--toast-info) !important;
+}
+
+/* 操作按钮样式 */
+[data-sonner-toast] [data-button] {
+  background: transparent !important;
+  border: 1px solid var(--toast-border) !important;
+  color: var(--toast-text) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+[data-sonner-toast] [data-button]:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* 响应式设计 */
+@media only screen and (max-width: 480px) {
+  [data-sonner-toaster] {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 16px !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  [data-sonner-toast] {
+    padding: 16px 18px !important;
+    min-height: 72px !important;
+  }
+
+  [data-sonner-toast] [data-title] {
+    font-size: 14px !important;
+  }
+
+  [data-sonner-toast] [data-description] {
+    font-size: 13px !important;
+  }
+}
+
+/* 动画 */
+[data-sonner-toast][data-mounted='true'] {
+  animation: slideIn 0.2s ease-out;
+}
+
+[data-sonner-toast][data-removed='true'] {
+  animation: slideOut 0.15s ease-in;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* 进度条 */
+[data-sonner-toast] [data-progress] {
+  background: rgba(0, 0, 0, 0.08) !important;
+  height: 2px !important;
+}
+
+/* 文字渲染优化 */
+[data-sonner-toast] * {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

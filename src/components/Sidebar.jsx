@@ -247,35 +247,39 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
   const hasChildren = item.children && item.children.length > 0;
   const isActive = activeTab === item.id;
 
-  // Styling based on level
+  // Styling based on level - simplified and clearer
   const getLevelStyles = () => {
     switch (level) {
       case 1:
         return {
-          container: '',
-          button: 'px-4 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 font-bold rounded-xl transition-all duration-200 shadow-sm',
-          icon: 'text-lg',
-          text: 'text-sm font-bold',
+          container: 'mb-1',
+          button: `px-4 py-2.5 text-gray-800 hover:bg-gray-100 font-semibold rounded-lg transition-colors ${
+            isActive ? 'bg-blue-50 text-blue-600' : ''
+          }`,
+          icon: 'text-base',
+          text: 'text-sm',
         };
       case 2:
         return {
-          container: 'ml-4 pl-4 border-l-2 border-blue-200',
-          button: `px-4 py-2.5 rounded-lg transition-all duration-200 ${isActive
-              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-200 font-semibold'
-              : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 font-medium'
-            }`,
-          icon: 'text-base',
-          text: 'text-sm font-semibold',
+          container: 'ml-4 border-l-2 border-gray-200',
+          button: `pl-4 pr-4 py-2 rounded-lg transition-colors ${
+            isActive
+              ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-500 font-medium'
+              : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+          }`,
+          icon: 'text-sm',
+          text: 'text-sm',
         };
       case 3:
         return {
-          container: 'ml-6 pl-4 border-l-2 border-green-200',
-          button: `px-4 py-2 rounded-md transition-all duration-200 ${isActive
-              ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-lg shadow-green-200 font-medium'
-              : 'text-gray-500 hover:bg-green-50 hover:text-green-600'
-            }`,
-          icon: 'text-sm',
-          text: 'text-xs font-medium',
+          container: 'ml-8 border-l-2 border-gray-200',
+          button: `pl-4 pr-4 py-1.5 rounded-md transition-colors ${
+            isActive
+              ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-400 font-medium'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-blue-500'
+          }`,
+          icon: 'text-xs',
+          text: 'text-xs',
         };
       default:
         return {
@@ -301,34 +305,35 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
     return (
       <>
         {text.substring(0, index)}
-        <span className="bg-yellow-200 text-gray-900">{text.substring(index, index + searchQuery.length)}</span>
+        <span className="bg-yellow-200 text-gray-900 font-medium">{text.substring(index, index + searchQuery.length)}</span>
         {text.substring(index + searchQuery.length)}
       </>
     );
   };
 
   return (
-    <div>
+    <div className={styles.container}>
       {/* Menu Item Button */}
       <button
         onClick={() => (hasChildren ? toggleMenu(item.id) : setActiveTab(item.id))}
-        className={`w-full flex items-center justify-between rounded-lg transition-all ${styles.button}`}
+        className={`w-full flex items-center justify-between ${styles.button}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <span className={styles.icon}>{item.icon}</span>
           <span className={styles.text}>{highlightText(item.label)}</span>
         </div>
         {hasChildren && (
           <RightOutlined
-            className={`text-xs transition-transform duration-200 text-gray-400 ${isExpanded ? 'rotate-90' : ''
-              }`}
+            className={`text-xs transition-transform duration-200 ${
+              isExpanded ? 'rotate-90' : ''
+            } ${isActive ? 'text-blue-600' : 'text-gray-400'}`}
           />
         )}
       </button>
 
       {/* Children Menu Items */}
       {hasChildren && isExpanded && (
-        <div className={`mt-1 space-y-1 ${styles.container}`}>
+        <div className="mt-1 space-y-0.5">
           {item.children.map(child => (
             <MenuItem
               key={child.id}

@@ -1,5 +1,4 @@
-import { toast } from 'react-toastify';
-import React from 'react';
+import { toast } from 'sonner';
 
 /**
  * Displays a notification toast with various content types and priority styles.
@@ -21,36 +20,30 @@ export const showNotificationToast = (notification) => {
     priority = 'medium',
   } = notification;
 
-  let toastType = toast.info;
   // 读取用户偏好
   let userSettings = null;
   try {
     userSettings = JSON.parse(localStorage.getItem('notificationSettings') || 'null');
   } catch {}
   const duration = userSettings?.toastDuration || 5000;
-  let toastOptions = {
-    autoClose: duration,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: 'light',
-  };
 
+  // 根据优先级确定toast类型
+  let toastMethod = toast.info;
   switch (priority) {
     case 'low':
-      toastType = toast.info;
+      toastMethod = toast.info;
       break;
     case 'medium':
-      toastType = toast.info;
+      toastMethod = toast.info;
       break;
     case 'high':
-      toastType = toast.warn;
+      toastMethod = toast.warning;
       break;
     case 'urgent':
-      toastType = toast.error;
+      toastMethod = toast.error;
       break;
     default:
-      toastType = toast.info;
+      toastMethod = toast.info;
   }
 
   // 免打扰时间段检查（紧急不屏蔽）
@@ -75,50 +68,22 @@ export const showNotificationToast = (notification) => {
   })();
   if (inDnd && priority !== 'urgent') return;
 
-  const renderContent = () => {
-    switch (content_type) {
-      case 'rich_text':
-        return React.createElement(
-          'div',
-          null,
-          React.createElement('strong', null, title),
-          React.createElement('div', { dangerouslySetInnerHTML: { __html: content } })
-        )
-      case 'image':
-        return React.createElement(
-          'div',
-          null,
-          React.createElement('strong', null, title),
-          React.createElement('p', null, content),
-          image_url && React.createElement('img', { src: image_url, alt: 'Notification', style: { maxWidth: '100%', height: 'auto' } })
-        )
-      case 'link':
-        return React.createElement(
-          'div',
-          null,
-          React.createElement('strong', null, title),
-          React.createElement('p', null, content),
-          link_url && React.createElement('a', { href: link_url, target: '_blank', rel: 'noopener noreferrer' }, link_url)
-        )
-      case 'mixed':
-        return React.createElement(
-          'div',
-          null,
-          React.createElement('strong', null, title),
-          React.createElement('div', { dangerouslySetInnerHTML: { __html: content } }),
-          image_url && React.createElement('img', { src: image_url, alt: 'Notification', style: { maxWidth: '100%', height: 'auto' } }),
-          link_url && React.createElement('a', { href: link_url, target: '_blank', rel: 'noopener noreferrer' }, link_url)
-        )
-      case 'text':
-      default:
-        return React.createElement(
-          'div',
-          null,
-          React.createElement('strong', null, title),
-          React.createElement('p', null, content)
-        )
-    }
+  // 构建描述内容
+  let description = content;
+  if (content_type === 'rich_text') {
+    // Sonner支持JSX，但为了安全起见，我们使用纯文本
+    description = content.replace(/<[^>]*>/g, '');
+  } else if (content_type === 'image' && image_url) {
+    description = `${content}\n[图片]`;
+  } else if (content_type === 'link' && link_url) {
+    description = `${content}\n${link_url}`;
+  } else if (content_type === 'mixed') {
+    let mixedContent = content.replace(/<[^>]*>/g, '');
+    if (image_url) mixedContent += '\n[图片]';
+    if (link_url) mixedContent += `\n${link_url}`;
+    description = mixedContent;
   }
+
   // 播放提示音（可选）
   if (userSettings?.notificationSound && (priority === 'high' || priority === 'urgent')) {
     try {
@@ -126,5 +91,11 @@ export const showNotificationToast = (notification) => {
       audio.play().catch(() => {});
     } catch {}
   }
-  toastType(renderContent(), toastOptions);
+
+  // 显示toast
+  toastMethod(title, {
+    description: description,
+    duration: duration,
+    position: 'bottom-right',
+  });
 };

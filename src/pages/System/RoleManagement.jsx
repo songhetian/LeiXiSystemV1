@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Popconfirm, Drawer, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined, CopyOutlined, FileAddOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import RoleDepartmentModal from '../../components/RoleDepartmentModal';
@@ -518,10 +518,63 @@ const RoleManagement = () => {
 
   const [searchText, setSearchText] = useState('');
 
+  // 克隆角色功能
+  const handleCloneSelectedRoles = async () => {
+    if (selectedRoleIds.length === 0) return;
+    setIsProcessingBatch(true);
+    setBatchProgress({ done: 0, total: selectedRoleIds.length });
+    try {
+      for (const roleId of selectedRoleIds) {
+        const role = roles.find(r => r.id === roleId);
+        if (!role) continue;
+        const newName = `${clonePrefix || ''}${role.name}${cloneSuffix || ''}`;
+        const permissionIds = (role.permissions || []).map(p => p.id);
+
+        // 创建新角色
+        const res = await apiPost('/api/roles', {
+          name: newName,
+          description: role.description,
+          permissionIds
+        });
+
+        const newRoleId = res?.data?.id || res?.id;
+
+        // 如果需要复制部门权限
+        if (cloneCopyDepartments && newRoleId) {
+          try {
+            const deptRes = await apiGet(`/api/roles/${roleId}/departments`);
+            const deptIds = (deptRes?.data || []).map(d => d.id);
+            if (deptIds.length > 0) {
+              await apiPut(`/api/roles/${newRoleId}/departments`, { department_ids: deptIds });
+            }
+          } catch (error) {
+            console.error('复制部门权限失败:', error);
+          }
+        }
+
+        setBatchProgress(prev => ({ ...prev, done: prev.done + 1 }));
+      }
+
+      await fetchRoles();
+      setIsCloneModalOpen(false);
+      setClonePrefix('');
+      setCloneSuffix('副本');
+      setCloneCopyDepartments(false);
+      setSelectedRoleIds([]);
+      message.success('克隆完成');
+    } catch (error) {
+      console.error('克隆失败:', error);
+      message.error('克隆失败');
+    } finally {
+      setIsProcessingBatch(false);
+      setBatchProgress({ done: 0, total: 0 });
+    }
+  };
+
   // 过滤角色
   const filteredRoles = useMemo(() => {
     if (!searchText) return roles;
-    return roles.filter(role => 
+    return roles.filter(role =>
       role.name.toLowerCase().includes(searchText.toLowerCase()) ||
       (role.description && role.description.toLowerCase().includes(searchText.toLowerCase()))
     );
@@ -548,6 +601,22 @@ const RoleManagement = () => {
               onClick={handleAdd}
             >
               <span className="hidden sm:inline">新增角色</span>
+            </Button>
+            <Button
+              icon={<CopyOutlined />}
+              onClick={() => setIsCloneModalOpen(true)}
+            >
+              <span className="hidden sm:inline">复制角色</span>
+            </Button>
+            <Button
+              icon={<FileAddOutlined />}
+              onClick={() => {
+                setEditingTemplate(null);
+                setTemplateForm({ name: '', description: '', permission_ids: [] });
+                setIsTemplateManageOpen(true);
+              }}
+            >
+              <span className="hidden sm:inline">新建模板</span>
             </Button>
             <Button
               icon={<ReloadOutlined />}
@@ -1110,7 +1179,7 @@ const RoleManagement = () => {
           </label>
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
-            <Button type="primary">开始克隆</Button>
+            <Button type="primary" onClick={handleCloneSelectedRoles}>开始克隆</Button>
           </div>
         </div>
       </Modal>

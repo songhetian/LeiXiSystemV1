@@ -1,8 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
-import { ToastContainer, toast } from 'react-toastify'
+import { Toaster, toast } from 'sonner'
 import { showNotificationToast } from './utils/notificationUtils';
-import 'react-toastify/dist/ReactToastify.css'
-import './styles/toast.css'
+import './styles/sonner-toast.css'
 import { useTokenVerification } from './hooks/useTokenVerification'
 import { getApiUrl } from './utils/apiConfig'
 import { tokenManager, apiPost } from './utils/apiClient'
@@ -152,22 +151,12 @@ function App() {
       soundManager.playNotification()
 
       // 显示Toast提示
-      toast.info(
-        <div className="notification-toast-content">
-          <div className="notification-toast-icon">📨</div>
-          <div className="notification-toast-text">
-            <div className="notification-toast-title">{notification.title}</div>
-            <p className="notification-toast-message">{notification.content}</p>
-          </div>
-        </div>,
-        {
-          position: 'bottom-right',
-          autoClose: 10000,
-          hideProgressBar: false,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          containerId: 'notification-toast',
+      toast.info(notification.title, {
+        description: notification.content,
+        duration: 5000,
+        position: 'bottom-right',
+        action: {
+          label: '查看',
           onClick: () => {
             console.log('🔔 点击通知:', notification);
             // 根据通知类型跳转到相应页面
@@ -181,10 +170,9 @@ function App() {
             } else if (notification.type === 'role_assignment' || notification.related_type === 'user_role') {
               handleSetActiveTab('user-role-management');
             }
-          },
-          className: 'cursor-pointer'
+          }
         }
-      )
+      })
       // 📊 更新未读数
       setUnreadCount(prev => prev + 1)
     }
@@ -196,21 +184,11 @@ function App() {
       // 🔔 播放成功提示音
       soundManager.playSuccess()
 
-      toast.success(
-        <div className="notification-toast-content">
-          <div className="notification-toast-icon">📝</div>
-          <div className="notification-toast-text">
-            <div className="notification-toast-title">新备忘录</div>
-            <p className="notification-toast-message">{memo.title}</p>
-          </div>
-        </div>,
-        {
-          position: 'bottom-right',
-          autoClose: 10000,
-          closeOnClick: false,
-          containerId: 'notification-toast'
-        }
-      )
+      toast.success('新备忘录', {
+        description: memo.title,
+        duration: 5000,
+        position: 'bottom-right'
+      })
       // 刷新备忘录未读数
       checkUnreadMemos()
     }
@@ -227,31 +205,23 @@ function App() {
       }
 
       const typeConfig = {
-        info: { icon: '📢', method: toast.info },
-        warning: { icon: '⚠️', method: toast.warning },
-        success: { icon: '✅', method: toast.success },
-        error: { icon: '❌', method: toast.error },
-        announcement: { icon: '📣', method: toast.info }
+        info: toast.info,
+        warning: toast.warning,
+        success: toast.success,
+        error: toast.error,
+        announcement: toast.info
       }
-      const config = typeConfig[broadcast.type] || typeConfig.info
-      config.method(
-        <div className="notification-toast-content">
-          <div className="notification-toast-icon">{config.icon}</div>
-          <div className="notification-toast-text">
-            <div className="notification-toast-title">{broadcast.title}</div>
-            <p className="notification-toast-message">{broadcast.content}</p>
-          </div>
-        </div>,
-        {
-          position: 'bottom-right',
-          autoClose: 10000,
-          hideProgressBar: false,
-          closeOnClick: false,
-          className: 'broadcast-toast',
-          onClick: () => handleSetActiveTab('messaging-broadcast'),
-          containerId: 'notification-toast'
+      const toastMethod = typeConfig[broadcast.type] || typeConfig.info
+      toastMethod(broadcast.title, {
+        description: broadcast.content,
+        duration: 5000,
+        position: 'bottom-right',
+        className: 'broadcast-toast',
+        action: {
+          label: '查看',
+          onClick: () => handleSetActiveTab('messaging-broadcast')
         }
-      )
+      })
     }
 
     // 清除旧的监听器，防止重复注册
@@ -554,33 +524,21 @@ function App() {
                 </Suspense>
               </div>
             </main>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-              limit={3}
-            />
-            <ToastContainer
+            <Toaster
               position="bottom-right"
-              autoClose={10000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick={false}
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-              limit={3}
-              containerId="notification-toast"
-              enableMultiContainer
+              expand={false}
+              richColors={false}
+              closeButton
+              duration={5000}
+              visibleToasts={3}
+            />
+            <Toaster
+              position="top-right"
+              expand={false}
+              richColors={false}
+              closeButton
+              duration={3000}
+              visibleToasts={3}
             />
             {/* 未读备忘录弹窗 */}
             {showMemoPopup && (
