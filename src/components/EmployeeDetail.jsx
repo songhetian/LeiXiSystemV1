@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
 import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
@@ -459,12 +465,9 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
       </div>
 
       <div className="flex justify-end pt-4 mt-4 border-t border-sky-300/70 -mx-6 px-6 -mb-6 pb-6 bg-sky-100/80">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium shadow-sm"
-        >
+        <Button onClick={onClose}>
           关闭
-        </button>
+        </Button>
       </div>
     </Modal>
   )

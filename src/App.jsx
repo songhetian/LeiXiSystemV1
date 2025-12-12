@@ -1,8 +1,15 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
-import { ToastContainer, toast } from 'react-toastify'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
 import { showNotificationToast } from './utils/notificationUtils';
-import 'react-toastify/dist/ReactToastify.css'
-import './styles/toast.css'
+// Sonner styles are included
+// Custom toast styles (可以移除或保留用于其他用途)
 import { useTokenVerification } from './hooks/useTokenVerification'
 import { getApiUrl } from './utils/apiConfig'
 import { tokenManager, apiPost } from './utils/apiClient'
@@ -554,34 +561,8 @@ function App() {
                 </Suspense>
               </div>
             </main>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-              limit={3}
-            />
-            <ToastContainer
-              position="bottom-right"
-              autoClose={10000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick={false}
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-              limit={3}
-              containerId="notification-toast"
-              enableMultiContainer
-            />
+            
+            
             {/* 未读备忘录弹窗 */}
             {showMemoPopup && (
               <Suspense fallback={null}>
@@ -589,6 +570,7 @@ function App() {
               </Suspense>
             )}
           </div>
+        <Toaster position="top-right" richColors />
         </PermissionProvider>
       </DatabaseCheck>
     </ErrorBoundary>

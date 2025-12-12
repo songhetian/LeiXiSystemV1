@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Table, Button, Modal, Form, Input, InputNumber, Switch, message, Space } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PushpinOutlined, PushpinFilled } from '@ant-design/icons';
 import { getApiBaseUrl } from '../utils/apiConfig';
@@ -424,7 +432,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           <p className="mb-4 text-gray-600">请选择要添加的假期类型（已存在的将自动跳过）：</p>
           <div className="grid grid-cols-2 gap-4">
             {COMMON_VACATION_TYPES.map(type => (
-              <label key={type.code} className="flex items-center space-x-2 cursor-pointer p-2 border rounded hover:bg-gray-50">
+              <Label key={type.code} className="flex items-center space-x-2 cursor-pointer p-2 border rounded hover:bg-gray-50">
                 <input
                   type="checkbox"
                   checked={selectedQuickTypes.includes(type.code)}
@@ -441,7 +449,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
                   <div className="font-medium">{type.name}</div>
                   <div className="text-xs text-gray-500">{type.description}</div>
                 </div>
-              </label>
+              </Label>
             ))}
           </div>
         </div>

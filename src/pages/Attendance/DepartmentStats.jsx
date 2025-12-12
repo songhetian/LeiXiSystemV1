@@ -3,8 +3,17 @@
  */
 
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
 import { formatDate, formatDateTime } from '../../utils/date'
@@ -221,16 +230,12 @@ export default function DepartmentStats() {
           <h1 className="text-2xl font-bold text-gray-800">部门考勤统计</h1>
           <p className="text-gray-600 mt-1">查看部门员工的考勤数据</p>
         </div>
-        <button
-          onClick={handleExport}
-          disabled={!stats}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm shadow-sm"
-        >
+        <Button onClick={handleExport} disabled={!stats}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
           导出报表
-        </button>
+        </Button>
       </div>
 
       {/* 筛选器 */}
@@ -238,9 +243,9 @@ export default function DepartmentStats() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 部门选择 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               选择部门
-            </label>
+            </Label>
             <select
               value={selectedDepartment}
               onChange={(e) => {
@@ -259,9 +264,9 @@ export default function DepartmentStats() {
 
           {/* 统计模式选择 */}
           <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">
+             <Label className="block text-sm font-medium text-gray-700 mb-1">
               统计模式
-            </label>
+            </Label>
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setDateMode('month')}
@@ -284,9 +289,9 @@ export default function DepartmentStats() {
 
           {/* 日期选择 */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               {dateMode === 'month' ? '选择月份' : '选择日期范围'}
-            </label>
+            </Label>
 
             {dateMode === 'month' ? (
               <div className="flex items-stretch gap-2">
@@ -334,13 +339,9 @@ export default function DepartmentStats() {
                   </svg>
                 </button>
 
-                <button
-                  onClick={handleThisMonth}
-                  disabled={isCurrentMonth()}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 shadow-sm transition-colors"
-                >
+                <Button onClick={handleThisMonth} disabled={isCurrentMonth()}>
                   本月
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -440,51 +441,51 @@ export default function DepartmentStats() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <Table className="w-full">
+                <TableHeader className="bg-gray-50">
+                  <TableRow>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       工号
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       姓名
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       出勤天数
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       出勤率
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       迟到
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       早退
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       缺勤
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       请假
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       工作时长
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-200 bg-white">
                   {stats.employees && stats.employees.map((employee) => (
-                    <tr key={employee.user_id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => fetchEmployeeDetails(employee)}>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-medium">
+                    <TableRow key={employee.user_id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => fetchEmployeeDetails(employee)}>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-medium">
                         {employee.employee_no}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900">
                         {employee.real_name}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
                         {employee.attendance_days}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           employee.attendance_rate >= 95 ? 'bg-green-100 text-green-800' :
                           employee.attendance_rate >= 85 ? 'bg-yellow-100 text-yellow-800' :
@@ -492,26 +493,26 @@ export default function DepartmentStats() {
                         }`}>
                           {employee.attendance_rate}%
                         </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-red-600 font-medium">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-red-600 font-medium">
                         {employee.late_count > 0 ? employee.late_count : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-orange-600 font-medium">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-orange-600 font-medium">
                         {employee.early_count > 0 ? employee.early_count : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
                         {employee.absent_count > 0 ? employee.absent_count : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-blue-600 font-medium">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-blue-600 font-medium">
                         {employee.leave_days > 0 ? employee.leave_days : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
                         {employee.total_work_hours}h
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {(!stats.employees || stats.employees.length === 0) && (
@@ -532,7 +533,7 @@ export default function DepartmentStats() {
                     共 <span className="font-medium">{pagination.total}</span> 名员工
                   </div>
                   <div className="flex items-center gap-1">
-                    <label className="text-xs text-gray-600">每页</label>
+                    <Label className="text-xs text-gray-600">每页</Label>
                     <select
                       value={pagination.limit}
                       onChange={(e) => setPagination({ ...pagination, limit: parseInt(e.target.value), page: 1 })}
@@ -579,38 +580,38 @@ export default function DepartmentStats() {
               <h2 className="text-lg font-bold text-gray-800">
                 {selectedEmployeeForDetails?.real_name} - 考勤明细
               </h2>
-              <button onClick={() => setShowDetailsModal(false)} className="text-gray-500 hover:text-gray-700">
+              <Button onClick={() => setShowDetailsModal(false)}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             {detailsLoading ? (
               <div className="text-center py-6 text-gray-500">加载中...</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">日期</th>
-                      <th className="px-3 py-2 text-left">班次</th>
-                      <th className="px-3 py-2 text-left">签到</th>
-                      <th className="px-3 py-2 text-left">签退</th>
-                      <th className="px-3 py-2 text-left">状态</th>
-                      <th className="px-3 py-2 text-left">工时</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
+                <Table className="w-full text-xs">
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="px-3 py-2 text-left">日期</TableHead>
+                      <TableHead className="px-3 py-2 text-left">班次</TableHead>
+                      <TableHead className="px-3 py-2 text-left">签到</TableHead>
+                      <TableHead className="px-3 py-2 text-left">签退</TableHead>
+                      <TableHead className="px-3 py-2 text-left">状态</TableHead>
+                      <TableHead className="px-3 py-2 text-left">工时</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y">
                     {employeeDetails.map((record, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-3 py-2">
+                      <TableRow key={idx} className="hover:bg-gray-50">
+                        <TableCell className="px-3 py-2">
                           {formatDate(record.record_date)}
-                        </td>
-                        <td className="px-3 py-2">{record.shift_name}</td>
-                        <td className="px-3 py-2">{record.clock_in_time ? formatDateTime(record.clock_in_time).split(' ')[1] : '-'}</td>
-                        <td className="px-3 py-2">{record.clock_out_time ? formatDateTime(record.clock_out_time).split(' ')[1] : '-'}</td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">{record.shift_name}</TableCell>
+                        <TableCell className="px-3 py-2">{record.clock_in_time ? formatDateTime(record.clock_in_time).split(' ')[1] : '-'}</TableCell>
+                        <TableCell className="px-3 py-2">{record.clock_out_time ? formatDateTime(record.clock_out_time).split(' ')[1] : '-'}</TableCell>
+                        <TableCell className="px-3 py-2">
                           <span className={`px-1.5 py-0.5 rounded text-xs ${
                             record.status === 'normal' ? 'bg-green-100 text-green-800' :
                             record.status === 'late' ? 'bg-red-100 text-red-800' :
@@ -626,17 +627,17 @@ export default function DepartmentStats() {
                               record.status
                             }
                           </span>
-                        </td>
-                        <td className="px-3 py-2">{record.work_hours}h</td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className="px-3 py-2">{record.work_hours}h</TableCell>
+                      </TableRow>
                     ))}
                     {employeeDetails.length === 0 && (
-                      <tr>
-                        <td colSpan="6" className="text-center py-4 text-gray-500">暂无记录</td>
-                      </tr>
+                      <TableRow>
+                        <TableCell colSpan="6" className="text-center py-4 text-gray-500">暂无记录</TableCell>
+                      </TableRow>
                     )}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>

@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI';
 import Modal from './Modal';
 import {
@@ -320,20 +327,17 @@ const QualityTagManagement = () => {
           <div className="categories-panel">
             <div className="panel-header">
               <h3>标签分类</h3>
-              <button
-                onClick={handleCreateCategory}
-                className="btn-primary"
-              >
+              <Button onClick={handleCreateCategory}>
                 <PlusOutlined /> 新建分类
-              </button>
+              </Button>
             </div>
             <div className="tree-container">
               {categories.length === 0 ? (
                 <div className="empty-state">
                   <p>暂无标签分类</p>
-                  <button onClick={handleCreateCategory} className="btn-primary">
+                  <Button onClick={handleCreateCategory}>
                     创建第一个分类
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 renderCategoryTree(categories)
@@ -344,20 +348,17 @@ const QualityTagManagement = () => {
           <div className="tags-panel">
             <div className="panel-header">
               <h3>质检标签</h3>
-              <button
-                onClick={handleCreateTag}
-                className="btn-primary"
-              >
+              <Button onClick={handleCreateTag}>
                 <PlusOutlined /> 新建标签
-              </button>
+              </Button>
             </div>
             <div className="tree-container">
               {tags.length === 0 ? (
                 <div className="empty-state">
                   <p>暂无标签</p>
-                  <button onClick={handleCreateTag} className="btn-primary">
+                  <Button onClick={handleCreateTag}>
                     创建第一个标签
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 renderTagTree(tags)
@@ -374,7 +375,7 @@ const QualityTagManagement = () => {
         title={editingItem ? '编辑分类' : '新建分类'}
       >
         <div className="form-group">
-          <label>分类名称 *</label>
+          <label>分类名称 *</Label>
           <input
             type="text"
             value={categoryForm.name}
@@ -384,9 +385,8 @@ const QualityTagManagement = () => {
           />
         </div>
         <div className="form-group">
-          <label>描述</label>
-          <textarea
-            value={categoryForm.description}
+          <label>描述</Label>
+          <Textarea value={categoryForm.description}
             onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
             placeholder="请输入分类描述"
             className="form-textarea"
@@ -394,7 +394,7 @@ const QualityTagManagement = () => {
           />
         </div>
         <div className="form-group">
-          <label>父分类</label>
+          <label>父分类</Label>
           <select
             value={categoryForm.parent_id || ''}
             onChange={(e) => setCategoryForm({ ...categoryForm, parent_id: e.target.value || null })}
@@ -411,7 +411,7 @@ const QualityTagManagement = () => {
           </select>
         </div>
         <div className="form-group">
-          <label>颜色</label>
+          <label>颜色</Label>
           <div className="color-picker-group">
             <input
               type="color"
@@ -435,7 +435,7 @@ const QualityTagManagement = () => {
           </div>
         </div>
         <div className="form-group">
-          <label>排序</label>
+          <label>排序</Label>
           <input
             type="number"
             value={categoryForm.sort_order}
@@ -444,12 +444,12 @@ const QualityTagManagement = () => {
           />
         </div>
         <div className="modal-actions">
-          <button onClick={() => setIsCategoryModalOpen(false)} className="btn-secondary">
+          <Button onClick={() => setIsCategoryModalOpen(false)}>
             <CloseOutlined /> 取消
-          </button>
-          <button onClick={handleSaveCategory} className="btn-primary">
+          </Button>
+          <Button onClick={handleSaveCategory}>
             <SaveOutlined /> 保存
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -460,7 +460,7 @@ const QualityTagManagement = () => {
         title={editingItem ? '编辑标签' : '新建标签'}
       >
         <div className="form-group">
-          <label>标签名称 *</label>
+          <label>标签名称 *</Label>
           <input
             type="text"
             value={tagForm.name}
@@ -470,9 +470,8 @@ const QualityTagManagement = () => {
           />
         </div>
         <div className="form-group">
-          <label>描述</label>
-          <textarea
-            value={tagForm.description}
+          <label>描述</Label>
+          <Textarea value={tagForm.description}
             onChange={(e) => setTagForm({ ...tagForm, description: e.target.value })}
             placeholder="请输入标签描述"
             className="form-textarea"
@@ -480,7 +479,7 @@ const QualityTagManagement = () => {
           />
         </div>
         <div className="form-group">
-          <label>所属分类</label>
+          <label>所属分类</Label>
           <select
             value={tagForm.category_id || ''}
             onChange={(e) => setTagForm({ ...tagForm, category_id: e.target.value || null })}
@@ -495,7 +494,7 @@ const QualityTagManagement = () => {
           </select>
         </div>
         <div className="form-group">
-          <label>父标签</label>
+          <label>父标签</Label>
           <select
             value={tagForm.parent_id || ''}
             onChange={(e) => setTagForm({ ...tagForm, parent_id: e.target.value || null })}
@@ -512,7 +511,7 @@ const QualityTagManagement = () => {
           </select>
         </div>
         <div className="form-group">
-          <label>颜色</label>
+          <label>颜色</Label>
           <div className="color-picker-group">
             <input
               type="color"
@@ -541,12 +540,12 @@ const QualityTagManagement = () => {
           </div>
         </div>
         <div className="modal-actions">
-          <button onClick={() => setIsTagModalOpen(false)} className="btn-secondary">
+          <Button onClick={() => setIsTagModalOpen(false)}>
             <CloseOutlined /> 取消
-          </button>
-          <button onClick={handleSaveTag} className="btn-primary">
+          </Button>
+          <Button onClick={handleSaveTag}>
             <SaveOutlined /> 保存
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

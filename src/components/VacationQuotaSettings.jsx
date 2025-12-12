@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import { getApiBaseUrl } from '../utils/apiConfig'
 import { Search, Save, RotateCcw, Settings, X } from 'lucide-react'
 
@@ -210,20 +218,17 @@ const VacationQuotaSettings = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowBatchModal(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-        >
+        <Button onClick={() => setShowBatchModal(true)}>
           <Settings size={18} />
           批量调整
-        </button>
+        </Button>
       </div>
 
       {/* 筛选栏 */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6">
         <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">部门</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">部门</Label>
             <select
               value={filters.department_id}
               onChange={(e) => setFilters({ ...filters, department_id: e.target.value })}
@@ -237,7 +242,7 @@ const VacationQuotaSettings = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">年度</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">年度</Label>
             <select
               value={filters.year}
               onChange={(e) => setFilters({ ...filters, year: e.target.value })}
@@ -251,7 +256,7 @@ const VacationQuotaSettings = () => {
           </div>
 
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">搜索</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">搜索</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -276,30 +281,30 @@ const VacationQuotaSettings = () => {
       {/* 列表 */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">员工信息</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">部门</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">年假总额(天)</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">病假总额(天)</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">调休总额(天)</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <Table className="w-full">
+            <TableHeader className="bg-gray-50 border-b border-gray-200">
+              <TableRow>
+                <TableHead className="px-6 py-4 text-left text-sm font-semibold text-gray-600">员工信息</TableHead>
+                <TableHead className="px-6 py-4 text-left text-sm font-semibold text-gray-600">部门</TableHead>
+                <TableHead className="px-6 py-4 text-center text-sm font-semibold text-gray-600">年假总额(天)</TableHead>
+                <TableHead className="px-6 py-4 text-center text-sm font-semibold text-gray-600">病假总额(天)</TableHead>
+                <TableHead className="px-6 py-4 text-center text-sm font-semibold text-gray-600">调休总额(天)</TableHead>
+                <TableHead className="px-6 py-4 text-center text-sm font-semibold text-gray-600">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-200">
               {loading ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">加载中...</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan="6" className="px-6 py-12 text-center text-gray-500">加载中...</TableCell>
+                </TableRow>
               ) : employees.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">暂无数据</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan="6" className="px-6 py-12 text-center text-gray-500">暂无数据</TableCell>
+                </TableRow>
               ) : (
                 employees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+                  <TableRow key={emp.id} className="hover:bg-gray-50">
+                    <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm">
                           {emp.real_name?.charAt(0)}
@@ -309,13 +314,13 @@ const VacationQuotaSettings = () => {
                           <div className="text-xs text-gray-500">{emp.employee_no}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{emp.department_name}</td>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-gray-600">{emp.department_name}</TableCell>
 
                     {/* 编辑模式 */}
                     {editingId === emp.employee_id ? (
                       <>
-                        <td className="px-6 py-4 text-center">
+                        <TableCell className="px-6 py-4 text-center">
                           <input
                             type="number"
                             step="0.5"
@@ -323,8 +328,8 @@ const VacationQuotaSettings = () => {
                             onChange={(e) => setEditForm({ ...editForm, annual_leave_total: parseFloat(e.target.value) })}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-primary-500"
                           />
-                        </td>
-                        <td className="px-6 py-4 text-center">
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
                           <input
                             type="number"
                             step="0.5"
@@ -332,8 +337,8 @@ const VacationQuotaSettings = () => {
                             onChange={(e) => setEditForm({ ...editForm, sick_leave_total: parseFloat(e.target.value) })}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-primary-500"
                           />
-                        </td>
-                        <td className="px-6 py-4 text-center">
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
                           <input
                             type="number"
                             step="0.5"
@@ -341,8 +346,8 @@ const VacationQuotaSettings = () => {
                             onChange={(e) => setEditForm({ ...editForm, compensatory_leave_total: parseFloat(e.target.value) })}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-primary-500"
                           />
-                        </td>
-                        <td className="px-6 py-4 text-center">
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleSave(emp)}
@@ -359,35 +364,32 @@ const VacationQuotaSettings = () => {
                               <RotateCcw size={18} />
                             </button>
                           </div>
-                        </td>
+                        </TableCell>
                       </>
                     ) : (
                       /* 查看模式 */
                       <>
-                        <td className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        <TableCell className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                           {emp.annual_leave_total}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                           {emp.sick_leave_total}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                           {emp.compensatory_leave_total}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => handleEdit(emp)}
-                            className="text-primary-600 hover:text-primary-700 font-medium text-sm"
-                          >
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
+                          <Button onClick={() => handleEdit(emp)}>
                             调整
-                          </button>
-                        </td>
+                          </Button>
+                        </TableCell>
                       </>
                     )}
-                  </tr>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* 分页 */}
@@ -425,12 +427,9 @@ const VacationQuotaSettings = () => {
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-800">批量调整假期额度</h2>
-              <button
-                onClick={() => setShowBatchModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <Button onClick={() => setShowBatchModal(false)} variant="ghost">
                 <X size={24} className="text-gray-500" />
-              </button>
+              </Button>
             </div>
 
             <div className="p-6 space-y-6">
@@ -441,9 +440,9 @@ const VacationQuotaSettings = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">调整方式</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">调整方式</Label>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <Label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       name="adjustmentType"
@@ -452,8 +451,8 @@ const VacationQuotaSettings = () => {
                       className="text-primary-600 focus:ring-primary-500"
                     />
                     <span>设置为固定值</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  </Label>
+                  <Label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       name="adjustmentType"
@@ -462,8 +461,8 @@ const VacationQuotaSettings = () => {
                       className="text-primary-600 focus:ring-primary-500"
                     />
                     <span>增加额度</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  </Label>
+                  <Label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       name="adjustmentType"
@@ -472,13 +471,13 @@ const VacationQuotaSettings = () => {
                       className="text-primary-600 focus:ring-primary-500"
                     />
                     <span>减少额度</span>
-                  </label>
+                  </Label>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">年假</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">年假</Label>
                   <input
                     type="number"
                     step="0.5"
@@ -492,7 +491,7 @@ const VacationQuotaSettings = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">病假</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">病假</Label>
                   <input
                     type="number"
                     step="0.5"
@@ -506,7 +505,7 @@ const VacationQuotaSettings = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">调休</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">调休</Label>
                   <input
                     type="number"
                     step="0.5"
@@ -522,9 +521,8 @@ const VacationQuotaSettings = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">调整原因 <span className="text-red-500">*</span></label>
-                <textarea
-                  value={batchForm.reason}
+                <Label className="block text-sm font-medium text-gray-700 mb-1">调整原因 <span className="text-red-500">*</span></Label>
+                <Textarea value={batchForm.reason}
                   onChange={(e) => setBatchForm({ ...batchForm, reason: e.target.value })}
                   placeholder="请输入调整原因（必填）..."
                   rows={3}
@@ -534,18 +532,12 @@ const VacationQuotaSettings = () => {
             </div>
 
             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-              <button
-                onClick={() => setShowBatchModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
+              <Button onClick={() => setShowBatchModal(false)}>
                 取消
-              </button>
-              <button
-                onClick={handleBatchSave}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
+              </Button>
+              <Button onClick={handleBatchSave}>
                 确认调整
-              </button>
+              </Button>
             </div>
           </div>
         </div>

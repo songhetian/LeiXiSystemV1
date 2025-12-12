@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 const CustomerForm = ({ customer, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -31,7 +38,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">姓名 *</label>
+        <Label className="block text-sm font-medium text-gray-700 mb-2">姓名 *</Label>
         <input
           type="text"
           value={formData.name}
@@ -42,7 +49,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">邮箱 *</label>
+        <Label className="block text-sm font-medium text-gray-700 mb-2">邮箱 *</Label>
         <input
           type="email"
           value={formData.email}
@@ -53,7 +60,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">电话 *</label>
+        <Label className="block text-sm font-medium text-gray-700 mb-2">电话 *</Label>
         <input
           type="tel"
           value={formData.phone}
@@ -64,7 +71,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">部门</label>
+        <Label className="block text-sm font-medium text-gray-700 mb-2">部门</Label>
         <select
           value={formData.department}
           onChange={(e) => setFormData({...formData, department: e.target.value})}
@@ -78,7 +85,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">评级</label>
+        <Label className="block text-sm font-medium text-gray-700 mb-2">评级</Label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map(rating => (
             <button
@@ -94,7 +101,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">状态</label>
+        <Label className="block text-sm font-medium text-gray-700 mb-2">状态</Label>
         <select
           value={formData.status}
           onChange={(e) => setFormData({...formData, status: e.target.value})}
@@ -106,13 +113,12 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       </div>
 
       <div className="flex gap-3 pt-4">
-        <button
-          type="button"
+        <Button type="button"
           onClick={onCancel}
           className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
         >
           取消
-        </button>
+        </Button>
         <button
           type="submit"
           className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg"

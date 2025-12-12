@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import qualityAPI from '../api/qualityAPI.js'
 import Modal from './Modal'
 import ImportSessionModal from './ImportSessionModal'
@@ -129,8 +138,7 @@ const QualityInspection = () => {
             <p className="text-gray-500 text-sm mt-1">共 {pagination.total} 条质检记录</p>
           </div>
           <div className="flex gap-3">
-            <input
-              type="text"
+            <Input type="text"
               name="search"
               placeholder="搜索会话编号/客户信息..."
               value={filters.search}
@@ -147,66 +155,58 @@ const QualityInspection = () => {
               <option value="pending">待质检</option>
               <option value="completed">已完成</option>
             </select>
-            <input
-              type="date"
+            <DatePicker
               name="startDate"
               value={filters.startDate}
               onChange={handleFilterChange}
               className="business-input w-40"
             />
-            <input
-              type="date"
+            <DatePicker
               name="endDate"
               value={filters.endDate}
               onChange={handleFilterChange}
               className="business-input w-40"
             />
-            <button
-              onClick={() => setIsPlatformShopModalOpen(true)}
-              className="business-btn business-btn-secondary"
-            >
+            <Button onClick={() => setIsPlatformShopModalOpen(true)}>
               平台店铺管理
-            </button>
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="business-btn business-btn-success"
-            >
+            </Button>
+            <Button onClick={() => setIsImportModalOpen(true)}>
               导入会话
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="business-table">
-            <thead>
-              <tr>
-                <th className="text-center">会话ID</th>
-                <th className="text-center">客服</th>
-                <th className="text-center">沟通渠道</th>
-                <th className="text-center">平台</th>
-                <th className="text-center">店铺</th>
-                <th className="text-center">评分</th>
-                <th className="text-center">状态</th>
-                <th className="text-center">日期</th>
-                <th className="text-center">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="business-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center">会话ID</TableHead>
+                <TableHead className="text-center">客服</TableHead>
+                <TableHead className="text-center">沟通渠道</TableHead>
+                <TableHead className="text-center">平台</TableHead>
+                <TableHead className="text-center">店铺</TableHead>
+                <TableHead className="text-center">评分</TableHead>
+                <TableHead className="text-center">状态</TableHead>
+                <TableHead className="text-center">日期</TableHead>
+                <TableHead className="text-center">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {inspections.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="text-center py-8 text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="9" className="text-center py-8 text-gray-500">
                     暂无数据
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 inspections.map((inspection) => (
-                  <tr key={inspection.id}>
-                    <td className="font-medium">#{inspection.session_code}</td>
-                    <td>{inspection.customer_service_name || inspection.agent_name || '-'}</td>
-                    <td>{inspection.communication_channel || '-'}</td>
-                    <td>{inspection.platform_name || '-'}</td>
-                    <td>{inspection.shop_name || '-'}</td>
-                    <td>
+                  <TableRow key={inspection.id}>
+                    <TableCell className="font-medium">#{inspection.session_code}</TableCell>
+                    <TableCell>{inspection.customer_service_name || inspection.agent_name || '-'}</TableCell>
+                    <TableCell>{inspection.communication_channel || '-'}</TableCell>
+                    <TableCell>{inspection.platform_name || '-'}</TableCell>
+                    <TableCell>{inspection.shop_name || '-'}</TableCell>
+                    <TableCell>
                       {inspection.score ? (
                         <span className={`font-semibold ${inspection.score >= 90 ? 'text-green-600' :
                           inspection.score >= 80 ? 'text-blue-600' :
@@ -215,66 +215,49 @@ const QualityInspection = () => {
                           {inspection.score}分
                         </span>
                       ) : '-'}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <span className={`business-badge ${inspection.quality_status === 'completed'
                         ? 'business-badge-success'
                         : 'business-badge-warning'
                         }`}>
                         {inspection.quality_status === 'completed' ? '已完成' : '待质检'}
                       </span>
-                    </td>
-                    <td>{formatDate(inspection.created_at)}</td>
-                    <td className="text-center">
+                    </TableCell>
+                    <TableCell>{formatDate(inspection.created_at)}</TableCell>
+                    <TableCell className="text-center">
                       <div className="flex gap-2 justify-center">
                         {inspection.quality_status === 'pending' ? (
-                          <button
-                            onClick={() => handleInspect(inspection)}
-                            className="business-btn business-btn-primary business-btn-sm"
-                          >
+                          <Button onClick={() => handleInspect(inspection)}>
                             开始质检
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            onClick={() => handleInspect(inspection)}
-                            className="business-btn business-btn-secondary business-btn-sm"
-                          >
+                          <Button onClick={() => handleInspect(inspection)}>
                             查看详情
-                          </button>
+                          </Button>
                         )}
-                        <button
-                          onClick={() => handleDelete(inspection.id)}
-                          className="business-btn business-btn-danger business-btn-sm"
-                        >
+                        <Button onClick={() => handleDelete(inspection.id)}>
                           删除
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
             <div className="flex flex-1 justify-between sm:hidden">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
                 上一页
-              </button>
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              </Button>
+              <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages}>
                 下一页
-              </button>
+              </Button>
             </div>
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
               <div>
@@ -286,16 +269,12 @@ const QualityInspection = () => {
               </div>
               <div>
                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page === 1}
-                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
                     <span className="sr-only">上一页</span>
                     <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
                     </svg>
-                  </button>
+                  </Button>
                   {(() => {
                     const pages = [];
                     const maxVisible = 7;
@@ -361,16 +340,12 @@ const QualityInspection = () => {
 
                     return pages;
                   })()}
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page === pagination.totalPages}
-                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages}>
                     <span className="sr-only">下一页</span>
                     <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
                     </svg>
-                  </button>
+                  </Button>
                 </nav>
               </div>
             </div>

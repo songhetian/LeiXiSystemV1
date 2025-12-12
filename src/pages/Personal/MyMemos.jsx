@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -342,7 +349,7 @@ const MyMemos = () => {
 
             <div className="modal-body">
               <div className="form-group">
-                <label>标题</label>
+                <label>标题</Label>
                 <input
                   type="text"
                   value={formData.title}
@@ -352,7 +359,7 @@ const MyMemos = () => {
               </div>
 
               <div className="form-group">
-                <label>优先级</label>
+                <label>优先级</Label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
@@ -365,9 +372,8 @@ const MyMemos = () => {
               </div>
 
               <div className="form-group">
-                <label>内容</label>
-                <textarea
-                  value={formData.content}
+                <label>内容</Label>
+                <Textarea value={formData.content}
                   onChange={handleContentChange}
                   placeholder="请输入内容..."
                   className="form-textarea"

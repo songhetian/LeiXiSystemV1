@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 
@@ -97,7 +103,7 @@ export default function AttendanceStats() {
 
       <div className="bg-white rounded-lg shadow p-2.5 mb-3">
         <div className="flex items-center justify-between">
-          <button onClick={handlePrevMonth} className="px-2.5 py-1.5 border rounded hover:bg-gray-50 text-sm">← 上月</button>
+          <Button onClick={handlePrevMonth} size="sm">← 上月</Button>
           <div className="font-semibold text-sm">{selectedMonth.year}年 {selectedMonth.month}月</div>
           <div className="flex gap-1.5">
             <button
@@ -112,7 +118,7 @@ export default function AttendanceStats() {
             >
               📥 导出
             </button>
-            <button onClick={handleNextMonth} className="px-2.5 py-1.5 border rounded hover:bg-gray-50 text-sm">下月 →</button>
+            <Button onClick={handleNextMonth} size="sm">下月 →</Button>
           </div>
         </div>
       </div>

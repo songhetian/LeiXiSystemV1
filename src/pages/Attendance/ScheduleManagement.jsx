@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
 
@@ -454,33 +463,26 @@ export default function ScheduleManagement() {
             </svg>
             下载模板
           </button>
-          <label className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-sm">
+          <Label className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             导入Excel
-            <input
-              type="file"
+            <Input  type="file"
               accept=".xlsx,.xls"
               onChange={handleImportExcel}
               className="hidden"
             />
-          </label>
-          <button
-            onClick={handleExportExcel}
-            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-          >
+          </Label>
+          <Button onClick={handleExportExcel} size="sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             导出Excel
-          </button>
-          <button
-            onClick={handleBatchSchedule}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors text-sm"
-          >
+          </Button>
+          <Button onClick={handleBatchSchedule} size="sm">
             批量排班
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -489,9 +491,9 @@ export default function ScheduleManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* 部门选择 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               选择部门
-            </label>
+            </Label>
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -507,9 +509,9 @@ export default function ScheduleManagement() {
 
           {/* 月份选择 - 与部门统计相同的样式 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               选择月份
-            </label>
+            </Label>
             <div className="flex items-stretch gap-2">
               {/* 上一月按钮 */}
               <button
@@ -586,39 +588,38 @@ export default function ScheduleManagement() {
         ) : employees.length === 0 ? (
           <div className="p-6 text-center text-gray-500 text-sm">该部门暂无员工</div>
         ) : (
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium text-gray-700 border-r">
+          <Table className="w-full text-xs">
+            <TableHeader className="bg-gray-50 sticky top-0">
+              <TableRow>
+                <TableHead className="px-3 py-2 text-left font-medium text-gray-700 border-r">
                   员工
-                </th>
+                </TableHead>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                   const date = new Date(selectedMonth.year, selectedMonth.month - 1, day);
                   const weekday = getWeekday(date);
                   return (
-                    <th key={day} className="px-1.5 py-2 text-center font-medium text-gray-700 border-r bg-gray-50">
+                    <TableHead key={day} className="px-1.5 py-2 text-center font-medium text-gray-700 border-r bg-gray-50">
                       <div className="flex flex-col items-center justify-center">
                         <span className="text-xs font-semibold text-gray-500">{weekday}</span>
                         <span className="text-sm font-bold text-gray-800">{day}</span>
                       </div>
-                    </th>
+                    </TableHead>
                   );
                 })}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {employees.map((employee) => (
-                <tr key={employee.id} className="border-t hover:bg-gray-50">
-                  <td className="px-3 py-2 font-medium text-gray-800 border-r whitespace-nowrap">
+                <TableRow key={employee.id} className="border-t hover:bg-gray-50">
+                  <TableCell className="px-3 py-2 font-medium text-gray-800 border-r whitespace-nowrap">
                     {employee.real_name}
-                  </td>
+                  </TableCell>
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                     const schedule = getSchedule(employee.id, day)
                     const shiftStyle = schedule?.color ? getShiftStyle(schedule.color) : {}
 
                     return (
-                      <td
-                        key={day}
+                      <TableCell key={day}
                         onClick={() => handleCellClick(employee, day)}
                         className={`px-1.5 py-2 text-center border-r cursor-pointer transition-all ${
                           schedule
@@ -632,13 +633,13 @@ export default function ScheduleManagement() {
                         {(schedule?.is_rest_day == 1 || schedule?.is_rest_day === true) && (
                           <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                         )}
-                      </td>
+                      </TableCell>
                     )
                   })}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
 
@@ -667,9 +668,9 @@ export default function ScheduleManagement() {
 
               {/* 选择班次 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   选择班次 <span className="text-red-500">*</span>
-                </label>
+                </Label>
                 <select
                   value={scheduleModalData.selectedShiftId}
                   onChange={(e) => setScheduleModalData({
@@ -725,20 +726,12 @@ export default function ScheduleManagement() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleScheduleSubmit}
-                disabled={submitting}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={handleScheduleSubmit} disabled={submitting}>
                 {submitting ? '保存中...' : '确定'}
-              </button>
-              <button
-                onClick={() => setShowScheduleModal(false)}
-                disabled={submitting}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              </Button>
+              <Button onClick={() => setShowScheduleModal(false)} disabled={submitting}>
                 取消
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -754,12 +747,12 @@ export default function ScheduleManagement() {
               <div className="space-y-4">
                 {/* 选择员工 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">
                     选择员工 <span className="text-red-500">*</span>
-                  </label>
+                  </Label>
                   <div className="border rounded p-3 max-h-40 overflow-y-auto">
                     {employees.map((emp) => (
-                      <label key={emp.id} className="flex items-center gap-2 py-1">
+                      <Label key={emp.id} className="flex items-center gap-2 py-1">
                         <input
                           type="checkbox"
                           checked={batchData.employee_ids.includes(emp.id)}
@@ -778,16 +771,16 @@ export default function ScheduleManagement() {
                           }}
                         />
                         <span>{emp.real_name}</span>
-                      </label>
+                      </Label>
                     ))}
                   </div>
                 </div>
 
                 {/* 选择班次 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">
                     选择班次
-                  </label>
+                  </Label>
                   <select
                     value={batchData.shift_id}
                     onChange={(e) => setBatchData({ ...batchData, shift_id: e.target.value })}
@@ -824,9 +817,9 @@ export default function ScheduleManagement() {
                 {/* 日期范围 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-2">
                       开始日期 <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <input
                       type="date"
                       required
@@ -836,9 +829,9 @@ export default function ScheduleManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-2">
                       结束日期 <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <input
                       type="date"
                       required
@@ -857,13 +850,12 @@ export default function ScheduleManagement() {
                 >
                   确定
                 </button>
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => setShowBatchModal(false)}
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded transition-colors"
                 >
                   取消
-                </button>
+                </Button>
               </div>
             </form>
           </div>

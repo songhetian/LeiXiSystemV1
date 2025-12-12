@@ -1,8 +1,14 @@
-import React, { useEffect } from 'react'
+import React from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 
 const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zIndex = 1000, variant = 'default' }) => {
-  if (!isOpen) return null
-
   const sizeClasses = {
     small: 'max-w-md',
     medium: 'max-w-2xl',
@@ -12,60 +18,39 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
     wide: 'max-w-[85vw]'
   }
 
-  // Simple color variants
+  // Simple color variants for header
   const variantColors = {
-    default: '#3b82f6',
-    primary: '#8b5cf6',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#06b6d4'
+    default: 'bg-primary',
+    primary: 'bg-purple-600',
+    success: 'bg-green-600',
+    warning: 'bg-amber-600',
+    danger: 'bg-red-600',
+    info: 'bg-cyan-600'
   }
 
-  const headerColor = variantColors[variant] || variantColors.default
-
-  // Handle escape key press
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [onClose])
+  const headerColorClass = variantColors[variant] || variantColors.default
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex }}>
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      ></div>
-      <div
-        className={`relative z-10 bg-white rounded-lg shadow-xl ${sizeClasses[size]} w-full mx-4 max-h-[90vh] overflow-hidden`}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className={cn(sizeClasses[size], "max-h-[90vh] overflow-hidden p-0")}
+        style={{ zIndex }}
       >
         {title && (
-          <div
-            className="px-6 py-4 border-b"
-            style={{
-              backgroundColor: headerColor,
-              borderBottomColor: headerColor
-            }}
-          >
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
-          </div>
+          <DialogHeader className={cn("px-6 py-4 border-b", headerColorClass)}>
+            <DialogTitle className="text-xl font-semibold text-white">{title}</DialogTitle>
+          </DialogHeader>
         )}
         <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar">
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <DialogFooter className="px-6 py-4 border-t border-gray-200 bg-gray-50">
             {footer}
-          </div>
+          </DialogFooter>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

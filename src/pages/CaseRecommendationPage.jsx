@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 
 const CaseRecommendationPage = () => {
@@ -141,13 +147,9 @@ const CaseRecommendationPage = () => {
             {/* Pagination */}
             {pagination.totalPages > 1 && (
               <div className="flex justify-center items-center mt-8 space-x-2">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page === 1}
-                  className="business-btn business-btn-secondary business-btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
                   上一页
-                </button>
+                </Button>
                 {Array.from({ length: Math.min(pagination.totalPages, 10) }, (_, i) => {
                   // 显示当前页附近的页码
                   const pageNum = i + 1;
@@ -181,13 +183,9 @@ const CaseRecommendationPage = () => {
                   }
                   return null;
                 })}
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages}
-                  className="business-btn business-btn-secondary business-btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages}>
                   下一页
-                </button>
+                </Button>
               </div>
             )}
           </>

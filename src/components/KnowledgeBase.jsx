@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import api from '../api'
 import axios from 'axios'
 import AdvancedSearch from './AdvancedSearch'
@@ -772,13 +779,9 @@ const KnowledgeBase = () => {
                       共 {categories.length} 个分类，第 {categoryPage} / {getCategoryTotalPages()} 页
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setCategoryPage(p => Math.max(1, p - 1))}
-                        disabled={categoryPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
+                      <Button onClick={() => setCategoryPage(p => Math.max(1, p - 1))} disabled={categoryPage === 1}>
                         ← 上一页
-                      </button>
+                      </Button>
 
                       {[...Array(Math.min(getCategoryTotalPages(), 5))].map((_, i) => {
                         let pageNum
@@ -808,13 +811,9 @@ const KnowledgeBase = () => {
                         )
                       })}
 
-                      <button
-                        onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))}
-                        disabled={categoryPage === getCategoryTotalPages()}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
+                      <Button onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))} disabled={categoryPage === getCategoryTotalPages()}>
                         下一页 →
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -838,12 +837,9 @@ const KnowledgeBase = () => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => setShowFolderModal(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-              >
+              <Button onClick={() => setShowFolderModal(false)} variant="ghost">
                 ✕
-              </button>
+              </Button>
             </div>
 
             {/* 操作栏 */}
@@ -1040,13 +1036,9 @@ const KnowledgeBase = () => {
                     第 {currentPage} / {getTotalPages()} 页
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                       ← 上一页
-                    </button>
+                    </Button>
 
                     {[...Array(Math.min(getTotalPages(), 5))].map((_, i) => {
                       let pageNum
@@ -1076,13 +1068,9 @@ const KnowledgeBase = () => {
                       )
                     })}
 
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))}
-                      disabled={currentPage === getTotalPages()}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))} disabled={currentPage === getTotalPages()}>
                       下一页 →
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1134,12 +1122,9 @@ const KnowledgeBase = () => {
                     ↕️
                   </button>
                 </div>
-                <button
-                  onClick={() => setShowArticleModal(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                >
+                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1185,25 +1170,16 @@ const KnowledgeBase = () => {
 
             <div className="p-6 border-t border-gray-200 flex items-center justify-between bg-gray-50">
               <div className="flex gap-3">
-                <button
-                  onClick={() => handleLike(selectedArticle.id)}
-                  className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
-                >
+                <Button onClick={() => handleLike(selectedArticle.id)} variant="destructive">
                   ❤️ 点赞 ({selectedArticle.like_count || 0})
-                </button>
-                <button
-                  onClick={handleSaveToMyKnowledge}
-                  className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
-                >
+                </Button>
+                <Button onClick={handleSaveToMyKnowledge}>
                   ⭐ 保存到我的知识库
-                </button>
+                </Button>
               </div>
-              <button
-                onClick={() => setShowArticleModal(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
+              <Button onClick={() => setShowArticleModal(false)} variant="ghost">
                 关闭
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1220,9 +1196,9 @@ const KnowledgeBase = () => {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   选择分类（可选）
-                </label>
+                </Label>
                 <select
                   value={selectedCategory || ''}
                   onChange={(e) => setSelectedCategory(e.target.value || null)}
@@ -1241,11 +1217,10 @@ const KnowledgeBase = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   个人笔记（可选）
-                </label>
-                <textarea
-                  value={saveNotes}
+                </Label>
+                <Textarea value={saveNotes}
                   onChange={(e) => setSaveNotes(e.target.value)}
                   placeholder="添加你的学习笔记或心得..."
                   rows={4}
@@ -1261,18 +1236,12 @@ const KnowledgeBase = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowSaveModal(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
+              <Button onClick={() => setShowSaveModal(false)} variant="ghost">
                 取消
-              </button>
-              <button
-                onClick={handleConfirmSave}
-                className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
+              </Button>
+              <Button onClick={handleConfirmSave}>
                 确认保存
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1321,12 +1290,9 @@ const KnowledgeBase = () => {
                     ↕️
                   </button>
                 </div>
-                <button
-                  onClick={() => setPreviewFile(null)}
-                  className="w-12 h-12 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md ml-4 text-2xl"
-                >
+                <Button onClick={() => setPreviewFile(null)} variant="ghost">
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1434,12 +1400,9 @@ const KnowledgeBase = () => {
                 >
                   💾 保存到我的知识库
                 </button>
-                <button
-                  onClick={() => handleAddToPlan(previewFile)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center gap-3 text-lg font-medium shadow-md"
-                >
+                <Button onClick={() => handleAddToPlan(previewFile)} size="lg">
                   📅 添加到学习计划
-                </button>
+                </Button>
               </div>
               <div className="flex gap-4">
                 <button
@@ -1453,12 +1416,9 @@ const KnowledgeBase = () => {
                 >
                   ❤️ {likedArticles.has(previewFile.id) ? '已点赞' : '点赞'} ({previewFile.like_count || 0})
                 </button>
-                <button
-                  onClick={() => setPreviewFile(null)}
-                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all text-lg font-medium shadow-md"
-                >
+                <Button onClick={() => setPreviewFile(null)} variant="ghost" size="lg">
                   关闭
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1476,18 +1436,18 @@ const KnowledgeBase = () => {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   文档标题
-                </label>
+                </Label>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="font-medium text-gray-900">{selectedArticleForPlan.title}</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   选择学习计划（可选，不选择将自动创建）
-                </label>
+                </Label>
                 <select
                   value={selectedPlanId}
                   onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -1514,12 +1474,9 @@ const KnowledgeBase = () => {
               >
                 取消
               </button>
-              <button
-                onClick={confirmAddToPlan}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
+              <Button onClick={confirmAddToPlan}>
                 确认添加
-              </button>
+              </Button>
             </div>
           </div>
         </div>

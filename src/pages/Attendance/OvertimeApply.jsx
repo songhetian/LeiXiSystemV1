@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion } from 'framer-motion'
 import { DatePicker, TimePicker, Input } from 'antd';
@@ -166,23 +173,21 @@ export default function OvertimeApply() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
               {/* 加班日期 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">加班日期</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">加班日期</Label>
                 {/* 快捷选择按钮 */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <button
-                    type="button"
+                  <Button type="button"
                     onClick={selectToday}
                     className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
                   >
                     今天
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button type="button"
                     onClick={selectTomorrow}
                     className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
                   >
                     明天
-                  </button>
+                  </Button>
                 </div>
                 <DatePicker
                   className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
@@ -202,7 +207,7 @@ export default function OvertimeApply() {
               {/* 时间范围 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">开始时间</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">开始时间</Label>
                   <TimePicker
                     className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
                     onChange={(time, timeString) => handleTimeChange(time, timeString, 'start_time')}
@@ -214,7 +219,7 @@ export default function OvertimeApply() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">结束时间</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">结束时间</Label>
                   <TimePicker
                     className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
                     onChange={(time, timeString) => handleTimeChange(time, timeString, 'end_time')}
@@ -229,27 +234,24 @@ export default function OvertimeApply() {
 
               {/* 快捷时间选择 */}
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => setTimeRange('18:00', '20:00')}
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   18:00-20:00 (2小时)
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button type="button"
                   onClick={() => setTimeRange('18:00', '21:00')}
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   18:00-21:00 (3小时)
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button type="button"
                   onClick={() => setTimeRange('18:00', '22:00')}
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   18:00-22:00 (4小时)
-                </button>
+                </Button>
               </div>
 
               {/* 加班时长 */}
@@ -262,7 +264,7 @@ export default function OvertimeApply() {
 
               {/* 加班原因 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">加班原因</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">加班原因</Label>
                 <Input.TextArea
                   rows={4}
                   value={formData.reason}
@@ -277,13 +279,12 @@ export default function OvertimeApply() {
 
             {/* 提交按钮 */}
             <div className="flex gap-4 pt-4">
-              <button
-                type="button"
+              <Button type="button"
                 onClick={() => window.history.back()}
                 className="px-6 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
               >
                 取消
-              </button>
+              </Button>
               <button
                 type="submit"
                 disabled={loading}

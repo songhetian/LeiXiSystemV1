@@ -1,4 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   ArrowLeftOutlined,
   MoreOutlined,
@@ -733,8 +740,7 @@ const WeChatPage = () => {
               <div className="input-controls">
                 {/* 去除了+按钮 */}
                 <div className="input-wrapper">
-                  <textarea
-                    placeholder="请输入广播内容..."
+                  <Textarea placeholder="请输入广播内容..."
                     value={broadcastContent}
                     onChange={(e) => setBroadcastContent(e.target.value)}
                     onKeyDown={(e) => {

@@ -1,4 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
 
 const FilePreviewModal = ({ file, onClose, getFileIcon, formatFileSize, modalWidth, setModalWidth, modalHeight, setModalHeight }) => {
@@ -115,12 +121,9 @@ const FilePreviewModal = ({ file, onClose, getFileIcon, formatFileSize, modalWid
                 {isMaximized ? '⛶' : '⛶'}
               </button>
             </div>
-            <button
-              onClick={onClose}
-              className="w-12 h-12 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md ml-4 text-2xl"
-            >
+            <Button onClick={onClose} variant="ghost">
               ✕
-            </button>
+            </Button>
           </div>
         </div>
         <div className="flex-1 overflow-auto p-6 bg-gray-50">
@@ -209,12 +212,9 @@ const FilePreviewModal = ({ file, onClose, getFileIcon, formatFileSize, modalWid
             >
               📥 下载
             </a>
-            <button
-              onClick={onClose}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all text-lg font-medium shadow-md"
-            >
+            <Button onClick={onClose} variant="ghost" size="lg">
               关闭
-            </button>
+            </Button>
           </div>
         </div>
       </div>

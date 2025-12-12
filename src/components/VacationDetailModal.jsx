@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Modal, Descriptions, Tag, Table, Spin, Tabs, message } from 'antd';
 import {
   UserOutlined, CalendarOutlined, ClockCircleOutlined,
@@ -142,7 +150,7 @@ const VacationDetailModal = ({ visible, onClose, employee, year }) => {
         <span className={amount > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
           {amount > 0 ? '+' : ''}{amount} 天
         </span>
-      )
+      ),
     },
     {
       title: '变更后余额',
@@ -284,5 +292,3 @@ const VacationDetailModal = ({ visible, onClose, employee, year }) => {
     </Modal>
   );
 };
-
-export default VacationDetailModal;

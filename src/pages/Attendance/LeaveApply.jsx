@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion } from 'framer-motion'
 import { DatePicker, TimePicker, Input } from 'antd';
@@ -322,7 +329,7 @@ export default function LeaveApply() {
                       <p className="text-sm text-gray-500">可用 {Math.floor(conversionBalance.remaining_days)} 天</p>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <Label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="sr-only peer"
@@ -330,12 +337,12 @@ export default function LeaveApply() {
                       onChange={(e) => setFormData(prev => ({ ...prev, use_conversion: e.target.checked }))}
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                  </label>
+                  </Label>
                 </div>
 
                 {formData.use_conversion && (
                   <div className="bg-white/60 rounded-xl p-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">抵扣天数</label>
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">抵扣天数</Label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -361,25 +368,23 @@ export default function LeaveApply() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
               {/* 快捷选择按钮 */}
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={selectToday}
                   className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
                 >
                   今天
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button type="button"
                   onClick={selectTomorrow}
                   className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
                 >
                   明天
-                </button>
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">开始时间</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">开始时间</Label>
                   <div className="flex gap-2">
                     <DatePicker
                       className="flex-1 h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
@@ -406,7 +411,7 @@ export default function LeaveApply() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">结束时间</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">结束时间</Label>
                   <div className="flex gap-2">
                     <DatePicker
                       className="flex-1 h-[42px] rounded-xl border-gray-200 shadow-sm hover:border-blue-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
@@ -442,7 +447,7 @@ export default function LeaveApply() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">请假原因</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">请假原因</Label>
                 <Input.TextArea
                   rows={4}
                   value={formData.reason}
@@ -457,13 +462,12 @@ export default function LeaveApply() {
 
             {/* 提交按钮 */}
             <div className="flex gap-4 pt-4">
-              <button
-                type="button"
+              <Button type="button"
                 onClick={() => window.history.back()}
                 className="px-6 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
               >
                 取消
-              </button>
+              </Button>
               <button
                 type="submit"
                 disabled={loading}

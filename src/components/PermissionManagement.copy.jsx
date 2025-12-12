@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import Modal from './Modal'
 import RoleDepartmentModal from './RoleDepartmentModal'
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/apiClient'
@@ -822,13 +831,10 @@ function PermissionManagement() {
             </p>
           </div>
           {activeTab === 'roles' && (
-            <button
-              onClick={handleCreateRole}
-              className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
-            >
+            <Button onClick={handleCreateRole}>
               <span className="text-xl">+</span>
               <span>添加角色</span>
-            </button>
+            </Button>
           )}
         </div>
 
@@ -872,7 +878,7 @@ function PermissionManagement() {
           <>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <Label className="flex items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
                     checked={selectedRoleIds.length === filteredRoles.length && filteredRoles.length > 0}
@@ -880,7 +886,7 @@ function PermissionManagement() {
                     className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                   />
                   全选角色
-                </label>
+                </Label>
                 <span className="text-sm text-gray-600">已选 {selectedRoleIds.length} / {filteredRoles.length}</span>
               </div>
           <div className="flex items-center gap-2">
@@ -977,33 +983,21 @@ function PermissionManagement() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleManagePermissions(role)}
-                      className="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                    >
+                    <Button onClick={() => handleManagePermissions(role)} size="sm">
                       配置权限
-                    </button>
-                    <button
-                      onClick={() => handleManageDepartments(role)}
-                      className="flex-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                    >
+                    </Button>
+                    <Button onClick={() => handleManageDepartments(role)} size="sm">
                       部门权限
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditRole(role)}
-                      className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                    >
+                    <Button onClick={() => handleEditRole(role)} size="sm">
                       编辑
-                    </button>
+                    </Button>
                     {!role.is_system && (
-                      <button
-                        onClick={() => handleDeleteRole(role.id)}
-                        className="flex-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                      >
+                      <Button onClick={() => handleDeleteRole(role.id)} variant="destructive" size="sm">
                         删除
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1093,12 +1087,9 @@ function PermissionManagement() {
               >
                 全选全部
               </button>
-              <button
-                onClick={() => setSelectedUsers([])}
-                className="px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"
-              >
+              <Button onClick={() => setSelectedUsers([])} variant="ghost">
                 清空选择
-              </button>
+              </Button>
               <button
                 onClick={handleBatchAssignRole}
                 disabled={selectedUsers.length === 0}
@@ -1118,49 +1109,49 @@ function PermissionManagement() {
 
             {/* 用户表格 */}
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-primary-50 border-b border-primary-100">
-                  <tr>
-                    <th className="px-4 py-3 text-center">
+              <Table className="w-full">
+                <TableHeader className="bg-primary-50 border-b border-primary-100">
+                  <TableRow>
+                    <TableHead className="px-4 py-3 text-center">
                       <input
                         type="checkbox"
                         checked={getCurrentPageUsers().length > 0 && getCurrentPageUsers().every(u => selectedUsers.includes(u.id))}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                       />
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">用户</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">角色</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">创建时间</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">用户</TableHead>
+                    <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</TableHead>
+                    <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</TableHead>
+                    <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">角色</TableHead>
+                    <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">创建时间</TableHead>
+                    <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-200">
                   {getCurrentPageUsers().map((user, index) => (
-                    <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                      <td className="px-4 py-4 text-center">
+                    <TableRow key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
+                      <TableCell className="px-4 py-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedUsers.includes(user.id)}
                           onChange={(e) => handleSelectUser(user.id, e.target.checked)}
                           className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                         />
-                      </td>
-                      <td className="px-6 py-4 text-center">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-center">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{user.real_name}</div>
                           <div className="text-xs text-gray-500">{user.username}</div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-center text-sm text-gray-600">
                         {user.department_name || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-center text-sm text-gray-600">
                         {user.position || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-center">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-center">
                         <div className="flex flex-wrap gap-1 justify-center">
                           {user.roles && user.roles.length > 0 ? (
                             <>
@@ -1188,22 +1179,19 @@ function PermissionManagement() {
                             <span className="text-sm text-gray-400">未分配角色</span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-500">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-center text-sm text-gray-500">
                         {user.created_at ? formatDate(user.created_at) : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleManageUserRoles(user)}
-                          className="px-4 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
-                        >
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-center">
+                        <Button onClick={() => handleManageUserRoles(user)} size="sm">
                           管理角色
-                        </button>
-                    </td>
-                  </tr>
+                        </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* 分页 */}
@@ -1289,9 +1277,9 @@ function PermissionManagement() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               角色名称 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <input
               type="text"
               value={roleFormData.name}
@@ -1301,9 +1289,8 @@ function PermissionManagement() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">角色描述</label>
-            <textarea
-              value={roleFormData.description}
+            <Label className="block text-sm font-medium text-gray-700 mb-1">角色描述</Label>
+            <Textarea value={roleFormData.description}
               onChange={(e) => setRoleFormData({ ...roleFormData, description: e.target.value })}
               rows="3"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -1311,7 +1298,7 @@ function PermissionManagement() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">角色级别</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">角色级别</Label>
             <input
               type="number"
               min="1"
@@ -1327,18 +1314,12 @@ function PermissionManagement() {
 
 
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              onClick={() => setIsRoleModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
+            <Button onClick={() => setIsRoleModalOpen(false)}>
               取消
-            </button>
-            <button
-              onClick={handleSaveRole}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
+            </Button>
+            <Button onClick={handleSaveRole}>
               {editingRole ? '更新' : '创建'}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1388,7 +1369,7 @@ function PermissionManagement() {
                   {moduleData.permissions.map(perm => {
                     const hasPermission = Array.isArray(selectedRole?.permissions) && selectedRole.permissions.some(p => p.id === perm.id)
                     return (
-                      <label key={perm.id} className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                      <Label key={perm.id} className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded">
                         <input
                           type="checkbox"
                           checked={hasPermission}
@@ -1401,7 +1382,7 @@ function PermissionManagement() {
                             <div className="text-xs text-gray-500 mt-0.5">{perm.description}</div>
                           )}
                         </div>
-                      </label>
+                      </Label>
                     )
                   })}
                 </div>
@@ -1428,12 +1409,12 @@ function PermissionManagement() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               选择角色 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {roles.map(role => (
-                <label key={role.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-3 rounded border">
+                <Label key={role.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-3 rounded border">
                   <input
                     type="radio"
                     name="batchRole"
@@ -1449,7 +1430,7 @@ function PermissionManagement() {
                   <span className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-700">
                     级别 {role.level}
                   </span>
-                </label>
+                </Label>
               ))}
             </div>
           </div>
@@ -1518,7 +1499,7 @@ function PermissionManagement() {
               .map(role => {
               const hasRole = selectedUser?.userRoles?.some(r => r.id === role.id)
               return (
-                <label key={role.id} className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
+                <Label key={role.id} className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-all ${
                   hasRole ? 'bg-primary-50 border-primary-200 ring-1 ring-primary-200' : 'hover:bg-gray-50 border-gray-200'
                 }`}>
                   <input
@@ -1537,7 +1518,7 @@ function PermissionManagement() {
                     </div>
                     <div className={`text-xs mt-1 ${hasRole ? 'text-primary-700' : 'text-gray-500'}`}>{role.description || '暂无描述'}</div>
                   </div>
-                </label>
+                </Label>
               )
             })}
           </div>
@@ -1586,8 +1567,7 @@ function PermissionManagement() {
           </div>
           <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
             {departments.map(dept => (
-              <label
-                key={dept.id}
+              <Label key={dept.id}
                 className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${batchSelectedDepartments.includes(dept.id) ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
               >
                 <input
@@ -1608,24 +1588,16 @@ function PermissionManagement() {
                     <div className="text-xs text-gray-500 mt-0.5">{dept.description}</div>
                   )}
                 </div>
-              </label>
+              </Label>
             ))}
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button
-              onClick={() => setIsBatchRoleDeptModalOpen(false)}
-              disabled={isProcessingBatch}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-            >
+            <Button onClick={() => setIsBatchRoleDeptModalOpen(false)} disabled={isProcessingBatch}>
               取消
-            </button>
-            <button
-              onClick={handleBatchDepartmentsSave}
-              disabled={isProcessingBatch}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button onClick={handleBatchDepartmentsSave} disabled={isProcessingBatch}>
               保存
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1638,26 +1610,26 @@ function PermissionManagement() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">选择模板</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">选择模板</Label>
             <div className="grid grid-cols-2 gap-2">
               {PERMISSION_TEMPLATES.map(tpl => (
-                <label key={tpl.key} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer ${selectedTemplateKey === tpl.key ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                <Label key={tpl.key} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer ${selectedTemplateKey === tpl.key ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <input type="radio" name="permissionTemplate" value={tpl.key} checked={selectedTemplateKey === tpl.key} onChange={(e) => setSelectedTemplateKey(e.target.value)} />
                   <div>
                     <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
                     <div className="text-xs text-gray-500">{tpl.modules.map(m => MODULE_NAMES[m]).join('、')}</div>
                   </div>
-                </label>
+                </Label>
               ))}
               {customTemplates.map(tpl => (
-                <label key={`custom-${tpl.id}`} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer ${selectedTemplateKey === `custom:${tpl.id}` ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                <Label key={`custom-${tpl.id}`} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer ${selectedTemplateKey === `custom:${tpl.id}` ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <input type="radio" name="permissionTemplate" value={`custom:${tpl.id}`} checked={selectedTemplateKey === `custom:${tpl.id}`} onChange={(e) => setSelectedTemplateKey(e.target.value)} />
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
                     <div className="text-xs text-gray-500">{tpl.description || '自定义模板'}</div>
                   </div>
                   <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项</span>
-                </label>
+                </Label>
               ))}
             </div>
           </div>
@@ -1677,22 +1649,22 @@ function PermissionManagement() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">应用方式</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">应用方式</Label>
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm">
+              <Label className="flex items-center gap-2 text-sm">
                 <input type="radio" name="applyMode" value="merge" checked={templateApplyMode === 'merge'} onChange={() => setTemplateApplyMode('merge')} />
                 合并追加（不删除已有权限）
-              </label>
-              <label className="flex items-center gap-2 text-sm">
+              </Label>
+              <Label className="flex items-center gap-2 text-sm">
                 <input type="radio" name="applyMode" value="replace" checked={templateApplyMode === 'replace'} onChange={() => setTemplateApplyMode('replace')} />
                 覆盖替换（将替换为模板权限）
-              </label>
+              </Label>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button onClick={() => setIsTemplateModalOpen(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
-            <button onClick={handleApplyTemplateToSelectedRoles} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">应用模板</button>
+            <Button onClick={() => setIsTemplateModalOpen(false)}>取消</Button>
+            <Button onClick={handleApplyTemplateToSelectedRoles}>应用模板</Button>
           </div>
         </div>
       </Modal>
@@ -1705,22 +1677,22 @@ function PermissionManagement() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">前缀</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">前缀</Label>
               <input value={clonePrefix} onChange={(e) => setClonePrefix(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="如：复制-" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">后缀</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">后缀</Label>
               <input value={cloneSuffix} onChange={(e) => setCloneSuffix(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="如：-副本" />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
+          <Label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={cloneCopyDepartments} onChange={(e) => setCloneCopyDepartments(e.target.checked)} />
             克隆时复制部门可见范围
-          </label>
+          </Label>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">将克隆 {selectedRoleIds.length} 个角色，保留描述与权限</div>
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button onClick={() => setIsCloneModalOpen(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
-            <button onClick={handleCloneSelectedRoles} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">开始克隆</button>
+            <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
+            <Button onClick={handleCloneSelectedRoles}>开始克隆</Button>
           </div>
         </div>
       </Modal>
@@ -1734,11 +1706,11 @@ function PermissionManagement() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板名称</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">模板名称</Label>
               <input value={templateForm.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板描述</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">模板描述</Label>
               <input value={templateForm.description} onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
@@ -1768,7 +1740,7 @@ function PermissionManagement() {
                   {moduleData.permissions.map(perm => {
                     const checked = templateForm.permission_ids.includes(perm.id)
                     return (
-                      <label key={perm.id} className="flex items-center gap-2 text-sm">
+                      <Label key={perm.id} className="flex items-center gap-2 text-sm">
                         <input type="checkbox" checked={checked} onChange={(e) => {
                           setTemplateForm({
                             ...templateForm,
@@ -1778,7 +1750,7 @@ function PermissionManagement() {
                           })
                         }} />
                         <span>{perm.name}</span>
-                      </label>
+                      </Label>
                     )
                   })}
                 </div>
@@ -1837,7 +1809,7 @@ function PermissionManagement() {
             <div className="text-sm font-medium text-gray-700 mb-2">已有模板</div>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
               {customTemplates.map(tpl => (
-                <label key={tpl.id} className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                <Label key={tpl.id} className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
                   <input type="radio" name="tplPick" onChange={() => {
                     setEditingTemplate(tpl)
                     setTemplateForm({ name: tpl.name, description: tpl.description || '', permission_ids: tpl.permission_ids || [] })
@@ -1847,7 +1819,7 @@ function PermissionManagement() {
                     <div className="text-xs text-gray-500">{tpl.description || ''}</div>
                   </div>
                   <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项</span>
-                </label>
+                </Label>
               ))}
               {customTemplates.length === 0 && (
                 <div className="text-sm text-gray-400">暂无模板</div>

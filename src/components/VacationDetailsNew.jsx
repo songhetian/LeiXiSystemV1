@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiBaseUrl } from '../utils/apiConfig'
 import { Calendar, Clock, TrendingUp, Award } from 'lucide-react'
 import OvertimeConversionModal from './OvertimeConversionModal'
@@ -330,12 +336,9 @@ const VacationDetailsNew = () => {
           subtitle={
             <div className="flex items-center gap-2">
               <span>可转换假期</span>
-              <button
-                onClick={handleConvertOvertime}
-                className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-              >
+              <Button onClick={handleConvertOvertime} size="sm">
                 转换
-              </button>
+              </Button>
             </div>
           }
           icon={Clock}

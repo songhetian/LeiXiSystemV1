@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDateOnly } from '../../utils/dateUtils'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 
@@ -116,12 +123,9 @@ export default function OvertimeRecords({ onNavigate }) {
           <h1 className="text-2xl font-bold text-gray-800">加班记录</h1>
           <p className="text-gray-600 mt-1">查看您的加班申请历史</p>
         </div>
-        <button
-          onClick={() => onNavigate?.('/attendance/overtime/apply')}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
-        >
+        <Button onClick={() => onNavigate?.('/attendance/overtime/apply')}>
           + 新建加班
-        </button>
+        </Button>
       </div>
 
       {/* 统计卡片 */}
@@ -225,7 +229,7 @@ export default function OvertimeRecords({ onNavigate }) {
                 共 {pagination.total} 条记录
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">每页显示</label>
+                <Label className="text-sm text-gray-600">每页显示</Label>
                 <select
                   value={pagination.limit}
                   onChange={(e) => setPagination({ ...pagination, limit: parseInt(e.target.value), page: 1 })}

@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 
@@ -303,12 +312,12 @@ export default function DepartmentAttendanceStats() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* 部门选择 - 加强样式 */}
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               <span className="inline-flex items-center">
                 <span className="text-blue-600 mr-1">📊</span>
                 选择部门
               </span>
-            </label>
+            </Label>
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -331,12 +340,12 @@ export default function DepartmentAttendanceStats() {
 
           {/* 员工搜索 */}
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               <span className="inline-flex items-center">
                 <span className="text-purple-600 mr-1">🔍</span>
                 员工搜索
               </span>
-            </label>
+            </Label>
             <input
               type="text"
               value={searchKeyword}
@@ -354,7 +363,7 @@ export default function DepartmentAttendanceStats() {
 
           {/* 日期范围 */}
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">开始日期</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">开始日期</Label>
             <input
               type="date"
               value={dateRange.startDate}
@@ -364,7 +373,7 @@ export default function DepartmentAttendanceStats() {
           </div>
 
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">结束日期</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">结束日期</Label>
             <input
               type="date"
               value={dateRange.endDate}
@@ -375,38 +384,25 @@ export default function DepartmentAttendanceStats() {
 
           {/* 快捷日期 */}
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">快捷选择</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">快捷选择</Label>
             <div className="flex gap-2">
-              <button
-                onClick={() => handleQuickDate('thisMonth')}
-                className="flex-1 px-3 py-2 border-2 border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 text-sm font-medium transition-all"
-              >
+              <Button onClick={() => handleQuickDate('thisMonth')}>
                 本月
-              </button>
-              <button
-                onClick={() => handleQuickDate('lastMonth')}
-                className="flex-1 px-3 py-2 border-2 border-purple-300 text-purple-600 rounded-lg hover:bg-purple-50 text-sm font-medium transition-all"
-              >
+              </Button>
+              <Button onClick={() => handleQuickDate('lastMonth')}>
                 上月
-              </button>
-              <button
-                onClick={() => handleQuickDate('thisYear')}
-                className="flex-1 px-3 py-2 border-2 border-green-300 text-green-600 rounded-lg hover:bg-green-50 text-sm font-medium transition-all"
-              >
+              </Button>
+              <Button onClick={() => handleQuickDate('thisYear')}>
                 本年
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* 操作按钮 */}
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">&nbsp;</Label>
             <div className="flex gap-2">
-              <button
-                onClick={fetchAttendanceData}
-                disabled={loading || !selectedDepartment}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
+              <Button onClick={fetchAttendanceData} disabled={loading || !selectedDepartment}>
                 {loading ? (
                   <span className="flex items-center justify-center">
                     <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
@@ -416,14 +412,10 @@ export default function DepartmentAttendanceStats() {
                     查询中
                   </span>
                 ) : '🔍 查询'}
-              </button>
-              <button
-                onClick={handleExport}
-                disabled={!selectedDepartment || attendanceData.length === 0}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
+              </Button>
+              <Button onClick={handleExport} disabled={!selectedDepartment || attendanceData.length === 0}>
                 📥 导出
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -433,56 +425,56 @@ export default function DepartmentAttendanceStats() {
       {attendanceData.length > 0 && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">工号</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">姓名</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">打卡天数</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-green-700 uppercase tracking-wider">✅ 正常</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-red-700 uppercase tracking-wider">⏰ 迟到</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-orange-700 uppercase tracking-wider">🏃 早退</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">❌ 缺勤</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-blue-700 uppercase tracking-wider">总工时</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-purple-700 uppercase tracking-wider">日均工时</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
+            <Table className="w-full text-sm">
+              <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                <TableRow>
+                  <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">工号</TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">姓名</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">打卡天数</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-green-700 uppercase tracking-wider">✅ 正常</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-red-700 uppercase tracking-wider">⏰ 迟到</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-orange-700 uppercase tracking-wider">🏃 早退</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">❌ 缺勤</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-blue-700 uppercase tracking-wider">总工时</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-purple-700 uppercase tracking-wider">日均工时</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-200">
                 {attendanceData.map((emp, index) => (
-                  <tr key={emp.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="px-4 py-3 text-xs font-medium text-gray-900">{emp.employee_no}</td>
-                    <td className="px-4 py-3 text-xs font-medium text-gray-900">{emp.real_name || emp.username}</td>
-                    <td className="px-4 py-3 text-center">
+                  <TableRow key={emp.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    <TableCell className="px-4 py-3 text-xs font-medium text-gray-900">{emp.employee_no}</TableCell>
+                    <TableCell className="px-4 py-3 text-xs font-medium text-gray-900">{emp.real_name || emp.username}</TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {emp.clockInDays}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         {emp.normalDays}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                         {emp.lateDays}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                         {emp.earlyDays}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         {emp.absentDays}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs font-bold text-blue-600">{emp.totalWorkHours}h</td>
-                    <td className="px-4 py-3 text-center text-xs font-semibold text-purple-600">{emp.avgWorkHours}h</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center text-xs font-bold text-blue-600">{emp.totalWorkHours}h</TableCell>
+                    <TableCell className="px-4 py-3 text-center text-xs font-semibold text-purple-600">{emp.avgWorkHours}h</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}
@@ -492,13 +484,9 @@ export default function DepartmentAttendanceStats() {
           <div className="text-6xl mb-4">📊</div>
           <h3 className="text-lg font-semibold text-gray-700 mb-2">暂无数据</h3>
           <p className="text-sm text-gray-500 mb-4">请点击"查询"按钮获取考勤数据</p>
-          <button
-            onClick={fetchAttendanceData}
-            disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md transition-all"
-          >
+          <Button onClick={fetchAttendanceData} disabled={loading}>
             🔍 立即查询
-          </button>
+          </Button>
         </div>
       )}
 

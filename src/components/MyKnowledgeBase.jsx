@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { categoryIcons } from '../utils/iconOptions'
 import AdvancedSearch from './AdvancedSearch'
@@ -395,12 +403,9 @@ const MyKnowledgeBase = () => {
             >
               🔍 {showAdvancedSearch ? '收起搜索' : '高级搜索'}
             </button>
-            <button
-              onClick={() => setShowStats(s => !s)}
-              className="px-4 py-2 rounded-lg transition-colors bg-indigo-500 text-white hover:bg-indigo-600"
-            >
+            <Button onClick={() => setShowStats(s => !s)}>
               {showStats ? '隐藏统计' : '查看统计'}
-            </button>
+            </Button>
           </div>
 
           <div className="flex gap-3 items-center">
@@ -459,35 +464,35 @@ const MyKnowledgeBase = () => {
         <div className="bg-indigo-50 rounded-lg shadow-sm p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-gray-800">最近7天文档统计</h3>
-            <button onClick={() => fetchArticleStats()} className="px-3 py-1 text-sm rounded bg-white border border-indigo-200 hover:bg-indigo-100">刷新</button>
+            <Button onClick={() => fetchArticleStats()} variant="outline" size="sm">刷新</Button>
           </div>
           {statsLoading ? (
             <div className="text-gray-600">加载统计...</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-gray-600">
-                    <th className="px-3 py-2">文档</th>
-                    <th className="px-3 py-2">浏览</th>
-                    <th className="px-3 py-2">完整阅读率</th>
-                    <th className="px-3 py-2">平均时长(秒)</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="min-w-full text-sm">
+                <TableHeader>
+                  <TableRow className="text-left text-gray-600">
+                    <TableHead className="px-3 py-2">文档</TableHead>
+                    <TableHead className="px-3 py-2">浏览</TableHead>
+                    <TableHead className="px-3 py-2">完整阅读率</TableHead>
+                    <TableHead className="px-3 py-2">平均时长(秒)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {articleStats.map(row => (
-                    <tr key={row.article_id} className="border-t border-gray-200">
-                      <td className="px-3 py-2">{row.title}</td>
-                      <td className="px-3 py-2">{row.views}</td>
-                      <td className="px-3 py-2">{row.full_read_rate}%</td>
-                      <td className="px-3 py-2">{row.avg_duration}</td>
-                    </tr>
+                    <TableRow key={row.article_id} className="border-t border-gray-200">
+                      <TableCell className="px-3 py-2">{row.title}</TableCell>
+                      <TableCell className="px-3 py-2">{row.views}</TableCell>
+                      <TableCell className="px-3 py-2">{row.full_read_rate}%</TableCell>
+                      <TableCell className="px-3 py-2">{row.avg_duration}</TableCell>
+                    </TableRow>
                   ))}
                   {articleStats.length === 0 && (
-                    <tr><td className="px-3 py-2 text-gray-500" colSpan={4}>暂无统计数据</td></tr>
+                    <TableRow><TableCell className="px-3 py-2 text-gray-500" colSpan={4}>暂无统计数据</TableCell></TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
@@ -614,13 +619,9 @@ const MyKnowledgeBase = () => {
                       共 {categories.length} 个分类，第 {categoryPage} / {getCategoryTotalPages()} 页
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setCategoryPage(p => Math.max(1, p - 1))}
-                        disabled={categoryPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                      <Button onClick={() => setCategoryPage(p => Math.max(1, p - 1))} disabled={categoryPage === 1}>
                         ← 上一页
-                      </button>
+                      </Button>
 
                       {[...Array(Math.min(getCategoryTotalPages(), 5))].map((_, i) => {
                         let pageNum
@@ -650,13 +651,9 @@ const MyKnowledgeBase = () => {
                         )
                       })}
 
-                      <button
-                        onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))}
-                        disabled={categoryPage === getCategoryTotalPages()}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                      <Button onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))} disabled={categoryPage === getCategoryTotalPages()}>
                         下一页 →
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -681,12 +678,9 @@ const MyKnowledgeBase = () => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => setShowFolderModal(false)}
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-2xl"
-              >
+              <Button onClick={() => setShowFolderModal(false)} variant="ghost">
                 ✕
-              </button>
+              </Button>
             </div>
 
             {/* 操作栏 */}
@@ -804,13 +798,9 @@ const MyKnowledgeBase = () => {
                     第 {currentPage} / {getTotalPages()} 页
                   </div>
                   <div className="flex gap-3 flex-wrap">
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg font-medium shadow-sm"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                       ← 上一页
-                    </button>
+                    </Button>
 
                     {[...Array(Math.min(getTotalPages(), 5))].map((_, i) => {
                       let pageNum
@@ -840,13 +830,9 @@ const MyKnowledgeBase = () => {
                       )
                     })}
 
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))}
-                      disabled={currentPage === getTotalPages()}
-                      className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg font-medium shadow-sm"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))} disabled={currentPage === getTotalPages()}>
                       下一页 →
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -899,12 +885,9 @@ const MyKnowledgeBase = () => {
                     ↕️
                   </button>
                 </div>
-                <button
-                  onClick={() => setShowArticleModal(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                >
+                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -984,12 +967,9 @@ const MyKnowledgeBase = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex items-center justify-end">
-              <button
-                onClick={() => setShowArticleModal(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
+              <Button onClick={() => setShowArticleModal(false)} variant="ghost">
                 关闭
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1007,9 +987,9 @@ const MyKnowledgeBase = () => {
 
             <form onSubmit={handleCategorySubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   分类名称 *
-                </label>
+                </Label>
                 <input
                   type="text"
                   value={categoryFormData.name}
@@ -1020,9 +1000,9 @@ const MyKnowledgeBase = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   图标
-                </label>
+                </Label>
                 <div className="flex gap-2 items-center">
                   <select
                     value={categoryFormData.icon}
@@ -1043,11 +1023,10 @@ const MyKnowledgeBase = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   描述
-                </label>
-                <textarea
-                  value={categoryFormData.description}
+                </Label>
+                <Textarea value={categoryFormData.description}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
@@ -1056,8 +1035,7 @@ const MyKnowledgeBase = () => {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => {
                     setShowCategoryModal(false)
                     resetCategoryForm()
@@ -1065,7 +1043,7 @@ const MyKnowledgeBase = () => {
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   取消
-                </button>
+                </Button>
                 <button
                   type="submit"
                   disabled={loading}

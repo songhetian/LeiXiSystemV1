@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, Button, Modal, InputNumber, Select, message, Empty, Spin, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined } from '@ant-design/icons';
 import { getApiBaseUrl } from '../utils/apiConfig';
@@ -388,9 +395,9 @@ const HolidayConfig = () => {
       >
         <div className="space-y-4 py-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               假期类型 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <Select
               placeholder="选择假期类型"
               value={form.vacation_type_id}
@@ -413,9 +420,9 @@ const HolidayConfig = () => {
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               天数 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <InputNumber
               min={1}
               max={31}
@@ -425,9 +432,9 @@ const HolidayConfig = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               所属月份 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <Select
               value={form.month}
               onChange={(value) => setForm({ ...form, month: value })}

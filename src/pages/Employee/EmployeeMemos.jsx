@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -308,24 +316,24 @@ const EmployeeMemos = () => {
       ) : (
         <>
           <div className="table-container">
-            <table className="memos-table">
-              <thead>
-                <tr>
-                  <th>标题</th>
-                  <th>发送对象</th>
-                  <th>优先级</th>
-                  <th>阅读情况</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="memos-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>标题</TableHead>
+                  <TableHead>发送对象</TableHead>
+                  <TableHead>优先级</TableHead>
+                  <TableHead>阅读情况</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {memos.map(memo => (
-                  <tr key={memo.id}>
-                    <td>
+                  <TableRow key={memo.id}>
+                    <TableCell>
                       <div className="memo-title-cell">{memo.title}</div>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {memo.target_user_name ? (
                         <span className="target-user">
                           <i className="fas fa-user"></i> {memo.target_user_name}
@@ -335,16 +343,16 @@ const EmployeeMemos = () => {
                           <i className="fas fa-users"></i> {memo.department_name}
                         </span>
                       )}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <span
                         className="priority-badge"
                         style={{ backgroundColor: getPriorityColor(memo.priority) }}
                       >
                         {getPriorityText(memo.priority)}
                       </span>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <div className="read-stats">
                         <span className="read-count">{memo.read_count}</span>
                         <span className="separator">/</span>
@@ -355,20 +363,20 @@ const EmployeeMemos = () => {
                             : 0}%)
                         </span>
                       </div>
-                    </td>
-                    <td>{new Date(memo.created_at).toLocaleString()}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{new Date(memo.created_at).toLocaleString()}</TableCell>
+                    <TableCell>
                       <button
                         className="btn-link"
                         onClick={() => handleViewRecipients(memo)}
                       >
                         <i className="fas fa-eye"></i> 查看详情
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* 分页 */}
@@ -403,7 +411,7 @@ const EmployeeMemos = () => {
 
             <div className="modal-body">
               <div className="form-group">
-                <label>标题 *</label>
+                <label>标题 *</Label>
                 <input
                   type="text"
                   value={formData.title}
@@ -415,7 +423,7 @@ const EmployeeMemos = () => {
               </div>
 
               <div className="form-group">
-                <label>优先级</label>
+                <label>优先级</Label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
@@ -429,10 +437,9 @@ const EmployeeMemos = () => {
               </div>
 
               <div className="form-group">
-                <label>发送模式 *</label>
+                <label>发送模式 *</Label>
                 <div className="send-mode-toggle">
-                  <button
-                    type="button"
+                  <Button type="button"
                     className={`toggle-btn ${formData.sendMode === 'department' ? 'active' : ''}`}
                     onClick={() => setFormData({
                       ...formData,
@@ -441,19 +448,18 @@ const EmployeeMemos = () => {
                     })}
                   >
                     <span>整个部门</span>
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button type="button"
                     className={`toggle-btn ${formData.sendMode === 'individual' ? 'active' : ''}`}
                     onClick={() => setFormData({ ...formData, sendMode: 'individual' })}
                   >
                     <span>指定员工</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               <div className="form-group">
-                <label>目标部门 *</label>
+                <label>目标部门 *</Label>
                 <select
                   value={formData.targetDepartmentId}
                   onChange={(e) => setFormData({
@@ -478,7 +484,7 @@ const EmployeeMemos = () => {
 
               {formData.sendMode === 'individual' && (
                 <div className="form-group">
-                  <label>目标员工 *</label>
+                  <label>目标员工 *</Label>
                   <select
                     value={formData.targetUserId}
                     onChange={(e) => setFormData({ ...formData, targetUserId: e.target.value })}
@@ -510,9 +516,8 @@ const EmployeeMemos = () => {
               )}
 
               <div className="form-group">
-                <label>内容 *</label>
-                <textarea
-                  value={formData.content}
+                <label>内容 *</Label>
+                <Textarea value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   placeholder="请输入内容..."
                   className="form-textarea"
@@ -561,21 +566,21 @@ const EmployeeMemos = () => {
                   </span>
                 </div>
 
-                <table className="recipients-table">
-                  <thead>
-                    <tr>
-                      <th>姓名</th>
-                      <th>部门</th>
-                      <th>状态</th>
-                      <th>阅读时间</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="recipients-table">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>姓名</TableHead>
+                      <TableHead>部门</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>阅读时间</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {recipients.map(recipient => (
-                      <tr key={recipient.user_id} className={recipient.is_read ? 'read' : 'unread'}>
-                        <td>{recipient.real_name}</td>
-                        <td>{recipient.department_name}</td>
-                        <td>
+                      <TableRow key={recipient.user_id} className={recipient.is_read ? 'read' : 'unread'}>
+                        <TableCell>{recipient.real_name}</TableCell>
+                        <TableCell>{recipient.department_name}</TableCell>
+                        <TableCell>
                           {recipient.is_read ? (
                             <span className="status-badge read">
                               <i className="fas fa-check-circle"></i> 已读
@@ -585,16 +590,16 @@ const EmployeeMemos = () => {
                               <i className="fas fa-circle"></i> 未读
                             </span>
                           )}
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           {recipient.read_at
                             ? new Date(recipient.read_at).toLocaleString()
                             : '-'}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
 

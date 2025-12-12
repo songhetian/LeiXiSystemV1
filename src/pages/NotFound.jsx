@@ -1,4 +1,10 @@
 import React from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function NotFound() {
     return (
@@ -10,18 +16,12 @@ export default function NotFound() {
                     抱歉,您访问的页面不存在或已被移除
                 </p>
                 <div className="flex gap-3">
-                    <button
-                        onClick={() => window.history.back()}
-                        className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
-                    >
+                    <Button onClick={() => window.history.back()}>
                         返回上页
-                    </button>
-                    <button
-                        onClick={() => window.location.href = '/'}
-                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
-                    >
+                    </Button>
+                    <Button onClick={() => window.location.href = '/'}>
                         返回首页
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

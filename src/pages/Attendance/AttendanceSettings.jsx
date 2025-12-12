@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 
@@ -114,13 +121,9 @@ export default function AttendanceSettings() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-800">基础设置</h2>
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors disabled:opacity-50"
-              >
+              <Button onClick={handleSave} disabled={loading}>
                 {loading ? '保存中...' : '保存设置'}
-              </button>
+              </Button>
             </div>
 
             {/* 时间规则 */}
@@ -136,17 +139,17 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, enable_time_check: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="enable_time_check" className="text-sm text-gray-700">
+                    <Label htmlFor="enable_time_check" className="text-sm text-gray-700">
                       启用打卡时间限制
-                    </label>
+                    </Label>
                   </div>
 
                   {settings.enable_time_check && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
                           提前打卡时间（分钟）
-                        </label>
+                        </Label>
                         <input
                           type="number"
                           min="0"
@@ -159,9 +162,9 @@ export default function AttendanceSettings() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
                           延后打卡时间（分钟）
-                        </label>
+                        </Label>
                         <input
                           type="number"
                           min="0"
@@ -182,9 +185,9 @@ export default function AttendanceSettings() {
                 <h3 className="font-medium text-gray-800 mb-4">⚠️ 异常判定规则</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       迟到阈值（分钟）
-                    </label>
+                    </Label>
                     <input
                       type="number"
                       min="1"
@@ -197,9 +200,9 @@ export default function AttendanceSettings() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       早退阈值（分钟）
-                    </label>
+                    </Label>
                     <input
                       type="number"
                       min="1"
@@ -212,9 +215,9 @@ export default function AttendanceSettings() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       缺勤阈值（小时）
-                    </label>
+                    </Label>
                     <input
                       type="number"
                       min="1"
@@ -240,17 +243,17 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, allow_makeup: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="allow_makeup" className="text-sm text-gray-700">
+                    <Label htmlFor="allow_makeup" className="text-sm text-gray-700">
                       允许补卡
-                    </label>
+                    </Label>
                   </div>
 
                   {settings.allow_makeup && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
                           补卡截止时间（天）
-                        </label>
+                        </Label>
                         <input
                           type="number"
                           min="1"
@@ -270,9 +273,9 @@ export default function AttendanceSettings() {
                           onChange={(e) => setSettings({ ...settings, require_approval_for_makeup: e.target.checked })}
                           className="mr-2 w-4 h-4"
                         />
-                        <label htmlFor="require_approval_for_makeup" className="text-sm text-gray-700">
+                        <Label htmlFor="require_approval_for_makeup" className="text-sm text-gray-700">
                           补卡需要审批
-                        </label>
+                        </Label>
                       </div>
                     </div>
                   )}
@@ -291,9 +294,9 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, notify_on_late: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="notify_on_late" className="text-sm text-gray-700">
+                    <Label htmlFor="notify_on_late" className="text-sm text-gray-700">
                       迟到时发送通知
-                    </label>
+                    </Label>
                   </div>
 
                   <div className="flex items-center">
@@ -304,9 +307,9 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, notify_on_early_leave: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="notify_on_early_leave" className="text-sm text-gray-700">
+                    <Label htmlFor="notify_on_early_leave" className="text-sm text-gray-700">
                       早退时发送通知
-                    </label>
+                    </Label>
                   </div>
 
                   <div className="flex items-center">
@@ -317,9 +320,9 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, notify_on_absent: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="notify_on_absent" className="text-sm text-gray-700">
+                    <Label htmlFor="notify_on_absent" className="text-sm text-gray-700">
                       缺勤时发送通知
-                    </label>
+                    </Label>
                   </div>
                 </div>
               </div>
@@ -332,13 +335,9 @@ export default function AttendanceSettings() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-800">请假加班规则</h2>
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors disabled:opacity-50"
-              >
+              <Button onClick={handleSave} disabled={loading}>
                 {loading ? '保存中...' : '保存设置'}
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-6">
@@ -348,9 +347,9 @@ export default function AttendanceSettings() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
                         年假天数上限
-                      </label>
+                      </Label>
                       <input
                         type="number"
                         min="0"
@@ -363,9 +362,9 @@ export default function AttendanceSettings() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
                         病假天数上限
-                      </label>
+                      </Label>
                       <input
                         type="number"
                         min="0"
@@ -386,9 +385,9 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, require_proof_for_sick_leave: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="require_proof_for_sick_leave" className="text-sm text-gray-700">
+                    <Label htmlFor="require_proof_for_sick_leave" className="text-sm text-gray-700">
                       病假需要提供证明（如医院证明）
-                    </label>
+                    </Label>
                   </div>
                 </div>
               </div>
@@ -405,16 +404,16 @@ export default function AttendanceSettings() {
                       onChange={(e) => setSettings({ ...settings, require_approval_for_overtime: e.target.checked })}
                       className="mr-2 w-4 h-4"
                     />
-                    <label htmlFor="require_approval_for_overtime" className="text-sm text-gray-700">
+                    <Label htmlFor="require_approval_for_overtime" className="text-sm text-gray-700">
                       加班需要审批
-                    </label>
+                    </Label>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
                         最少加班时长（小时）
-                      </label>
+                      </Label>
                       <input
                         type="number"
                         min="0.5"
@@ -428,9 +427,9 @@ export default function AttendanceSettings() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
                         每日加班上限（小时）
-                      </label>
+                      </Label>
                       <input
                         type="number"
                         min="1"

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import axios from '../../utils/axiosConfig'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -263,24 +272,15 @@ export default function ApprovalManagement() {
 
         {isPending && (
           <div className="flex gap-3 pt-2 border-t border-gray-100">
-            <button
-              onClick={() => handleQuickApproval(record, true)}
-              className="flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
+            <Button onClick={() => handleQuickApproval(record, true)}>
               通过
-            </button>
-            <button
-              onClick={() => handleQuickApproval(record, false)}
-              className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
+            </Button>
+            <Button onClick={() => handleQuickApproval(record, false)} variant="destructive">
               驳回
-            </button>
-            <button
-              onClick={() => handleApprove(record)}
-              className="px-4 bg-gray-50 text-gray-600 hover:bg-gray-100 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
+            </Button>
+            <Button onClick={() => handleApprove(record)} variant="ghost">
               详情
-            </button>
+            </Button>
           </div>
         )}
       </motion.div>
@@ -342,7 +342,7 @@ export default function ApprovalManagement() {
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8 flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">状态</label>
+          <Label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">状态</Label>
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -355,7 +355,7 @@ export default function ApprovalManagement() {
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">开始日期</label>
+          <Label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">开始日期</Label>
           <input
             type="date"
             value={filters.start_date}
@@ -364,7 +364,7 @@ export default function ApprovalManagement() {
           />
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">结束日期</label>
+          <Label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">结束日期</Label>
           <input
             type="date"
             value={filters.end_date}
@@ -403,28 +403,28 @@ export default function ApprovalManagement() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请人</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型/时间</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">详情</th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+          <Table className="w-full">
+            <TableHeader className="bg-gray-50 border-b border-gray-100">
+              <TableRow>
+                <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请人</TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型/时间</TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">详情</TableHead>
+                <TableHead className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">状态</TableHead>
+                <TableHead className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {records.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <TableRow key={record.id} className="hover:bg-gray-50 transition-colors">
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs mr-3">
                         {record.employee_name ? record.employee_name.charAt(0) : '?'}
                       </div>
                       <div className="text-sm font-medium text-gray-900">{record.employee_name}</div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="text-sm text-gray-900">
                       {activeTab === 'leave' && getLeaveTypeName(record.leave_type)}
                       {activeTab === 'overtime' && '加班'}
@@ -435,35 +435,29 @@ export default function ApprovalManagement() {
                       {activeTab === 'overtime' && record.overtime_date}
                       {activeTab === 'makeup' && record.record_date}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="text-sm text-gray-500 max-w-xs truncate">{record.reason}</div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-center">
                     {getStatusBadge(record.status)}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right text-sm font-medium">
                     {record.status === 'pending' && (
                       <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleQuickApproval(record, true)}
-                          className="text-green-600 hover:text-green-900"
-                        >
+                        <Button onClick={() => handleQuickApproval(record, true)}>
                           通过
-                        </button>
-                        <button
-                          onClick={() => handleQuickApproval(record, false)}
-                          className="text-red-600 hover:text-red-900"
-                        >
+                        </Button>
+                        <Button onClick={() => handleQuickApproval(record, false)}>
                           驳回
-                        </button>
+                        </Button>
                       </div>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -518,9 +512,8 @@ export default function ApprovalManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">审批意见</label>
-                <textarea
-                  value={approvalNote}
+                <Label className="block text-sm font-medium text-gray-700 mb-2">审批意见</Label>
+                <Textarea value={approvalNote}
                   onChange={(e) => setApprovalNote(e.target.value)}
                   className="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows="3"
@@ -529,24 +522,15 @@ export default function ApprovalManagement() {
               </div>
             </div>
             <div className="p-6 bg-gray-50 flex gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-white transition-colors"
-              >
+              <Button onClick={() => setShowModal(false)} variant="outline">
                 取消
-              </button>
-              <button
-                onClick={() => handleSubmitApproval(false)}
-                className="flex-1 px-4 py-2.5 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-colors"
-              >
+              </Button>
+              <Button onClick={() => handleSubmitApproval(false)} variant="destructive">
                 驳回
-              </button>
-              <button
-                onClick={() => handleSubmitApproval(true)}
-                className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 transition-all"
-              >
+              </Button>
+              <Button onClick={() => handleSubmitApproval(true)}>
                 通过
-              </button>
+              </Button>
             </div>
           </motion.div>
         </div>
@@ -572,12 +556,9 @@ export default function ApprovalManagement() {
               您确定要{confirmAction.approved ? '通过' : '驳回'} {confirmAction.record.employee_name} 的申请吗？
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
-              >
+              <Button onClick={() => setShowConfirmModal(false)}>
                 取消
-              </button>
+              </Button>
               <button
                 onClick={executeQuickApproval}
                 className={`flex-1 px-4 py-2.5 text-white font-medium rounded-xl shadow-lg transition-all ${

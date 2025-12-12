@@ -1,4 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { usePermission } from '../contexts/PermissionContext';
 
 import {
@@ -196,12 +202,9 @@ const SearchBox = ({ searchQuery, setSearchQuery, clearSearch }) => (
         className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
       />
       {searchQuery && (
-        <button
-          onClick={clearSearch}
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
+        <Button onClick={clearSearch}>
           <CloseCircleOutlined className="text-sm" />
-        </button>
+        </Button>
       )}
     </div>
   </div>
@@ -349,12 +352,9 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
 
 const SidebarFooter = ({ onLogout }) => (
   <div className="p-4 border-t border-gray-200 space-y-2">
-    <button
-      onClick={onLogout}
-      className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
-    >
+    <Button onClick={onLogout} variant="ghost">
       退出登录
-    </button>
+    </Button>
     <div className="text-xs text-gray-400 text-center">
       © 2024 雷犀客服系统
     </div>

@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import api from '../api';
 import { getApiUrl } from '../utils/apiConfig';
 
@@ -185,25 +193,16 @@ const LearningTasks = () => {
                   </div>
                   <div className="flex space-x-2">
                     {task.status !== 'completed' && (
-                      <button
-                        onClick={() => markTaskAsCompleted(task.id)}
-                        className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"
-                      >
+                      <Button onClick={() => markTaskAsCompleted(task.id)} size="sm">
                         标记完成
-                      </button>
+                      </Button>
                     )}
-                    <button
-                      onClick={() => handleEdit(task)}
-                      className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
-                    >
+                    <Button onClick={() => handleEdit(task)} size="sm">
                       编辑
-                    </button>
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
-                    >
+                    </Button>
+                    <Button onClick={() => deleteTask(task.id)} variant="destructive" size="sm">
                       删除
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -223,9 +222,9 @@ const LearningTasks = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   任务标题 *
-                </label>
+                </Label>
                 <input
                   type="text"
                   required
@@ -236,11 +235,10 @@ const LearningTasks = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   任务描述
-                </label>
-                <textarea
-                  value={formData.description}
+                </Label>
+                <Textarea value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows="3"
@@ -248,9 +246,9 @@ const LearningTasks = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   优先级
-                </label>
+                </Label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
@@ -262,9 +260,9 @@ const LearningTasks = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   截止日期
-                </label>
+                </Label>
                 <input
                   type="date"
                   value={formData.due_date}
@@ -273,8 +271,7 @@ const LearningTasks = () => {
                 />
               </div>
               <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => {
                     setShowModal(false);
                     resetForm();
@@ -283,7 +280,7 @@ const LearningTasks = () => {
                   disabled={loading}
                 >
                   取消
-                </button>
+                </Button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"

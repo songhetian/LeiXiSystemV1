@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 
@@ -231,12 +238,9 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
             </div>
 
             {totalItems > 0 && (
-              <button
-                onClick={handleOpenEmptyModal}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs sm:text-base whitespace-nowrap"
-              >
+              <Button onClick={handleOpenEmptyModal} variant="destructive" size="sm">
                 🗑️ 清空回收站
-              </button>
+              </Button>
             )}
           </div>
 
@@ -252,12 +256,9 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                 <div className="text-6xl mb-4">⚠️</div>
                 <p className="text-gray-700 text-lg font-medium mb-2">加载失败</p>
                 <p className="text-gray-500 text-sm mb-4">{error}</p>
-                <button
-                  onClick={handleRetry}
-                  className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                >
+                <Button onClick={handleRetry}>
                   🔄 重试
-                </button>
+                </Button>
               </div>
             ) : (
               <>
@@ -396,12 +397,9 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
 
           {/* 底部 */}
           <div className="p-3 sm:p-4 border-t border-gray-200 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
-            >
+            <Button onClick={onClose}>
               关闭
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -440,7 +438,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                         <p className="text-sm text-gray-700 font-medium mb-2">
                           该分类下有 {restoreTarget.article_count} 篇文档
                         </p>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <Label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={restoreArticles}
@@ -450,7 +448,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                           <span className="text-sm text-gray-700">
                             同时还原该分类下的所有文档
                           </span>
-                        </label>
+                        </Label>
                       </div>
                     </div>
                   </div>
@@ -481,11 +479,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleConfirmRestore}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
+                <Button onClick={handleConfirmRestore} disabled={actionLoading}>
                   {actionLoading ? (
                     <>
                       <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -494,7 +488,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                   ) : (
                     <>✅ 确认还原</>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -552,11 +546,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
+                <Button onClick={handleConfirmDelete} disabled={actionLoading} variant="destructive">
                   {actionLoading ? (
                     <>
                       <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -565,7 +555,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                   ) : (
                     <>🗑️ 确认永久删除</>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -601,18 +591,10 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
               </div>
 
               <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowEmptyModal(false)}
-                  disabled={actionLoading}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <Button onClick={() => setShowEmptyModal(false)} disabled={actionLoading}>
                   取消
-                </button>
-                <button
-                  onClick={handleConfirmEmpty}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
+                </Button>
+                <Button onClick={handleConfirmEmpty} disabled={actionLoading} variant="destructive">
                   {actionLoading ? (
                     <>
                       <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -621,7 +603,7 @@ const RecycleBin = ({ isOpen, onClose, onRefresh }) => {
                   ) : (
                     <>🗑️ 确认清空回收站</>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

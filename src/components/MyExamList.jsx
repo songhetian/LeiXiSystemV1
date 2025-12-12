@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { toast } from 'react-toastify';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner';
 import api from '../api';
 import { getApiUrl } from '../utils/apiConfig';
 import debounce from 'lodash.debounce';
@@ -111,8 +119,7 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
 
         {/* 搜索筛选区 */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <input
-            type="text"
+          <Input type="text"
             placeholder="按考试标题、描述、分类搜索..."
             value={searchTerm}
             onChange={handleSearchChange}
@@ -122,53 +129,50 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
 
         {/* 考试列表 */}
         <div className="overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead className="bg-primary-50 border-b border-primary-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">考试标题</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">分类</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">时长</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">总分</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">及格分</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full table-auto">
+            <TableHeader className="bg-primary-50 border-b border-primary-100">
+              <TableRow>
+                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">考试标题</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">分类</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">时长</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">总分</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">及格分</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-12">
+                <TableRow>
+                  <TableCell colSpan="7" className="text-center py-12">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
                     <p className="mt-2 text-gray-600">加载中...</p>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : filteredMyExams.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="7" className="px-4 py-8 text-center text-gray-500">
                     暂无考试
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 getCurrentPageData().map((exam, index) => (
-                  <tr key={exam.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-4 py-3">
+                  <TableRow key={exam.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
+                    <TableCell className="px-4 py-3">
                       <div className="font-medium text-gray-900">{exam.title}</div>
                       <div className="text-xs text-gray-500">{exam.description}</div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.category || '-'}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.duration}分钟</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.total_score}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.pass_score}</td>
-                    <td className="px-4 py-3 text-center">{getExamStatusBadge(exam.status)}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.category || '-'}</TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.duration}分钟</TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.total_score}</TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.pass_score}</TableCell>
+                    <TableCell className="px-4 py-3 text-center">{getExamStatusBadge(exam.status)}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                         {exam.status === 'not_started' && (
-                          <button
-                            onClick={() => onStartExam(exam.id, exam.plan_id)}
-                            className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1 whitespace-nowrap shadow-md hover:shadow-lg"
-                          >
+                          <Button onClick={() => onStartExam(exam.id, exam.plan_id)} size="sm">
                             开始考试
-                          </button>
+                          </Button>
                         )}
                         {exam.status === 'in_progress' && (
                           <button
@@ -179,12 +183,9 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
                           </button>
                         )}
                         {exam.status === 'completed' && (
-                          <button
-                            onClick={() => onViewResult(exam.result_id)}
-                            className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1 whitespace-nowrap"
-                          >
+                          <Button onClick={() => onViewResult(exam.result_id)} size="sm">
                             查看结果
-                          </button>
+                          </Button>
                         )}
                         {exam.status === 'expired' && (
                           <span className="px-3 py-1.5 text-sm font-medium text-gray-500 bg-gray-50 rounded-lg whitespace-nowrap">
@@ -192,12 +193,12 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
                           </span>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         {/* 分页组件 */}
         {filteredMyExams.length > 0 && (
@@ -217,23 +218,15 @@ const MyExamList = ({ onStartExam, onViewResult }) => {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                 上一页
-              </button>
+              </Button>
               <span className="text-sm text-gray-600">
                 第 {currentPage} / {totalPages} 页
               </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                 下一页
-              </button>
+              </Button>
             </div>
           </div>
         )}

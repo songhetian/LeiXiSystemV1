@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../utils/apiConfig'
 
 function EmployeeChanges() {
@@ -386,12 +395,9 @@ function EmployeeChanges() {
             </select>
           </div>
           <div className="flex items-end">
-            <button
-              onClick={clearFilters}
-              className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
+            <Button onClick={clearFilters} variant="ghost">
               清除筛选
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -550,25 +556,25 @@ function EmployeeChanges() {
           <p className="text-sm text-primary-600 mt-1">共 {filteredChanges.length} 条记录</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b-2 border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">日期</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">员工信息</th>
-                <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">变动类型</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">变动内容</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">变动原因</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+          <Table className="w-full">
+            <TableHeader className="bg-gray-50 border-b-2 border-gray-200">
+              <TableRow>
+                <TableHead className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">日期</TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">员工信息</TableHead>
+                <TableHead className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">变动类型</TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">变动内容</TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">变动原因</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-100">
               {getCurrentPageData().map((change, index) => (
-                <tr key={change.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-all duration-200`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <TableRow key={change.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-all duration-200`}>
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-semibold text-gray-900">
                       {formatDate(change.change_date)}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold shadow-md">
                         {change.real_name?.charAt(0) || '员'}
@@ -578,13 +584,13 @@ function EmployeeChanges() {
                         <div className="text-xs text-gray-500">{change.employee_no}</div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-center">
                     <span className={`inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full shadow-sm ${getChangeTypeColor(change.change_type)}`}>
                       {getChangeTypeText(change.change_type)}
                     </span>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="text-sm text-gray-700">
                       {change.change_type === 'hire' && (
                         <div className="space-y-1">
@@ -625,16 +631,16 @@ function EmployeeChanges() {
                         </div>
                       )}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="text-sm text-gray-600 max-w-xs">
                       {change.reason || <span className="text-gray-400 italic">无</span>}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
 
           {filteredChanges.length === 0 && (
             <div className="text-center py-16">
@@ -672,20 +678,12 @@ function EmployeeChanges() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
+              <Button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
                 首页
-              </button>
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
+              </Button>
+              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                 上一页
-              </button>
+              </Button>
               <div className="flex gap-1">
                 {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                   let pageNum
@@ -713,20 +711,12 @@ function EmployeeChanges() {
                   )
                 })}
               </div>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
+              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                 下一页
-              </button>
-              <button
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-2 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
+              </Button>
+              <Button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
                 末页
-              </button>
+              </Button>
               <span className="text-sm text-gray-600 ml-2">{currentPage} / {totalPages}</span>
             </div>
           </div>

@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
 
@@ -293,50 +302,47 @@ function EmployeeApproval() {
         {/* 清除筛选按钮 */}
         {(searchFilters.keyword || searchFilters.department || searchFilters.dateFrom || searchFilters.dateTo) && (
           <div className="mb-4">
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
+            <Button onClick={clearFilters}>
               清除筛选
-            </button>
+            </Button>
           </div>
         )}
 
         {/* 用户列表 */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-primary-50 border-b border-primary-100">
-              <tr>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">用户信息</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">注册时间</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <Table className="w-full">
+            <TableHeader className="bg-primary-50 border-b border-primary-100">
+              <TableRow>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">用户信息</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">注册时间</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-200">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user, index) => (
-                  <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-6 py-4 text-center">
+                  <TableRow key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
+                    <TableCell className="px-6 py-4 text-center">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{user.real_name}</div>
                         <div className="text-xs text-gray-500">{user.username}</div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-600">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center text-sm text-gray-600">
                       {user.department_name || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center">
                       <div className="text-sm text-gray-600">
                         <div>{user.email || '-'}</div>
                         <div className="text-xs">{user.phone || '-'}</div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-500">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center text-sm text-gray-500">
                       {new Date(user.created_at).toLocaleString('zh-CN')}
-                    </td>
-                    <td className="px-6 py-4 text-center">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleViewDetail(user)}
                         className={`px-4 py-1.5 rounded-lg transition-colors text-sm text-white ${
@@ -347,19 +353,19 @@ function EmployeeApproval() {
                       >
                         {statusFilter === 'pending' ? '审核' : '查看'}
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="5" className="px-6 py-8 text-center text-gray-500">
                     {statusFilter === 'pending' ? '暂无待审核用户' :
                      statusFilter === 'active' ? '暂无已通过用户' : '暂无已拒绝用户'}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* 分页 */}
@@ -476,9 +482,9 @@ function EmployeeApproval() {
             {/* 显示拒绝原因（仅在已拒绝状态下） */}
             {statusFilter === 'rejected' && selectedUser.approval_note && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   拒绝原因
-                </label>
+                </Label>
                 <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
                   {selectedUser.approval_note}
                 </div>
@@ -488,11 +494,10 @@ function EmployeeApproval() {
             {/* 显示审批备注输入框（仅在待审核状态下） */}
             {statusFilter === 'pending' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   审核备注
-                </label>
-                <textarea
-                  value={approvalNote}
+                </Label>
+                <Textarea value={approvalNote}
                   onChange={(e) => setApprovalNote(e.target.value)}
                   rows="3"
                   placeholder="请填写审核意见（拒绝时必填）"
@@ -502,27 +507,18 @@ function EmployeeApproval() {
             )}
 
             <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
+              <Button onClick={() => setIsDetailModalOpen(false)}>
                 {statusFilter === 'active' || statusFilter === 'rejected' ? '关闭' : '取消'}
-              </button>
+              </Button>
 
               {statusFilter === 'pending' && (
                 <>
-                  <button
-                    onClick={handleReject}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                  >
+                  <Button onClick={handleReject} variant="destructive">
                     拒绝
-                  </button>
-                  <button
-                    onClick={handleApprove}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                  >
+                  </Button>
+                  <Button onClick={handleApprove}>
                     通过
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

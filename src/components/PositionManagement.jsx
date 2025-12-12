@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
 
@@ -299,12 +307,9 @@ function PositionManagement() {
               </svg>
             </button>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors shadow-sm"
-          >
+          <Button onClick={() => setIsModalOpen(true)}>
             + 新增职位
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -331,12 +336,9 @@ function PositionManagement() {
         </div>
         {(searchFilters.keyword || searchFilters.department) && (
           <div className="mt-3 flex justify-end">
-            <button
-              onClick={clearFilters}
-              className="px-4 py-1.5 text-sm text-gray-600 hover:text-gray-800 underline"
-            >
+            <Button onClick={clearFilters} size="sm">
               清除筛选
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -344,27 +346,27 @@ function PositionManagement() {
       {/* 表格视图 */}
       {viewMode === 'table' && (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-primary-50 border-b border-primary-100">
-              <tr>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位名称</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">所属部门</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">描述</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <Table className="w-full">
+            <TableHeader className="bg-primary-50 border-b border-primary-100">
+              <TableRow>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位名称</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">所属部门</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">描述</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</TableHead>
+                <TableHead className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-gray-200">
               {getCurrentPageData().map((pos) => (
-                <tr key={pos.id} className="hover:bg-primary-50/30 transition-colors">
-                  <td className="px-6 py-4 text-center text-sm font-medium text-gray-900">{pos.name}</td>
-                  <td className="px-6 py-4 text-center text-sm text-gray-600">
+                <TableRow key={pos.id} className="hover:bg-primary-50/30 transition-colors">
+                  <TableCell className="px-6 py-4 text-center text-sm font-medium text-gray-900">{pos.name}</TableCell>
+                  <TableCell className="px-6 py-4 text-center text-sm text-gray-600">
                     {departments.find(d => d.id === pos.department_id)?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm text-gray-600">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-center text-sm text-gray-600">
                     {pos.description || '-'}
-                  </td>
-                  <td className="px-6 py-4 text-center">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-center">
                     <button
                       onClick={() => handleStatusClick(pos)}
                       className={`px-2 py-1 text-xs rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
@@ -374,33 +376,27 @@ function PositionManagement() {
                     >
                       {pos.status === 'active' ? '启用' : '停用'}
                     </button>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEdit(pos)}
-                        className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1"
-                      >
+                      <Button onClick={() => handleEdit(pos)} size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         编辑
-                      </button>
-                      <button
-                        onClick={() => handleDelete(pos.id)}
-                        className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1"
-                      >
+                      </Button>
+                      <Button onClick={() => handleDelete(pos.id)} variant="destructive" size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                         删除
-                      </button>
+                      </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -443,24 +439,18 @@ function PositionManagement() {
 
               {/* 操作按钮 */}
               <div className="flex gap-2 pt-3 border-t border-gray-100">
-                <button
-                  onClick={() => handleEdit(pos)}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
-                >
+                <Button onClick={() => handleEdit(pos)}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                   编辑
-                </button>
-                <button
-                  onClick={() => handleDelete(pos.id)}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5"
-                >
+                </Button>
+                <Button onClick={() => handleDelete(pos.id)} variant="destructive">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                   删除
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -487,20 +477,12 @@ function PositionManagement() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
               首页
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
               上一页
-            </button>
+            </Button>
 
             <div className="flex gap-1">
               {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
@@ -531,20 +513,12 @@ function PositionManagement() {
               })}
             </div>
 
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
               下一页
-            </button>
-            <button
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
               末页
-            </button>
+            </Button>
 
             <span className="text-sm text-gray-600 ml-2">
               第 {currentPage} / {totalPages} 页
@@ -563,9 +537,9 @@ function PositionManagement() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               职位名称 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <input
               type="text"
               required
@@ -575,7 +549,7 @@ function PositionManagement() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">所属部门</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">所属部门</Label>
             <select
               value={formData.department_id}
               onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
@@ -588,17 +562,15 @@ function PositionManagement() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">职位描述</label>
-            <textarea
-              value={formData.description}
+            <Label className="block text-sm font-medium text-gray-700 mb-1">职位描述</Label>
+            <Textarea value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows="3"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setIsModalOpen(false)
                 resetForm()
@@ -606,7 +578,7 @@ function PositionManagement() {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
-            </button>
+            </Button>
             <button
               type="submit"
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
@@ -656,9 +628,9 @@ function PositionManagement() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
                 选择新状态
-              </label>
+              </Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleStatusChange('active')}

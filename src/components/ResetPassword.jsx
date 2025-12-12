@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import { getApiBaseUrl } from '../utils/apiConfig'
 
 const ResetPassword = () => {
@@ -153,9 +161,9 @@ const ResetPassword = () => {
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               🔍 搜索员工
-            </label>
+            </Label>
             <input
               type="text"
               value={searchTerm}
@@ -165,9 +173,9 @@ const ResetPassword = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
               🏢 筛选部门
-            </label>
+            </Label>
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -187,7 +195,7 @@ const ResetPassword = () => {
             共找到 <span className="font-semibold text-primary-600">{filteredEmployees.length}</span> 名员工
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-gray-600">每页显示：</label>
+            <Label className="text-gray-600">每页显示：</Label>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -221,50 +229,50 @@ const ResetPassword = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <Table className="min-w-full divide-y divide-gray-200">
+                <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <TableRow>
+                    <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       工号
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       姓名
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       用户名
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       部门
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       状态
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       操作
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="bg-white divide-y divide-gray-200">
                   {paginatedEmployees.map((employee, index) => (
-                    <tr key={employee.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                    <TableRow key={employee.id} className="hover:bg-blue-50 transition-colors">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                         {employee.employee_no}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold mr-3">
                             {employee.real_name?.charAt(0) || '员'}
                           </div>
                           <span className="text-sm font-medium text-gray-900">{employee.real_name}</span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
                         {employee.username}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {departments.find(d => d.id === employee.department_id)?.name || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                           employee.status === 'active' ? 'bg-green-100 text-green-800' :
                           employee.status === 'resigned' ? 'bg-red-100 text-red-800' :
@@ -273,8 +281,8 @@ const ResetPassword = () => {
                           {employee.status === 'active' ? '✓ 在职' :
                            employee.status === 'resigned' ? '✗ 离职' : '⊗ 停用'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
                           onClick={() => {
                             setSelectedEmployee(employee)
@@ -284,11 +292,11 @@ const ResetPassword = () => {
                         >
                           🔑 重置密码
                         </button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* 分页组件 */}
@@ -300,20 +308,12 @@ const ResetPassword = () => {
                     共 <span className="font-semibold text-gray-900">{filteredEmployees.length}</span> 条记录
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage(1)}
-                      disabled={currentPage === 1}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    <Button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
                       首页
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    </Button>
+                    <Button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
                       上一页
-                    </button>
+                    </Button>
 
                     {/* 页码按钮 */}
                     <div className="flex gap-1">
@@ -345,20 +345,12 @@ const ResetPassword = () => {
                       })}
                     </div>
 
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    <Button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
                       下一页
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(totalPages)}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    </Button>
+                    <Button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
                       末页
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -383,7 +375,7 @@ const ResetPassword = () => {
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">新密码</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">新密码</Label>
                 <input
                   type="password"
                   value={newPassword}
@@ -393,7 +385,7 @@ const ResetPassword = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">确认密码</Label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -428,13 +420,9 @@ const ResetPassword = () => {
               >
                 取消
               </button>
-              <button
-                onClick={handleResetPassword}
-                disabled={loading}
-                className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={handleResetPassword} disabled={loading}>
                 {loading ? '重置中...' : '确认重置'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner';
 import { FolderOutlined } from '@ant-design/icons'; // 添加图标导入
 import api from '../api';
 import Modal from './Modal';
@@ -336,22 +344,22 @@ const CategoryManagement = () => {
                 <p>回收站为空</p>
               </div>
             ) : (
-              <table className="recycle-table">
-                <thead>
-                  <tr>
-                    <th>分类名称</th>
-                    <th>删除时间</th>
-                    <th>删除人</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="recycle-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>分类名称</TableHead>
+                    <TableHead>删除时间</TableHead>
+                    <TableHead>删除人</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {categories.map(category => (
-                    <tr key={category.id}>
-                      <td>{category.name}</td>
-                      <td>{formatDate(category.deleted_at)}</td>
-                      <td>{category.deleted_by_name || '-'}</td>
-                      <td>
+                    <TableRow key={category.id}>
+                      <TableCell>{category.name}</TableCell>
+                      <TableCell>{formatDate(category.deleted_at)}</TableCell>
+                      <TableCell>{category.deleted_by_name || '-'}</TableCell>
+                      <TableCell>
                         <div className="table-actions">
                           <button
                             onClick={() => handleRestoreCategory(category.id)}
@@ -368,11 +376,11 @@ const CategoryManagement = () => {
                             <span>❌</span>
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
         )}
@@ -387,7 +395,7 @@ const CategoryManagement = () => {
         >
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="categoryName">分类名称 *</label>
+              <Label htmlFor="categoryName">分类名称 *</Label>
               <input
                 id="categoryName"
                 type="text"
@@ -400,9 +408,8 @@ const CategoryManagement = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="categoryDescription">描述</label>
-              <textarea
-                id="categoryDescription"
+              <Label htmlFor="categoryDescription">描述</Label>
+              <Textarea id="categoryDescription"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="请输入分类描述"
@@ -412,13 +419,12 @@ const CategoryManagement = () => {
             </div>
             
             <div className="form-actions">
-              <button
-                type="button"
+              <Button type="button"
                 onClick={() => setShowModal(false)}
                 className="btn-secondary"
               >
                 取消
-              </button>
+              </Button>
               <button
                 type="submit"
                 className="btn-primary"
@@ -446,12 +452,9 @@ const CategoryManagement = () => {
               删除后将移至回收站，您仍可以恢复它。
             </p>
             <div className="confirm-actions">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="btn-secondary"
-              >
+              <Button onClick={() => setShowDeleteModal(false)}>
                 取消
-              </button>
+              </Button>
               <button
                 onClick={confirmDeleteCategory}
                 className="btn-danger"
@@ -479,12 +482,9 @@ const CategoryManagement = () => {
               <strong>此操作不可恢复！</strong>
             </p>
             <div className="confirm-actions">
-              <button
-                onClick={() => setShowPermanentDeleteModal(false)}
-                className="btn-secondary"
-              >
+              <Button onClick={() => setShowPermanentDeleteModal(false)}>
                 取消
-              </button>
+              </Button>
               <button
                 onClick={confirmPermanentDelete}
                 className="btn-danger"

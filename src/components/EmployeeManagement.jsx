@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import Modal from './Modal'
 import EmployeeDetail from './EmployeeDetail'
 import EmployeeBatchOperations from './EmployeeBatchOperations'
@@ -692,13 +701,10 @@ function EmployeeManagement() {
             <EmployeeBatchOperations onImportSuccess={fetchEmployees} />
 
             {/* 添加员工按钮 */}
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
-            >
+            <Button onClick={() => setIsModalOpen(true)}>
               <span className="text-xl">+</span>
               <span>添加员工</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -788,43 +794,40 @@ function EmployeeManagement() {
           </div>
           {(searchFilters.keyword || searchFilters.department || searchFilters.position || searchFilters.status || searchFilters.rating || searchFilters.dateFrom || searchFilters.dateTo) && (
             <div className="mt-3 flex justify-end">
-              <button
-                onClick={clearFilters}
-                className="px-4 py-1.5 text-sm text-gray-600 hover:text-gray-800 underline"
-              >
+              <Button onClick={clearFilters} size="sm">
                 清除筛选
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
         {/* 表格 - 优化紧凑布局 */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-primary-50 border-b border-primary-100">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">员工</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">评级</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">评级</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门主管</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full">
+            <TableHeader className="bg-primary-50 border-b border-primary-100">
+              <TableRow>
+                <TableHead className="px-3 py-2 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">员工</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">评级</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">评级</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门主管</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</TableHead>
+                <TableHead className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredEmployees.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-3 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="7" className="px-3 py-8 text-center text-gray-500">
                     {employees.length === 0 ? '暂无数据' : '没有符合条件的员工'}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 getCurrentPageData().map((emp, index) => (
-                  <tr key={emp.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-3 py-2">
+                  <TableRow key={emp.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
+                    <TableCell className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <div
                           className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm font-medium text-primary-600 cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all overflow-hidden flex-shrink-0"
@@ -842,23 +845,23 @@ function EmployeeManagement() {
                           <div className="text-xs text-gray-500 truncate">{emp.employee_no}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <div className="text-sm text-gray-600 truncate">{emp.department_name || '-'}</div>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <div className="text-sm text-gray-600 truncate">{emp.position || '-'}</div>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <div className="text-sm text-gray-600 truncate">{emp.phone || emp.email || '-'}</div>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <span className="text-sm text-gray-700 font-medium">{renderRating(emp.rating)}</span>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <span className="text-sm text-gray-700 font-medium">{renderRating(emp.rating)}</span>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <div
                         onClick={() => handleManagerClick(emp)}
                         className="cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors inline-block"
@@ -874,8 +877,8 @@ function EmployeeManagement() {
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-3 py-2 text-center">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-center">
                       <div className="flex justify-center">
                         <span
                           onClick={() => handleStatusClick(emp)}
@@ -888,8 +891,8 @@ function EmployeeManagement() {
                           {emp.status === 'active' ? '在职' : emp.status === 'resigned' ? '离职' : '停用'}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => handleManageUserDepartments(emp)}
@@ -913,13 +916,13 @@ function EmployeeManagement() {
                           删除
                         </button>
                       </div>
-                    </td>
+                    </TableCell>
 
-                  </tr>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* 分页组件 */}
@@ -946,20 +949,12 @@ function EmployeeManagement() {
 
             {/* 右侧：分页按钮 */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
                 首页
-              </button>
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              </Button>
+              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                 上一页
-              </button>
+              </Button>
 
               {/* 页码按钮 */}
               <div className="flex gap-1">
@@ -990,20 +985,12 @@ function EmployeeManagement() {
                 })}
               </div>
 
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                 下一页
-              </button>
-              <button
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              </Button>
+              <Button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
                 末页
-              </button>
+              </Button>
 
               <span className="text-sm text-gray-600 ml-2">
                 第 {currentPage} / {totalPages} 页
@@ -1033,33 +1020,31 @@ function EmployeeManagement() {
                 )}
               </div>
               {avatarPreview && (
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={handleRemoveAvatar}
                   className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full hover:bg-red-600 flex items-center justify-center text-sm"
                   title="删除头像"
                 >
                   ×
-                </button>
+                </Button>
               )}
             </div>
-            <label className="mt-3 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 cursor-pointer transition-colors text-sm">
-              <input
-                type="file"
+            <Label className="mt-3 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 cursor-pointer transition-colors text-sm">
+              <Input  type="file"
                 accept="image/*"
                 onChange={handleAvatarChange}
                 className="hidden"
               />
               {avatarPreview ? '更换头像' : '上传头像'}
-            </label>
+            </Label>
             <p className="text-xs text-gray-500 mt-2">支持 JPG、PNG 格式，大小不超过 2MB</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label className="block text-sm font-medium text-gray-700 mb-1">
                 工号 {editingEmp ? <span className="text-red-500">*</span> : <span className="text-gray-400 text-xs font-normal">(留空自动生成)</span>}
-              </label>
+              </Label>
               <input
                 type="text"
                 value={formData.employee_no}
@@ -1070,9 +1055,9 @@ function EmployeeManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label className="block text-sm font-medium text-gray-700 mb-1">
                 姓名 <span className="text-red-500">*</span>
-              </label>
+              </Label>
               <input
                 type="text"
                 required
@@ -1084,7 +1069,7 @@ function EmployeeManagement() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">邮箱</Label>
               <input
                 type="email"
                 value={formData.email}
@@ -1093,7 +1078,7 @@ function EmployeeManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">手机号</Label>
               <input
                 type="tel"
                 value={formData.phone}
@@ -1104,7 +1089,7 @@ function EmployeeManagement() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">所属部门</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">所属部门</Label>
               <select
                 value={formData.department_id}
                 onChange={(e) => handleDepartmentChange(e.target.value)}
@@ -1117,7 +1102,7 @@ function EmployeeManagement() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">职位</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">职位</Label>
               <select
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
@@ -1133,7 +1118,7 @@ function EmployeeManagement() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">入职日期</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">入职日期</Label>
               <input
                 type="date"
                 value={formData.hire_date}
@@ -1143,7 +1128,7 @@ function EmployeeManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">员工评级</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">员工评级</Label>
               <select
                 value={formData.rating}
                 onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) })}
@@ -1157,7 +1142,7 @@ function EmployeeManagement() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">紧急联系人</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">紧急联系人</Label>
               <input
                 type="text"
                 value={formData.emergency_contact}
@@ -1166,7 +1151,7 @@ function EmployeeManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">紧急联系电话</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">紧急联系电话</Label>
               <input
                 type="tel"
                 value={formData.emergency_phone}
@@ -1176,7 +1161,7 @@ function EmployeeManagement() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">家庭住址</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">家庭住址</Label>
             <input
               type="text"
               value={formData.address}
@@ -1185,7 +1170,7 @@ function EmployeeManagement() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">学历</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">学历</Label>
             <select
               value={formData.education}
               onChange={(e) => setFormData({ ...formData, education: e.target.value })}
@@ -1202,9 +1187,9 @@ function EmployeeManagement() {
 
           {/* 角色选择 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               员工角色
-            </label>
+            </Label>
             <select
               value={formData.role_id}
               onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
@@ -1222,26 +1207,23 @@ function EmployeeManagement() {
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">技能特长</label>
-            <textarea
-              value={formData.skills}
+            <Label className="block text-sm font-medium text-gray-700 mb-1">技能特长</Label>
+            <Textarea value={formData.skills}
               onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
               rows="2"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
-            <textarea
-              value={formData.remark}
+            <Label className="block text-sm font-medium text-gray-700 mb-1">备注</Label>
+            <Textarea value={formData.remark}
               onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
               rows="2"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setIsModalOpen(false)
                 resetForm()
@@ -1249,7 +1231,7 @@ function EmployeeManagement() {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
-            </button>
+            </Button>
             <button
               type="submit"
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
@@ -1299,8 +1281,7 @@ function EmployeeManagement() {
             此操作将永久删除该员工的所有信息，包括关联的用户账号，且无法恢复。
           </p>
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setIsDeleteModalOpen(false)
                 setDeletingEmp(null)
@@ -1308,14 +1289,13 @@ function EmployeeManagement() {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button type="button"
               onClick={handleDeleteConfirm}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
             >
               确认删除
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1352,9 +1332,9 @@ function EmployeeManagement() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               新状态 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <select
               value={statusChangeData.newStatus}
               onChange={(e) => setStatusChangeData({ ...statusChangeData, newStatus: e.target.value })}
@@ -1367,9 +1347,9 @@ function EmployeeManagement() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="block text-sm font-medium text-gray-700 mb-1">
               变动日期 <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <input
               type="date"
               value={statusChangeData.changeDate}
@@ -1380,9 +1360,8 @@ function EmployeeManagement() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">变动原因</label>
-            <textarea
-              value={statusChangeData.reason}
+            <Label className="block text-sm font-medium text-gray-700 mb-1">变动原因</Label>
+            <Textarea value={statusChangeData.reason}
               onChange={(e) => setStatusChangeData({ ...statusChangeData, reason: e.target.value })}
               rows="3"
               placeholder="请输入状态变动的原因..."
@@ -1391,8 +1370,7 @@ function EmployeeManagement() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setIsStatusModalOpen(false)
                 setStatusChangingEmp(null)
@@ -1400,14 +1378,13 @@ function EmployeeManagement() {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               取消
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button type="button"
               onClick={handleStatusChange}
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
             >
               确认修改
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1419,18 +1396,12 @@ function EmployeeManagement() {
         size="small"
         footer={
           <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setIsManagerModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
+            <Button onClick={() => setIsManagerModalOpen(false)}>
               取消
-            </button>
-            <button
-              onClick={handleManagerChangeConfirm}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            >
+            </Button>
+            <Button onClick={handleManagerChangeConfirm}>
               确认
-            </button>
+            </Button>
           </div>
         }
       >
@@ -1448,7 +1419,7 @@ function EmployeeManagement() {
           <p className="text-center text-sm text-gray-500 mb-6">{managerChangingEmp?.department_name} - {managerChangingEmp?.position}</p>
 
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <label className="flex items-center justify-between cursor-pointer">
+            <Label className="flex items-center justify-between cursor-pointer">
               <span className="text-gray-700 font-medium">设为部门主管</span>
               <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out">
                 <input
@@ -1460,7 +1431,7 @@ function EmployeeManagement() {
                 <span className="block w-12 h-6 bg-gray-300 rounded-full shadow-inner peer-checked:bg-primary-600 transition-colors duration-300"></span>
                 <span className="absolute block w-4 h-4 mt-1 ml-1 bg-white rounded-full shadow inset-y-0 left-0 peer-checked:translate-x-6 transition-transform duration-300"></span>
               </div>
-            </label>
+            </Label>
             <p className="text-xs text-gray-500 mt-2">
               设置为部门主管后，该员工将拥有审批本部门员工考勤申请的权限。
             </p>

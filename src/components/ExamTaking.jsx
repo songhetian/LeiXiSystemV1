@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner';
 import api from '../api';
 import Modal from './Modal';
 import useAutoSave from '../hooks/useAutoSave';
@@ -318,12 +325,9 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
               <li>请仔细阅读题目，诚信作答。</li>
             </ul>
             <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={handleStartExam}
-                className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
+              <Button onClick={handleStartExam}>
                 我已阅读并开始考试
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
@@ -353,12 +357,9 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                   <span className="text-sm text-red-600 flex items-center gap-1">
                     <span>✗</span> 保存失败
                   </span>
-                  <button
-                    onClick={handleManualSave}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
+                  <Button onClick={handleManualSave} size="sm">
                     手动保存
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -401,13 +402,9 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
               {totalPages > 1 && (
                 <div className="flex flex-col gap-2 mb-3">
                   <div className="flex justify-center gap-1">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                       ←
-                    </button>
+                    </Button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                       <button
                         key={page}
@@ -420,13 +417,9 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                         {page}
                       </button>
                     ))}
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                       →
-                    </button>
+                    </Button>
                   </div>
                   <div className="text-center text-xs text-gray-500">
                     第 {currentPage}/{totalPages} 页
@@ -468,8 +461,7 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                     parseOptions(currentQuestion.options).map((option, idx) => {
                       const optionLetter = String.fromCharCode(65 + idx); // A, B, C, D...
                       return (
-                        <label
-                          key={idx}
+                        <Label key={idx}
                           className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all
                           ${userAnswers[currentQuestion.id] === optionLetter
                             ? 'border-primary-500 bg-primary-50'
@@ -486,7 +478,7 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                             className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                           />
                           <span className="ml-3 text-gray-700">{option}</span>
-                        </label>
+                        </Label>
                       );
                     })
                   ) : currentQuestion.type === 'multiple_choice' ? (
@@ -495,8 +487,7 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                       const currentAnswers = userAnswers[currentQuestion.id] || [];
                       const isChecked = currentAnswers.includes(optionLetter);
                       return (
-                        <label
-                          key={idx}
+                        <Label key={idx}
                           className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all
                             ${isChecked
                               ? 'border-primary-500 bg-primary-50'
@@ -516,12 +507,11 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
                             className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                           />
                           <span className="ml-3 text-gray-700">{option}</span>
-                        </label>
+                        </Label>
                       );
                     })
                   ) : (
-                    <textarea
-                      value={userAnswers[currentQuestion.id] || ''}
+                    <Textarea value={userAnswers[currentQuestion.id] || ''}
                       onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                       disabled={examEnded}
                       rows={6}
@@ -592,18 +582,12 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
               )}
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => setShowConfirmSubmit(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
+              <Button onClick={() => setShowConfirmSubmit(false)}>
                 继续答题
-              </button>
-              <button
-                onClick={() => handleSubmitExam(false)}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
+              </Button>
+              <Button onClick={() => handleSubmitExam(false)}>
                 确认提交
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 import Modal from '../components/Modal';
 import SessionDetailModal from '../components/SessionDetailModal';
@@ -350,8 +356,7 @@ const CaseLibraryPage = () => {
               <div className="flex-1 min-w-[300px]">
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
-                  <input
-                    type="text"
+                  <Input type="text"
                     name="search"
                     placeholder="搜索案例标题、问题、解决方案..."
                     value={filters.search}

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 import Modal from './Modal';
 import PlatformShopForm from './PlatformShopForm';
@@ -203,10 +211,10 @@ const PlatformShopManagement = () => {
                     </div>
 
                     {/* Add Platform */}
-                    <button onClick={handleAddPlatform} className="btn-add-platform">
+                    <Button onClick={handleAddPlatform}>
                         <PlusIcon className="btn-icon" />
                         添加平台
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -291,13 +299,10 @@ const PlatformShopManagement = () => {
 
                             {/* Add Shop Button */}
                             <div className="card-footer">
-                                <button
-                                    onClick={() => handleAddShop(platform)}
-                                    className="btn-add-shop"
-                                >
+                                <Button onClick={() => handleAddShop(platform)}>
                                     <PlusIcon className="btn-icon-small" />
                                     添加店铺
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     ))}
@@ -312,65 +317,50 @@ const PlatformShopManagement = () => {
                             <div className="list-item-header">
                                 <h3 className="list-item-title">{platform.name}</h3>
                                 <div className="list-item-actions">
-                                    <button
-                                        onClick={() => handleAddShop(platform)}
-                                        className="btn-list-action btn-success"
-                                    >
+                                    <Button onClick={() => handleAddShop(platform)}>
                                         <PlusIcon className="btn-icon-small" />
                                         添加店铺
-                                    </button>
-                                    <button
-                                        onClick={() => handleEditPlatform(platform)}
-                                        className="btn-list-action btn-secondary"
-                                    >
+                                    </Button>
+                                    <Button onClick={() => handleEditPlatform(platform)}>
                                         编辑平台
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeletePlatform(platform.id)}
-                                        className="btn-list-action btn-danger"
-                                    >
+                                    </Button>
+                                    <Button onClick={() => handleDeletePlatform(platform.id)}>
                                         删除平台
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
 
-                            <table className="shops-table">
-                                <thead>
-                                    <tr>
-                                        <th>店铺名称</th>
-                                        <th className="text-right">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            <Table className="shops-table">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>店铺名称</TableHead>
+                                        <TableHead className="text-right">操作</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {platform.shops && platform.shops.length > 0 ? (
                                         platform.shops.map(shop => (
-                                            <tr key={shop.id}>
-                                                <td>{shop.name}</td>
-                                                <td className="text-right">
-                                                    <button
-                                                        onClick={() => handleEditShop(shop, platform)}
-                                                        className="btn-table-action btn-edit"
-                                                    >
+                                            <TableRow key={shop.id}>
+                                                <TableCell>{shop.name}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button onClick={() => handleEditShop(shop, platform)}>
                                                         编辑
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteShop(shop.id)}
-                                                        className="btn-table-action btn-delete"
-                                                    >
+                                                    </Button>
+                                                    <Button onClick={() => handleDeleteShop(shop.id)}>
                                                         删除
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
                                         ))
                                     ) : (
-                                        <tr>
-                                            <td colSpan="2" className="empty-table-cell">
+                                        <TableRow>
+                                            <TableCell colSpan="2" className="empty-table-cell">
                                                 该平台下暂无店铺
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     )}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </div>
                     ))}
                 </div>
@@ -379,23 +369,15 @@ const PlatformShopManagement = () => {
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="pagination-container">
-                    <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="pagination-btn"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                         上一页
-                    </button>
+                    </Button>
                     <span className="pagination-info">
                         第 {currentPage} 页 / 共 {totalPages} 页
                     </span>
-                    <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="pagination-btn"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
                         下一页
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -446,18 +428,12 @@ const PlatformShopManagement = () => {
                     </p>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t">
-                    <button
-                        onClick={() => setIsDeleteModalOpen(false)}
-                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
-                    >
+                    <Button onClick={() => setIsDeleteModalOpen(false)} variant="outline">
                         取消
-                    </button>
-                    <button
-                        onClick={confirmDelete}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                    >
+                    </Button>
+                    <Button onClick={confirmDelete} variant="destructive">
                         确认删除
-                    </button>
+                    </Button>
                 </div>
             </Modal>
         </div>

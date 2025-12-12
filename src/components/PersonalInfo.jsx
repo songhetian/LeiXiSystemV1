@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import { getApiBaseUrl } from '../utils/apiConfig'
 import Modal from './Modal'
 
@@ -160,10 +167,10 @@ const PersonalInfo = () => {
 
   const InfoItem = ({ label, value, icon, editing, type = 'text', options = [] }) => (
     <div className="group">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-3">
+      <Label className="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-3">
         <span className="text-lg">{icon}</span>
         {label}
-      </label>
+      </Label>
       {editing ? (
         type === 'select' ? (
           <select
@@ -210,13 +217,10 @@ const PersonalInfo = () => {
                 <p className="text-sm text-gray-600 mt-1">管理您的个人信息和账户设置</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
-            >
+            <Button onClick={() => setShowPasswordModal(true)}>
               <span className="text-lg">🔒</span>
               修改密码
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -254,13 +258,10 @@ const PersonalInfo = () => {
                 基本信息
               </h3>
               {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
-                >
+                <Button onClick={() => setEditing(true)} variant="ghost">
                   <span>✏️</span>
                   编辑信息
-                </button>
+                </Button>
               ) : (
                 <div className="flex gap-3">
                   <button
@@ -272,14 +273,10 @@ const PersonalInfo = () => {
                   >
                     取消
                   </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                  >
+                  <Button onClick={handleSave} disabled={loading}>
                     <span>💾</span>
                     {loading ? '保存中...' : '保存'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -323,9 +320,9 @@ const PersonalInfo = () => {
         <form onSubmit={handlePasswordChange} className="space-y-6">
           {/* 当前密码 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <Label className="block text-sm font-semibold text-gray-700 mb-2">
               当前密码
-            </label>
+            </Label>
             <input
               type="password"
               value={passwordData.oldPassword}
@@ -338,9 +335,9 @@ const PersonalInfo = () => {
 
           {/* 新密码 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <Label className="block text-sm font-semibold text-gray-700 mb-2">
               新密码
-            </label>
+            </Label>
             <input
               type="password"
               value={passwordData.newPassword}
@@ -359,9 +356,9 @@ const PersonalInfo = () => {
 
           {/* 确认新密码 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <Label className="block text-sm font-semibold text-gray-700 mb-2">
               确认新密码
-            </label>
+            </Label>
             <input
               type="password"
               value={passwordData.confirmPassword}
@@ -395,8 +392,7 @@ const PersonalInfo = () => {
 
           {/* 提交按钮 */}
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setShowPasswordModal(false)
                 setPasswordData({
@@ -408,7 +404,7 @@ const PersonalInfo = () => {
               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
             >
               取消
-            </button>
+            </Button>
             <button
               type="submit"
               disabled={passwordLoading}

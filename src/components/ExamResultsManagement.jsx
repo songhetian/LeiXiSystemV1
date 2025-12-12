@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Table, Select, Modal, Tag } from 'antd';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import api from '../api';
 import './ExamResultsManagement.css';
 
@@ -214,7 +222,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
 
         <div className="search-filter-section">
           <div className="filter-group">
-            <label className="filter-label">试卷选择</label>
+            <Label className="filter-label">试卷选择</Label>
             <Select
               showSearch
               allowClear
@@ -233,7 +241,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
           </div>
 
           <div className="filter-group">
-            <label className="filter-label">部门搜索</label>
+            <Label className="filter-label">部门搜索</Label>
             <Select
               showSearch
               allowClear
@@ -252,7 +260,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
           </div>
 
           <div className="filter-group">
-            <label className="filter-label">员工姓名</label>
+            <Label className="filter-label">员工姓名</Label>
             <Select
               showSearch
               allowClear
@@ -271,7 +279,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
           </div>
 
           <div className="filter-group">
-            <label className="filter-label">考试状态</label>
+            <Label className="filter-label">考试状态</Label>
             <Select
               allowClear
               placeholder="请选择状态"

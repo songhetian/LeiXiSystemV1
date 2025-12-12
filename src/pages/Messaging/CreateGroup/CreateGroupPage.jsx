@@ -1,4 +1,11 @@
 import React, { useState } from 'react';
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   ArrowLeftOutlined,
   PlusOutlined,
@@ -93,7 +100,7 @@ const CreateGroupPage = () => {
               <h3 className="section-title">群组信息</h3>
               <div className="group-info-form">
                 <div className="form-group">
-                  <label className="form-label">群组名称</label>
+                  <Label className="form-label">群组名称</Label>
                   <input
                     type="text"
                     className="form-input"
@@ -104,9 +111,8 @@ const CreateGroupPage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">群组描述</label>
-                  <textarea
-                    className="form-textarea"
+                  <Label className="form-label">群组描述</Label>
+                  <Textarea className="form-textarea"
                     placeholder="请输入群组描述（可选）"
                     rows="2"
                     value={groupDescription}
@@ -209,8 +215,7 @@ const CreateGroupPage = () => {
               <div className="group-search">
                 <div className="search-input-wrapper">
                   <SearchOutlined className="search-icon" />
-                  <input
-                    type="text"
+                  <Input type="text"
                     className="search-input"
                     placeholder="搜索群组"
                   />

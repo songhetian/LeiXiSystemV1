@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 import { tokenManager } from '../utils/apiClient'
 import { pinyin } from 'pinyin-pro'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Loader2, Check, X, AlertCircle } from 'lucide-react'
 
 const Login = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true)
@@ -157,7 +163,7 @@ const Login = ({ onLoginSuccess }) => {
       }, {
         timeout: 10000 // 10秒超时
       })
-      
+
       console.log('登录API响应:', response.data);
 
       if (response.data.success) {
@@ -196,14 +202,14 @@ const Login = ({ onLoginSuccess }) => {
     console.log('.handleSubmit开始执行');
     setLoading(true)
     setErrorMessage('') // 清除之前的错误
-    
+
     // 表单验证
     if (!validateForm()) {
       console.log('表单验证失败');
       setLoading(false)
       return
     }
-    
+
     console.log('开始登录流程，用户名:', formData.username);
 
     try {
@@ -216,7 +222,7 @@ const Login = ({ onLoginSuccess }) => {
         }, {
           timeout: 10000 // 10秒超时
         })
-        
+
         console.log('检查会话响应:', checkResponse.data);
 
         if (checkResponse.data.hasActiveSession) {
@@ -241,7 +247,7 @@ const Login = ({ onLoginSuccess }) => {
         const response = await axios.post(getApiUrl('/api/auth/register'), formData, {
           timeout: 10000 // 10秒超时
         })
-        
+
         console.log('注册响应:', response.data);
 
         if (response.data.success) {
@@ -339,15 +345,14 @@ const Login = ({ onLoginSuccess }) => {
 
         {/* 切换登录/注册 */}
         <div className="flex mb-6 bg-primary-50 rounded-lg p-1">
-          <button
+          <Button
             onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
-            }`}
+            variant={isLogin ? "default" : "ghost"}
+            className="flex-1"
           >
             登录
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => {
               setIsLogin(false)
               setFormData({ username: '', password: '', real_name: '', email: '', phone: '' })
@@ -355,12 +360,11 @@ const Login = ({ onLoginSuccess }) => {
               setUsernameAvailable(null)
               setUsernameSuggestions([])
             }}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              !isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
-            }`}
+            variant={!isLogin ? "default" : "ghost"}
+            className="flex-1"
           >
             注册
-          </button>
+          </Button>
         </div>
 
         {/* 错误提示框 */}
@@ -372,14 +376,14 @@ const Login = ({ onLoginSuccess }) => {
                 <p className="text-sm font-semibold text-red-900 mb-1">登录失败</p>
                 <p className="text-sm text-red-800">{errorMessage}</p>
               </div>
-              <button
+              <Button
                 onClick={() => setErrorMessage('')}
-                className="text-red-400 hover:text-red-600 transition-colors"
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-red-400 hover:text-red-600"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         )}
@@ -387,30 +391,30 @@ const Login = ({ onLoginSuccess }) => {
         {/* 表单 */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">真实姓名</label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="real_name">真实姓名</Label>
+              <Input
+                id="real_name"
                 type="text"
                 value={formData.real_name}
                 onChange={(e) => {
                   setFormData({...formData, real_name: e.target.value})
                   setFieldErrors({...fieldErrors, real_name: ''})
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                  fieldErrors.real_name ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={fieldErrors.real_name ? 'border-red-500' : ''}
                 placeholder="请输入真实姓名"
               />
               {fieldErrors.real_name && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.real_name}</p>
+                <p className="text-sm text-red-600">{fieldErrors.real_name}</p>
               )}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+          <div className="space-y-2">
+            <Label htmlFor="username">用户名</Label>
             <div className="relative">
-              <input
+              <Input
+                id="username"
                 type="text"
                 value={formData.username}
                 onChange={(e) => {
@@ -420,24 +424,23 @@ const Login = ({ onLoginSuccess }) => {
                     checkUsername(e.target.value, formData.real_name)
                   }
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                className={`${
                   fieldErrors.username ? 'border-red-500' :
                   !isLogin && usernameAvailable === false ? 'border-red-500' :
-                  !isLogin && usernameAvailable === true ? 'border-green-500' :
-                  'border-gray-300'
+                  !isLogin && usernameAvailable === true ? 'border-green-500' : ''
                 }`}
                 placeholder="请输入用户名"
               />
               {!isLogin && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   {isCheckingUsername && (
-                    <div className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   )}
                   {!isCheckingUsername && usernameAvailable === true && (
-                    <span className="text-green-500 text-xl">✓</span>
+                    <Check className="h-4 w-4 text-green-500" />
                   )}
                   {!isCheckingUsername && usernameAvailable === false && (
-                    <span className="text-red-500 text-xl">✗</span>
+                    <X className="h-4 w-4 text-red-500" />
                   )}
                 </div>
               )}
@@ -451,17 +454,19 @@ const Login = ({ onLoginSuccess }) => {
                 <p className="text-sm text-yellow-800 mb-2">该用户名已被使用，以下是建议：</p>
                 <div className="flex flex-wrap gap-2">
                   {usernameSuggestions.map((suggestion, index) => (
-                    <button
+                    <Button
                       key={index}
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         setFormData({...formData, username: suggestion})
                         checkUsername(suggestion, formData.real_name)
                       }}
-                      className="px-3 py-1 bg-white border border-yellow-300 rounded-md text-sm text-gray-700 hover:bg-yellow-100 transition-colors"
+                      className="border-yellow-300 hover:bg-yellow-100"
                     >
                       {suggestion}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -470,73 +475,75 @@ const Login = ({ onLoginSuccess }) => {
 
 
           {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">部门</label>
-                <select
+              <div className="space-y-2">
+                <Label htmlFor="department">部门</Label>
+                <Select
                   value={formData.department_id}
-                  onChange={(e) => {
-                    setFormData({...formData, department_id: e.target.value})
+                  onValueChange={(value) => {
+                    setFormData({...formData, department_id: value})
                     setFieldErrors({...fieldErrors, department_id: ''})
                   }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    fieldErrors.department_id ? 'border-red-500' : 'border-gray-300'
-                  }`}
                 >
-                  <option value="">请选择部门</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className={fieldErrors.department_id ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="请选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id.toString()}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {fieldErrors.department_id && (
-                  <p className="mt-1 text-sm text-red-600">{fieldErrors.department_id}</p>
+                  <p className="text-sm text-red-600">{fieldErrors.department_id}</p>
                 )}
               </div>
 
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="password">密码</Label>
+            <Input
+              id="password"
               type="password"
               value={formData.password}
               onChange={(e) => {
                 setFormData({...formData, password: e.target.value})
                 setFieldErrors({...fieldErrors, password: ''})
               }}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                fieldErrors.password ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={fieldErrors.password ? 'border-red-500' : ''}
               placeholder="请输入密码"
             />
             {fieldErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+              <p className="text-sm text-red-600">{fieldErrors.password}</p>
             )}
           </div>
 
           {/* 记住密码选项 */}
           {isLogin && (
-            <div className="flex items-center">
-              <label className="flex items-center cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={rememberPassword}
-                  onChange={(e) => setRememberPassword(e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
-                />
-                <span className="ml-2 text-sm text-gray-700 group-hover:text-primary-600 transition-colors">
-                  记住密码
-                </span>
-              </label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember"
+                checked={rememberPassword}
+                onCheckedChange={setRememberPassword}
+              />
+              <Label
+                htmlFor="remember"
+                className="text-sm font-normal cursor-pointer"
+              >
+                记住密码
+              </Label>
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full"
+            size="lg"
           >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
-          </button>
+          </Button>
         </form>
       </div>
 

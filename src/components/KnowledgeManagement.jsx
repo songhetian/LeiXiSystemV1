@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { categoryIcons } from '../utils/iconOptions'
 import { getApiUrl } from '../utils/apiConfig'
@@ -109,18 +115,12 @@ const KnowledgeManagement = () => {
 
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowCategoryModal(true)}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-          >
+          <Button onClick={() => setShowCategoryModal(true)}>
             📁 管理分类
-          </button>
-          <button
-            onClick={() => setShowTrashModal(true)}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-          >
+          </Button>
+          <Button onClick={() => setShowTrashModal(true)} variant="destructive">
             🗑️ 垃圾箱 ({getDeletedArticles().length})
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -266,30 +266,21 @@ const KnowledgeManagement = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleRestoreArticle(article.id)}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                        >
+                        <Button onClick={() => handleRestoreArticle(article.id)}>
                           ↩️ 还原
-                        </button>
-                        <button
-                          onClick={() => handlePermanentDelete(article.id)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                        >
+                        </Button>
+                        <Button onClick={() => handlePermanentDelete(article.id)} variant="destructive">
                           🗑️ 永久删除
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               <div className="flex justify-end pt-4 mt-4 border-t">
-                <button
-                  onClick={() => setShowTrashModal(false)}
-                  className="px-6 py-2 border rounded-lg hover:bg-gray-50"
-                >
+                <Button onClick={() => setShowTrashModal(false)}>
                   关闭
-                </button>
+                </Button>
               </div>
             </div>
           </div>

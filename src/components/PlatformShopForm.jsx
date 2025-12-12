@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { CheckCircleIcon, XCircleIcon, TagIcon } from '@heroicons/react/24/outline';
 
 const PlatformShopForm = ({ entity, onSave, onCancel }) => {
@@ -31,11 +38,11 @@ const PlatformShopForm = ({ entity, onSave, onCancel }) => {
         <form onSubmit={handleSubmit} className="flat-form">
             <div className="form-content">
                 <div className="form-group">
-                    <label htmlFor="name" className="form-label">
+                    <Label htmlFor="name" className="form-label">
                         <TagIcon className="label-icon" />
                         <span>名称</span>
                         <span className="required-mark">*</span>
-                    </label>
+                    </Label>
                     <div className="input-wrapper">
                         <input
                             type="text"
@@ -54,14 +61,13 @@ const PlatformShopForm = ({ entity, onSave, onCancel }) => {
             </div>
 
             <div className="form-footer">
-                <button
-                    type="button"
+                <Button type="button"
                     onClick={onCancel}
                     className="btn-flat btn-cancel"
                 >
                     <XCircleIcon className="btn-icon" />
                     取消
-                </button>
+                </Button>
                 <button
                     type="submit"
                     className="btn-flat btn-submit"

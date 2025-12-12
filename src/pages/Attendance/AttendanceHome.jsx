@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 export default function AttendanceHome({ onNavigate }) {
@@ -401,13 +408,10 @@ export default function AttendanceHome({ onNavigate }) {
               )}
             </div>
           ) : (
-            <button
-              onClick={() => setShowShiftModal(true)}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-            >
+            <Button onClick={() => setShowShiftModal(true)}>
               <span>📅</span>
               <span>选择班次排班</span>
-            </button>
+            </Button>
           )}
         </div>
 
@@ -594,12 +598,9 @@ export default function AttendanceHome({ onNavigate }) {
               )}
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowTimeoutModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <Button onClick={() => setShowTimeoutModal(false)}>
                   取消
-                </button>
+                </Button>
                 <button
                   onClick={() => {
                     setShowTimeoutModal(false)
@@ -642,34 +643,22 @@ export default function AttendanceHome({ onNavigate }) {
 
       {/* 快捷入口 */}
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button
-          onClick={() => navigate('attendance-records')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
+        <Button onClick={() => navigate('attendance-records')}>
           <div className="text-2xl mb-2">📋</div>
           <div className="text-sm font-medium">打卡记录</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-leave-apply')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
+        </Button>
+        <Button onClick={() => navigate('attendance-leave-apply')}>
           <div className="text-2xl mb-2">🏖️</div>
           <div className="text-sm font-medium">请假申请</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-overtime-apply')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
+        </Button>
+        <Button onClick={() => navigate('attendance-overtime-apply')}>
           <div className="text-2xl mb-2">⏰</div>
           <div className="text-sm font-medium">加班申请</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-stats')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
+        </Button>
+        <Button onClick={() => navigate('attendance-stats')}>
           <div className="text-2xl mb-2">📊</div>
           <div className="text-sm font-medium">考勤统计</div>
-        </button>
+        </Button>
       </div>
 
       {/* 测试功能按钮 - 仅用于开发测试 */}
@@ -754,8 +743,7 @@ export default function AttendanceHome({ onNavigate }) {
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {shifts.map((shift) => (
-                      <label
-                        key={shift.id}
+                      <Label key={shift.id}
                         className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
                           selectedShift === shift.id
                             ? 'border-blue-500 bg-blue-50'
@@ -781,7 +769,7 @@ export default function AttendanceHome({ onNavigate }) {
                             )}
                           </div>
                         </div>
-                      </label>
+                      </Label>
                     ))}
                   </div>
                 )}

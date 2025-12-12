@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import sessionAPI from '../api/sessionAPI.js'
 import Modal from './Modal'
 import ImportSessionModal from './ImportSessionModal'; // Import the new modal
@@ -57,20 +65,16 @@ const SessionManagement = () => {
             <p className="text-gray-500 text-sm mt-1">共 {sessions.length} 个会话</p>
           </div>
           <div className="flex gap-3">
-             <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
-            >
+             <Button onClick={() => setIsImportModalOpen(true)}>
               <span className="text-xl">↑</span>
               <span>导入会话</span>
-            </button>
+            </Button>
             <select className="px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
               <option>全部状态</option>
               <option>进行中</option>
               <option>已完成</option>
             </select>
-            <input
-              type="date"
+            <DatePicker
               className="px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -101,19 +105,13 @@ const SessionManagement = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleViewDetail(session)}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                  >
+                  <Button onClick={() => handleViewDetail(session)}>
                     查看详情
-                  </button>
+                  </Button>
                   {session.status === 'active' && (
-                    <button
-                      onClick={() => handleEndSession(session.id)}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                    >
+                    <Button onClick={() => handleEndSession(session.id)}>
                       结束会话
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -127,24 +125,24 @@ const SessionManagement = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600">客户</label>
+                <Label className="text-sm text-gray-600">客户</Label>
                 <p className="font-medium">{selectedSession.customer}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">客服</label>
+                <Label className="text-sm text-gray-600">客服</Label>
                 <p className="font-medium">{selectedSession.agent}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">开始时间</label>
+                <Label className="text-sm text-gray-600">开始时间</Label>
                 <p className="font-medium">{selectedSession.startTime}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">时长</label>
+                <Label className="text-sm text-gray-600">时长</Label>
                 <p className="font-medium">{selectedSession.duration}</p>
               </div>
             </div>
             <div>
-              <label className="text-sm text-gray-600 block mb-2">会话记录</label>
+              <Label className="text-sm text-gray-600 block mb-2">会话记录</Label>
               <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-64 overflow-y-auto">
                 <div className="text-sm">
                   <span className="font-medium text-blue-600">客户：</span>
@@ -160,12 +158,9 @@ const SessionManagement = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setIsDetailOpen(false)}
-              className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
+            <Button onClick={() => setIsDetailOpen(false)}>
               关闭
-            </button>
+            </Button>
           </div>
         )}
       </Modal>

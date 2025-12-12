@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { getApiUrl } from '../utils/apiConfig';
 import { formatDate } from '../utils/date';
 
@@ -167,12 +174,9 @@ const CaseDetailPage = () => {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* 返回按钮 */}
-      <button
-        onClick={() => navigate(-1)}
-        className="business-btn business-btn-secondary mb-4"
-      >
+      <Button onClick={() => navigate(-1)}>
         ← 返回列表
-      </button>
+      </Button>
 
       {/* 案例头部 */}
       <div className="business-card mb-6">
@@ -278,22 +282,18 @@ const CaseDetailPage = () => {
           {replyTo && (
             <div className="mb-2 text-sm text-gray-600">
               回复评论
-              <button onClick={() => setReplyTo(null)} className="ml-2 text-primary-600">取消</button>
+              <Button onClick={() => setReplyTo(null)}>取消</Button>
             </div>
           )}
-          <textarea
-            value={newComment}
+          <Textarea value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="写下你的评论..."
             className="business-textarea"
             rows="3"
           />
-          <button
-            onClick={handleSubmitComment}
-            className="business-btn business-btn-primary mt-2"
-          >
+          <Button onClick={handleSubmitComment}>
             发表评论
-          </button>
+          </Button>
         </div>
 
         {/* 评论列表 */}
@@ -305,12 +305,9 @@ const CaseDetailPage = () => {
                   <span className="font-medium">{comment.user_name}</span>
                   <span className="text-sm text-gray-500 ml-2">{formatDate(comment.created_at)}</span>
                 </div>
-                <button
-                  onClick={() => setReplyTo(comment.id)}
-                  className="text-sm text-primary-600"
-                >
+                <Button onClick={() => setReplyTo(comment.id)}>
                   回复
-                </button>
+                </Button>
               </div>
               <p className="text-gray-700">{comment.content}</p>
 

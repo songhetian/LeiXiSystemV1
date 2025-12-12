@@ -1,5 +1,12 @@
 import React, { useState } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import { getApiUrl } from '../utils/apiConfig'
 
 
@@ -225,35 +232,28 @@ export default function EmployeeBatchOperations({ onImportSuccess }) {
   return (
     <div className="flex gap-2">
       {/* 下载模板 */}
-      <button
-        onClick={handleDownloadTemplate}
-        className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-      >
+      <Button onClick={handleDownloadTemplate}>
         <span>📄</span>
         <span>下载模板</span>
-      </button>
+      </Button>
 
       {/* 批量导入 */}
-      <label className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center gap-2">
+      <Label className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center gap-2">
         <span>📥</span>
         <span>{importing ? '导入中...' : '批量导入'}</span>
-        <input
-          type="file"
+        <Input  type="file"
           accept=".csv"
           onChange={handleBatchImport}
           disabled={importing}
           className="hidden"
         />
-      </label>
+      </Label>
 
       {/* 批量导出 */}
-      <button
-        onClick={handleBatchExport}
-        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-      >
+      <Button onClick={handleBatchExport}>
         <span>📤</span>
         <span>批量导出</span>
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import customerAPI from '../api/customerAPI.js'
 import Modal from './Modal'
 import CustomerForm from './CustomerForm'
@@ -81,46 +89,43 @@ const CustomerList = () => {
             <h2 className="text-2xl font-bold text-gray-800">客服人员管理</h2>
             <p className="text-gray-500 text-sm mt-1">共 {customers.length} 名客服人员</p>
           </div>
-          <button
-            onClick={handleAdd}
-            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
-          >
+          <Button onClick={handleAdd}>
             <span className="text-xl">+</span>
             <span>添加客服</span>
-          </button>
+          </Button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-primary-100 text-primary-800">
-                <th className="px-4 py-3 text-left rounded-tl-lg">姓名</th>
-                <th className="px-4 py-3 text-left">邮箱</th>
-                <th className="px-4 py-3 text-left">电话</th>
-                <th className="px-4 py-3 text-left">部门</th>
-                <th className="px-4 py-3 text-left">评级</th>
-                <th className="px-4 py-3 text-left">状态</th>
-                <th className="px-4 py-3 text-center rounded-tr-lg">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="bg-primary-100 text-primary-800">
+                <TableHead className="px-4 py-3 text-left rounded-tl-lg">姓名</TableHead>
+                <TableHead className="px-4 py-3 text-left">邮箱</TableHead>
+                <TableHead className="px-4 py-3 text-left">电话</TableHead>
+                <TableHead className="px-4 py-3 text-left">部门</TableHead>
+                <TableHead className="px-4 py-3 text-left">评级</TableHead>
+                <TableHead className="px-4 py-3 text-left">状态</TableHead>
+                <TableHead className="px-4 py-3 text-center rounded-tr-lg">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {customers.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="7" className="px-4 py-8 text-center text-gray-500">
                     暂无数据
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 customers.map((customer, index) => (
-                  <tr key={customer.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-4 py-3 font-medium">{customer.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{customer.email}</td>
-                    <td className="px-4 py-3 text-gray-600">{customer.phone}</td>
-                    <td className="px-4 py-3 text-gray-600">{customer.department || '客服部'}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={customer.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
+                    <TableCell className="px-4 py-3 font-medium">{customer.name}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600">{customer.email}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600">{customer.phone}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600">{customer.department || '客服部'}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-yellow-500">{'⭐'.repeat(customer.rating || 3)}</span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className={`px-3 py-1 rounded-full text-sm ${
                         customer.status === 'active'
                           ? 'bg-green-100 text-green-700'
@@ -128,26 +133,20 @@ const CustomerList = () => {
                       }`}>
                         {customer.status === 'active' ? '在职' : '离职'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleEdit(customer)}
-                        className="px-4 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mr-2"
-                      >
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center">
+                      <Button onClick={() => handleEdit(customer)} size="sm">
                         编辑
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="px-4 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                      >
+                      </Button>
+                      <Button onClick={() => handleDelete(customer.id)} variant="destructive" size="sm">
                         删除
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 

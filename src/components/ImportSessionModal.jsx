@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import Modal from './Modal';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 import ExcelJS from 'exceljs';
 import { CloudUploadOutlined } from '@ant-design/icons';
@@ -388,7 +396,7 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                             <h3 className="text-lg font-semibold leading-6 text-gray-900 mb-6 text-center">第一步：选择平台和店铺</h3>
                             <div className="space-y-6">
                                 <div>
-                                    <label htmlFor="platform" className="block text-sm font-medium text-gray-700">平台</label>
+                                    <Label htmlFor="platform" className="block text-sm font-medium text-gray-700">平台</Label>
                                     <select
                                         id="platform"
                                         name="platform"
@@ -403,7 +411,7 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="shop" className="block text-sm font-medium text-gray-700">店铺</label>
+                                    <Label htmlFor="shop" className="block text-sm font-medium text-gray-700">店铺</Label>
                                     <select
                                         id="shop"
                                         name="shop"
@@ -426,7 +434,7 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                             <h3 className="text-lg font-semibold leading-6 text-gray-900 mb-6 text-center">第二步：上传文件并映射列</h3>
                             <div className="space-y-6">
                                 <div>
-                                    <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700">上传 Excel 文件</label>
+                                    <Label htmlFor="file-upload" className="block text-sm font-medium text-gray-700">上传 Excel 文件</Label>
                                     <div
                                         className={`mt-2 flex justify-center px-6 pt-5 pb-6 border-2 rounded-md ${isDragging ? 'border-primary-500 bg-primary-50 border-solid' : 'border-gray-300 border-dashed'}`}
                                         onDragOver={handleDragOver}
@@ -436,16 +444,16 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                                         <div className="space-y-1 text-center">
                                             <CloudUploadOutlined className="mx-auto h-12 w-12 text-gray-400" style={{ fontSize: '48px' }} />
                                             <div className="flex text-sm text-gray-600">
-                                                <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                                                <Label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
                                                     <span>{file ? file.name : '拖拽文件到此处 或 点击上传'}</span>
-                                                    <input id="file-upload" name="file-upload" type="file" accept=".xlsx, .xls" className="sr-only" onChange={handleFileChange} ref={fileInputRef} />
-                                                </label>
+                                                    <Input id="file-upload" name="file-upload" type="file" accept=".xlsx, .xls" className="sr-only" onChange={handleFileChange} ref={fileInputRef} />
+                                                </Label>
                                             </div>
                                             <p className="text-xs text-gray-500">支持 XLSX, XLS 格式</p>
                                         </div>
                                     </div>
                                     <div className="text-center mt-4">
-                                        <button onClick={handleDownloadTemplate} className="text-sm font-medium text-primary-600 hover:underline">下载模板</button>
+                                        <Button onClick={handleDownloadTemplate}>下载模板</Button>
                                     </div>
                                 </div>
                                 {fileColumns.length > 0 && (
@@ -453,7 +461,7 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                                         <h4 className="text-md font-medium text-gray-800">映射列</h4>
                                         {SYSTEM_FIELDS.map(field => (
                                             <div key={field} className="grid grid-cols-2 gap-4 items-center">
-                                                <label className="text-sm font-medium text-gray-700">{SYSTEM_FIELD_LABELS_ZH[field] || field}</label>
+                                                <Label className="text-sm font-medium text-gray-700">{SYSTEM_FIELD_LABELS_ZH[field] || field}</Label>
                                                 <select
                                                     value={columnMap[field] || ''}
                                                     onChange={(e) => handleColumnMapChange(field, e.target.value)}
@@ -484,12 +492,11 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                             </div>
                             {previewData.length > 0 ? (
                                 <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="bg-primary-100 text-primary-800">
+                                    <Table className="w-full">
+                                        <TableHeader>
+                                            <TableRow className="bg-primary-100 text-primary-800">
                                                 {SYSTEM_FIELDS.map((field, index) => (
-                                                    <th
-                                                        key={field}
+                                                    <TableHead key={field}
                                                         scope="col"
                                                         className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider
                                                                 ${index === 0 ? 'rounded-tl-lg' : ''}
@@ -497,24 +504,24 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                                                         }
                                                     >
                                                         {SYSTEM_FIELD_LABELS_ZH[field] || field}
-                                                    </th>
+                                                    </TableHead>
                                                 ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
                                             {previewData.map((row, rowIndex) => (
-                                                <tr key={rowIndex} className={`border-b border-primary-100
+                                                <TableRow key={rowIndex} className={`border-b border-primary-100
                                                         ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'}
                                                         hover:bg-primary-100/50 transition-colors`}>
                                                     {SYSTEM_FIELDS.map(field => (
-                                                        <td key={field} className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                                        <TableCell key={field} className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                                                             {row[columnMap[field]] || row[field] || ''}
-                                                        </td>
+                                                        </TableCell>
                                                     ))}
-                                                </tr>
+                                                </TableRow>
                                             ))}
-                                        </tbody>
-                                    </table>
+                                        </TableBody>
+                                    </Table>
                                 </div>
                             ) : (
                                 <p className="mt-4 text-center text-sm text-gray-600">无数据可预览，或文件未正确上传/解析。</p>
@@ -526,27 +533,17 @@ const ImportSessionModal = ({ isOpen, onClose, onSuccess }) => {
                 {/* Navigation */}
                 <div className="mt-8 pt-5">
                     <div className="flex justify-between">
-                        <button
-                            onClick={handleBack}
-                            disabled={currentStep === 1}
-                            className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 disabled:opacity-50"
-                        >
+                        <Button onClick={handleBack} disabled={currentStep === 1}>
                             上一步
-                        </button>
+                        </Button>
                         {currentStep < 3 ? (
-                            <button
-                                onClick={handleNext}
-                                className="px-6 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700"
-                            >
+                            <Button onClick={handleNext}>
                                 下一步
-                            </button>
+                            </Button>
                         ) : (
-                            <button
-                                onClick={handleImport}
-                                className="px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700"
-                            >
+                            <Button onClick={handleImport}>
                                 确认导入
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>

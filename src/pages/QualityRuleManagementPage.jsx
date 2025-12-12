@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 import Modal from '../components/Modal'; // Assuming a generic Modal component exists
 
@@ -128,53 +136,47 @@ const QualityRuleManagementPage = () => {
             <h2 className="business-card-title">质检规则管理</h2>
             <p className="text-gray-500 text-sm mt-1">共 {rules.length} 条规则</p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="business-btn business-btn-primary"
-          >
+          <Button onClick={openCreateModal}>
             新增规则
-          </button>
+          </Button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="business-table">
-            <thead>
-              <tr>
-                <th>规则名称</th>
-                <th>分类</th>
-                <th>权重</th>
-                <th>启用状态</th>
-                <th className="text-center">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="business-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>规则名称</TableHead>
+                <TableHead>分类</TableHead>
+                <TableHead>权重</TableHead>
+                <TableHead>启用状态</TableHead>
+                <TableHead className="text-center">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rules.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="5" className="text-center py-8 text-gray-500">
                     暂无规则数据
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 rules.map((rule) => (
-                  <tr key={rule.id}>
-                    <td className="font-medium">{rule.rule_name}</td>
-                    <td>{rule.category}</td>
-                    <td>{rule.weight}</td>
-                    <td>
+                  <TableRow key={rule.id}>
+                    <TableCell className="font-medium">{rule.rule_name}</TableCell>
+                    <TableCell>{rule.category}</TableCell>
+                    <TableCell>{rule.weight}</TableCell>
+                    <TableCell>
                       <span className={`business-badge ${rule.is_enabled
                           ? 'business-badge-success'
                           : 'business-badge-error'
                         }`}>
                         {rule.is_enabled ? '已启用' : '已禁用'}
                       </span>
-                    </td>
-                    <td className="text-center space-x-2">
-                      <button
-                        onClick={() => openEditModal(rule)}
-                        className="business-btn business-btn-secondary business-btn-sm"
-                      >
+                    </TableCell>
+                    <TableCell className="text-center space-x-2">
+                      <Button onClick={() => openEditModal(rule)}>
                         编辑
-                      </button>
+                      </Button>
                       <button
                         onClick={() => handleToggleEnable(rule)}
                         className={`business-btn business-btn-sm ${rule.is_enabled ? 'business-btn-warning' : 'business-btn-success'
@@ -182,27 +184,23 @@ const QualityRuleManagementPage = () => {
                       >
                         {rule.is_enabled ? '禁用' : '启用'}
                       </button>
-                      <button
-                        onClick={() => handleDelete(rule.id)}
-                        className="business-btn business-btn-danger business-btn-sm"
-                      >
+                      <Button onClick={() => handleDelete(rule.id)}>
                         删除
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentRule ? '编辑质检规则' : '新增质检规则'}>
         <div className="space-y-4">
           <div>
-            <label className="business-label">规则名称</label>
-            <input
-              type="text"
+            <Label className="business-label">规则名称</Label>
+            <Input type="text"
               name="rule_name"
               value={ruleForm.rule_name}
               onChange={handleFormChange}
@@ -210,9 +208,8 @@ const QualityRuleManagementPage = () => {
             />
           </div>
           <div>
-            <label className="business-label">分类</label>
-            <input
-              type="text"
+            <Label className="business-label">分类</Label>
+            <Input type="text"
               name="category"
               value={ruleForm.category}
               onChange={handleFormChange}
@@ -220,9 +217,8 @@ const QualityRuleManagementPage = () => {
             />
           </div>
           <div>
-            <label className="business-label">权重</label>
-            <input
-              type="number"
+            <Label className="business-label">权重</Label>
+            <Input type="number"
               name="weight"
               value={ruleForm.weight}
               onChange={handleFormChange}
@@ -230,38 +226,30 @@ const QualityRuleManagementPage = () => {
             />
           </div>
           <div>
-            <label className="business-label">评分标准 (JSON)</label>
-            <textarea
-              name="scoring_standard"
+            <Label className="business-label">评分标准 (JSON)</Label>
+            <Textarea name="scoring_standard"
               value={ruleForm.scoring_standard}
               onChange={handleFormChange}
               rows="6"
               className="business-textarea font-mono text-sm"
-            ></textarea>
+            ></Textarea>
           </div>
           <div className="flex items-center">
-            <input
-              type="checkbox"
+            <Checkbox
               name="is_enabled"
               checked={ruleForm.is_enabled}
               onChange={handleFormChange}
               className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
-            <label className="ml-2 block text-sm text-gray-900">启用</label>
+            <Label className="ml-2 block text-sm text-gray-900">启用</Label>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="business-btn business-btn-secondary"
-            >
+            <Button onClick={() => setIsModalOpen(false)}>
               取消
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="business-btn business-btn-primary"
-            >
+            </Button>
+            <Button onClick={handleSubmit}>
               {currentRule ? '更新' : '创建'}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

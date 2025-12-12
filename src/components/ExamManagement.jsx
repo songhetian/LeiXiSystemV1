@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '../utils/date'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import api from '../api'
 import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
@@ -927,12 +935,9 @@ const ExamManagement = () => {
                 className={`px-3 py-1.5 rounded-lg text-sm ${viewMode==='list'?'bg-primary-600 text-white':'bg-primary-50 text-primary-700 hover:bg-primary-100'}`}
               >列表视图</button>
             </div>
-            <button
-              onClick={downloadTemplateXlsx}
-              className="px-6 py-2.5 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2"
-            >
+            <Button onClick={downloadTemplateXlsx}>
               {downloadingTpl ? `下载中 ${downloadProgress}%` : '下载导入模板'}
-            </button>
+            </Button>
             <button
               onClick={() => {
                 setShowRecycleBin(true)
@@ -985,61 +990,55 @@ const ExamManagement = () => {
             </select>
           </div>
           <div className="flex justify-end">
-            <button
-              onClick={fetchExams}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            >应用筛选</button>
+            <Button onClick={fetchExams}>应用筛选</Button>
           </div>
         </div>
 
         {viewMode === 'list' ? (
         <div className="overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead className="bg-primary-50 border-b border-primary-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">试卷标题</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">分类</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">难度</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">时长</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">总分</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full table-auto">
+            <TableHeader className="bg-primary-50 border-b border-primary-100">
+              <TableRow>
+                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">试卷标题</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">分类</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">难度</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">时长</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">总分</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">状态</TableHead>
+                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tr-lg">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-12">
+                <TableRow>
+                  <TableCell colSpan="7" className="text-center py-12">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
                     <p className="mt-2 text-gray-600">加载中...</p>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : filteredExams.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="7" className="px-4 py-8 text-center text-gray-500">
                     暂无试卷
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 getCurrentPageData().map((exam, index) => (
-                  <tr key={exam.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-4 py-3">
-                      <button onClick={() => openExamInfo(exam)} className="font-medium text-gray-900 text-left hover:text-primary-700">{exam.title}</button>
+                  <TableRow key={exam.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
+                    <TableCell className="px-4 py-3">
+                      <Button onClick={() => openExamInfo(exam)}>{exam.title}</Button>
                       <div className="text-xs text-gray-500">{exam.description}</div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.category || '-'}</td>
-                    <td className="px-4 py-3 text-center">{getDifficultyBadge(exam.difficulty)}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.duration}分钟</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{exam.total_score}</td>
-                    <td className="px-4 py-3 text-center">{getStatusBadge(exam.status)}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.category || '-'}</TableCell>
+                    <TableCell className="px-4 py-3 text-center">{getDifficultyBadge(exam.difficulty)}</TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.duration}分钟</TableCell>
+                    <TableCell className="px-4 py-3 text-center text-gray-600">{exam.total_score}</TableCell>
+                    <TableCell className="px-4 py-3 text-center">{getStatusBadge(exam.status)}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleOpenEditor(exam)}
-                          className="px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-1 whitespace-nowrap"
-                        >
+                        <Button onClick={() => handleOpenEditor(exam)} size="sm">
                           编辑题目
-                        </button>
+                        </Button>
                         <button
                           onClick={() => {
                             setEditingExam(exam)
@@ -1060,25 +1059,19 @@ const ExamManagement = () => {
                         >
                           编辑信息
                         </button>
-                        <button
-                          onClick={() => publishExam(exam)}
-                          className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1 whitespace-nowrap"
-                        >
+                        <Button onClick={() => publishExam(exam)} size="sm">
                           发布试卷
-                        </button>
-                        <button
-                          onClick={() => handleDeleteExam(exam)}
-                          className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1 whitespace-nowrap"
-                        >
+                        </Button>
+                        <Button onClick={() => handleDeleteExam(exam)} variant="destructive" size="sm">
                           删除
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         ) : (
           <div>
@@ -1111,11 +1104,11 @@ const ExamManagement = () => {
                         <div>总分：{exam.total_score}</div>
                       </div>
                       <div className="mt-4 flex items-center gap-2">
-                        <button onClick={() => openExamInfo(exam)} className="px-3 py-1.5 bg-primary-50 text-primary-700 rounded hover:bg-primary-100">查看信息</button>
-                        <button onClick={() => handleOpenEditor(exam)} className="px-3 py-1.5 bg-primary-50 text-primary-700 rounded hover:bg-primary-100">编辑题目</button>
+                        <Button onClick={() => openExamInfo(exam)} size="sm">查看信息</Button>
+                        <Button onClick={() => handleOpenEditor(exam)} size="sm">编辑题目</Button>
                         <button onClick={() => { setEditingExam(exam); setFormData({ title: exam.title, description: exam.description || '', category: exam.category || '', difficulty: exam.difficulty, duration: exam.duration, total_score: exam.total_score, pass_score: exam.pass_score, status: exam.status }); setShowModal(true) }} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">编辑信息</button>
-                        <button onClick={() => publishExam(exam)} className="px-3 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100">发布试卷</button>
-                        <button onClick={() => handleDeleteExam(exam)} className="px-3 py-1.5 bg-red-50 text-red-700 rounded hover:bg-red-100">删除</button>
+                        <Button onClick={() => publishExam(exam)} size="sm">发布试卷</Button>
+                        <Button onClick={() => handleDeleteExam(exam)} variant="destructive" size="sm">删除</Button>
                       </div>
                     </div>
                   </div>
@@ -1142,23 +1135,15 @@ const ExamManagement = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                 上一页
-              </button>
+              </Button>
               <span className="text-sm text-gray-600">
                 第 {currentPage} / {totalPages} 页
               </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                 下一页
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1175,7 +1160,7 @@ const ExamManagement = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">试卷标题 *</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">试卷标题 *</Label>
             <input
               type="text"
               required
@@ -1187,9 +1172,8 @@ const ExamManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">试卷描述</label>
-            <textarea
-              value={formData.description}
+            <Label className="block text-sm font-medium text-gray-700 mb-2">试卷描述</Label>
+            <Textarea value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows="3"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -1199,7 +1183,7 @@ const ExamManagement = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">分类</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">分类</Label>
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
@@ -1215,7 +1199,7 @@ const ExamManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">难度 *</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">难度 *</Label>
               <select
                 required
                 value={formData.difficulty}
@@ -1231,7 +1215,7 @@ const ExamManagement = () => {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">考试时长(分钟) *</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">考试时长(分钟) *</Label>
               <input
                 type="number"
                 required
@@ -1243,7 +1227,7 @@ const ExamManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">总分 *</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">总分 *</Label>
               <input
                 type="number"
                 required
@@ -1255,7 +1239,7 @@ const ExamManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">及格分 *</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">及格分 *</Label>
               <input
                 type="number"
                 required
@@ -1268,7 +1252,7 @@ const ExamManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">状态 *</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">状态 *</Label>
             <select
               required
               value={formData.status}
@@ -1280,18 +1264,16 @@ const ExamManagement = () => {
               <option value="archived" disabled={editingExam?.status !== 'published'}>已归档</option>
             </select>
             <div className="mt-2 flex gap-2">
-              <button
-                type="button"
+              <Button type="button"
                 onClick={() => updateExamStatus(editingExam?.id || selectedExam?.id, editingExam?.status || selectedExam?.status, formData.status)}
                 className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >更新状态</button>
+              >更新状态</Button>
               <span className="text-xs text-gray-500 self-center">允许：草稿→已发布，已发布→已归档，已归档→已发布</span>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setShowModal(false)
                 resetForm()
@@ -1299,7 +1281,7 @@ const ExamManagement = () => {
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               取消
-            </button>
+            </Button>
             <button
               type="submit"
               disabled={loading}
@@ -1329,35 +1311,32 @@ const ExamManagement = () => {
           </div>
 
           <div className="border rounded-lg">
-            <table className="w-full table-auto">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">试卷标题</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">删除时间</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">操作</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full table-auto">
+              <TableHeader className="bg-gray-50 border-b">
+                <TableRow>
+                  <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700">试卷标题</TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700">删除时间</TableHead>
+                  <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-700">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {deletedExams.length === 0 ? (
-                  <tr><td colSpan="3" className="px-4 py-6 text-center text-gray-500">暂无删除的试卷</td></tr>
+                  <TableRow><TableCell colSpan="3" className="px-4 py-6 text-center text-gray-500">暂无删除的试卷</TableCell></TableRow>
                 ) : (
                   deletedExams.map((exam) => (
-                    <tr key={exam.id} className="border-b">
-                      <td className="px-4 py-3">{exam.title}</td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(exam.delete_time)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleRestoreExam(exam.id)}
-                          className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                        >
+                    <TableRow key={exam.id} className="border-b">
+                      <TableCell className="px-4 py-3">{exam.title}</TableCell>
+                      <TableCell className="px-4 py-3 text-gray-600">{formatDate(exam.delete_time)}</TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <Button onClick={() => handleRestoreExam(exam.id)} size="sm">
                           还原
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           <div className="flex items-center justify-between">
@@ -1378,7 +1357,7 @@ const ExamManagement = () => {
           </div>
 
           <div className="flex justify-end">
-            <button onClick={() => setShowRecycleBin(false)} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">关闭</button>
+            <Button onClick={() => setShowRecycleBin(false)}>关闭</Button>
           </div>
         </div>
       </Modal>
@@ -1390,10 +1369,10 @@ const ExamManagement = () => {
         size="medium"
         footer={(
           <div className="flex items-center justify-end gap-2 w-full">
-            <button onClick={downloadTemplateXlsx} className="px-4 py-2 border border-primary-300 text-primary-700 rounded hover:bg-primary-50">
+            <Button onClick={downloadTemplateXlsx}>
               {downloadingTpl ? `下载中 ${downloadProgress}%` : '下载导入模板'}
-            </button>
-            <button onClick={() => setShowImportModal(true)} className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">试题导入</button>
+            </Button>
+            <Button onClick={() => setShowImportModal(true)}>试题导入</Button>
             <button onClick={() => { setShowExamInfo(false); setExamInfo(null) }} className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">关闭</button>
           </div>
         )}
@@ -1420,7 +1399,7 @@ const ExamManagement = () => {
           <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50" onDragOver={(e)=>{e.preventDefault()}} onDrop={(e)=>{e.preventDefault(); const f=e.dataTransfer.files?.[0]; if(f) handleFileImport(f)}}>
             <div className="text-gray-700 mb-2">拖拽文件到此处，或点击选择文件</div>
             <input type="file" accept=".txt,.docx,.pdf" onChange={(e) => e.target.files?.[0] && handleFileImport(e.target.files[0])} className="hidden" id="import-file-input" />
-            <label htmlFor="import-file-input" className="inline-block px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 cursor-pointer">选择文件</label>
+            <Label htmlFor="import-file-input" className="inline-block px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 cursor-pointer">选择文件</Label>
             {importing && (
               <div className="mt-3 w-full bg-gray-200 rounded h-2">
                 <div className="bg-primary-600 h-2 rounded" style={{ width: `${importProgress}%` }}></div>
@@ -1430,7 +1409,7 @@ const ExamManagement = () => {
               <div className="mt-3 text-sm text-gray-700">成功 {importResult.success} · 失败 {importResult.failed}</div>
             )}
             <div className="mt-4 text-sm">
-              <button onClick={downloadTemplateXlsx} className="px-3 py-1.5 border border-primary-300 text-primary-700 rounded hover:bg-primary-50">下载导入模板</button>
+              <Button onClick={downloadTemplateXlsx} size="sm">下载导入模板</Button>
               <a href="#/knowledge-base" target="_blank" className="ml-3 text-primary-700 hover:underline">模板使用说明</a>
             </div>
           </div>
@@ -1449,7 +1428,7 @@ const ExamManagement = () => {
         footer={(
           <div className="w-full flex items-center justify-end gap-2">
             <button onClick={() => { setShowDeleteConfirm(false); setDeleteTargetId(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
-            <button onClick={confirmDeleteQuestion} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">确认删除</button>
+            <Button onClick={confirmDeleteQuestion} variant="destructive">确认删除</Button>
           </div>
         )}
       >
@@ -1466,7 +1445,7 @@ const ExamManagement = () => {
         footer={(
           <div className="w-full flex items-center justify-end gap-2">
             <button onClick={() => { setShowDeleteExamModal(false); setExamToDelete(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
-            <button onClick={confirmDeleteExam} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">确认删除</button>
+            <Button onClick={confirmDeleteExam} variant="destructive">确认删除</Button>
           </div>
         )}
       >
@@ -1491,8 +1470,8 @@ const ExamManagement = () => {
           <>
             <div className="text-sm text-gray-600">雷犀® 考核系统 · © 2025 LeiXi</div>
             <div className="flex items-center gap-2">
-              <button onClick={saveOrder} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">保存顺序</button>
-              <button onClick={undoLast} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">撤销</button>
+              <Button onClick={saveOrder}>保存顺序</Button>
+              <Button onClick={undoLast}>撤销</Button>
               <button
                 onClick={() => {
                   setShowEditorModal(false)
@@ -1635,7 +1614,7 @@ const ExamManagement = () => {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">题型选择</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">题型选择</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {typePalette.map((t) => (
                     <div
@@ -1653,7 +1632,7 @@ const ExamManagement = () => {
               </div>
               {/* 题目类型 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">题目类型</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">题目类型</Label>
                 <select
                   value={newQuestion.type}
                   onChange={(e) => setNewQuestion({ ...newQuestion, type: e.target.value })}
@@ -1669,9 +1648,8 @@ const ExamManagement = () => {
 
               {/* 题目内容 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">题目内容 *</label>
-                <textarea
-                  value={newQuestion.content}
+                <Label className="block text-sm font-medium text-gray-700 mb-2">题目内容 *</Label>
+                <Textarea value={newQuestion.content}
                   onChange={(e) => { setNewQuestion({ ...newQuestion, content: e.target.value }); if (editingQuestion && autoSave) { debouncedSave({ content: e.target.value }) } }}
                   rows="3"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
@@ -1682,7 +1660,7 @@ const ExamManagement = () => {
               {/* 选项（仅选择题和判断题） */}
               {newQuestion.type.includes('choice') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">选项</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">选项</Label>
                   <div className="space-y-2">
                     {newQuestion.options.map((option, index) => (
                       <div key={index} className="flex items-center gap-2">
@@ -1707,8 +1685,7 @@ const ExamManagement = () => {
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
+                  <Button type="button"
                     onClick={() => {
                       if (newQuestion.options.length < 6) {
                         setNewQuestion({
@@ -1720,18 +1697,17 @@ const ExamManagement = () => {
                     className="mt-2 text-sm text-primary-600 hover:text-primary-700"
                   >
                     + 添加选项
-                  </button>
+                  </Button>
                 </div>
               )}
 
               {newQuestion.type === 'true_false' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">选项</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">选项</Label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-600 w-6">A.</span>
-                      <input
-                        type="text"
+                      <Input type="text"
                         value="正确"
                         disabled
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
@@ -1739,8 +1715,7 @@ const ExamManagement = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-600 w-6">B.</span>
-                      <input
-                        type="text"
+                      <Input type="text"
                         value="错误"
                         disabled
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
@@ -1753,7 +1728,7 @@ const ExamManagement = () => {
               {/* 正确答案 */}
               {(newQuestion.type.includes('choice') || newQuestion.type === 'true_false') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">正确答案 *</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">正确答案 *</Label>
                   {newQuestion.type === 'multiple_choice' ? (
                     <input
                       type="text"
@@ -1789,15 +1764,14 @@ const ExamManagement = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">分值 *</label>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">分值 *</Label>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
+                  <Button type="button"
                     className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                     onClick={() => { const v = Math.max(1, (parseInt(newQuestion.score, 10) || 0) - 1); setNewQuestion({ ...newQuestion, score: v }); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
                   >
                     -
-                  </button>
+                  </Button>
                   <input
                     type="number"
                     min="1"
@@ -1806,13 +1780,12 @@ const ExamManagement = () => {
                     onChange={(e) => { const v = parseInt(e.target.value, 10) || 0; setNewQuestion({ ...newQuestion, score: v }); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                   />
-                  <button
-                    type="button"
+                  <Button type="button"
                     className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                     onClick={() => { const v = (parseInt(newQuestion.score, 10) || 0) + 1; setNewQuestion({ ...newQuestion, score: v }); if (editingQuestion && autoSave) { debouncedSave({ score: v }) } }}
                   >
                     +
-                  </button>
+                  </Button>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {[5, 10, 15, 20].map((v) => (
@@ -1830,9 +1803,8 @@ const ExamManagement = () => {
 
               {/* 解析 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">答案解析</label>
-                <textarea
-                  value={newQuestion.explanation}
+                <Label className="block text-sm font-medium text-gray-700 mb-2">答案解析</Label>
+                <Textarea value={newQuestion.explanation}
                   onChange={(e) => { setNewQuestion({ ...newQuestion, explanation: e.target.value }); if (editingQuestion && autoSave) { debouncedSave({ explanation: e.target.value }) } }}
                   rows="3"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
@@ -1840,12 +1812,9 @@ const ExamManagement = () => {
                 />
               </div>
 
-              <button
-                onClick={editingQuestion ? handleUpdateQuestion : handleAddQuestion}
-                className="w-full px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
+              <Button onClick={editingQuestion ? handleUpdateQuestion : handleAddQuestion}>
                 {editingQuestion ? '更新题目' : '➕ 添加题目'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1864,7 +1833,7 @@ const ExamManagement = () => {
           </div>
           <div className="text-sm text-gray-600">请调整题目分值或数量，使累计总分不超过试卷设置总分。</div>
           <div className="pt-2">
-            <button onClick={() => setScoreModalOpen(false)} className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">确认</button>
+            <Button onClick={() => setScoreModalOpen(false)}>确认</Button>
           </div>
         </div>
       </Modal>
@@ -1903,12 +1872,9 @@ const ExamManagement = () => {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => setShowPublishedWarning(false)}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
+            <Button onClick={() => setShowPublishedWarning(false)}>
               我知道了
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

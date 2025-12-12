@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 
@@ -204,19 +212,16 @@ export default function ShiftManagement() {
           <h1 className="text-2xl font-bold text-gray-800">班次管理</h1>
           <p className="text-gray-600 mt-1">管理工作班次和时间设置</p>
         </div>
-        <button
-          onClick={handleAdd}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
-        >
+        <Button onClick={handleAdd}>
           + 新建班次
-        </button>
+        </Button>
       </div>
 
       {/* 筛选栏 */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">部门</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">部门</Label>
             <select
               value={filters.department_id}
               onChange={(e) => handleFilterChange('department_id', e.target.value)}
@@ -231,7 +236,7 @@ export default function ShiftManagement() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">状态</Label>
             <select
               value={filters.is_active}
               onChange={(e) => handleFilterChange('is_active', e.target.value)}
@@ -244,7 +249,7 @@ export default function ShiftManagement() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">搜索</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-1">搜索</Label>
             <input
               type="text"
               value={filters.keyword}
@@ -345,24 +350,15 @@ export default function ShiftManagement() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(shift)}
-                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition-colors text-sm"
-                    >
+                    <Button onClick={() => handleEdit(shift)}>
                       编辑
-                    </button>
-                    <button
-                      onClick={() => handleToggle(shift.id)}
-                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded transition-colors text-sm"
-                    >
+                    </Button>
+                    <Button onClick={() => handleToggle(shift.id)}>
                       {shift.is_active ? '禁用' : '启用'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(shift.id)}
-                      className="px-4 bg-red-500 hover:bg-red-600 text-white py-2 rounded transition-colors text-sm"
-                    >
+                    </Button>
+                    <Button onClick={() => handleDelete(shift.id)} variant="destructive">
                       删除
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -397,20 +393,12 @@ export default function ShiftManagement() {
                   <span className="text-sm text-gray-600">
                     第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
                   </span>
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page === 1}
-                    className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <Button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1}>
                     上一页
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-                    className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  </Button>
+                  <Button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}>
                     下一页
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -435,9 +423,9 @@ export default function ShiftManagement() {
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
                     班次名称 <span className="text-red-500">*</span>
-                  </label>
+                  </Label>
                   <input
                     type="text"
                     required
@@ -449,9 +437,9 @@ export default function ShiftManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
                     所属部门
-                  </label>
+                  </Label>
                   <select
                     value={formData.department_id}
                     onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
@@ -467,9 +455,9 @@ export default function ShiftManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       上班时间 <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <input
                       type="time"
                       required
@@ -479,9 +467,9 @@ export default function ShiftManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       下班时间 <span className="text-red-500">*</span>
-                    </label>
+                    </Label>
                     <input
                       type="time"
                       required
@@ -493,9 +481,9 @@ export default function ShiftManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
                     休息时长（分钟）
-                  </label>
+                  </Label>
                   <input
                     type="number"
                     min="0"
@@ -512,9 +500,9 @@ export default function ShiftManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
                     工作时长（小时）
-                  </label>
+                  </Label>
                   <div className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-700 font-semibold">
                     {(() => {
                       if (!formData.start_time || !formData.end_time) return '0.0'
@@ -532,9 +520,9 @@ export default function ShiftManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       迟到阈值（分钟）
-                    </label>
+                    </Label>
                     <input
                       type="number"
                       min="0"
@@ -544,9 +532,9 @@ export default function ShiftManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
                       早退阈值（分钟）
-                    </label>
+                    </Label>
                     <input
                       type="number"
                       min="0"
@@ -558,11 +546,10 @@ export default function ShiftManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
                     班次描述
-                  </label>
-                  <textarea
-                    value={formData.description}
+                  </Label>
+                  <Textarea value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full border rounded px-3 py-2"
                     rows="3"
@@ -571,9 +558,9 @@ export default function ShiftManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">
                     班次颜色
-                  </label>
+                  </Label>
 
                   {/* 当前颜色和随机按钮 */}
                   <div className="flex items-center gap-3">
@@ -583,8 +570,7 @@ export default function ShiftManagement() {
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                       className="h-10 w-20 p-1 rounded border cursor-pointer"
                     />
-                    <button
-                      type="button"
+                    <Button type="button"
                       onClick={() => {
                         // 鲜艳的随机颜色
                         const vibrantColors = [
@@ -603,7 +589,7 @@ export default function ShiftManagement() {
                       style={{ backgroundColor: formData.color }}
                     >
                       随机
-                    </button>
+                    </Button>
                   </div>
 
                   {/* 鲜艳色系推荐 */}
@@ -639,9 +625,9 @@ export default function ShiftManagement() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="mr-2"
                   />
-                  <label htmlFor="is_active" className="text-sm text-gray-700">
+                  <Label htmlFor="is_active" className="text-sm text-gray-700">
                     启用此班次
-                  </label>
+                  </Label>
                 </div>
               </div>
 
@@ -652,13 +638,12 @@ export default function ShiftManagement() {
                 >
                   {editingShift ? '更新' : '创建'}
                 </button>
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded transition-colors"
                 >
                   取消
-                </button>
+                </Button>
               </div>
             </form>
           </div>

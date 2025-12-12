@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios';
 import { getApiUrl } from '../../utils/apiConfig';
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth';
@@ -331,12 +338,9 @@ const SmartSchedule = () => {
             </div>
             {!loading && (
               <div className="modal-footer">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="btn-close-modal"
-                >
+                <Button onClick={() => setShowModal(false)}>
                   关闭
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -348,7 +352,7 @@ const SmartSchedule = () => {
           <h3>基本设置</h3>
           <div className="form-row">
             <div className="form-group">
-              <label>部门</label>
+              <label>部门</Label>
               <select
                 className="department-selector"
                 value={selectedDepartment}
@@ -364,25 +368,23 @@ const SmartSchedule = () => {
               </select>
             </div>
             <div className="form-group">
-              <label>排班月份</label>
+              <label>排班月份</Label>
               <div className="month-selector">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={handlePrevMonth}
                   className="btn-month-nav"
                 >
                   ◀
-                </button>
+                </Button>
                 <div className="month-display">
                   {selectedMonth.year}年 {selectedMonth.month}月
                 </div>
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={handleNextMonth}
                   className="btn-month-nav"
                 >
                   ▶
-                </button>
+                </Button>
               </div>
               <div className="date-range-hint">
                 {startDate} 至 {endDate}
@@ -394,9 +396,9 @@ const SmartSchedule = () => {
         <div className="form-section">
           <div className="rules-header">
             <h3>排班规则</h3>
-            <button onClick={addRule} className="btn-add-rule">
+            <Button onClick={addRule}>
               ➕ 添加规则
-            </button>
+            </Button>
           </div>
 
           <div className="rules-list">
@@ -406,7 +408,7 @@ const SmartSchedule = () => {
 
                 <div className="rule-fields">
                   <div className="form-group">
-                    <label>客服</label>
+                    <label>客服</Label>
                     <select
                       value={rule.employee_id}
                       onChange={(e) => updateRule(rule.id, 'employee_id', e.target.value)}
@@ -421,7 +423,7 @@ const SmartSchedule = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>开始日期</label>
+                    <label>开始日期</Label>
                     <select
                       value={rule.start_day}
                       onChange={(e) => updateRule(rule.id, 'start_day', e.target.value)}
@@ -434,7 +436,7 @@ const SmartSchedule = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>结束日期</label>
+                    <label>结束日期</Label>
                     <select
                       value={rule.end_day}
                       onChange={(e) => updateRule(rule.id, 'end_day', e.target.value)}
@@ -450,7 +452,7 @@ const SmartSchedule = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>班次</label>
+                    <label>班次</Label>
                     <select
                       value={rule.shift_id}
                       onChange={(e) => updateRule(rule.id, 'shift_id', e.target.value)}
@@ -490,13 +492,9 @@ const SmartSchedule = () => {
         </div>
 
         <div className="form-actions">
-          <button
-            onClick={generateSchedule}
-            disabled={loading}
-            className="btn-generate"
-          >
+          <Button onClick={generateSchedule} disabled={loading}>
             {loading ? '生成中...' : '📥 生成并下载Excel排班方案'}
-          </button>
+          </Button>
         </div>
       </div>
 

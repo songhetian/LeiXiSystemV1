@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner';
 import api from '../api';
 import './PaperSelectorModal.css';
 
@@ -38,9 +44,9 @@ const PaperSelectorModal = ({ isOpen, onSelect, onClose }) => {
       <div className="modal-content paper-selector" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>选择试卷</h3>
-          <button onClick={onClose} className="close-btn">
+          <Button onClick={onClose}>
             <span className="material-icons">close</span>
-          </button>
+          </Button>
         </div>
 
         <div className="search-box">

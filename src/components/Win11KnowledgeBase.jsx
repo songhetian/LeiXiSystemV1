@@ -1,6 +1,13 @@
 ﻿﻿import React, { useState, useEffect, useCallback } from 'react';
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios';
 import { getApiUrl } from '../utils/apiConfig';
 import Win11ContextMenu from './Win11ContextMenu';
@@ -1078,20 +1085,12 @@ const Win11KnowledgeBase = () => {
                     </select>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setCurrentPage(1)}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
                       首页
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    </Button>
+                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                       上一页
-                    </button>
+                    </Button>
 
                     {[...Array(Math.min(5, folderTotalPages))].map((_, i) => {
                       let pageNum;
@@ -1119,20 +1118,12 @@ const Win11KnowledgeBase = () => {
                       );
                     })}
 
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(folderTotalPages, p + 1))}
-                      disabled={currentPage === folderTotalPages}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.min(folderTotalPages, p + 1))} disabled={currentPage === folderTotalPages}>
                       下一页
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(folderTotalPages)}
-                      disabled={currentPage === folderTotalPages}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    </Button>
+                    <Button onClick={() => setCurrentPage(folderTotalPages)} disabled={currentPage === folderTotalPages}>
                       末页
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1266,20 +1257,12 @@ const Win11KnowledgeBase = () => {
                     </select>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setCategoryCurrentPage(1)}
-                      disabled={categoryCurrentPage === 1}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={() => setCategoryCurrentPage(1)} disabled={categoryCurrentPage === 1}>
                       首页
-                    </button>
-                    <button
-                      onClick={() => setCategoryCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={categoryCurrentPage === 1}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    </Button>
+                    <Button onClick={() => setCategoryCurrentPage(p => Math.max(1, p - 1))} disabled={categoryCurrentPage === 1}>
                       上一页
-                    </button>
+                    </Button>
 
                     {[...Array(Math.min(5, categoryTotalPages))].map((_, i) => {
                       let pageNum;
@@ -1307,20 +1290,12 @@ const Win11KnowledgeBase = () => {
                       );
                     })}
 
-                    <button
-                      onClick={() => setCategoryCurrentPage(p => Math.min(categoryTotalPages, p + 1))}
-                      disabled={categoryCurrentPage === categoryTotalPages}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={() => setCategoryCurrentPage(p => Math.min(categoryTotalPages, p + 1))} disabled={categoryCurrentPage === categoryTotalPages}>
                       下一页
-                    </button>
-                    <button
-                      onClick={() => setCategoryCurrentPage(categoryTotalPages)}
-                      disabled={categoryCurrentPage === categoryTotalPages}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    </Button>
+                    <Button onClick={() => setCategoryCurrentPage(categoryTotalPages)} disabled={categoryCurrentPage === categoryTotalPages}>
                       末页
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1394,12 +1369,9 @@ const Win11KnowledgeBase = () => {
                     全屏
                   </button>
                 </div>
-                <button
-                  onClick={() => setPreviewFile(null)}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md ml-2 text-xl"
-                >
+                <Button onClick={() => setPreviewFile(null)} variant="ghost">
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1418,12 +1390,9 @@ const Win11KnowledgeBase = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end bg-gray-50">
-              <button
-                onClick={() => setPreviewFile(null)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
+              <Button onClick={() => setPreviewFile(null)}>
                 关闭
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1435,12 +1404,9 @@ const Win11KnowledgeBase = () => {
                 <div className="bg-white rounded-lg shadow-2xl flex flex-col w-full h-full" onClick={(e) => e.stopPropagation()}>
                   <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-gray-900 truncate">{attachmentToPreview.name}</h2>
-                    <button
-                      onClick={() => setAttachmentToPreview(null)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-                    >
+                    <Button onClick={() => setAttachmentToPreview(null)} variant="ghost">
                       ✕
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex-1 overflow-auto bg-gray-200 flex items-center justify-center">
                     {inferFileType(attachmentToPreview).startsWith('image/') && (
@@ -1463,12 +1429,9 @@ const Win11KnowledgeBase = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">文件操作</h2>
-              <button
-                onClick={() => setNonPreviewableFile(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
-              >
+              <Button onClick={() => setNonPreviewableFile(null)} variant="ghost">
                 ✕
-              </button>
+              </Button>
             </div>
             <div className="text-center space-y-3">
               <div className="text-5xl">
@@ -1492,12 +1455,9 @@ const Win11KnowledgeBase = () => {
                 <span>📥</span>
                 <span>下载文件</span>
               </button>
-              <button
-                onClick={() => setNonPreviewableFile(null)}
-                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
+              <Button onClick={() => setNonPreviewableFile(null)}>
                 取消
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1530,9 +1490,9 @@ const Win11KnowledgeBase = () => {
               )}
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   选择分类
-                </label>
+                </Label>
                 <select
                   value={targetCategory}
                   onChange={(e) => setTargetCategory(e.target.value)}
@@ -1550,9 +1510,9 @@ const Win11KnowledgeBase = () => {
 
               {targetCategory === 'new' && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">
                     新分类名称 *
-                  </label>
+                  </Label>
                   <input
                     type="text"
                     value={newCategoryName}
@@ -1575,13 +1535,9 @@ const Win11KnowledgeBase = () => {
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleSaveToMyKnowledge}
-                  disabled={loading || !targetCategory || (targetCategory === 'new' && !newCategoryName.trim())}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
+                <Button onClick={handleSaveToMyKnowledge} disabled={loading || !targetCategory || (targetCategory === 'new' && !newCategoryName.trim())}>
                   {loading ? '保存中...' : '保存'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1641,9 +1597,9 @@ const Win11KnowledgeBase = () => {
 
             <div className="p-6">
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   分类名称 *
-                </label>
+                </Label>
                 <input
                   type="text"
                   value={newCategoryName}
@@ -1664,13 +1620,9 @@ const Win11KnowledgeBase = () => {
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleCreateCategory}
-                  disabled={loading || !newCategoryName.trim()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
+                <Button onClick={handleCreateCategory} disabled={loading || !newCategoryName.trim()}>
                   {loading ? '创建中...' : '创建'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1697,9 +1649,9 @@ const Win11KnowledgeBase = () => {
 
             <div className="p-6">
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   选择目标分类
-                </label>
+                </Label>
                 <select
                   value={targetMoveCategory}
                   onChange={(e) => setTargetMoveCategory(e.target.value)}
@@ -1725,13 +1677,9 @@ const Win11KnowledgeBase = () => {
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleMoveArticle}
-                  disabled={loading || !targetMoveCategory}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
+                <Button onClick={handleMoveArticle} disabled={loading || !targetMoveCategory}>
                   {loading ? '移动中...' : '移动'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

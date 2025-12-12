@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import { getApiBaseUrl } from '../utils/apiConfig'
 import { CheckCircle, XCircle, Clock, Calendar, X, Search, Eye } from 'lucide-react'
 import { formatDate } from '../utils/date'
@@ -277,8 +285,7 @@ const CompensatoryApproval = () => {
               搜索
             </button>
             {(searchTerm || Object.values(dateFilters).some(v => v)) && (
-              <button
-                type="button"
+              <Button type="button"
                 onClick={() => {
                   setSearchTerm('')
                   setDateFilters({
@@ -292,13 +299,13 @@ const CompensatoryApproval = () => {
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 清除全部
-              </button>
+              </Button>
             )}
           </div>
 
           {/* 第二行: 部门选择 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">选择部门</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">选择部门</Label>
             <select
               value={selectedDepartment}
               onChange={(e) => {
@@ -317,7 +324,7 @@ const CompensatoryApproval = () => {
           {/* 第三行: 时间过滤器 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">申请时间</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">申请时间</Label>
               <div className="flex items-center gap-2">
                 <input
                   type="date"
@@ -336,7 +343,7 @@ const CompensatoryApproval = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">调休日期</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">调休日期</Label>
               <div className="flex items-center gap-2">
                 <input
                   type="date"
@@ -447,13 +454,10 @@ const CompensatoryApproval = () => {
                       <p className="text-xs text-gray-400">申请时间</p>
                       <p className="text-sm font-medium text-gray-600">{formatDateTime(request.created_at)}</p>
                     </div>
-                    <button
-                      onClick={() => openDetailModal(request)}
-                      className="flex items-center gap-2 px-5 py-2 bg-white border border-primary-200 text-primary-600 rounded-lg hover:bg-primary-50 hover:border-primary-300 transition-colors font-medium shadow-sm"
-                    >
+                    <Button onClick={() => openDetailModal(request)}>
                       <Eye size={18} />
                       审核详情
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -495,12 +499,9 @@ const CompensatoryApproval = () => {
             {/* 弹窗标题 */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-800">调休申请详情</h2>
-              <button
-                onClick={closeDetailModal}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <Button onClick={closeDetailModal} variant="ghost">
                 <X size={24} className="text-gray-500" />
-              </button>
+              </Button>
             </div>
 
             {/* 弹窗内容 */}
@@ -510,19 +511,19 @@ const CompensatoryApproval = () => {
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">申请人信息</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-500">姓名</label>
+                    <Label className="text-xs text-gray-500">姓名</Label>
                     <p className="text-sm font-medium text-gray-900">{selectedRequest.employee_name}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">工号</label>
+                    <Label className="text-xs text-gray-500">工号</Label>
                     <p className="text-sm font-medium text-gray-900">{selectedRequest.employee_no}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">部门</label>
+                    <Label className="text-xs text-gray-500">部门</Label>
                     <p className="text-sm font-medium text-gray-900">{selectedRequest.department_name}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">申请时间</label>
+                    <Label className="text-xs text-gray-500">申请时间</Label>
                     <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedRequest.created_at)}</p>
                   </div>
                 </div>
@@ -533,7 +534,7 @@ const CompensatoryApproval = () => {
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">调休信息</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-500">原排班日期</label>
+                    <Label className="text-xs text-gray-500">原排班日期</Label>
                     <p className="text-sm font-medium text-gray-900">{formatDate(selectedRequest.original_schedule_date)}</p>
                     {selectedRequest.original_shift_name && (
                       <p className="text-xs text-gray-500 mt-1">
@@ -542,7 +543,7 @@ const CompensatoryApproval = () => {
                     )}
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">调休至</label>
+                    <Label className="text-xs text-gray-500">调休至</Label>
                     <p className="text-sm font-medium text-gray-900">{formatDate(selectedRequest.new_schedule_date)}</p>
                     {selectedRequest.new_shift_name && (
                       <p className="text-xs text-gray-500 mt-1">
@@ -555,17 +556,16 @@ const CompensatoryApproval = () => {
 
               {/* 申请理由 */}
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">申请理由</label>
+                <Label className="text-sm font-semibold text-gray-700 mb-2 block">申请理由</Label>
                 <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedRequest.reason || '无'}</p>
               </div>
 
               {/* 审批备注 */}
               {/* 审批备注 */}
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">审批备注</label>
+                <Label className="text-sm font-semibold text-gray-700 mb-2 block">审批备注</Label>
                 {selectedRequest.status === 'pending' ? (
-                  <textarea
-                    value={approvalNote}
+                  <Textarea value={approvalNote}
                     onChange={(e) => setApprovalNote(e.target.value)}
                     placeholder="请输入审批备注(拒绝时必填)..."
                     rows={3}
@@ -581,32 +581,20 @@ const CompensatoryApproval = () => {
 
             {/* 弹窗操作按钮 */}
             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={closeDetailModal}
-                disabled={processing}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-              >
+              <Button onClick={closeDetailModal} disabled={processing}>
                 {selectedRequest.status === 'pending' ? '取消' : '关闭'}
-              </button>
+              </Button>
 
               {selectedRequest.status === 'pending' && (
                 <>
-                  <button
-                    onClick={handleReject}
-                    disabled={processing}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
+                  <Button onClick={handleReject} disabled={processing} variant="destructive">
                     <XCircle size={18} />
                     {processing === selectedRequest.id ? '处理中...' : '拒绝'}
-                  </button>
-                  <button
-                    onClick={handleApprove}
-                    disabled={processing}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
-                  >
+                  </Button>
+                  <Button onClick={handleApprove} disabled={processing}>
                     <CheckCircle size={18} />
                     {processing === selectedRequest.id ? '处理中...' : '通过'}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

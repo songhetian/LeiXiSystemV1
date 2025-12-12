@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     XMarkIcon,
     ChatBubbleLeftRightIcon,
@@ -11,7 +18,7 @@ import {
     SwatchIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI';
 import Modal from './Modal';
 import TagSelector from './TagSelector';
@@ -422,12 +429,9 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                                 />
                             ))}
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-                        >
+                        <Button onClick={onClose} variant="ghost">
                             <XMarkIcon className="w-6 h-6" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -645,8 +649,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                                             质检评语
                                         </h3>
                                         <div className="py-2">
-                                            <textarea
-                                                className="w-full h-40 p-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none resize-none text-sm transition-all shadow-sm"
+                                            <Textarea className="w-full h-40 p-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none resize-none text-sm transition-all shadow-sm"
                                                 placeholder="请输入质检评语..."
                                                 value={editContent}
                                                 onChange={(e) => setEditContent(e.target.value)}
@@ -691,21 +694,15 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                                         <PencilSquareIcon className="w-4 h-4" />
                                         修改消息
                                     </button>
-                                    <button
-                                        onClick={handleOpenAddToCase}
-                                        className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-                                    >
+                                    <Button onClick={handleOpenAddToCase} variant="outline">
                                         <BookmarkSquareIcon className="w-4 h-4" />
                                         加入案例
-                                    </button>
+                                    </Button>
                                 </div>
-                                <button
-                                    onClick={() => setShowConfirmSave(true)}
-                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                                >
+                                <Button onClick={() => setShowConfirmSave(true)}>
                                     <CheckCircleIcon className="w-5 h-5" />
                                     保存所有修改
-                                </button>
+                                </Button>
                             </div>
                         )}
                     </div>
@@ -726,20 +723,13 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                 <div className="py-4">
                     <p className="text-gray-600 mb-4">确定要保存对该会话的所有修改吗？</p>
                     <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setShowConfirmSave(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
+                        <Button onClick={() => setShowConfirmSave(false)} variant="ghost">
                             取消
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                        >
+                        </Button>
+                        <Button onClick={handleSave} disabled={isSaving}>
                             {isSaving && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
                             确认保存
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -756,19 +746,15 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                     <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-3 text-sm text-yellow-800">
                         注意：此操作将永久修改数据库中的消息内容。
                     </div>
-                    <textarea
-                        className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none resize-none"
+                    <Textarea className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none resize-none"
                         placeholder="在此编辑消息内容..."
                         value={messageEditContent}
                         onChange={(e) => setMessageEditContent(e.target.value)}
                     />
                     <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setShowEditSession(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
+                        <Button onClick={() => setShowEditSession(false)} variant="ghost">
                             取消
-                        </button>
+                        </Button>
                         <button
                             onClick={async () => {
                                 if (selectedMessageId && messageEditContent.trim()) {
@@ -814,7 +800,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
             >
                 <div className="py-4 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">案例标题</label>
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">案例标题</Label>
                         <input
                             type="text"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
@@ -824,7 +810,7 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">选择分类</label>
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">选择分类</Label>
                         <select
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
                             value={caseForm.category}
@@ -837,27 +823,20 @@ const SessionDetailModal = ({ isOpen, onClose, session, initialMessages = [], re
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">备注说明</label>
-                        <textarea
-                            className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">备注说明</Label>
+                        <Textarea className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 resize-none"
                             placeholder="请输入备注说明..."
                             value={caseForm.description}
                             onChange={(e) => setCaseForm({ ...caseForm, description: e.target.value })}
                         />
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
-                        <button
-                            onClick={() => setShowAddToCase(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
+                        <Button onClick={() => setShowAddToCase(false)} variant="ghost">
                             取消
-                        </button>
-                        <button
-                            onClick={handleAddToCase}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
+                        </Button>
+                        <Button onClick={handleAddToCase}>
                             确认添加
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal >

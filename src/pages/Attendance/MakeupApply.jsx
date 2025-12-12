@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion } from 'framer-motion'
 import { DatePicker, TimePicker, Input } from 'antd';
@@ -164,7 +171,7 @@ export default function MakeupApply() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
                 {/* 补卡日期 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">补卡日期</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">补卡日期</Label>
                   <DatePicker
                     className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm"
                     onChange={(date, dateString) => handleDateChange(date, dateString, 'record_date')}
@@ -181,7 +188,7 @@ export default function MakeupApply() {
 
                 {/* 打卡类型 */}
                 <div className={isRestDay ? 'opacity-50 pointer-events-none' : ''}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">打卡类型</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">打卡类型</Label>
                   <div className="grid grid-cols-2 gap-4">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -216,7 +223,7 @@ export default function MakeupApply() {
 
                 {/* 补卡时间 */}
                 <div className={isRestDay ? 'opacity-50 pointer-events-none' : ''}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">补卡时间</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">补卡时间</Label>
                   <TimePicker
                     className="w-full h-[42px] rounded-xl border-gray-200 shadow-sm"
                     onChange={(time, timeString) => handleTimeChange(time, timeString, 'clock_time')}
@@ -228,7 +235,7 @@ export default function MakeupApply() {
 
                 {/* 补卡原因 */}
                 <div className={isRestDay ? 'opacity-50 pointer-events-none' : ''}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">补卡原因</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">补卡原因</Label>
                   <Input.TextArea
                     rows={4}
                     value={formData.reason}
@@ -243,13 +250,12 @@ export default function MakeupApply() {
 
               {/* 提交按钮 */}
               <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => window.history.back()}
                   className="px-6 py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   取消
-                </button>
+                </Button>
                 <button
                   type="submit"
                   disabled={loading || isRestDay}

@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig';
 import {
   SpeakerWaveIcon,
@@ -212,15 +219,12 @@ export default function BroadcastList() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={loadBroadcasts}
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-medium shadow-md flex items-center gap-2"
-              >
+              <Button onClick={loadBroadcasts}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                 </svg>
                 刷新
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -290,14 +294,11 @@ export default function BroadcastList() {
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-              >
+              <Button onClick={() => setShowFilters(!showFilters)}>
                 <FunnelIcon className="w-4 h-4" />
                 筛选选项
                 {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-              </button>
+              </Button>
 
               {/* 筛选器指示器 */}
               {(filters.type || filters.isRead) && (
@@ -311,13 +312,10 @@ export default function BroadcastList() {
 
             {/* 清除筛选按钮 */}
             {(filters.type || filters.isRead || quickFilter) && (
-              <button
-                onClick={clearFilters}
-                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1 text-sm font-medium"
-              >
+              <Button onClick={clearFilters} variant="ghost">
                 <XMarkIcon className="w-4 h-4" />
                 清除筛选
-              </button>
+              </Button>
             )}
           </div>
 
@@ -326,7 +324,7 @@ export default function BroadcastList() {
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">广播类型</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">广播类型</Label>
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                     value={filters.type}
@@ -345,7 +343,7 @@ export default function BroadcastList() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">阅读状态</label>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">阅读状态</Label>
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                     value={filters.isRead}
@@ -395,15 +393,12 @@ export default function BroadcastList() {
                     : "目前没有任何广播消息"}
                 </p>
                 <div className="mt-8">
-                  <button
-                    onClick={loadBroadcasts}
-                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
-                  >
+                  <Button onClick={loadBroadcasts}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                     </svg>
                     重新加载
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -569,12 +564,9 @@ export default function BroadcastList() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-white/50 rounded-lg transition-colors"
-              >
+              <Button onClick={() => setShowModal(false)}>
                 <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
+              </Button>
             </div>
 
             {/* 模态框内容 */}
@@ -601,12 +593,9 @@ export default function BroadcastList() {
 
             {/* 模态框底部 */}
             <div className="px-8 py-5 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-              >
+              <Button onClick={() => setShowModal(false)}>
                 关闭
-              </button>
+              </Button>
             </div>
           </div>
         </div>

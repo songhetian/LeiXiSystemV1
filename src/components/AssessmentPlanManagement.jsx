@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner';
 import api from '../api';
 import Modal from './Modal';
 import { getApiUrl } from '../utils/apiConfig';
@@ -260,7 +268,7 @@ const AssessmentPlanManagement = () => {
         <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">部门</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">部门</Label>
               <select
                 value={selectedDepartment || ''}
                 onChange={(e) => { setSelectedDepartment(e.target.value ? parseInt(e.target.value) : null); setCurrentPage(1); }}
@@ -273,9 +281,8 @@ const AssessmentPlanManagement = () => {
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">关键字搜索</label>
-              <input
-                type="text"
+              <Label className="block text-sm font-medium text-gray-700 mb-2">关键字搜索</Label>
+              <Input type="text"
                 placeholder="输入关键字搜索"
                 value={keyword}
                 onChange={handleKeywordChange}
@@ -379,12 +386,9 @@ const AssessmentPlanManagement = () => {
                   >
                     编辑
                   </button>
-                  <button
-                    onClick={() => handleDeletePlan(plan.id)}
-                    className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                  >
+                  <Button onClick={() => handleDeletePlan(plan.id)} variant="destructive" size="sm">
                     删除
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))
@@ -408,23 +412,15 @@ const AssessmentPlanManagement = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-4 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
+              <Button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                 上一页
-              </button>
+              </Button>
               <span className="px-4 py-1.5 text-gray-700 text-sm">
                 第 {currentPage} / {totalPages} 页
               </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-4 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
+              <Button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                 下一页
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -441,7 +437,7 @@ const AssessmentPlanManagement = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">计划标题 *</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">计划标题 *</Label>
             <input
               type="text"
               required
@@ -453,9 +449,8 @@ const AssessmentPlanManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">计划描述</label>
-            <textarea
-              value={formData.description}
+            <Label className="block text-sm font-medium text-gray-700 mb-2">计划描述</Label>
+            <Textarea value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows="3"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -464,7 +459,7 @@ const AssessmentPlanManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">关联试卷 *</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">关联试卷 *</Label>
             <select
               required
               value={formData.exam_id}
@@ -480,7 +475,7 @@ const AssessmentPlanManagement = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">开始时间 *</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">开始时间 *</Label>
               <input
                 type="datetime-local"
                 required
@@ -490,7 +485,7 @@ const AssessmentPlanManagement = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">结束时间 *</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">结束时间 *</Label>
               <input
                 type="datetime-local"
                 required
@@ -502,14 +497,14 @@ const AssessmentPlanManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">目标部门 * (可多选)</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">目标部门 * (可多选)</Label>
             <div className="border border-gray-300 rounded-lg p-3 max-h-60 overflow-y-auto bg-white">
               {departments.length === 0 ? (
                 <p className="text-gray-500 text-sm">暂无部门数据</p>
               ) : (
                 <div className="space-y-2">
                   {departments.map((dept) => (
-                    <label key={dept.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
+                    <Label key={dept.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
                       <input
                         type="checkbox"
                         value={dept.id}
@@ -526,7 +521,7 @@ const AssessmentPlanManagement = () => {
                         className="form-checkbox h-4 w-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
                       />
                       <span className="text-sm text-gray-800">{dept.name}</span>
-                    </label>
+                    </Label>
                   ))}
                 </div>
               )}
@@ -538,7 +533,7 @@ const AssessmentPlanManagement = () => {
           </div>
 
           <div>
-            <label className="block text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <Label className="block text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
               最大尝试次数 *
               <span className="group relative">
                 <svg className="w-5 h-5 text-gray-400 hover:text-primary-600 cursor-help transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -554,7 +549,7 @@ const AssessmentPlanManagement = () => {
                   <div className="absolute -top-2 left-4 w-4 h-4 bg-gray-900 transform rotate-45"></div>
                 </div>
               </span>
-            </label>
+            </Label>
             <input
               type="number"
               required
@@ -571,8 +566,7 @@ const AssessmentPlanManagement = () => {
           {/* Status selection removed as it is determined by time */}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setShowModal(false);
                 resetForm();
@@ -580,7 +574,7 @@ const AssessmentPlanManagement = () => {
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               取消
-            </button>
+            </Button>
             <button
               type="submit"
               disabled={loading}
@@ -684,8 +678,7 @@ const AssessmentPlanManagement = () => {
             <p className="text-sm text-red-600 mt-2">此操作不可撤销</p>
           </div>
           <div className="confirm-actions">
-            <button
-              type="button"
+            <Button type="button"
               onClick={() => {
                 setShowDeleteModal(false);
                 setPlanToDelete(null);
@@ -693,14 +686,13 @@ const AssessmentPlanManagement = () => {
               className="btn-secondary"
             >
               取消
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button type="button"
               onClick={confirmDeletePlan}
               className="btn-danger"
             >
               确认删除
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

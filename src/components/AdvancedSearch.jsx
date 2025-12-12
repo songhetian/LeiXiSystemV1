@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { useDebounce } from '../hooks/useDebounce'
 import { getApiBaseUrl } from '../utils/apiConfig'
@@ -277,12 +285,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">🔍 高级搜索</h2>
               <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">多维度搜索知识文档</p>
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors flex-shrink-0 ml-2"
-            >
+            <Button onClick={onClose} variant="ghost">
               ✕
-            </button>
+            </Button>
           </div>
         )}
 
@@ -291,9 +296,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
           <div className="space-y-3 sm:space-y-4">
             {/* 关键词搜索 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
                 关键词搜索
-              </label>
+              </Label>
               <input
                 type="text"
                 value={keyword}
@@ -310,17 +315,16 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
               {/* 分类筛选 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   分类筛选 ({selectedCategories.length} 个已选)
-                </label>
+                </Label>
                 <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto bg-white">
                   {categories.length === 0 ? (
                     <p className="text-sm text-gray-500">暂无分类</p>
                   ) : (
                     <div className="space-y-2">
                       {categories.map(category => (
-                        <label
-                          key={category.id}
+                        <Label key={category.id}
                           className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
                         >
                           <input
@@ -332,7 +336,7 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                           <span className="text-sm">
                             {category.icon} {category.name}
                           </span>
-                        </label>
+                        </Label>
                       ))}
                     </div>
                   )}
@@ -341,14 +345,13 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
 
               {/* 类型筛选 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   类型筛选 ({selectedTypes.length} 个已选)
-                </label>
+                </Label>
                 <div className="border border-gray-300 rounded-lg p-3 bg-white">
                   <div className="space-y-2">
                     {typeOptions.map(option => (
-                      <label
-                        key={option.value}
+                      <Label key={option.value}
                         className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
                       >
                         <input
@@ -358,7 +361,7 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                           className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
                         />
                         <span className="text-sm">{option.label}</span>
-                      </label>
+                      </Label>
                     ))}
                   </div>
                 </div>
@@ -366,14 +369,13 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
 
               {/* 状态筛选 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   状态筛选 ({selectedStatuses.length} 个已选)
-                </label>
+                </Label>
                 <div className="border border-gray-300 rounded-lg p-3 bg-white">
                   <div className="space-y-2">
                     {statusOptions.map(option => (
-                      <label
-                        key={option.value}
+                      <Label key={option.value}
                         className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
                       >
                         <input
@@ -383,7 +385,7 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                           className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
                         />
                         <span className="text-sm">{option.label}</span>
-                      </label>
+                      </Label>
                     ))}
                   </div>
                 </div>
@@ -391,9 +393,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
 
               {/* 日期范围筛选 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   日期范围筛选
-                </label>
+                </Label>
                 <div className="border border-gray-300 rounded-lg p-3 bg-white space-y-2">
                   <select
                     value={dateRange.field}
@@ -430,9 +432,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
             {/* 排序选项 */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   排序方式
-                </label>
+                </Label>
                 <select
                   value={sortBy}
                   onChange={(e) => {
@@ -449,9 +451,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                 </select>
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   排序顺序
-                </label>
+                </Label>
                 <select
                   value={sortOrder}
                   onChange={(e) => {
@@ -465,12 +467,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                 </select>
               </div>
               <div className="w-full sm:w-auto">
-                <button
-                  onClick={handleReset}
-                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm sm:text-base"
-                >
+                <Button onClick={handleReset} variant="ghost">
                   🔄 重置
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -488,12 +487,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               <div className="text-6xl mb-4">⚠️</div>
               <p className="text-gray-700 text-lg font-medium mb-2">搜索出错</p>
               <p className="text-gray-500 text-sm mb-4">{error}</p>
-              <button
-                onClick={handleRetry}
-                className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
+              <Button onClick={handleRetry}>
                 🔄 重试
-              </button>
+              </Button>
             </div>
           ) : (
             <>
@@ -674,14 +670,10 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
               {/* 分页 */}
               {getTotalPages() > 1 && (
                 <div className="mt-4 sm:mt-6 flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={prevPage}
-                    disabled={currentPage === 1}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base"
-                  >
+                  <Button onClick={prevPage} disabled={currentPage === 1}>
                     <span className="hidden sm:inline">← 上一页</span>
                     <span className="sm:hidden">←</span>
-                  </button>
+                  </Button>
 
                   {[...Array(Math.min(getTotalPages(), 5))].map((_, i) => {
                     let pageNum
@@ -711,14 +703,10 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
                     )
                   })}
 
-                  <button
-                    onClick={nextPage}
-                    disabled={currentPage === getTotalPages()}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base"
-                  >
+                  <Button onClick={nextPage} disabled={currentPage === getTotalPages()}>
                     <span className="hidden sm:inline">下一页 →</span>
                     <span className="sm:hidden">→</span>
-                  </button>
+                  </Button>
 
                   <div className="text-sm text-gray-600 ml-4">
                     共 {totalResults} 条结果
@@ -731,12 +719,9 @@ const AdvancedSearch = ({ isOpen, onClose, embedded = false, onSearch, onEdit, o
 
         {/* 底部操作栏 */}
         <div className="p-3 sm:p-4 border-t border-gray-200 flex items-center justify-end gap-2 sm:gap-3 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm sm:text-base"
-          >
+          <Button onClick={onClose} variant="ghost">
             关闭
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,5 +1,11 @@
 import React from 'react'
-import { toast } from 'react-toastify'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import CompensatoryLeaveModal from './CompensatoryLeaveModal'
 
 const CompensatoryApply = () => {
@@ -31,12 +37,9 @@ const CompensatoryApply = () => {
               </ul>
             </div>
 
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-8 py-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl"
-            >
+            <Button onClick={() => setShowModal(true)} size="lg">
               开始申请调休
-            </button>
+            </Button>
           </div>
         </div>
       </div>

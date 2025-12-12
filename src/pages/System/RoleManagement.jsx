@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Popconfirm, Drawer, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
@@ -764,7 +772,7 @@ const RoleManagement = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板名称</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">模板名称</Label>
               <Input
                 value={templateForm.name}
                 onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
@@ -772,7 +780,7 @@ const RoleManagement = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板描述</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">模板描述</Label>
               <Input
                 value={templateForm.description}
                 onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
@@ -792,7 +800,7 @@ const RoleManagement = () => {
                     {modulePerms.map(perm => {
                       const checked = templateForm.permission_ids.includes(perm.id);
                       return (
-                        <label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
+                        <Label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -806,7 +814,7 @@ const RoleManagement = () => {
                             }}
                           />
                           <span>{perm.description}</span>
-                        </label>
+                        </Label>
                       );
                     })}
                   </div>
@@ -856,7 +864,7 @@ const RoleManagement = () => {
             <div className="text-sm font-medium text-gray-700 mb-2">已有模板</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
               {customTemplates.map(tpl => (
-                <label key={tpl.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <Label key={tpl.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                   <input
                     type="radio"
                     name="tplPick"
@@ -876,7 +884,7 @@ const RoleManagement = () => {
                   <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
                     {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
                   </span>
-                </label>
+                </Label>
               ))}
               {customTemplates.length === 0 && (
                 <div className="text-sm text-gray-400 col-span-2 text-center py-4">暂无模板</div>
@@ -901,8 +909,7 @@ const RoleManagement = () => {
           <div className="text-sm font-medium text-gray-700">选择模板</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {BUILTIN_TEMPLATES.map(tpl => (
-              <label
-                key={tpl.key}
+              <Label key={tpl.key}
                 className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
                   selectedTemplateKey === tpl.key
                     ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-100'
@@ -922,11 +929,10 @@ const RoleManagement = () => {
                     {tpl.modules.map(m => moduleNames[m] || m).join('、')}
                   </div>
                 </div>
-              </label>
+              </Label>
             ))}
             {customTemplates.map(tpl => (
-              <label
-                key={`custom-${tpl.id}`}
+              <Label key={`custom-${tpl.id}`}
                 className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
                   selectedTemplateKey === `custom:${tpl.id}`
                     ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-100'
@@ -947,7 +953,7 @@ const RoleManagement = () => {
                 <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
                   {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
                 </span>
-              </label>
+              </Label>
             ))}
           </div>
 
@@ -969,9 +975,9 @@ const RoleManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">应用方式</label>
+            <Label className="block text-sm font-medium text-gray-700 mb-2">应用方式</Label>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
+              <Label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
                   name="applyMode"
@@ -980,8 +986,8 @@ const RoleManagement = () => {
                   onChange={() => setTemplateApplyMode('merge')}
                 />
                 合并追加（不删除已有权限）
-              </label>
-              <label className="flex items-center gap-2 text-sm">
+              </Label>
+              <Label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
                   name="applyMode"
@@ -990,7 +996,7 @@ const RoleManagement = () => {
                   onChange={() => setTemplateApplyMode('replace')}
                 />
                 覆盖替换（将替换为模板权限）
-              </label>
+              </Label>
             </div>
           </div>
 
@@ -1031,8 +1037,7 @@ const RoleManagement = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
             {departments.map(dept => (
-              <label
-                key={dept.id}
+              <Label key={dept.id}
                 className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                   batchSelectedDepartments.includes(dept.id)
                     ? 'border-primary-500 bg-primary-50'
@@ -1056,7 +1061,7 @@ const RoleManagement = () => {
                     <div className="text-xs text-gray-500 mt-0.5">{dept.description}</div>
                   )}
                 </div>
-              </label>
+              </Label>
             ))}
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -1084,7 +1089,7 @@ const RoleManagement = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">前缀</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">前缀</Label>
               <Input
                 value={clonePrefix}
                 onChange={(e) => setClonePrefix(e.target.value)}
@@ -1092,7 +1097,7 @@ const RoleManagement = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">后缀</label>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">后缀</Label>
               <Input
                 value={cloneSuffix}
                 onChange={(e) => setCloneSuffix(e.target.value)}
@@ -1100,14 +1105,14 @@ const RoleManagement = () => {
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
+          <Label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={cloneCopyDepartments}
               onChange={(e) => setCloneCopyDepartments(e.target.checked)}
             />
             克隆时复制部门可见范围
-          </label>
+          </Label>
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
             <Button type="primary">开始克隆</Button>

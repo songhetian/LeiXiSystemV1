@@ -1,4 +1,10 @@
 import React from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 /**
  * 错误边界组件
@@ -66,18 +72,12 @@ class ErrorBoundary extends React.Component {
             )}
 
             <div className="flex gap-3">
-              <button
-                onClick={this.handleReset}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors"
-              >
+              <Button onClick={this.handleReset}>
                 重试
-              </button>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded transition-colors"
-              >
+              </Button>
+              <Button onClick={() => window.location.href = '/'}>
                 返回首页
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -100,12 +100,9 @@ export function ErrorMessage({ message, onRetry }) {
       <h3 className="text-lg font-semibold text-red-800 mb-2">出错了</h3>
       <p className="text-red-600 mb-4">{message || '加载失败，请重试'}</p>
       {onRetry && (
-        <button
-          onClick={onRetry}
-          className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded transition-colors"
-        >
+        <Button onClick={onRetry} variant="destructive">
           重试
-        </button>
+        </Button>
       )}
     </div>
   )

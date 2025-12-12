@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { categoryIcons } from '../utils/iconOptions'
 import RecycleBin from './RecycleBin'
@@ -583,13 +590,9 @@ const KnowledgeFolderView = () => {
                       共 {categories.length} 个分类，第 {categoryPage} / {getCategoryTotalPages()} 页
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setCategoryPage(p => Math.max(1, p - 1))}
-                        disabled={categoryPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                      <Button onClick={() => setCategoryPage(p => Math.max(1, p - 1))} disabled={categoryPage === 1}>
                         ← 上一页
-                      </button>
+                      </Button>
 
                       {[...Array(Math.min(getCategoryTotalPages(), 5))].map((_, i) => {
                         let pageNum
@@ -619,13 +622,9 @@ const KnowledgeFolderView = () => {
                         )
                       })}
 
-                      <button
-                        onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))}
-                        disabled={categoryPage === getCategoryTotalPages()}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                      <Button onClick={() => setCategoryPage(p => Math.min(getCategoryTotalPages(), p + 1))} disabled={categoryPage === getCategoryTotalPages()}>
                         下一页 →
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -650,12 +649,9 @@ const KnowledgeFolderView = () => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => setShowFolderModal(false)}
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-700 transition-all shadow-md text-2xl"
-              >
+              <Button onClick={() => setShowFolderModal(false)} variant="ghost">
                 ✕
-              </button>
+              </Button>
             </div>
 
             {/* 操作栏 */}
@@ -799,13 +795,9 @@ const KnowledgeFolderView = () => {
                     第 {currentPage} / {getTotalPages()} 页
                   </div>
                   <div className="flex gap-3 flex-wrap">
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg font-medium shadow-sm"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                       ← 上一页
-                    </button>
+                    </Button>
 
                     {[...Array(Math.min(getTotalPages(), 5))].map((_, i) => {
                       let pageNum
@@ -835,13 +827,9 @@ const KnowledgeFolderView = () => {
                       )
                     })}
 
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))}
-                      disabled={currentPage === getTotalPages()}
-                      className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg font-medium shadow-sm"
-                    >
+                    <Button onClick={() => setCurrentPage(p => Math.min(getTotalPages(), p + 1))} disabled={currentPage === getTotalPages()}>
                       下一页 →
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -894,12 +882,9 @@ const KnowledgeFolderView = () => {
                     ↕️
                   </button>
                 </div>
-                <button
-                  onClick={() => setShowArticleModal(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                >
+                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
                   ✕
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -986,12 +971,9 @@ const KnowledgeFolderView = () => {
               )}
 
               <div className="p-6 border-t border-gray-200 flex items-center justify-end">
-                <button
-                  onClick={() => setShowArticleModal(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-                >
+                <Button onClick={() => setShowArticleModal(false)} variant="ghost">
                   关闭
-                </button>
+                </Button>
               </div>
           </div>
         </div>
@@ -1009,9 +991,9 @@ const KnowledgeFolderView = () => {
 
             <form onSubmit={handleCategorySubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   分类名称 *
-                </label>
+                </Label>
                 <input
                   type="text"
                   value={categoryFormData.name}
@@ -1022,9 +1004,9 @@ const KnowledgeFolderView = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   图标
-                </label>
+                </Label>
                 <div className="flex gap-2 items-center">
                   <select
                     value={categoryFormData.icon}
@@ -1045,11 +1027,10 @@ const KnowledgeFolderView = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
                   描述
-                </label>
-                <textarea
-                  value={categoryFormData.description}
+                </Label>
+                <Textarea value={categoryFormData.description}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
@@ -1058,8 +1039,7 @@ const KnowledgeFolderView = () => {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => {
                     setShowCategoryModal(false)
                     resetCategoryForm()
@@ -1067,7 +1047,7 @@ const KnowledgeFolderView = () => {
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   取消
-                </button>
+                </Button>
                 <button
                   type="submit"
                   disabled={loading}

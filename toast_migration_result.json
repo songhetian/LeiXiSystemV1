@@ -1,0 +1,15 @@
+{
+  "stats": {
+    "processed": 180,
+    "modified": 78,
+    "errors": 0,
+    "toast_calls": {
+      "success": 163,
+      "error": 283,
+      "warning": 20,
+      "info": 6,
+      "promise": 0
+    }
+  },
+  "migration": "react-toastify to Sonner"
+}

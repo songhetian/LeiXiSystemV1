@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import axios from 'axios';
 import { getApiUrl } from '../utils/apiConfig';
 
@@ -126,18 +132,12 @@ const LearningTaskTracker = () => {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => markTaskAsCompleted(task.id)}
-                          className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"
-                        >
+                        <Button onClick={() => markTaskAsCompleted(task.id)} size="sm">
                           标记完成
-                        </button>
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
-                        >
+                        </Button>
+                        <Button onClick={() => deleteTask(task.id)} variant="destructive" size="sm">
                           删除
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -164,12 +164,9 @@ const LearningTaskTracker = () => {
                           <span>完成时间: {new Date(task.completed_at).toLocaleString()}</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
-                      >
+                      <Button onClick={() => deleteTask(task.id)} variant="destructive" size="sm">
                         删除
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))

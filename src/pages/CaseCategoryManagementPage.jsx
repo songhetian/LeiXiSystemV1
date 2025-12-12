@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 import Modal from '../components/Modal';
 
@@ -128,53 +136,47 @@ const CaseCategoryManagementPage = () => {
             <h2 className="business-card-title">案例分类管理</h2>
             <p className="text-gray-500 text-sm mt-1">共 {categories.length} 个分类</p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="business-btn business-btn-primary"
-          >
+          <Button onClick={openCreateModal}>
             新增分类
-          </button>
+          </Button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="business-table">
-            <thead>
-              <tr>
-                <th>分类名称</th>
-                <th>描述</th>
-                <th>排序</th>
-                <th>状态</th>
-                <th className="text-center">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="business-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>分类名称</TableHead>
+                <TableHead>描述</TableHead>
+                <TableHead>排序</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead className="text-center">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {categories.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-500">
+                <TableRow>
+                  <TableCell colSpan="5" className="text-center py-8 text-gray-500">
                     暂无分类数据
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 categories.map((category) => (
-                  <tr key={category.id}>
-                    <td className="font-medium">{category.name}</td>
-                    <td className="text-gray-600">{category.description || '-'}</td>
-                    <td>{category.sort_order}</td>
-                    <td>
+                  <TableRow key={category.id}>
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell className="text-gray-600">{category.description || '-'}</TableCell>
+                    <TableCell>{category.sort_order}</TableCell>
+                    <TableCell>
                       <span className={`business-badge ${category.is_active
                           ? 'business-badge-success'
                           : 'business-badge-error'
                         }`}>
                         {category.is_active ? '已启用' : '已禁用'}
                       </span>
-                    </td>
-                    <td className="text-center space-x-2">
-                      <button
-                        onClick={() => openEditModal(category)}
-                        className="business-btn business-btn-secondary business-btn-sm"
-                      >
+                    </TableCell>
+                    <TableCell className="text-center space-x-2">
+                      <Button onClick={() => openEditModal(category)}>
                         编辑
-                      </button>
+                      </Button>
                       <button
                         onClick={() => handleToggleActive(category)}
                         className={`business-btn business-btn-sm ${category.is_active ? 'business-btn-warning' : 'business-btn-success'
@@ -182,27 +184,23 @@ const CaseCategoryManagementPage = () => {
                       >
                         {category.is_active ? '禁用' : '启用'}
                       </button>
-                      <button
-                        onClick={() => handleDelete(category.id)}
-                        className="business-btn business-btn-danger business-btn-sm"
-                      >
+                      <Button onClick={() => handleDelete(category.id)}>
                         删除
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentCategory ? '编辑分类' : '新增分类'}>
         <div className="space-y-4">
           <div>
-            <label className="business-label">分类名称 *</label>
-            <input
-              type="text"
+            <Label className="business-label">分类名称 *</Label>
+            <Input type="text"
               name="name"
               value={categoryForm.name}
               onChange={handleFormChange}
@@ -211,20 +209,18 @@ const CaseCategoryManagementPage = () => {
             />
           </div>
           <div>
-            <label className="business-label">描述</label>
-            <textarea
-              name="description"
+            <Label className="business-label">描述</Label>
+            <Textarea name="description"
               value={categoryForm.description}
               onChange={handleFormChange}
               rows="3"
               className="business-textarea"
               placeholder="请输入分类描述"
-            ></textarea>
+            ></Textarea>
           </div>
           <div>
-            <label className="business-label">排序权重</label>
-            <input
-              type="number"
+            <Label className="business-label">排序权重</Label>
+            <Input type="number"
               name="sort_order"
               value={categoryForm.sort_order}
               onChange={handleFormChange}
@@ -233,28 +229,21 @@ const CaseCategoryManagementPage = () => {
             />
           </div>
           <div className="flex items-center">
-            <input
-              type="checkbox"
+            <Checkbox
               name="is_active"
               checked={categoryForm.is_active}
               onChange={handleFormChange}
               className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
-            <label className="ml-2 block text-sm text-gray-900">启用</label>
+            <Label className="ml-2 block text-sm text-gray-900">启用</Label>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="business-btn business-btn-secondary"
-            >
+            <Button onClick={() => setIsModalOpen(false)}>
               取消
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="business-btn business-btn-primary"
-            >
+            </Button>
+            <Button onClick={handleSubmit}>
               {currentCategory ? '更新' : '创建'}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

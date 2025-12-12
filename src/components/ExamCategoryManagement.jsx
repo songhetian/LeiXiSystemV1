@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
@@ -177,7 +184,7 @@ const ExamCategoryManagement = () => {
           >
             ⬇️ 导出
           </button>
-          <label className="btn-flat-info cursor-pointer">
+          <Label className="btn-flat-info cursor-pointer">
             ⬆️ 导入
             <input type="file" className="hidden" accept=".xlsx" onChange={async (e) => {
               const file = e.target.files?.[0]
@@ -193,7 +200,7 @@ const ExamCategoryManagement = () => {
               }
               e.target.value = ''
             }} />
-          </label>
+          </Label>
           <input
             type="text"
             placeholder="搜索分类..."
@@ -340,7 +347,7 @@ const ExamCategoryManagement = () => {
 
             <form onSubmit={handleSubmit} className="modal-body-flat">
               <div className="form-group-flat">
-                <label className="form-label-flat">分类名称 *</label>
+                <Label className="form-label-flat">分类名称 *</Label>
                 <input
                   type="text"
                   required
@@ -353,7 +360,7 @@ const ExamCategoryManagement = () => {
 
               <div className="form-group-flat">
                 <div>
-                  <label className="form-label-flat">编码 *</label>
+                  <Label className="form-label-flat">编码 *</Label>
                   <input
                     type="text"
                     required
@@ -364,7 +371,7 @@ const ExamCategoryManagement = () => {
                   />
                 </div>
                 <div>
-                  <label className="form-label-flat">权重</label>
+                  <Label className="form-label-flat">权重</Label>
                   <input
                     type="number"
                     min="0"
@@ -378,7 +385,7 @@ const ExamCategoryManagement = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label-flat">状态</label>
+                  <Label className="form-label-flat">状态</Label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -389,7 +396,7 @@ const ExamCategoryManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label-flat">父级分类</label>
+                  <Label className="form-label-flat">父级分类</Label>
                   <select
                     value={formData.parent_id || ''}
                     onChange={(e) => setFormData({ ...formData, parent_id: e.target.value ? parseInt(e.target.value, 10) : null })}
@@ -404,7 +411,7 @@ const ExamCategoryManagement = () => {
               </div>
 
               <div className="form-group-flat">
-                <label className="form-label-flat">图标</label>
+                <Label className="form-label-flat">图标</Label>
                 <input
                   type="text"
                   value={formData.icon}
@@ -418,9 +425,8 @@ const ExamCategoryManagement = () => {
               </div>
 
               <div className="form-group-flat">
-                <label className="form-label-flat">描述</label>
-                <textarea
-                  value={formData.description}
+                <Label className="form-label-flat">描述</Label>
+                <Textarea value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows="3"
                   className="form-textarea-flat"
@@ -429,8 +435,7 @@ const ExamCategoryManagement = () => {
               </div>
 
               <div className="modal-footer-flat">
-                <button
-                  type="button"
+                <Button type="button"
                   onClick={() => {
                     setShowModal(false)
                     resetForm()
@@ -438,7 +443,7 @@ const ExamCategoryManagement = () => {
                   className="btn-secondary"
                 >
                   取消
-                </button>
+                </Button>
                 <button
                   type="submit"
                   disabled={loading}

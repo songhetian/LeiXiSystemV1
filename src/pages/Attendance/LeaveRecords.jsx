@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { formatDateOnly } from '../../utils/dateUtils'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 
 
@@ -125,12 +132,9 @@ export default function LeaveRecords({ onNavigate }) {
           <h1 className="text-2xl font-bold text-gray-800">请假记录</h1>
           <p className="text-gray-600 mt-1">查看您的请假申请历史</p>
         </div>
-        <button
-          onClick={() => onNavigate && onNavigate('attendance-leave-apply')}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
-        >
+        <Button onClick={() => onNavigate && onNavigate('attendance-leave-apply')}>
           + 新建请假
-        </button>
+        </Button>
       </div>
 
       {/* 状态筛选 */}
@@ -224,12 +228,9 @@ export default function LeaveRecords({ onNavigate }) {
               {/* 操作按钮 */}
               {record.status === 'pending' && (
                 <div className="mt-4 pt-3 border-t">
-                  <button
-                    onClick={() => handleCancelClick(record.id)}
-                    className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
-                  >
+                  <Button onClick={() => handleCancelClick(record.id)} variant="destructive">
                     撤销申请
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -245,7 +246,7 @@ export default function LeaveRecords({ onNavigate }) {
                 共 {pagination.total} 条记录
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">每页显示</label>
+                <Label className="text-sm text-gray-600">每页显示</Label>
                 <select
                   value={pagination.limit}
                   onChange={(e) => setPagination({ ...pagination, limit: parseInt(e.target.value), page: 1 })}
@@ -296,12 +297,9 @@ export default function LeaveRecords({ onNavigate }) {
               >
                 取消
               </button>
-              <button
-                onClick={handleCancelConfirm}
-                className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
-              >
+              <Button onClick={handleCancelConfirm} variant="destructive">
                 确认撤销
-              </button>
+              </Button>
             </div>
           </div>
         </div>

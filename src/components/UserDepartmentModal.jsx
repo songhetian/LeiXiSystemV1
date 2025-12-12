@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { getApiUrl } from '../utils/apiConfig'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import Modal from './Modal'
 
 function UserDepartmentModal({ isOpen, onClose, user, onSuccess }) {
@@ -165,12 +171,9 @@ function UserDepartmentModal({ isOpen, onClose, user, onSuccess }) {
           <div className="text-sm text-gray-600">
             已选择 <span className="font-semibold text-gray-900">{selectedDepartments.length}</span> / {departments.length} 个部门
           </div>
-          <button
-            onClick={handleSelectAll}
-            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-          >
+          <Button onClick={handleSelectAll} size="sm">
             {selectedDepartments.length === departments.length ? '取消全选' : '全选'}
-          </button>
+          </Button>
         </div>
 
         {/* 部门列表 */}
@@ -230,16 +233,14 @@ function UserDepartmentModal({ isOpen, onClose, user, onSuccess }) {
 
         {/* 操作按钮 */}
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <button
-            type="button"
+          <Button type="button"
             onClick={onClose}
             disabled={saving}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
             取消
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button type="button"
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
@@ -248,7 +249,7 @@ function UserDepartmentModal({ isOpen, onClose, user, onSuccess }) {
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             )}
             {saving ? '保存中...' : '保存'}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

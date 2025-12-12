@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import { getApiUrl } from '../../utils/apiConfig'
 import {
   CalendarIcon,
@@ -110,23 +116,17 @@ export default function MySchedule() {
       <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-md p-4">
         {/* 月份选择器 */}
         <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setSelectedMonth(new Date(year, month - 1))}
-            className="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-1 text-sm text-gray-600 transition-colors"
-          >
+          <Button onClick={() => setSelectedMonth(new Date(year, month - 1))} size="sm">
             <ChevronLeftIcon className="w-4 h-4" />
             上月
-          </button>
+          </Button>
           <h3 className="text-lg font-bold text-gray-800">
             {year}年{month + 1}月
           </h3>
-          <button
-            onClick={() => setSelectedMonth(new Date(year, month + 1))}
-            className="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-1 text-sm text-gray-600 transition-colors"
-          >
+          <Button onClick={() => setSelectedMonth(new Date(year, month + 1))} size="sm">
             下月
             <ChevronRightIcon className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         {/* 日历容器 - 添加左边框和上边框 */}
@@ -229,14 +229,11 @@ export default function MySchedule() {
               <h3 className="text-2xl font-bold">排班详情</h3>
               <p className="text-base opacity-95 mt-1.5">{selectedSchedule.schedule_date}</p>
             </div>
-            <button
-              onClick={() => setShowDetailModal(false)}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-25 transition-all"
-            >
+            <Button onClick={() => setShowDetailModal(false)}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* 模态框内容 */}
@@ -282,12 +279,9 @@ export default function MySchedule() {
 
           {/* 模态框底部 */}
           <div className="px-6 py-4 bg-gray-50 bg-opacity-70 rounded-b-2xl flex justify-end">
-            <button
-              onClick={() => setShowDetailModal(false)}
-              className="px-5 py-2.5 bg-gray-200 bg-opacity-90 text-gray-700 text-base font-medium rounded-lg hover:bg-gray-300 hover:shadow-md transition-all"
-            >
+            <Button onClick={() => setShowDetailModal(false)}>
               关闭
-            </button>
+            </Button>
           </div>
         </div>
       </div>

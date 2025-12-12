@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker, TimePicker, DateTimePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig';
 import {
   BellIcon,
@@ -356,33 +364,20 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
           <div className="flex gap-2">
             {selectedIds.length > 0 && (
               <>
-                <button
-                  onClick={markSelectedAsRead}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                >
+                <Button onClick={markSelectedAsRead}>
                   标记已读 ({selectedIds.length})
-                </button>
-                <button
-                  onClick={deleteSelected}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                >
+                </Button>
+                <Button onClick={deleteSelected} variant="destructive">
                   删除 ({selectedIds.length})
-                </button>
+                </Button>
               </>
             )}
-            <button
-              onClick={markAllAsRead}
-              disabled={unreadCount === 0}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-            >
+            <Button onClick={markAllAsRead} disabled={unreadCount === 0}>
               全部已读
-            </button>
-            <button
-              onClick={loadNotifications}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
+            </Button>
+            <Button onClick={loadNotifications}>
               刷新
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -439,35 +434,23 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
           {/* 快速日期筛选 */}
           <div className="flex gap-2">
-            <button
-              onClick={() => setQuickDateFilter('today')}
-              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-            >
+            <Button onClick={() => setQuickDateFilter('today')} variant="outline">
               今天
-            </button>
-            <button
-              onClick={() => setQuickDateFilter('week')}
-              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-            >
+            </Button>
+            <Button onClick={() => setQuickDateFilter('week')} variant="outline">
               本周
-            </button>
-            <button
-              onClick={() => setQuickDateFilter('month')}
-              className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-            >
+            </Button>
+            <Button onClick={() => setQuickDateFilter('month')} variant="outline">
               本月
-            </button>
+            </Button>
           </div>
 
           {/* 高级筛选按钮 */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
-          >
+          <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
             <FunnelIcon className="w-4 h-4" />
             筛选
             {showFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-          </button>
+          </Button>
         </div>
 
         {/* 高级筛选面板 */}
@@ -521,13 +504,10 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
                 <span className="text-sm text-gray-600">
                   找到 <span className="font-semibold text-blue-600">{pagination.total}</span> 条结果
                 </span>
-                <button
-                  onClick={clearFilters}
-                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
-                >
+                <Button onClick={clearFilters} variant="ghost" size="sm">
                   <XMarkIcon className="w-4 h-4" />
                   清除筛选
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -538,7 +518,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
       {notifications.length > 0 && (
         <div className="bg-white border-b border-gray-200 px-6 py-2">
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedIds.length === notifications.length && notifications.length > 0}
@@ -546,7 +526,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">全选</span>
-            </label>
+            </Label>
             {selectedIds.length > 0 && (
               <span className="text-sm text-gray-600">
                 已选择 <span className="font-semibold text-blue-600">{selectedIds.length}</span> 条
@@ -709,12 +689,9 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
                   <p className="text-sm text-gray-500">{new Date(selectedNotification.created_at).toLocaleString('zh-CN')}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <Button onClick={() => setShowModal(false)} variant="ghost">
                 <XMarkIcon className="w-5 h-5 text-gray-500" />
-              </button>
+              </Button>
             </div>
 
             {/* 模态框内容 */}
@@ -734,19 +711,13 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
             {/* 模态框底部 */}
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
-              <button
-                onClick={() => deleteNotification(selectedNotification.id)}
-                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
-              >
+              <Button onClick={() => deleteNotification(selectedNotification.id)} variant="destructive">
                 <TrashIcon className="w-4 h-4" />
                 删除
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-              >
+              </Button>
+              <Button onClick={() => setShowModal(false)}>
                 关闭
-              </button>
+              </Button>
             </div>
           </div>
         </div>

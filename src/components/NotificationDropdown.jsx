@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { BellIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon, DocumentTextIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { getApiUrl } from '../utils/apiConfig';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
   const [notifications, setNotifications] = useState([]);

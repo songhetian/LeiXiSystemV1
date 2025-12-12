@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { getApiUrl } from '../utils/apiConfig';
 
 const DatabaseCheck = ({ children }) => {
@@ -93,12 +99,9 @@ const DatabaseCheck = ({ children }) => {
                 <li>刷新当前页面或重新启动应用</li>
               </ol>
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
+            <Button onClick={() => window.location.reload()}>
               重新检查连接
-            </button>
+            </Button>
           </div>
         </div>
       </div>
