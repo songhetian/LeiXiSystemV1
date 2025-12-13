@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Select, Modal, Tag } from 'antd';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import api from '../api';
 import './ExamResultsManagement.css';
 

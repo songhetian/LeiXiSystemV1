@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
+import { Table, Button, Segmented, Tag, Tooltip, Space } from 'antd';
+import { AppstoreOutlined, BarsOutlined, PlayCircleOutlined, CheckCircleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import api from '../api';
 import './MyExams.css';
 
@@ -15,6 +17,7 @@ const MyExams = ({ onNavigate }) => {
   // 状态筛选和分页
   const [statusFilter, setStatusFilter] = useState('all'); // all, ongoing, not_started, ended
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
   const itemsPerPage = 6;
 
   useEffect(() => {
@@ -228,30 +231,25 @@ const MyExams = ({ onNavigate }) => {
 
         {/* 状态筛选器 */}
         <div className="status-filter">
-          <button
-            className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-            onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
-          >
-            全部
-          </button>
-          <button
-            className={`filter-btn ${statusFilter === 'ongoing' ? 'active' : ''}`}
-            onClick={() => { setStatusFilter('ongoing'); setCurrentPage(1); }}
-          >
-            进行中
-          </button>
-          <button
-            className={`filter-btn ${statusFilter === 'not_started' ? 'active' : ''}`}
-            onClick={() => { setStatusFilter('not_started'); setCurrentPage(1); }}
-          >
-            未开始
-          </button>
-          <button
-            className={`filter-btn ${statusFilter === 'ended' ? 'active' : ''}`}
-            onClick={() => { setStatusFilter('ended'); setCurrentPage(1); }}
-          >
-            已结束
-          </button>
+          <Segmented
+            options={[
+              { label: '全部', value: 'all' },
+              { label: '进行中', value: 'ongoing' },
+              { label: '未开始', value: 'not_started' },
+              { label: '已结束', value: 'ended' },
+            ]}
+            value={statusFilter}
+            onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
+            className="mr-4"
+          />
+          <Segmented
+            options={[
+              { value: 'grid', icon: <AppstoreOutlined /> },
+              { value: 'list', icon: <BarsOutlined /> },
+            ]}
+            value={viewMode}
+            onChange={setViewMode}
+          />
         </div>
       </div>
 
@@ -270,121 +268,199 @@ const MyExams = ({ onNavigate }) => {
         </div>
       )}
 
-      <div className="exams-grid">
-        {currentExams.map(exam => (
-          <div key={exam.plan_id} className={getCardClassName(exam.exam_status)}>
-            {/* 卡片头部 */}
-            <div className="card-header">
-              <h3 className="card-title">{exam.plan_title || exam.exam_title}</h3>
-              {getStatusBadge(exam)}
-            </div>
+      {viewMode === 'list' ? (
+        <Table
+          dataSource={filteredExams}
+          rowKey="plan_id"
+          pagination={{ pageSize: 10 }}
+          columns={[
+            {
+              title: '试卷名称',
+              dataIndex: 'exam_title',
+              key: 'exam_title',
+              render: (text) => <span className="font-medium text-gray-800">{text}</span>
+            },
+            {
+              title: '分类',
+              dataIndex: 'category_name', // Assuming this field exists, if not need to fetch or use placeholder
+              key: 'category',
+              render: (text) => <Tag>{text || '通用'}</Tag>
+            },
+            {
+              title: '状态',
+              key: 'status',
+              render: (_, record) => {
+                 const statusMap = {
+                   not_started: { color: 'default', text: '未开始', icon: <ClockCircleOutlined /> },
+                   ongoing: { color: 'processing', text: '进行中', icon: <SyncOutlined spin /> },
+                   ended: { color: 'error', text: '已结束', icon: <CheckCircleOutlined /> },
+                 };
+                 const config = statusMap[record.exam_status] || statusMap.ended;
+                 return <Tag icon={config.icon} color={config.color}>{config.text}</Tag>;
+              }
+            },
+            {
+              title: '考试时长',
+              dataIndex: 'exam_duration',
+              key: 'duration',
+              render: (text) => `${text} 分钟`
+            },
+            {
+              title: '总分/及格',
+              key: 'score',
+              render: (_, record) => `${record.exam_total_score} / ${record.exam_pass_score}`
+            },
+            {
+              title: '有效时间',
+              key: 'time',
+              width: 250,
+              render: (_, record) => (
+                <div className="text-xs text-gray-500">
+                  <div>起：{new Date(record.start_time).toLocaleString('zh-CN')}</div>
+                  <div>止：{new Date(record.end_time).toLocaleString('zh-CN')}</div>
+                </div>
+              )
+            },
+             {
+              title: '最佳成绩',
+              key: 'best_score',
+              render: (_, record) => record.best_score !== null ? (
+                <span className={record.is_passed ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
+                  {record.best_score}分
+                </span>
+              ) : '-'
+            },
+            {
+              title: '操作',
+              key: 'action',
+              render: (_, record) => (
+                 <div className="list-view-action">
+                    {/* Reuse logic but styling for table */}
+                    {getActionButton(record)}
+                 </div>
+              )
+            }
+          ]}
+        />
+      ) : (
+        <>
+          <div className="exams-grid">
+            {currentExams.map(exam => (
+              <div key={exam.plan_id} className={getCardClassName(exam.exam_status)}>
+                {/* 卡片头部 */}
+                <div className="card-header">
+                  <h3 className="card-title">{exam.plan_title || exam.exam_title}</h3>
+                  {getStatusBadge(exam)}
+                </div>
 
-            {/* 计划描述 */}
-            {exam.plan_description && (
-              <p className="card-description">{exam.plan_description}</p>
-            )}
+                {/* 计划描述 */}
+                {exam.plan_description && (
+                  <p className="card-description">{exam.plan_description}</p>
+                )}
 
-            {/* 试卷信息 */}
-            <div className="exam-details-grid">
-              <div className="detail-item">
-                <span className="detail-icon">📝</span>
-                <div className="detail-content">
-                  <span className="detail-label">试卷名称</span>
-                  <span className="detail-value">{exam.exam_title}</span>
+                {/* 试卷信息 */}
+                <div className="exam-details-grid">
+                  <div className="detail-item">
+                    <span className="detail-icon">📝</span>
+                    <div className="detail-content">
+                      <span className="detail-label">试卷名称</span>
+                      <span className="detail-value">{exam.exam_title}</span>
+                    </div>
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="detail-icon">⏱️</span>
+                    <div className="detail-content">
+                      <span className="detail-label">考试时长</span>
+                      <span className="detail-value">{exam.exam_duration} 分钟</span>
+                    </div>
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="detail-icon">💯</span>
+                    <div className="detail-content">
+                      <span className="detail-label">总分</span>
+                      <span className="detail-value">{exam.exam_total_score} 分</span>
+                    </div>
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="detail-icon">✅</span>
+                    <div className="detail-content">
+                      <span className="detail-label">及格分</span>
+                      <span className="detail-value">{exam.exam_pass_score} 分</span>
+                    </div>
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="detail-icon">📋</span>
+                    <div className="detail-content">
+                      <span className="detail-label">题目数量</span>
+                      <span className="detail-value">{exam.exam_question_count} 题</span>
+                    </div>
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="detail-icon">🔄</span>
+                    <div className="detail-content">
+                      <span className="detail-label">尝试次数</span>
+                      <span className="detail-value">{exam.attempt_count} / {exam.max_attempts}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 时间信息 */}
+                <div className={getTimeInfoClassName(exam.exam_status)}>
+                  <div className="time-item">
+                    <span className="time-label">开始时间</span>
+                    <span className="time-value">{new Date(exam.start_time).toLocaleString('zh-CN')}</span>
+                  </div>
+                  <div className="time-item">
+                    <span className="time-label">结束时间</span>
+                    <span className="time-value">{new Date(exam.end_time).toLocaleString('zh-CN')}</span>
+                  </div>
+                </div>
+
+                {/* 成绩显示 */}
+                {exam.best_score !== null && (
+                  <div className={`score-display ${exam.is_passed ? 'score-pass' : 'score-fail'}`}>
+                    <span className="score-label">最佳成绩</span>
+                    <span className="score-value">{exam.best_score} 分</span>
+                    {exam.is_passed && <span className="pass-badge">✓ 已通过</span>}
+                  </div>
+                )}
+
+                {/* 操作按钮 */}
+                <div className="card-actions">
+                  {getActionButton(exam)}
                 </div>
               </div>
-
-              <div className="detail-item">
-                <span className="detail-icon">⏱️</span>
-                <div className="detail-content">
-                  <span className="detail-label">考试时长</span>
-                  <span className="detail-value">{exam.exam_duration} 分钟</span>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <span className="detail-icon">💯</span>
-                <div className="detail-content">
-                  <span className="detail-label">总分</span>
-                  <span className="detail-value">{exam.exam_total_score} 分</span>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <span className="detail-icon">✅</span>
-                <div className="detail-content">
-                  <span className="detail-label">及格分</span>
-                  <span className="detail-value">{exam.exam_pass_score} 分</span>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <span className="detail-icon">📋</span>
-                <div className="detail-content">
-                  <span className="detail-label">题目数量</span>
-                  <span className="detail-value">{exam.exam_question_count} 题</span>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <span className="detail-icon">🔄</span>
-                <div className="detail-content">
-                  <span className="detail-label">尝试次数</span>
-                  <span className="detail-value">{exam.attempt_count} / {exam.max_attempts}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 时间信息 */}
-            <div className={getTimeInfoClassName(exam.exam_status)}>
-              <div className="time-item">
-                <span className="time-label">开始时间</span>
-                <span className="time-value">{new Date(exam.start_time).toLocaleString('zh-CN')}</span>
-              </div>
-              <div className="time-item">
-                <span className="time-label">结束时间</span>
-                <span className="time-value">{new Date(exam.end_time).toLocaleString('zh-CN')}</span>
-              </div>
-            </div>
-
-            {/* 成绩显示 */}
-            {exam.best_score !== null && (
-              <div className={`score-display ${exam.is_passed ? 'score-pass' : 'score-fail'}`}>
-                <span className="score-label">最佳成绩</span>
-                <span className="score-value">{exam.best_score} 分</span>
-                {exam.is_passed && <span className="pass-badge">✓ 已通过</span>}
-              </div>
-            )}
-
-            {/* 操作按钮 */}
-            <div className="card-actions">
-              {getActionButton(exam)}
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* 分页控件 */}
-      {!loading && totalPages > 1 && (
-        <div className="pagination-container">
-          <button
-            className="pagination-btn"
-            disabled={currentPage === 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
-            上一页
-          </button>
-          <span className="pagination-info">
-            第 {currentPage} 页 / 共 {totalPages} 页
-          </span>
-          <button
-            className="pagination-btn"
-            disabled={currentPage === totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
-            下一页
-          </button>
-        </div>
+          {/* 分页控件 */}
+          {!loading && totalPages > 1 && (
+            <div className="pagination-container">
+              <button
+                className="pagination-btn"
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                上一页
+              </button>
+              <span className="pagination-info">
+                第 {currentPage} 页 / 共 {totalPages} 页
+              </span>
+              <button
+                className="pagination-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                下一页
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

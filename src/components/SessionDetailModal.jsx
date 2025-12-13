@@ -11,7 +11,7 @@ import {
     SwatchIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI';
 import Modal from './Modal';
 import TagSelector from './TagSelector';

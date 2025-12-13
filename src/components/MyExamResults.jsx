@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Input, Select, Button, message, Card, Modal } from 'antd';
-import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
+import { Input, Select, Button, message, Card, Modal, Table, Segmented, Tag, Tooltip } from 'antd';
+import { SearchOutlined, EyeOutlined, AppstoreOutlined, BarsOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../utils/apiConfig';
 import './MyExamResults.css';
 
@@ -23,6 +23,7 @@ const MyExamResults = ({ onNavigate }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedExamResults, setSelectedExamResults] = useState([]);
   const [examTitles, setExamTitles] = useState([]); // 存储所有试卷标题
+  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
 
   const fetchResults = async (page = 1, pageSize = 10) => {
     setLoading(true);
@@ -181,9 +182,72 @@ const MyExamResults = ({ onNavigate }) => {
               <Option key={index} value={title}>{title}</Option>
             ))}
           </Select>
+          <div className="flex-1 text-right">
+             <Segmented
+              options={[
+                { value: 'grid', icon: <AppstoreOutlined /> },
+                { value: 'list', icon: <BarsOutlined /> },
+              ]}
+              value={viewMode}
+              onChange={setViewMode}
+            />
+          </div>
         </div>
 
-        {/* 卡片式布局 */}
+        {/* 视图内容 */}
+        {viewMode === 'list' ? (
+          <Table
+            dataSource={Object.values(groupedResults)}
+            rowKey="exam_title"
+            pagination={false} // Use external pagination controls like grid
+            columns={[
+              {
+                title: '试卷名称',
+                dataIndex: 'exam_title',
+                key: 'exam_title',
+                render: (text) => <span className="font-medium text-gray-800">{text}</span>
+              },
+              {
+                title: '考核计划',
+                dataIndex: 'plan_title',
+                key: 'plan_title',
+              },
+              {
+                title: '最高得分',
+                dataIndex: 'highestScore',
+                key: 'score',
+                render: (score, record) => (
+                  <span className={record.isPassed ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
+                    {score} 分
+                  </span>
+                )
+              },
+              {
+                title: '状态',
+                key: 'status',
+                render: (_, record) => (
+                   <Tag icon={record.isPassed ? <CheckCircleOutlined /> : <CloseCircleOutlined />} color={record.isPassed ? 'success' : 'error'}>
+                     {record.isPassed ? '合格' : '不合格'}
+                   </Tag>
+                )
+              },
+              {
+                title: '操作',
+                key: 'action',
+                render: (_, record) => (
+                  <Button
+                    type="link"
+                    icon={<EyeOutlined />}
+                    onClick={() => showModal(record.exam_title)}
+                  >
+                    查看详情
+                  </Button>
+                )
+              }
+            ]}
+          />
+        ) : (
+        /* 卡片式布局 */
         <div className="exam-cards-container">
           {Object.keys(groupedResults).map((examTitle, index) => {
             const examData = groupedResults[examTitle];
@@ -213,6 +277,7 @@ const MyExamResults = ({ onNavigate }) => {
             );
           })}
         </div>
+        )}
 
         {/* 分页 */}
         <div className="exam-results-pagination">

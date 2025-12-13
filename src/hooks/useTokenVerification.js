@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiBaseUrl } from '../utils/apiConfig'
 import { apiGet } from '../utils/apiClient'
 

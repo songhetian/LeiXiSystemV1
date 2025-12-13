@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { getApiUrl } from '../utils/apiConfig'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import Modal from './Modal'
 
 function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {

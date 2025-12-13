@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiBaseUrl } from '../utils/apiConfig'
 import { CheckCircle, XCircle, Clock, Calendar, X, Search, Eye } from 'lucide-react'
-import { formatDate } from '../utils/date'
+import { formatDate, formatDateTime } from '../utils/date'
 
 const CompensatoryApproval = () => {
   const [loading, setLoading] = useState(true)
@@ -26,19 +26,6 @@ const CompensatoryApproval = () => {
   })
   const [departments, setDepartments] = useState([])
   const [selectedDepartment, setSelectedDepartment] = useState('')
-
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return '-'
-    const date = new Date(dateString)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   useEffect(() => {
     loadDepartments()

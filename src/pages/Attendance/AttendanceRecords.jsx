@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { formatDate, formatBeijingDate, getBeijingDate } from '../../utils/date'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
 
 import {
@@ -73,7 +73,7 @@ export default function AttendanceRecordsOptimized() {
     try {
       // 获取用户信息
       const user = JSON.parse(localStorage.getItem('user'))
-      
+
       // 构建查询参数
       const params = {
         page: pagination.page,
@@ -93,20 +93,20 @@ export default function AttendanceRecordsOptimized() {
       }
 
       const response = await axios.get(getApiUrl('/api/attendance/records'), { params })
-      
+
       if (response.data.success) {
         // 确保日期格式正确，避免时区问题
         const formattedRecords = response.data.data.map(record => ({
           ...record,
           record_date: formatBeijingDate(record.record_date) // 确保使用北京时间日期
         }))
-        
+
         setRecords(formattedRecords)
         setPagination({
           ...pagination,
           total: response.data.total
         })
-        
+
         // 使用后端返回的统计数据
         if (response.data.stats) {
           setStats(response.data.stats)

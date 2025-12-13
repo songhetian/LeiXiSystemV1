@@ -1,353 +1,315 @@
-import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
-import { getApiBaseUrl } from '../utils/apiConfig'
-import { X, Calendar, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { getApiUrl } from '../utils/apiConfig';
+import { XMarkIcon, CalendarIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
-const CompensatoryLeaveModal = ({ isOpen, onClose, onSuccess }) => {
-  const [loading, setLoading] = useState(false)
-  const [employee, setEmployee] = useState(null)
+export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
-    request_type: 'compensatory_leave',
-    original_work_date: '', // 原工作日（要休息的日期）
-    new_schedule_date: '',  // 新工作日（调到哪天上班）
+    original_date: '',
+    new_date: '',
     new_shift_id: '',
     reason: ''
-  })
-  const [shifts, setShifts] = useState([])
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [shifts, setShifts] = useState([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+  const [originalShift, setOriginalShift] = useState(null);
+  const [checkingSchedule, setCheckingSchedule] = useState(false);
+  const [employeeId, setEmployeeId] = useState(null);
 
+  // Load shifts on mount/open
   useEffect(() => {
     if (isOpen) {
-      loadData()
-    }
-  }, [isOpen])
-
-  const loadData = async () => {
-    try {
-      const API_BASE_URL = getApiBaseUrl()
-      const token = localStorage.getItem('token')
-      const user = JSON.parse(localStorage.getItem('user'))
-
-      // 获取员工信息
-      const empResponse = await fetch(`${API_BASE_URL}/employees/by-user/${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      fetchShifts();
+      setFormData({
+        original_date: '',
+        new_date: '',
+        new_shift_id: '',
+        reason: ''
+      });
+      setOriginalShift(null);
+      // Fetch employee id for current user
+      try {
+        const userStr = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        if (userStr && token) {
+          const user = JSON.parse(userStr);
+          axios
+            .get(getApiUrl(`/api/employees/by-user/${user.id}`), {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+              if (res.data?.success && res.data?.data?.id) {
+                setEmployeeId(res.data.data.id);
+              } else {
+                setEmployeeId(null);
+              }
+            })
+            .catch(() => setEmployeeId(null));
+        } else {
+          setEmployeeId(null);
         }
-      })
-      const empData = await empResponse.json()
-      if (empData.success) {
-        setEmployee(empData.data)
+      } catch {
+        setEmployeeId(null);
+      }
+    }
+  }, [isOpen]);
+
+  // Check original schedule when date changes
+  useEffect(() => {
+    if (formData.original_date) {
+      checkOriginalSchedule(formData.original_date);
+    } else {
+      setOriginalShift(null);
+    }
+  }, [formData.original_date]);
+
+  const fetchShifts = async () => {
+    setLoadingShifts(true);
+    try {
+      // Fetch all active shifts (limit 100 to be safe)
+      const response = await axios.get(getApiUrl('/api/shifts'), {
+        params: { is_active: 1, limit: 100 }
+      });
+
+      let shiftList = [];
+      if (Array.isArray(response.data)) {
+        shiftList = response.data;
+      } else if (response.data.success && Array.isArray(response.data.data)) {
+        shiftList = response.data.data;
       }
 
-      // 获取班次列表
-      const shiftsResponse = await fetch(`${API_BASE_URL}/shifts`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      const shiftsData = await shiftsResponse.json()
-      setShifts(Array.isArray(shiftsData) ? shiftsData : (shiftsData.data || []))
+      setShifts(shiftList);
     } catch (error) {
-      console.error('加载数据失败:', error)
+      console.error('Failed to fetch shifts:', error);
+      toast.error('无法加载班次列表');
+    } finally {
+      setLoadingShifts(false);
     }
-  }
+  };
+
+  const checkOriginalSchedule = async (date) => {
+    setCheckingSchedule(true);
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const effectiveEmployeeId = employeeId || user.employee_id;
+
+      // We need to check if there is a schedule for this day
+      // Assuming an endpoint exists or we use /api/schedules query
+      // If no specific endpoint, we trust the user or try to find it.
+      // Let's try to query schedules.
+      const response = await axios.get(getApiUrl('/api/schedules'), {
+        params: {
+            employee_id: effectiveEmployeeId,
+            start_date: date,
+            end_date: date
+        }
+      });
+
+      if (response.data.success && response.data.data.length > 0) {
+        setOriginalShift(response.data.data[0]);
+      } else {
+        setOriginalShift(null);
+      }
+    } catch (error) {
+      console.error('Error checking schedule:', error);
+    } finally {
+      setCheckingSchedule(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    if (!formData.original_work_date) {
-      toast.error('请选择要休息的工作日')
-      return
+    e.preventDefault();
+    if (!formData.original_date || !formData.new_date || !formData.new_shift_id || !formData.reason.trim()) {
+       toast.error('请填写完整信息');
+       return;
     }
 
-    if (!formData.new_schedule_date) {
-      toast.error('请选择调到哪天上班')
-      return
+    // Basic validation
+    if (formData.original_date === formData.new_date) {
+        toast.error('调休日期不能相同');
+        return;
     }
 
-    if (!formData.new_shift_id) {
-      toast.error('请选择班次')
-      return
-    }
-
-    if (!formData.reason.trim()) {
-      toast.error('请填写申请理由')
-      return
-    }
-
-    // 显示确认模态框
-    setShowConfirmModal(true)
-  }
-
-  const handleConfirmSubmit = async () => {
+    setSubmitting(true);
     try {
-      setLoading(true)
-      const API_BASE_URL = getApiBaseUrl()
-      const token = localStorage.getItem('token')
-      const user = JSON.parse(localStorage.getItem('user'))
-
-      const response = await fetch(`${API_BASE_URL}/compensatory/apply`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          employee_id: employee.id,
+       const user = JSON.parse(localStorage.getItem('user') || '{}');
+       const token = localStorage.getItem('token');
+       // Ensure we have employee_id
+       let effectiveEmployeeId = employeeId || user.employee_id;
+       if (!effectiveEmployeeId && user.id && token) {
+         try {
+           const res = await axios.get(getApiUrl(`/api/employees/by-user/${user.id}`), {
+             headers: { Authorization: `Bearer ${token}` },
+           });
+           if (res.data?.success && res.data?.data?.id) {
+             effectiveEmployeeId = res.data.data.id;
+             setEmployeeId(effectiveEmployeeId);
+           }
+         } catch {}
+       }
+       if (!effectiveEmployeeId || !user.id) {
+         toast.error('未获取到用户信息，请重新登录后再试');
+         return;
+       }
+       const payload = {
+          employee_id: effectiveEmployeeId,
           user_id: user.id,
-          ...formData,
-          // 确保发送 original_schedule_date 字段给后端
-          original_schedule_date: formData.original_work_date
-        })
-      })
+          original_schedule_date: formData.original_date,
+          new_schedule_date: formData.new_date,
+          new_shift_id: Number(formData.new_shift_id),
+          reason: formData.reason
+       };
 
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success('调休申请提交成功，等待审批')
-        setShowConfirmModal(false)
-        onSuccess?.()
-        handleClose()
-      } else {
-        toast.error(result.message || '提交失败')
-      }
+       const response = await axios.post(getApiUrl('/api/compensatory/apply'), payload);
+       if (response.data.success) {
+          onSuccess();
+          toast.success('申请提交成功', { position: 'top-center' });
+       } else {
+          toast.error(response.data.message || '提交失败');
+       }
     } catch (error) {
-      console.error('提交调休申请失败:', error)
-      toast.error('提交失败')
+       console.error('Submit compensatory error:', error);
+       toast.error(error.response?.data?.message || '提交失败');
     } finally {
-      setLoading(false)
+       setSubmitting(false);
     }
-  }
+  };
 
-  const handleClose = () => {
-    setFormData({
-      request_type: 'compensatory_leave',
-      original_work_date: '',
-      new_schedule_date: '',
-      new_shift_id: '',
-      reason: ''
-    })
-    setShowConfirmModal(false)
-    onClose()
-  }
-
-  const selectedShift = shifts.find(s => s.id === parseInt(formData.new_shift_id))
-
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
-    <>
-      {/* 主申请模态框 */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-          {/* 标题 */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-blue-50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-600 rounded-lg">
-                <Calendar className="text-white" size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">申请调休</h2>
-                <p className="text-sm text-gray-600">将工作日调换为休息日</p>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X size={24} className="text-gray-600" />
-            </button>
+    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden transform transition-all scale-100">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">申请调休</h2>
+            <p className="text-xs text-gray-500 mt-0.5">调整工作安排</p>
           </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/50 rounded-full transition-colors text-gray-500 hover:text-gray-700">
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
 
-          {/* 说明卡片 */}
-          <div className="p-6 bg-blue-50 border-b border-blue-100">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-blue-900 mb-2">调休说明</p>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <p>• <strong>第一步</strong>：选择要休息的工作日（原本要上班的日期）</p>
-                  <p>• <strong>第二步</strong>：选择调到哪天上班（原本休息的日期）</p>
-                  <p>• 审批通过后，系统将自动调整排班</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 表单 */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* 日期选择 - 可视化流程 */}
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                {/* 原工作日 */}
-                <div className="bg-white rounded-lg p-4 border-2 border-red-200">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs mb-2">步骤1</span>
-                    <br />
-                    要休息的工作日 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.original_work_date}
-                    onChange={(e) => setFormData({ ...formData, original_work_date: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-2">原本要上班 → 改为休息</p>
-                </div>
-
-                {/* 箭头 */}
-                <div className="hidden md:flex justify-center">
-                  <ArrowRight className="text-primary-600" size={32} />
-                </div>
-
-                {/* 新工作日 */}
-                <div className="bg-white rounded-lg p-4 border-2 border-green-200">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs mb-2">步骤2</span>
-                    <br />
-                    调到哪天上班 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.new_schedule_date}
-                    onChange={(e) => setFormData({ ...formData, new_schedule_date: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-medium"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-2">原本休息 → 改为上班</p>
-                </div>
-              </div>
-            </div>
-
-            {/* 选择班次 */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                上班班次 <span className="text-red-500">*</span>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+           {/* Original Date */}
+           <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                 原工作日期 <span className="text-xs font-normal text-gray-500">(原本要上班)</span>
               </label>
-              <select
-                value={formData.new_shift_id}
-                onChange={(e) => setFormData({ ...formData, new_shift_id: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              >
-                <option value="">请选择班次</option>
-                {shifts.map(shift => (
-                  <option key={shift.id} value={shift.id}>
-                    {shift.name} ({shift.start_time} - {shift.end_time})
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="relative">
+                 <input
+                   type="date"
+                   value={formData.original_date}
+                   onChange={e => setFormData({...formData, original_date: e.target.value})}
+                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                   required
+                 />
+                 <CalendarIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
 
-            {/* 申请理由 */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                申请理由 <span className="text-red-500">*</span>
+              {/* Original Shift Info */}
+              {checkingSchedule ? (
+                  <div className="text-xs text-blue-500 flex items-center gap-1">
+                      <ArrowPathIcon className="w-3 h-3 animate-spin"/> 查询排班中...
+                  </div>
+              ) : originalShift ? (
+                  <div className="text-xs bg-blue-50 text-blue-700 px-3 py-2 rounded-lg border border-blue-100 flex items-center justify-between">
+                      <span>当日排班: <strong>{originalShift.shift_name || '未知班次'}</strong></span>
+                      <span>{originalShift.start_time?.slice(0,5)} - {originalShift.end_time?.slice(0,5)}</span>
+                  </div>
+              ) : formData.original_date ? (
+                  <div className="text-xs bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg border border-yellow-100">
+                      当日暂无排班记录，请确认日期
+                  </div>
+              ) : null}
+           </div>
+
+           <div className="flex items-center gap-4">
+              <div className="h-px bg-gray-100 flex-1"></div>
+              <div className="text-xs text-gray-400 font-medium bg-gray-50 px-2 py-1 rounded-full border border-gray-100">调换为</div>
+              <div className="h-px bg-gray-100 flex-1"></div>
+           </div>
+
+           {/* New Date & Shift */}
+           <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                     补班日期
+                  </label>
+                  <div className="relative">
+                     <input
+                       type="date"
+                       value={formData.new_date}
+                       onChange={e => setFormData({...formData, new_date: e.target.value})}
+                       className="w-full pl-10 pr-2 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
+                       required
+                     />
+                     <CalendarIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+               </div>
+
+               <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                     选择班次
+                  </label>
+                  <div className="relative">
+                     <select
+                       value={formData.new_shift_id}
+                       onChange={e => setFormData({...formData, new_shift_id: e.target.value})}
+                       className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none text-sm truncate"
+                       required
+                       disabled={loadingShifts}
+                     >
+                        <option value="">{loadingShifts ? '加载中...' : '选择班次'}</option>
+                        {shifts.map(shift => (
+                           <option key={shift.id} value={shift.id}>
+                              {shift.name} ({shift.start_time?.slice(0,5)}-{shift.end_time?.slice(0,5)})
+                           </option>
+                        ))}
+                     </select>
+                     <ClockIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                     </div>
+                  </div>
+               </div>
+           </div>
+
+           {/* Reason */}
+           <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                 申请理由
               </label>
               <textarea
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                rows={4}
-                placeholder="请说明调休原因..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                required
+                 value={formData.reason}
+                 onChange={e => setFormData({...formData, reason: e.target.value})}
+                 rows={3}
+                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none text-sm"
+                 placeholder="请详细说明调休原因..."
+                 required
               />
-              <div className="text-sm text-gray-500 mt-1">
-                {formData.reason.length} / 200字
-              </div>
-            </div>
+           </div>
 
-            {/* 操作按钮 */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+           <div className="pt-4 flex justify-end gap-3 border-t border-gray-50">
               <button
                 type="button"
-                onClick={handleClose}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                onClick={onClose}
+                className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors font-medium text-sm"
               >
                 取消
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+                disabled={submitting}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all font-medium text-sm shadow-lg shadow-blue-500/20 disabled:opacity-70 flex items-center gap-2"
               >
-                <Calendar size={20} />
-                提交申请
+                {submitting ? '提交中...' : '提交申请'}
               </button>
-            </div>
-          </form>
-        </div>
+           </div>
+        </form>
       </div>
-
-      {/* 确认提交模态框 */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
-            {/* 标题 */}
-            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-green-50 to-blue-50">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-600 rounded-lg">
-                  <CheckCircle className="text-white" size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">确认提交</h3>
-              </div>
-            </div>
-
-            {/* 内容 */}
-            <div className="p-6">
-              <p className="text-gray-700 mb-4">请确认您的调休申请信息：</p>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">要休息的工作日：</span>
-                  <span className="font-semibold text-red-600">{formData.original_work_date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">调到哪天上班：</span>
-                  <span className="font-semibold text-green-600">{formData.new_schedule_date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">上班班次：</span>
-                  <span className="font-semibold">
-                    {selectedShift ? `${selectedShift.name} (${selectedShift.start_time}-${selectedShift.end_time})` : '-'}
-                  </span>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="text-gray-600 mb-1">申请理由：</div>
-                  <div className="text-gray-800">{formData.reason}</div>
-                </div>
-              </div>
-              <p className="text-sm text-yellow-600 mt-4 flex items-start gap-2">
-                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                <span>提交后将进入审批流程，请确认信息无误</span>
-              </p>
-            </div>
-
-            {/* 操作按钮 */}
-            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                disabled={loading}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
-              >
-                返回修改
-              </button>
-              <button
-                onClick={handleConfirmSubmit}
-                disabled={loading}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
-              >
-                <CheckCircle size={20} />
-                {loading ? '提交中...' : '确认提交'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  )
+    </div>
+  );
 }
-
-export default CompensatoryLeaveModal

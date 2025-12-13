@@ -93,11 +93,21 @@ const BroadcastList = lazy(() => import('./pages/Messaging').then(module => ({ d
 import DatabaseCheck from './components/DatabaseCheck';
 import TopNavbar from './components/TopNavbar';
 
+const originalToastSuccess = toast.success
+toast.success = (message, options) => {
+  const next = { ...(options || {}) }
+  if (!next.position) next.position = 'top-center'
+  return originalToastSuccess(message, next)
+}
+
 function App() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
-  const [activeTab, setActiveTab] = useState({ name: 'user-employee', params: {} })
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('activeTab');
+    return saved ? JSON.parse(saved) : { name: 'attendance-home', params: {} };
+  });
   const [showMemoPopup, setShowMemoPopup] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0) // 未读通知数
 
@@ -146,6 +156,13 @@ function App() {
     // 监听新通知
     const handleNotification = (notification) => {
       console.log('📨 收到新通知:', notification)
+      // Debug: ensuring CSS updates are applied
+
+      // 避免重复提醒：如果通知类型是 'memo' 或已由其他监听器处理，则忽略
+      if (notification.type === 'memo' || notification.type === 'new_memo' ||
+          notification.type === 'system_broadcast' || notification.type === 'broadcast') {
+        return
+      }
 
       // 🔔 播放提示音
       soundManager.playNotification()
@@ -163,12 +180,18 @@ function App() {
             if (['leave', 'overtime', 'makeup'].includes(notification.related_type) ||
                 ['leave_approval', 'leave_rejection', 'overtime_approval', 'overtime_rejection', 'makeup_approval', 'makeup_rejection'].includes(notification.type)) {
               handleSetActiveTab('attendance-approval');
+            } else if (notification.related_type === 'compensatory_leave' ||
+                       ['compensatory_apply', 'compensatory_approval', 'compensatory_rejection'].includes(notification.type)) {
+              // 跳转到调休申请审批页面
+              handleSetActiveTab('compensatory-approval');
             } else if (notification.type === 'system_broadcast') {
               handleSetActiveTab('messaging-broadcast');
             } else if (notification.type === 'schedule_update' || notification.related_type === 'schedule') {
               handleSetActiveTab('my-schedule');
             } else if (notification.type === 'role_assignment' || notification.related_type === 'user_role') {
               handleSetActiveTab('user-role-management');
+            } else if (notification.type === 'new_assessment_plan' || notification.type === 'assessment_plan' || notification.title?.includes('考核计划') || notification.content?.includes('考核计划')) {
+              handleSetActiveTab('my-exams');
             }
           }
         }
@@ -308,6 +331,7 @@ function App() {
     localStorage.removeItem('user')
     localStorage.removeItem('userId')
     localStorage.removeItem('userInfo')
+    localStorage.removeItem('activeTab') // Clear persisted tab on logout
     // 清除所有可能的会话数据
     const keysToRemove = []
     for (let i = 0; i < localStorage.length; i++) {
@@ -327,9 +351,10 @@ function App() {
   useTokenVerification(handleLogout, user?.id)
 
   const handleSetActiveTab = (tabName, params = {}) => {
-
     console.trace('Trace for handleSetActiveTab');
-    setActiveTab({ name: tabName, params });
+    const newTab = { name: tabName, params };
+    setActiveTab(newTab);
+    localStorage.setItem('activeTab', JSON.stringify(newTab));
   };
 
   const renderContent = () => {
@@ -487,12 +512,9 @@ function App() {
         return <EmployeeMemos />;
 
       // 系统管理
-      case 'broadcast-management':
-        return <BroadcastManagement />
 
       default:
-        return <NotFound />
-    }
+        return <NotFound />    }
   }
 
   if (!isLoggedIn) {
@@ -532,14 +554,7 @@ function App() {
               duration={5000}
               visibleToasts={3}
             />
-            <Toaster
-              position="top-right"
-              expand={false}
-              richColors={false}
-              closeButton
-              duration={3000}
-              visibleToasts={3}
-            />
+
             {/* 未读备忘录弹窗 */}
             {showMemoPopup && (
               <Suspense fallback={null}>

@@ -28,7 +28,6 @@ const QuestionEditor = () => {
         score: 5,
         options: [{ value: '' }, { value: '' }],
         correct_answer: undefined,
-        fill_blanks: [{ keyword: '' }],
       });
     }
   }, [questionId]);
@@ -48,9 +47,6 @@ const QuestionEditor = () => {
       }
       if (question.correct_answer && typeof question.correct_answer === 'string') {
         question.correct_answer = JSON.parse(question.correct_answer);
-      }
-      if (question.fill_blanks && typeof question.fill_blanks === 'string') {
-        question.fill_blanks = JSON.parse(question.fill_blanks);
       }
 
       form.setFieldsValue(question);
@@ -77,9 +73,8 @@ const QuestionEditor = () => {
       if (payload.correct_answer) {
         payload.correct_answer = JSON.stringify(payload.correct_answer);
       }
-      if (payload.fill_blanks) {
-        payload.fill_blanks = JSON.stringify(payload.fill_blanks);
-      }
+      // Remove deprecated fields if present just in case
+      delete payload.fill_blanks;
 
       if (questionId) {
         await axios.put(`/api/questions/${questionId}`, payload, {
@@ -107,13 +102,9 @@ const QuestionEditor = () => {
     form.setFieldsValue({
       options: undefined,
       correct_answer: undefined,
-      fill_blanks: undefined,
     });
     if (value === 'single_choice' || value === 'multiple_choice') {
       form.setFieldsValue({ options: [{ value: '' }, { value: '' }] });
-    }
-    if (value === 'fill_blank') {
-      form.setFieldsValue({ fill_blanks: [{ keyword: '' }] });
     }
   };
 
@@ -125,7 +116,6 @@ const QuestionEditor = () => {
       const payload = { ...values, exam_id: examId };
       if (payload.options) payload.options = JSON.stringify(payload.options);
       if (payload.correct_answer) payload.correct_answer = JSON.stringify(payload.correct_answer);
-      if (payload.fill_blanks) payload.fill_blanks = JSON.stringify(payload.fill_blanks);
 
       await axios.put(`/api/questions/${questionId}`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -147,221 +137,251 @@ const QuestionEditor = () => {
   }, [questionId, form, triggerSave]);
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        title={
-          <Space>
-            <span>{questionId ? '编辑题目' : '创建题目'}</span>
+    <div className="min-h-screen bg-gray-50/50 p-6 flex justify-center">
+      <div className="w-full max-w-4xl">
+        {/* Header Section */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+             <h1 className="text-2xl font-bold text-gray-900">{questionId ? '编辑题目' : '创建新题目'}</h1>
+             <p className="text-gray-500 mt-1">设计高质量的客观题，包括单选、多选及判断题</p>
+          </div>
+          <div className="flex items-center gap-3">
+             <Button
+               icon={<ArrowLeftOutlined />}
+               onClick={() => navigate(`/assessment/exams/${examId}`)}
+               className="hover:bg-gray-100 border-none shadow-sm"
+             >
+               返回
+             </Button>
             {questionId && (
-              <>
-                {isSaving && <Tag icon={<SaveOutlined spin />} color="processing">保存中...</Tag>}
-                {saveStatus === 'success' && <Tag icon={<CheckCircleOutlined />} color="success">已保存</Tag>}
-                {saveStatus === 'error' && <Tag icon={<CloseCircleOutlined />} color="error">保存失败</Tag>}
-              </>
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                {isSaving && <Tag icon={<SaveOutlined spin />} color="processing" className="m-0 border-none bg-transparent">保存中</Tag>}
+                {saveStatus === 'success' && <Tag icon={<CheckCircleOutlined />} color="success" className="m-0 border-none bg-transparent">已保存</Tag>}
+                {saveStatus === 'error' && <Tag icon={<CloseCircleOutlined />} color="error" className="m-0 border-none bg-transparent">失败</Tag>}
+              </div>
             )}
-          </Space>
-        }
-        loading={loading}
-      >
+          </div>
+        </div>
+
         <Form
           form={form}
           layout="vertical"
           onValuesChange={handleFormChange}
           onFinish={onFinish}
+          className="space-y-6"
         >
-          <Form.Item
-            name="type"
-            label="题型"
-            rules={[{ required: true, message: '请选择题型' }]}
-          >
-            <Select placeholder="请选择题型" onChange={handleQuestionTypeChange}>
-              <Option value="single_choice">单选题</Option>
-              <Option value="multiple_choice">多选题</Option>
-              <Option value="true_false">判断题</Option>
-              <Option value="fill_blank">填空题</Option>
-              <Option value="essay">简答题</Option>
-            </Select>
-          </Form.Item>
+          {/* Main Content Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+             <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex items-center gap-4">
+                <Form.Item
+                  name="type"
+                  noStyle
+                  rules={[{ required: true, message: '请选择题型' }]}
+                >
+                  <Select
+                    placeholder="请选择题型"
+                    onChange={handleQuestionTypeChange}
+                    className="w-40"
+                    bordered={false}
+                    suffixIcon={<span className="text-gray-400">▼</span>}
+                    dropdownStyle={{ borderRadius: '12px', padding: '8px' }}
+                  >
+                    <Option value="single_choice">单选题</Option>
+                    <Option value="multiple_choice">多选题</Option>
+                    <Option value="true_false">判断题</Option>
+                  </Select>
+                </Form.Item>
+                <div className="h-6 w-px bg-gray-200"></div>
+                <Form.Item
+                  name="score"
+                  noStyle
+                  rules={[{ required: true, message: '请输入分值' }]}
+                >
+                   <InputNumber
+                      min={1}
+                      className="w-32 border-transparent hover:border-primary-200 focus:border-primary-500 bg-transparent"
+                      placeholder="分值"
+                      addonBefore="分值"
+                      controls={false}
+                   />
+                </Form.Item>
+             </div>
 
-          <Form.Item
-            name="content"
-            label="题目内容"
-            rules={[{ required: true, message: '请输入题目内容' }]}
-          >
-            <TextArea rows={4} placeholder="请输入题目内容" />
-          </Form.Item>
+             <div className="p-8">
+                <Form.Item
+                  name="content"
+                  rules={[{ required: true, message: '请输入题目内容' }]}
+                  className="mb-0"
+                >
+                  <TextArea
+                    rows={4}
+                    placeholder="在这里输入题目内容..."
+                    className="text-lg font-medium text-gray-800 border-none focus:shadow-none p-0 resize-none placeholder:text-gray-300"
+                    style={{ minHeight: '120px' }}
+                  />
+                </Form.Item>
+             </div>
+          </div>
 
-          <Form.Item
-            name="score"
-            label="分值"
-            rules={[{ required: true, message: '请输入分值' }, { type: 'number', min: 1, message: '分值必须大于0' }]}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
+          {/* Options Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+             <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
+               <span className="w-1 h-6 bg-primary-500 rounded-full"></span>
+               选项设置
+             </h3>
 
-          {/* Options for Single/Multiple Choice */}
-          {(questionType === 'single_choice' || questionType === 'multiple_choice') && (
-            <Form.List name="options" rules={[{
-              validator: async (_, options) => {
-                if (!options || options.length < 2) {
-                  return Promise.reject(new Error('至少需要两个选项'));
-                }
-                if (options.some(option => !option || !option.value || option.value.trim() === '')) {
-                  return Promise.reject(new Error('选项内容不能为空'));
-                }
-              },
-            }]}>
-              {(fields, { add, remove }) => (
-                <>
-                  {fields.map((field, index) => (
-                    <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                      <Form.Item
-                        {...field}
-                        name={[field.name, 'value']}
-                        fieldKey={[field.fieldKey, 'value']}
-                        rules={[{ required: true, message: '选项内容不能为空' }]}
-                      >
-                        <Input placeholder={`选项 ${index + 1}`} style={{ width: 300 }} />
-                      </Form.Item>
-                      {fields.length > 2 ? (
-                        <MinusCircleOutlined onClick={() => remove(field.name)} />
-                      ) : null}
-                    </Space>
-                  ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      添加选项
-                    </Button>
-                  </Form.Item>
-                </>
-              )}
-            </Form.List>
-          )}
-
-          {/* Correct Answer for Single/Multiple Choice */}
-          {questionType === 'single_choice' && (
-            <Form.Item
-              name="correct_answer"
-              label="正确答案"
-              rules={[{ required: true, message: '请选择正确答案' }]}
-            >
-              <RadioGroup>
-                {form.getFieldValue('options')?.map((option, index) => (
-                  <Radio key={index} value={option.value}>{`选项 ${index + 1}: ${option.value}`}</Radio>
-                ))}
-              </RadioGroup>
-            </Form.Item>
-          )}
-
-          {questionType === 'multiple_choice' && (
-            <Form.Item
-              name="correct_answer"
-              label="正确答案"
-              rules={[{ required: true, message: '请选择至少两个正确答案' }, {
-                validator: async (_, value) => {
-                  if (questionType === 'multiple_choice' && (!value || value.length < 2)) {
-                    return Promise.reject(new Error('多选题至少需要选择两个正确答案'));
+            {(questionType === 'single_choice' || questionType === 'multiple_choice') && (
+              <Form.List name="options" rules={[{
+                validator: async (_, options) => {
+                  if (!options || options.length < 2) {
+                    return Promise.reject(new Error('至少需要两个选项'));
+                  }
+                  if (options.some(option => !option || !option.value || option.value.trim() === '')) {
+                    return Promise.reject(new Error('选项内容不能为空'));
                   }
                 },
-              }]}
-            >
-              <CheckboxGroup>
-                {form.getFieldValue('options')?.map((option, index) => (
-                  <Checkbox key={index} value={option.value}>{`选项 ${index + 1}: ${option.value}`}</Checkbox>
-                ))}
-              </CheckboxGroup>
-            </Form.Item>
-          )}
-
-          {/* Correct Answer for True/False */}
-          {questionType === 'true_false' && (
-            <Form.Item
-              name="correct_answer"
-              label="正确答案"
-              rules={[{ required: true, message: '请选择正确答案' }]}
-            >
-              <RadioGroup>
-                <Radio value={true}>正确</Radio>
-                <Radio value={false}>错误</Radio>
-              </RadioGroup>
-            </Form.Item>
-          )}
-
-          {/* Keywords for Fill-in-the-blank */}
-          {questionType === 'fill_blank' && (
-            <Form.List name="fill_blanks" rules={[{
-              validator: async (_, fill_blanks) => {
-                if (!fill_blanks || fill_blanks.length === 0) {
-                  return Promise.reject(new Error('至少需要一个填空项'));
-                }
-                if (fill_blanks.some(blank => !blank || !blank.keyword || blank.keyword.trim() === '')) {
-                  return Promise.reject(new Error('填空关键词不能为空'));
-                }
-              },
-            }]}>
-              {(fields, { add, remove }) => (
-                <>
-                  {fields.map((field, index) => (
-                    <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                      <Form.Item
-                        {...field}
-                        name={[field.name, 'keyword']}
-                        fieldKey={[field.fieldKey, 'keyword']}
-                        rules={[{ required: true, message: '填空关键词不能为空' }]}
-                      >
-                        <Input placeholder={`填空项 ${index + 1} 关键词`} style={{ width: 300 }} />
-                      </Form.Item>
-                      {fields.length > 1 ? (
-                        <MinusCircleOutlined onClick={() => remove(field.name)} />
-                      ) : null}
-                    </Space>
-                  ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      添加填空项
+              }]}>
+                {(fields, { add, remove }) => (
+                  <div className="space-y-4">
+                    {fields.map((field, index) => (
+                      <div key={field.key} className="group relative flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all bg-white">
+                        <div className="flex-shrink-0 mt-2 w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold">
+                          {String.fromCharCode(65 + index)}
+                        </div>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'value']}
+                          fieldKey={[field.fieldKey, 'value']}
+                          rules={[{ required: true, message: '请输入选项内容' }]}
+                          className="flex-1 mb-0"
+                        >
+                          <Input.TextArea
+                             autoSize
+                             placeholder={`选项 ${index + 1}`}
+                             className="border-none focus:shadow-none p-0 text-gray-700 resize-none bg-transparent"
+                          />
+                        </Form.Item>
+                        {fields.length > 2 && (
+                          <MinusCircleOutlined
+                            onClick={() => remove(field.name)}
+                            className="absolute top-4 right-4 text-gray-300 hover:text-red-500 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="dashed"
+                      onClick={() => add()}
+                      block
+                      icon={<PlusOutlined />}
+                      className="h-12 rounded-xl border-2 border-gray-100 hover:border-primary-500 hover:text-primary-600 text-gray-400 font-medium transition-colors"
+                    >
+                      添加选项
                     </Button>
-                  </Form.Item>
-                </>
-              )}
-            </Form.List>
-          )}
+                  </div>
+                )}
+              </Form.List>
+            )}
 
-          {/* Reference Answer for Essay */}
-          {questionType === 'essay' && (
+            {questionType === 'true_false' && (
+               <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500">
+                  判断题默认包含“正确”和“错误”两个选项，无需手动配置。
+               </div>
+            )}
+          </div>
+
+          {/* Answer & Explanation */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+             <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
+               <span className="w-1 h-6 bg-green-500 rounded-full"></span>
+               答案与解析
+             </h3>
+
+            {questionType === 'single_choice' && (
+              <Form.Item
+                name="correct_answer"
+                label="正确答案"
+                rules={[{ required: true, message: '请选择正确答案' }]}
+              >
+                <RadioGroup className="flex flex-wrap gap-4">
+                  {form.getFieldValue('options')?.map((option, index) => (
+                    <Radio key={index} value={option.value} className="px-4 py-2 border rounded-lg hover:border-primary-500 transition-colors">
+                      <span className="font-bold text-primary-600 mr-2">{String.fromCharCode(65 + index)}.</span>
+                      {option.value || <span className="text-gray-300 italic">选项内容为空</span>}
+                    </Radio>
+                  ))}
+                </RadioGroup>
+              </Form.Item>
+            )}
+
+            {questionType === 'multiple_choice' && (
+              <Form.Item
+                name="correct_answer"
+                label="正确答案"
+                rules={[{ required: true, message: '请选择至少两个正确答案' }, {
+                  validator: async (_, value) => {
+                    if (questionType === 'multiple_choice' && (!value || value.length < 2)) {
+                      return Promise.reject(new Error('多选题至少需要选择两个正确答案'));
+                    }
+                  },
+                }]}
+              >
+                <CheckboxGroup className="flex flex-col gap-3">
+                  {form.getFieldValue('options')?.map((option, index) => (
+                    <Checkbox key={index} value={option.value} className="px-4 py-3 border rounded-xl hover:border-primary-500 transition-all bg-gray-50 hover:bg-white">
+                      <span className="font-bold text-primary-600 mr-2">{String.fromCharCode(65 + index)}.</span>
+                      {option.value || <span className="text-gray-300 italic">选项内容为空</span>}
+                    </Checkbox>
+                  ))}
+                </CheckboxGroup>
+              </Form.Item>
+            )}
+
+            {questionType === 'true_false' && (
+              <Form.Item
+                name="correct_answer"
+                label="正确答案"
+                rules={[{ required: true, message: '请选择正确答案' }]}
+              >
+                <RadioGroup>
+                  <Radio.Button value={true} className="px-6 h-10 leading-10">正确</Radio.Button>
+                  <Radio.Button value={false} className="px-6 h-10 leading-10">错误</Radio.Button>
+                </RadioGroup>
+              </Form.Item>
+            )}
+
             <Form.Item
-              name="correct_answer" // Using correct_answer to store reference answer
-              label="参考答案"
+              name="explanation"
+              label="答案解析"
+              className="mt-6"
             >
-              <TextArea rows={6} placeholder="请输入参考答案" />
+              <TextArea
+                 rows={4}
+                 placeholder="输入题目解析，帮助考生理解（选填）"
+                 className="rounded-xl border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all p-4"
+              />
             </Form.Item>
-          )}
+          </div>
 
-          <Form.Item
-            name="explanation"
-            label="解析"
-          >
-            <TextArea rows={4} placeholder="请输入题目解析" />
-          </Form.Item>
-
-          {/* Image Upload (Placeholder) */}
-          <Form.Item label="图片上传">
-            <Button icon={<PlusOutlined />} disabled>
-              上传图片 (待实现)
-            </Button>
-          </Form.Item>
-
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                保存题目
-              </Button>
-              <Button onClick={() => navigate(`/assessment/exams/${examId}`)} disabled={loading}>
-                取消
-              </Button>
-            </Space>
-          </Form.Item>
+          <div className="flex items-center justify-end gap-4 pt-4 pb-12">
+             <Button
+               size="large"
+               onClick={() => navigate(`/assessment/exams/${examId}`)}
+               className="h-12 px-8 rounded-xl border-gray-300 text-gray-600 hover:text-gray-800 hover:border-gray-400 font-medium"
+             >
+               取消
+             </Button>
+             <Button
+               type="primary"
+               htmlType="submit"
+               loading={loading}
+               className="h-12 px-10 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 border-none shadow-lg shadow-primary-500/30 text-lg font-bold"
+             >
+               {loading ? '保存中...' : '完成并保存'}
+             </Button>
+          </div>
         </Form>
-      </Card>
+      </div>
     </div>
   );
 };

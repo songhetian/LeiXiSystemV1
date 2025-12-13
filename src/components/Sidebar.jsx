@@ -35,6 +35,8 @@ import {
   TagsOutlined,
   SoundOutlined,
   DesktopOutlined,
+  LogoutOutlined,
+  ThunderboltFilled,
 } from '@ant-design/icons';
 
 // --- Component Definition ---
@@ -170,7 +172,8 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
       </div>
 
       {/* Fixed Footer */}
-      <SidebarFooter onLogout={onLogout} />
+      {/* Fixed Footer */}
+      <SidebarFooter user={user} onLogout={onLogout} />
     </aside>
   );
 };
@@ -178,9 +181,17 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
 // --- Sub-components for Clarity ---
 
 const SidebarHeader = () => (
-  <div className="mb-4 pb-4 border-b border-gray-200">
-    <h1 className="text-xl font-bold text-gray-800">雷犀客服系统</h1>
-    <p className="text-gray-500 text-xs mt-1">桌面版</p>
+  <div className="mb-4 pb-4 border-b border-gray-100 flex items-center gap-3 px-2">
+    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
+      <ThunderboltFilled className="text-xl" />
+    </div>
+    <div>
+      <h1 className="text-lg font-bold text-gray-800 tracking-tight leading-tight">雷犀系统</h1>
+      <div className="flex items-center gap-1.5 mt-0.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Enterprise</span>
+      </div>
+    </div>
   </div>
 );
 
@@ -352,17 +363,24 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
   );
 };
 
-const SidebarFooter = ({ onLogout }) => (
-  <div className="p-4 border-t border-gray-200 space-y-2">
+const SidebarFooter = ({ user, onLogout }) => (
+  <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+    <div className="flex items-center gap-3 mb-3">
+       <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-500 border-2 border-white shadow-sm">
+          {user?.real_name?.charAt(0) || <UserOutlined />}
+       </div>
+       <div className="flex-1 min-w-0">
+         <div className="text-sm font-semibold text-gray-700 truncate">{user?.real_name || '未登录'}</div>
+         <div className="text-xs text-gray-400 truncate">@{user?.username || 'guest'}</div>
+       </div>
+    </div>
     <button
       onClick={onLogout}
-      className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-100 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow"
     >
-      退出登录
+      <LogoutOutlined />
+      <span>退出登录</span>
     </button>
-    <div className="text-xs text-gray-400 text-center">
-      © 2024 雷犀客服系统
-    </div>
   </div>
 );
 

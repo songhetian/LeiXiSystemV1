@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiBaseUrl } from '../utils/apiConfig'
 import Modal from './Modal'
 

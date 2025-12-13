@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatDate } from '../utils/date'
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 import { getApiUrl } from '../utils/apiConfig';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/apiClient';

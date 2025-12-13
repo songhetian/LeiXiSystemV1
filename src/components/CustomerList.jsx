@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import customerAPI from '../api/customerAPI.js'
 import Modal from './Modal'
 import CustomerForm from './CustomerForm'

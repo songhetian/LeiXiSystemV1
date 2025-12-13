@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import axios from '../../utils/axiosConfig'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
 import { motion, AnimatePresence } from 'framer-motion'
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import qualityAPI from '../api/qualityAPI.js';
 import Modal from '../components/Modal'; // Assuming a generic Modal component exists
 

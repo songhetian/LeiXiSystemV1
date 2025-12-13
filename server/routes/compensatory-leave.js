@@ -6,7 +6,7 @@ module.exports = async function (fastify, opts) {
 
   // 提交调休申请
   fastify.post('/api/compensatory/apply', async (request, reply) => {
-    const {
+    let {
       employee_id,
       user_id,
       request_type,
@@ -21,6 +21,27 @@ module.exports = async function (fastify, opts) {
       // 验证必填字段
       if (!employee_id || !user_id || !reason) {
         return reply.code(400).send({ success: false, message:  '缺少必填字段' })
+      }
+
+      // 处理日期字段，确保纯日期格式正确存储
+      if (original_schedule_date && typeof original_schedule_date === 'string' && original_schedule_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // 如果是纯日期格式字符串，保持原样
+      } else if (original_schedule_date instanceof Date) {
+        // 如果是Date对象，转换为纯日期字符串
+        const year = original_schedule_date.getFullYear();
+        const month = String(original_schedule_date.getMonth() + 1).padStart(2, '0');
+        const day = String(original_schedule_date.getDate()).padStart(2, '0');
+        original_schedule_date = `${year}-${month}-${day}`;
+      }
+
+      if (new_schedule_date && typeof new_schedule_date === 'string' && new_schedule_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // 如果是纯日期格式字符串，保持原样
+      } else if (new_schedule_date instanceof Date) {
+        // 如果是Date对象，转换为纯日期字符串
+        const year = new_schedule_date.getFullYear();
+        const month = String(new_schedule_date.getMonth() + 1).padStart(2, '0');
+        const day = String(new_schedule_date.getDate()).padStart(2, '0');
+        new_schedule_date = `${year}-${month}-${day}`;
       }
 
       // 检查是否有重叠的待审批申请
@@ -278,6 +299,31 @@ module.exports = async function (fastify, opts) {
 
       const [requests] = await pool.query(query, params)
 
+      // 修复日期显示问题：将纯日期字段转换为正确的字符串格式
+      // 由于MySQL驱动会将DATE类型的字段自动转换为JavaScript Date对象，
+      // 而这些Date对象在序列化时会受到时区影响，所以我们需要手动转换回正确的日期字符串
+      requests.forEach(request => {
+        // 处理原始排班日期
+        if (request.original_schedule_date && request.original_schedule_date instanceof Date) {
+          // 使用日期组件构建正确的日期字符串，避免时区转换问题
+          const year = request.original_schedule_date.getFullYear();
+          // 注意：getMonth() 返回 0-11，所以需要 +1
+          const month = String(request.original_schedule_date.getMonth() + 1).padStart(2, '0');
+          const day = String(request.original_schedule_date.getDate()).padStart(2, '0');
+          request.original_schedule_date = `${year}-${month}-${day}`;
+        }
+
+        // 处理新排班日期
+        if (request.new_schedule_date && request.new_schedule_date instanceof Date) {
+          // 使用日期组件构建正确的日期字符串，避免时区转换问题
+          const year = request.new_schedule_date.getFullYear();
+          // 注意：getMonth() 返回 0-11，所以需要 +1
+          const month = String(request.new_schedule_date.getMonth() + 1).padStart(2, '0');
+          const day = String(request.new_schedule_date.getDate()).padStart(2, '0');
+          request.new_schedule_date = `${year}-${month}-${day}`;
+        }
+      });
+
       return {
         success: true,
         data: requests,
@@ -299,9 +345,7 @@ module.exports = async function (fastify, opts) {
     request.query.status = 'pending'
     // 内部调用 list 逻辑太麻烦，直接复制逻辑或者让前端改。
     // 这里简单起见，直接返回 list 的结果，假设前端会改。
-    // 但为了保险，我还是保留这个 endpoint，复用 list 的查询逻辑。
-    // 但实际上，上面的 list 已经覆盖了 pending 的功能。
-    // 如果前端还没改，调用 pending 会走到这里。
+    // 但如果前端还没改，调用 pending 会走到这里。
     // 我将直接复制 list 的逻辑，或者让 list 处理 pending。
     // 为了避免代码重复，我建议前端改为调用 list。
     // 但为了防止报错，我这里简单返回一个错误提示前端升级，或者直接实现。
@@ -353,13 +397,28 @@ module.exports = async function (fastify, opts) {
       if (requestData.original_schedule_date && requestData.new_schedule_date) {
         console.log('Syncing schedule for user:', requestData.user_id)
 
-        // 删除原排班（如果存在）
+        // 将原排班改为休息日（使用休息班次ID而不是设置is_rest_day字段）
         if (requestData.original_schedule_date) {
-          console.log('Deleting original schedule:', requestData.original_schedule_date)
-          await connection.query(
-            'DELETE FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
+          console.log('Updating original schedule to rest day:', requestData.original_schedule_date)
+          // 首先检查原排班是否存在
+          const [existingSchedule] = await connection.query(
+            'SELECT id FROM shift_schedules WHERE employee_id = ? AND schedule_date = ?',
             [requestData.employee_id, requestData.original_schedule_date]
           )
+
+          if (existingSchedule.length > 0) {
+            // 如果存在，则更新为休息班次（ID为20）
+            await connection.query(
+              'UPDATE shift_schedules SET shift_id = 20 WHERE employee_id = ? AND schedule_date = ?',
+              [requestData.employee_id, requestData.original_schedule_date]
+            )
+          } else {
+            // 如果不存在，则创建新的休息日记录
+            await connection.query(
+              'INSERT INTO shift_schedules (employee_id, schedule_date, shift_id) VALUES (?, ?, ?)',
+              [requestData.employee_id, requestData.original_schedule_date, 20]
+            )
+          }
         }
 
         // 创建新排班
@@ -384,8 +443,8 @@ module.exports = async function (fastify, opts) {
 
           if (existing.length === 0) {
             await connection.query(
-              'INSERT INTO shift_schedules (employee_id, schedule_date, shift_id, is_rest_day) VALUES (?, ?, ?, ?)',
-              [requestData.employee_id, requestData.new_schedule_date, requestData.new_shift_id, 0]
+              'INSERT INTO shift_schedules (employee_id, schedule_date, shift_id) VALUES (?, ?, ?)',
+              [requestData.employee_id, requestData.new_schedule_date, requestData.new_shift_id]
             )
           } else {
             await connection.query(

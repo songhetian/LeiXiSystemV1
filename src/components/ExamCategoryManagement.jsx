@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { getApiUrl } from '../utils/apiConfig'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'

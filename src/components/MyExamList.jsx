@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import api from '../api';
 import { getApiUrl } from '../utils/apiConfig';
 import debounce from 'lodash.debounce';

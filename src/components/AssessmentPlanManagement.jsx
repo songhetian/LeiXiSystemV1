@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import api from '../api';
 import Modal from './Modal';
 import { getApiUrl } from '../utils/apiConfig';
@@ -115,6 +115,28 @@ const AssessmentPlanManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+
+
+  const handleQuickDuration = (hours = 0, days = 0) => {
+    const now = new Date();
+    // Round up to next 30 minutes
+    const interval = 30 * 60 * 1000;
+    const start = new Date(Math.ceil(now.getTime() / interval) * interval);
+    const end = new Date(start.getTime() + (hours * 60 * 60 * 1000) + (days * 24 * 60 * 60 * 1000));
+
+    // Format for datetime-local: YYYY-MM-DDThh:mm
+    const formatLocal = (d) => {
+      const pad = (n) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      start_time: formatLocal(start),
+      end_time: formatLocal(end)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -478,28 +500,77 @@ const AssessmentPlanManagement = () => {
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">开始时间 *</label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 col-span-1 md:col-span-2">
+              <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <span className="w-1 h-4 bg-primary-500 rounded-full"></span>
+                时间安排
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">开始时间</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    step="1800"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                    className="w-full text-sm font-medium border-0 focus:ring-0 p-0 text-gray-800"
+                  />
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">结束时间</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    step="1800"
+                    min={formData.start_time}
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                    className="w-full text-sm font-medium border-0 focus:ring-0 p-0 text-gray-800"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs text-gray-500 self-center mr-1">快捷预设:</span>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration(2, 0)}
+                  className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg text-xs hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors shadow-sm"
+                >
+                  ⏱️ 2小时
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration(4, 0)}
+                  className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg text-xs hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors shadow-sm"
+                >
+                  ☀️ 4小时
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration(24, 0)}
+                  className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg text-xs hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors shadow-sm"
+                >
+                   1天
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration(72, 0)}
+                  className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg text-xs hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors shadow-sm"
+                >
+                   3天
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration(168, 0)}
+                  className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg text-xs hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors shadow-sm"
+                >
+                   1周
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">结束时间 *</label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.end_time}
-                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">目标部门 * (可多选)</label>

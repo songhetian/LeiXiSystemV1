@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
 import {
   CalendarIcon,
   ClockIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  CalendarDaysIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 
 export default function MySchedule() {
@@ -16,6 +18,8 @@ export default function MySchedule() {
   const [employee, setEmployee] = useState(null)
   const [selectedSchedule, setSelectedSchedule] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
 
   // 获取员工信息
   useEffect(() => {
@@ -80,6 +84,10 @@ export default function MySchedule() {
     }
   }
 
+  const goToCurrentMonth = () => {
+    setSelectedMonth(new Date());
+  };
+
   // 渲染日历视图
   const renderCalendarView = () => {
     // 确保使用正确的时区处理月份
@@ -107,49 +115,124 @@ export default function MySchedule() {
     }
 
     return (
-      <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-md p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {/* 月份选择器 */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setSelectedMonth(new Date(year, month - 1))}
-            className="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-1 text-sm text-gray-600 transition-colors"
-          >
-            <ChevronLeftIcon className="w-4 h-4" />
-            上月
-          </button>
-          <h3 className="text-lg font-bold text-gray-800">
-            {year}年{month + 1}月
-          </h3>
-          <button
-            onClick={() => setSelectedMonth(new Date(year, month + 1))}
-            className="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-1 text-sm text-gray-600 transition-colors"
-          >
-            下月
-            <ChevronRightIcon className="w-4 h-4" />
-          </button>
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/30">
+          <div className="flex items-center gap-4">
+             <div className="relative">
+                <div
+                  className="flex items-center gap-2 cursor-pointer group"
+                  onClick={() => {
+                    setPickerYear(year);
+                    setShowMonthPicker(!showMonthPicker);
+                  }}
+                >
+                   <h3 className="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                     {year}年 {month + 1}月
+                     <ChevronDownIcon className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-transform duration-200 ${showMonthPicker ? 'rotate-180' : ''}`} />
+                   </h3>
+                </div>
+
+                {/* Custom Month Picker Popover */}
+                {showMonthPicker && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowMonthPicker(false)} />
+                    <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-20 p-4 animate-in fade-in zoom-in-95 duration-200">
+                       <div className="flex items-center justify-between mb-4">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setPickerYear(pickerYear - 1); }}
+                            className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900"
+                          >
+                            <ChevronLeftIcon className="w-5 h-5" />
+                          </button>
+                          <span className="font-bold text-gray-800 text-lg">{pickerYear}年</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setPickerYear(pickerYear + 1); }}
+                            className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900"
+                          >
+                            <ChevronRightIcon className="w-5 h-5" />
+                          </button>
+                       </div>
+                       <div className="grid grid-cols-4 gap-2">
+                          {Array.from({ length: 12 }, (_, i) => (
+                             <button
+                               key={i}
+                               onClick={() => {
+                                 setSelectedMonth(new Date(pickerYear, i));
+                                 setShowMonthPicker(false);
+                               }}
+                               className={`
+                                 py-2 rounded-lg text-sm font-medium transition-colors
+                                 ${year === pickerYear && month === i
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                 }
+                                 ${new Date().getFullYear() === pickerYear && new Date().getMonth() === i && !(year === pickerYear && month === i)
+                                    ? 'text-blue-600 bg-blue-50'
+                                    : ''
+                                 }
+                               `}
+                             >
+                               {i + 1}月
+                             </button>
+                          ))}
+                       </div>
+                    </div>
+                  </>
+                )}
+             </div>
+             <button
+               onClick={goToCurrentMonth}
+               className="text-sm px-3 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all flex items-center gap-1.5 shadow-sm"
+               title="回到今天"
+             >
+               <CalendarDaysIcon className="w-4 h-4" />
+               本月
+             </button>
+          </div>
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
+            <button
+              onClick={() => setSelectedMonth(new Date(year, month - 1))}
+              className="p-1.5 hover:bg-gray-100 rounded-md text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+            </button>
+            <span className="w-px h-4 bg-gray-200 mx-1"></span>
+            <button
+              onClick={() => setSelectedMonth(new Date(year, month + 1))}
+              className="p-1.5 hover:bg-gray-100 rounded-md text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <ChevronRightIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* 日历容器 - 添加左边框和上边框 */}
-        <div className="border-t border-l border-gray-400">
+        {/* 日历容器 */}
+        <div className="">
           {/* 星期标题 */}
-          <div className="grid grid-cols-7">
-            {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-              <div key={day} className="text-center font-bold text-gray-800 py-2 text-sm bg-gray-100 border-r border-b border-gray-400">
+          <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
+            {['日', '一', '二', '三', '四', '五', '六'].map((day, idx) => (
+              <div key={day} className={`text-center font-medium text-gray-500 py-3 text-sm ${idx === 0 || idx === 6 ? 'text-orange-500' : ''}`}>
                 {day}
               </div>
             ))}
           </div>
 
           {/* 日历格子 */}
-          <div className="grid grid-cols-7">
+          <div className="grid grid-cols-7 auto-rows-[120px] divide-x divide-y divide-gray-100 border-l border-gray-100">
             {days.map((day, index) => {
+              // 计算边框样式，避免最左边和最底部的冗余
+              // 使用 divide-x divide-y 已经处理了大部分内部边框
+              // 这里主要是处理空白格和对齐
+
               if (!day) {
-                // 空白格子也要有边框和高度，保持网格结构
-                return <div key={`empty-${index}`} className="h-24 border-r border-b border-gray-400 bg-gray-50/30" />
+                return <div key={`empty-${index}`} className="bg-gray-50/20" />
               }
 
               const schedule = getScheduleForDay(day)
-              const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
+              const dateObj = new Date(year, month, day);
+              const isToday = new Date().toDateString() === dateObj.toDateString();
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
 
               return (
                 <div
@@ -161,46 +244,54 @@ export default function MySchedule() {
                     }
                   }}
                   className={`
-                    h-24 p-1 transition-all cursor-pointer flex flex-col items-center justify-center relative overflow-hidden border-r border-b border-gray-400
-                    ${isToday ? 'bg-blue-50/30' : ''}
-                    ${schedule ? 'hover:bg-blue-50' : 'bg-white hover:bg-gray-50'}
+                    group relative p-2 transition-all cursor-pointer flex flex-col justify-between hover:z-10
+                    ${!schedule ? (isToday ? 'bg-blue-50' : 'bg-white hover:bg-gray-50') : 'hover:brightness-95'}
                   `}
                   style={{
-                    backgroundColor: schedule && schedule.shift_id && !schedule.is_rest_day
-                      ? (schedule.color ? `${schedule.color}40` : '#e5e7eb') // 加深背景颜色 (透明度从 15 改为 40)
-                      : undefined
+                    backgroundColor: schedule && !schedule.is_rest_day && schedule.color ? schedule.color : undefined,
+                    color: schedule && !schedule.is_rest_day ? 'white' : undefined
                   }}
                 >
                   {/* 日期数字 */}
-                  <div className={`absolute top-1 left-1.5 text-lg font-bold ${isToday ? 'text-blue-700' : 'text-gray-900'}`}>
-                    {day}
-                    {isToday && <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded align-middle">今天</span>}
-                  </div>
+                    <div className="flex items-center justify-between">
+                    <div className={`
+                        w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold transition-colors
+                        ${isToday
+                           ? (schedule ? 'bg-white text-blue-600 shadow-sm' : 'bg-blue-600 text-white shadow-sm')
+                           : (schedule ? 'text-white/90' : (isWeekend ? 'text-gray-400' : 'text-gray-700'))
+                        }
+                    `}>
+                        {day}
+                    </div>
+                     {isToday && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${schedule ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'}`}>
+                           今天
+                        </span>
+                     )}
+                    </div>
 
                   {schedule && (
-                    <div className="w-full flex flex-col items-center justify-center z-10 mt-6">
+                    <div className="w-full mt-1 space-y-1">
                       {schedule.is_rest_day ? (
-                        <>
-                          <div className="text-sm font-bold truncate text-gray-500 mb-0.5">
+                         <div className="px-2 py-1 bg-gray-100 text-gray-500 rounded-md text-xs font-semibold text-center border border-gray-200">
                             休息
-                          </div>
-                          <div className="text-xs text-gray-400 font-medium">
-                            00:00-00:00
-                          </div>
-                        </>
+                         </div>
                       ) : schedule.shift_name ? (
                         <>
-                          <div className="text-sm font-bold truncate text-gray-900 mb-0.5" style={{ color: schedule.color }}>
+                          <div
+                              className="px-2 py-1.5 rounded-md text-xs font-bold text-center shadow-sm truncate bg-white"
+                              style={{
+                                  color: '#111827', // Gray-900 (Black)
+                              }}
+                          >
                             {schedule.shift_name}
                           </div>
-                          <div className="text-xs text-gray-700 font-medium">
-                            {schedule.start_time?.substring(0, 5)}-{schedule.end_time?.substring(0, 5)}
+                          <div className="text-[10px] text-center font-medium mt-0.5 text-white/90">
+                            {schedule.start_time?.substring(0, 5)} - {schedule.end_time?.substring(0, 5)}
                           </div>
                         </>
                       ) : (
-                        <div className="text-[10px] text-gray-300">
-                          -
-                        </div>
+                         <span className="block h-1 w-1 bg-gray-300 rounded-full mx-auto" />
                       )}
                     </div>
                   )}
@@ -295,28 +386,36 @@ export default function MySchedule() {
   }
 
   return (
-    <div className="p-6">
-      {/* 页面标题 */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-          <CalendarIcon className="w-9 h-9 text-blue-600" />
-          我的排班
-        </h1>
-        <p className="text-lg text-gray-600 mt-2">查看您的工作排班安排</p>
-      </div>
+    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto p-6 pb-20">
+          {/* 页面标题 */}
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="p-2 bg-blue-600 rounded-lg shadow-md shadow-blue-500/20 text-white">
+                    <CalendarIcon className="w-6 h-6" />
+                </div>
+                我的排班
+              </h1>
+              <p className="text-sm text-gray-500 mt-1 ml-1">查看您的工作安排和考勤计划</p>
+            </div>
+          </div>
 
-      {/* 日历视图 */}
-      {loading ? (
-        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-lg text-gray-600 mt-4 font-medium">加载中...</p>
+          {/* 日历视图 */}
+          {loading ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-20 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-4 text-sm font-medium">加载排班数据...</p>
+            </div>
+          ) : (
+            renderCalendarView()
+          )}
+
+          {/* 详情模态框 */}
+          {renderDetailModal()}
         </div>
-      ) : (
-        renderCalendarView()
-      )}
-
-      {/* 详情模态框 */}
-      {renderDetailModal()}
+      </div>
     </div>
   )
 }

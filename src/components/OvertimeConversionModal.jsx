@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, InputNumber, Button, Alert, Statistic, Row, Col, Descriptions } from 'antd';
 import { SwapOutlined, CalculatorOutlined } from '@ant-design/icons';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { getApiBaseUrl } from '../utils/apiConfig';
 
 const OvertimeConversionModal = ({ visible, onClose, onSuccess, employeeId, overtimeHours }) => {

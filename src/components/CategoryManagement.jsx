@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { FolderOutlined } from '@ant-design/icons'; // 添加图标导入
 import api from '../api';
 import Modal from './Modal';
@@ -187,7 +187,7 @@ const CategoryManagement = () => {
 
     return (
       <div key={node.id} className="tree-item" style={{ paddingLeft: `${level * 24}px` }}>
-        <div 
+        <div
           className="tree-item-content"
         >
           {hasChildren && (
@@ -202,10 +202,10 @@ const CategoryManagement = () => {
             </button>
           )}
           {!hasChildren && <div className="expand-placeholder" />}
-          
+
           {/* 添加文件夹图标 */}
           <FolderOutlined className="tree-icon" />
-          
+
           <span className="tree-label">{node.name}</span>
 
           <div className="tree-actions">
@@ -398,7 +398,7 @@ const CategoryManagement = () => {
                 required
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="categoryDescription">描述</label>
               <textarea
@@ -410,7 +410,7 @@ const CategoryManagement = () => {
                 rows="3"
               />
             </div>
-            
+
             <div className="form-actions">
               <button
                 type="button"

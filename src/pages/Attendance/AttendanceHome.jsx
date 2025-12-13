@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
 
 export default function AttendanceHome({ onNavigate }) {
@@ -365,360 +365,250 @@ export default function AttendanceHome({ onNavigate }) {
   const isRestDay = todaySchedule && todaySchedule.shift_id == restShiftId
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      {/* 头部 */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">考勤打卡</h1>
-        <p className="text-gray-600 mt-1">
-          欢迎，{user?.real_name || user?.username || '加载中...'}
-          {employee && <span className="text-sm text-gray-500 ml-2">({employee.employee_no})</span>}
-        </p>
-      </div>
-
-      {/* 当前时间卡片 */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 mb-6 text-white">
-        <div className="text-center">
-          <div className="text-5xl font-bold mb-2">{formatTime(currentTime)}</div>
-          <div className="text-lg opacity-90">{formatDate(currentTime)}</div>
+    <div className="min-h-screen p-3 bg-gray-50">
+     <div className="max-w-5xl mx-auto">
+      {/* 头部 & 时间 - 紧凑布局 */}
+      <div className="bg-white rounded-lg shadow-sm p-3 mb-3 flex justify-between items-center">
+        <div>
+          <h1 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            考勤打卡
+            {employee && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{employee.employee_no}</span>}
+          </h1>
+          <p className="text-xs text-gray-500 mt-1">
+             {formatDate(currentTime)}
+          </p>
+        </div>
+        <div className="text-right">
+           <div className="text-2xl font-bold text-blue-600 font-mono tracking-wider">{formatTime(currentTime)}</div>
+           <div className="text-xs text-gray-400">当前时间</div>
         </div>
       </div>
 
-      {/* 今日打卡状态 */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">今日打卡状态</h2>
-          {/* 排班信息或选择班次按钮 */}
-          {todaySchedule && todaySchedule.shift_id ? (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-600">今日班次：</span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                {todaySchedule.shift_name || '休息日'}
-              </span>
-              {todaySchedule.start_time && todaySchedule.end_time && (
-                <span className="text-gray-500">
-                  {todaySchedule.start_time} - {todaySchedule.end_time}
-                </span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* 左侧：打卡主要操作区 (占2/3) */}
+        <div className="lg:col-span-2 space-y-3">
+          {/* 今日打卡状态 */}
+          <div className="bg-white rounded-lg shadow-sm p-3">
+            <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-700">今日状态</h2>
+              {/* 排班信息或选择班次按钮 */}
+              {todaySchedule && todaySchedule.shift_id ? (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">
+                    {todaySchedule.shift_name || '休息'}
+                  </span>
+                  <span className="text-gray-400">
+                    {todaySchedule.start_time} - {todaySchedule.end_time}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowShiftModal(true)}
+                  className="px-2 py-1 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded text-xs transition-colors flex items-center gap-1"
+                >
+                  <span>📅 排班</span>
+                </button>
               )}
             </div>
-          ) : (
-            <button
-              onClick={() => setShowShiftModal(true)}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-            >
-              <span>📅</span>
-              <span>选择班次排班</span>
-            </button>
-          )}
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 上班打卡 */}
-          <div className="border rounded-lg p-4">
-            <div className="text-sm text-gray-600 mb-2">上班打卡</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {formatDateTime(todayRecord?.clock_in_time)}
-            </div>
-          </div>
-
-          {/* 下班打卡 */}
-          <div className="border rounded-lg p-4">
-            <div className="text-sm text-gray-600 mb-2">下班打卡</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {formatDateTime(todayRecord?.clock_out_time)}
-            </div>
-          </div>
-
-          {/* 工作时长 */}
-          <div className="border rounded-lg p-4">
-            <div className="text-sm text-gray-600 mb-2">工作时长</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {todayRecord?.work_hours ? `${todayRecord.work_hours}h` : '--'}
-            </div>
-            {todayRecord?.status && (
-              <div className="mt-2">
-                {getStatusBadge(todayRecord.status)}
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {/* 上班打卡 */}
+              <div className="bg-gray-50 rounded p-2 text-center">
+                <div className="text-xs text-gray-400 mb-1">上班</div>
+                <div className={`font-semibold ${todayRecord?.clock_in_time ? 'text-gray-800' : 'text-gray-400'}`}>
+                  {formatDateTime(todayRecord?.clock_in_time)}
+                </div>
+                 {todayRecord?.status && ['late', 'leave'].includes(todayRecord.status) && (
+                    <div className="mt-1">{getStatusBadge(todayRecord.status)}</div>
+                 )}
               </div>
+
+              {/* 下班打卡 */}
+              <div className="bg-gray-50 rounded p-2 text-center">
+                <div className="text-xs text-gray-400 mb-1">下班</div>
+                <div className={`font-semibold ${todayRecord?.clock_out_time ? 'text-gray-800' : 'text-gray-400'}`}>
+                  {formatDateTime(todayRecord?.clock_out_time)}
+                </div>
+                {todayRecord?.status && ['early_leave', 'leave'].includes(todayRecord.status) && (
+                    <div className="mt-1">{getStatusBadge(todayRecord.status)}</div>
+                 )}
+              </div>
+
+              {/* 工作时长 */}
+              <div className="bg-gray-50 rounded p-2 text-center">
+                <div className="text-xs text-gray-400 mb-1">工时</div>
+                <div className="font-semibold text-gray-800">
+                  {todayRecord?.work_hours ? `${todayRecord.work_hours}h` : '--'}
+                </div>
+                 {todayRecord?.status && todayRecord.status === 'normal' && (
+                    <div className="mt-1">{getStatusBadge(todayRecord.status)}</div>
+                 )}
+              </div>
+            </div>
+
+            {/* 没有排班提示 */}
+            {!todaySchedule && (
+              <div className="bg-yellow-50 border border-yellow-100 rounded p-2 flex items-center gap-2 text-xs text-yellow-700 mb-3">
+                  <span>⚠️ 暂无排班，请先排班</span>
+              </div>
+            )}
+
+            {/* 休息日提示 */}
+            {isRestDay && (
+              <div className="bg-green-50 border border-green-100 rounded p-2 flex items-center gap-2 text-xs text-green-700 mb-3">
+                <span>🛌 休息日，无需打卡</span>
+              </div>
+            )}
+
+            {/* 打卡按钮区域 - 更紧凑 */}
+            {!isRestDay && (
+            <div className="grid grid-cols-2 gap-3">
+              {/* 上班打卡按钮 */}
+              <div>
+                {todayRecord?.clock_in_time ? (
+                  <button disabled className="w-full py-2 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
+                    已打上班卡
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleClockIn}
+                    disabled={loading || !clockInCheck.allowed}
+                    className={`w-full py-2 rounded text-sm font-medium transition-colors shadow-sm ${
+                      loading
+                        ? 'bg-gray-100 text-gray-400'
+                        : clockInCheck.allowed
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {loading ? '打卡中...' : '上班打卡'}
+                  </button>
+                )}
+                 {!todayRecord?.clock_in_time && (
+                    <div className="mt-1 text-center text-xs h-4">
+                      {clockInCheck.message ? (
+                        <span className={clockInCheck.allowed ? "text-green-600" : "text-gray-400"}>{clockInCheck.message}</span>
+                      ) : (todaySchedule && <span className="text-green-600">可打卡 ({todaySchedule.start_time})</span>)}
+                    </div>
+                 )}
+              </div>
+
+              {/* 下班打卡按钮 */}
+              <div>
+                {todayRecord?.clock_out_time ? (
+                  <button disabled className="w-full py-2 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
+                    已打下班卡
+                  </button>
+                ) : !todayRecord?.clock_in_time ? (
+                  <button disabled className="w-full py-2 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
+                    请先上班打卡
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleClockOut}
+                    disabled={loading || !clockOutCheck.allowed}
+                    className={`w-full py-2 rounded text-sm font-medium transition-colors shadow-sm ${
+                      loading
+                        ? 'bg-gray-100 text-gray-400'
+                        : clockOutCheck.allowed
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {loading ? '打卡中...' : '下班打卡'}
+                  </button>
+                )}
+                 {(!todayRecord?.clock_out_time && todayRecord?.clock_in_time) && (
+                    <div className="mt-1 text-center text-xs h-4">
+                      {clockOutCheck.message ? (
+                        <span className={clockOutCheck.allowed ? "text-blue-600" : "text-gray-400"}>{clockOutCheck.message}</span>
+                      ) : (todaySchedule && <span className="text-blue-600">可打卡 ({todaySchedule.end_time})</span>)}
+                    </div>
+                 )}
+              </div>
+            </div>
             )}
           </div>
         </div>
 
-        {/* 没有排班提示 */}
-        {!todaySchedule && (
-          <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-start gap-2">
-              <span className="text-yellow-600 text-lg">⚠️</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-900 mb-1">今日暂无排班信息</p>
-                <p className="text-sm text-yellow-800">
-                  请点击右上角"选择班次排班"按钮为自己安排今日班次，或联系管理员进行排班。
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 休息日提示 */}
-      {isRestDay && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 text-lg">🛌</span>
-            <div className="flex-1 text-sm text-green-800">今日为休息日，无需打卡</div>
-          </div>
-        </div>
-      )}
-
-      {/* 打卡按钮 */}
-      {!isRestDay && (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 上班打卡按钮 */}
-        <div>
-          {todayRecord?.clock_in_time ? (
-            <button
-              disabled
-              className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
-            >
-              已打上班卡
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={handleClockIn}
-                disabled={loading || !clockInCheck.allowed}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
-                  loading
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : clockInCheck.allowed
-                      ? 'bg-green-500 hover:bg-green-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {loading ? '打卡中...' : '✓ 上班打卡'}
-              </button>
-              <div className="mt-2 text-center text-sm font-medium">
-                {clockInCheck.message && (
-                  <span className={clockInCheck.allowed ? "text-green-600" : "text-gray-500"}>
-                    {clockInCheck.message}
-                  </span>
-                )}
-                {!clockInCheck.message && todaySchedule && (
-                  <span className="text-green-600">
-                    ✓ 可以打卡（{todaySchedule.start_time} 班次）
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* 下班打卡按钮 */}
-        <div>
-          {todayRecord?.clock_out_time ? (
-            <button
-              disabled
-              className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
-            >
-              已打下班卡
-            </button>
-          ) : !todayRecord?.clock_in_time ? (
-            <>
-              <button
-                disabled
-                className="w-full py-4 px-6 rounded-lg font-semibold text-lg bg-gray-300 text-gray-500 cursor-not-allowed"
-              >
-                请先打上班卡
-              </button>
-              <div className="mt-2 text-center text-sm text-gray-500">
-                需要先完成上班打卡
-              </div>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleClockOut}
-                disabled={loading || !clockOutCheck.allowed}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors shadow-lg ${
-                  loading
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : clockOutCheck.allowed
-                      ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {loading ? '打卡中...' : '✓ 下班打卡'}
-              </button>
-              <div className="mt-2 text-center text-sm font-medium">
-                {clockOutCheck.message && (
-                  <span className={clockOutCheck.allowed ? "text-blue-600" : "text-gray-500"}>
-                    {clockOutCheck.message}
-                  </span>
-                )}
-                {!clockOutCheck.message && todaySchedule && (
-                  <span className="text-blue-600">
-                    ✓ 可以打卡（{todaySchedule.end_time} 下班）
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      )}
-
-      {/* 超时提示模态框（休息日不显示） */}
-      {showTimeoutModal && !isRestDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-4xl">⚠️</span>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-center mb-2">打卡提醒</h3>
-
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-orange-800 text-center">
-                  {timeoutMessage}
-                </p>
-              </div>
-
-              {todaySchedule && (
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <div className="text-sm text-gray-600 text-center">
-                    <p className="mb-1">今日班次：<span className="font-medium text-gray-900">{todaySchedule.shift_name}</span></p>
-                    <p>工作时间：<span className="font-medium text-gray-900">{todaySchedule.start_time} - {todaySchedule.end_time}</span></p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowTimeoutModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  取消
+        {/* 右侧：快捷入口 (占1/3) */}
+        <div className="space-y-3">
+           {/* 快捷菜单 */}
+           <div className="bg-white rounded-lg shadow-sm p-3">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3 pb-2 border-b border-gray-100">快捷功能</h2>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => navigate('attendance-records')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                  <div className="text-lg mb-1">📋</div>
+                  <div className="text-xs text-gray-600">打卡记录</div>
                 </button>
-                <button
-                  onClick={() => {
-                    setShowTimeoutModal(false)
-                    // 直接打卡，不区分补打卡
-                    if (!todayRecord?.clock_in_time) {
-                      handleClockIn()  // 上班打卡
-                    } else {
-                      handleClockOut()  // 下班打卡
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                >
-                  {loading ? '打卡中...' : '确认打卡'}
+                <button onClick={() => navigate('attendance-leave-apply')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                  <div className="text-lg mb-1">🏖️</div>
+                  <div className="text-xs text-gray-600">请假</div>
+                </button>
+                <button onClick={() => navigate('attendance-overtime-apply')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                  <div className="text-lg mb-1">⏰</div>
+                  <div className="text-xs text-gray-600">加班</div>
+                </button>
+                 <button onClick={() => navigate('attendance-stats')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                  <div className="text-lg mb-1">📊</div>
+                  <div className="text-xs text-gray-600">统计</div>
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+           </div>
 
-      {/* 提示信息 */}
-      {todayRecord?.status === 'late' && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <span className="text-red-600 mr-2">⚠️</span>
-            <span className="text-red-800">您今天迟到了，请注意准时上班</span>
-          </div>
+           {/* 提示信息 */}
+           {todayRecord?.status && ['late', 'early_leave'].includes(todayRecord.status) && (
+              <div className={`rounded p-2 text-xs flex items-center gap-2 ${todayRecord.status === 'late' ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'}`}>
+                 <span>⚠️</span>
+                 <span>{todayRecord.status === 'late' ? '您今天迟到了' : '您今天早退了'}</span>
+              </div>
+           )}
         </div>
-      )}
-
-      {todayRecord?.status === 'early_leave' && (
-        <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <span className="text-orange-600 mr-2">⚠️</span>
-            <span className="text-orange-800">您今天早退了，请注意工作时间</span>
-          </div>
-        </div>
-      )}
-
-      {/* 快捷入口 */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button
-          onClick={() => navigate('attendance-records')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">📋</div>
-          <div className="text-sm font-medium">打卡记录</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-leave-apply')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">🏖️</div>
-          <div className="text-sm font-medium">请假申请</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-overtime-apply')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">⏰</div>
-          <div className="text-sm font-medium">加班申请</div>
-        </button>
-        <button
-          onClick={() => navigate('attendance-stats')}
-          className="border rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          <div className="text-2xl mb-2">📊</div>
-          <div className="text-sm font-medium">考勤统计</div>
-        </button>
       </div>
 
-      {/* 测试功能按钮 - 仅用于开发测试 */}
-      <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-red-600 text-lg">🔧</span>
-          <h3 className="text-sm font-semibold text-red-800">测试功能（仅删除当天记录）</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
+      {/* 测试功能按钮 - 仅用于开发测试 (更小巧且不易误触) */}
+      <div className="mt-4 border-t border-gray-200 pt-4">
+        <div className="flex items-center gap-4 justify-end">
+            <span className="text-xs text-gray-400">开发测试:</span>
+            <button
             onClick={async () => {
               if (!window.confirm('确定要删除今天的打卡记录吗？此操作不可恢复！')) return
               try {
-                const today = formatBeijingDate() // 使用统一的日期处理函数，避免时区问题
+                const today = formatBeijingDate()
                 await axios.delete(getApiUrl('/api/attendance/today'), {
                   params: { employee_id: employee?.id, date: today }
                 })
-                toast.success('今日打卡记录已删除')
+                toast.success('已删除打卡记录')
                 fetchTodayRecord()
               } catch (error) {
-                toast.error('删除失败: ' + (error.response?.data?.message || error.message))
+                toast.error('删除失败')
               }
             }}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs transition-colors border border-red-100"
           >
-            🗑️ 删除打卡记录
+            删除今日打卡
           </button>
 
           <button
             onClick={async () => {
               if (!window.confirm('确定要删除今天的班次安排吗？此操作不可恢复！')) return
               try {
-                const today = formatBeijingDate(); // 使用统一的日期处理函数
+                const today = formatBeijingDate();
                 await axios.delete(getApiUrl('/api/schedules/today'), {
                   params: { employee_id: employee?.id, schedule_date: today }
                 })
-                toast.success('今日班次已删除')
+                toast.success('已删除今日班次')
                 setTodaySchedule(null)
                 fetchTodaySchedule()
               } catch (error) {
-                toast.error('删除失败: ' + (error.response?.data?.message || error.message))
+                toast.error('删除失败')
               }
             }}
-            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs transition-colors border border-gray-200"
           >
-            🗑️ 删除班次
+            删除今日班次
           </button>
         </div>
-        <p className="text-xs text-red-600 mt-2">⚠️ 警告：这些按钮仅用于测试，只会删除当天的记录</p>
       </div>
 
       {/* 选择班次模态框 */}
@@ -815,5 +705,6 @@ export default function AttendanceHome({ onNavigate }) {
       )}
 
     </div>
+   </div>
   )
 }

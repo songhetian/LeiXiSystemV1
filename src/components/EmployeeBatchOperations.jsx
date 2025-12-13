@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getApiUrl } from '../utils/apiConfig'
 
 

@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { getApiUrl, getApiUrlAsync } from './apiConfig';
 
 /**

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Input, Select, Button, Tag, Space, Tooltip, Modal } from 'antd';
 import { SearchOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { getApiBaseUrl } from '../utils/apiConfig';
 import VacationDetailModal from './VacationDetailModal';
 

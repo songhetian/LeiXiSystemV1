@@ -39,55 +39,47 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
 }
 
-/* Toast内容区域 */
+/* Ensure relative positioning for absolute child */
+[data-sonner-toast] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* 关闭按钮 - 强力定位和样式 */
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: -8px !important; /* Slightly overhang or flush top */
+  right: -8px !important; /* Slightly overhang or flush right */
+  left: auto !important; /* Override any potential left positioning */
+  background: #f1f5f9 !important; /* Visible background */
+  border: 1px solid #cbd5e1 !important;
+  color: #64748b !important;
+  opacity: 1 !important; /* Always visible */
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important; /* Circle */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 99 !important;
+  pointer-events: auto !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  transform: translate(0, 0) !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  transform: scale(1.1) !important;
+}
+
+/* 调整内容区域以避免遮挡关闭按钮 */
 [data-sonner-toast] [data-content] {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-}
-
-/* 图标样式 */
-[data-sonner-toast] [data-icon] {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-}
-
-/* 标题和描述 */
-[data-sonner-toast] [data-title] {
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  color: var(--toast-text) !important;
-  margin: 0 !important;
-}
-
-[data-sonner-toast] [data-description] {
-  font-size: 14px !important;
-  font-weight: 400 !important;
-  line-height: 1.5 !important;
-  color: var(--toast-text-secondary) !important;
-  margin-top: 4px !important;
-}
-
-/* 关闭按钮 */
-[data-sonner-toast] [data-close-button] {
-  background: transparent !important;
-  border: none !important;
-  color: var(--toast-text-secondary) !important;
-  opacity: 0.5 !important;
-  transition: opacity 0.2s ease !important;
-  width: 20px !important;
-  height: 20px !important;
-  border-radius: 4px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-[data-sonner-toast] [data-close-button]:hover {
-  opacity: 1 !important;
+  padding-right: 20px !important;
 }
 
 /* Info类型 */

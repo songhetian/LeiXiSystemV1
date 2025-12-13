@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import api from '../api';
 import Modal from './Modal';
 import useAutoSave from '../hooks/useAutoSave';
@@ -192,6 +192,14 @@ const ExamTaking = ({ resultId, onExamEnd, sourceType = 'assessment_plan' }) => 
       setTimeLeft(remaining);
 
       // 即使状态不是 in_progress，也允许继续考试，但需要重置状态
+      if (record.status === 'archived') {
+        toast.error('该试卷已归档，无法继续作答');
+        setExam(null);
+        setQuestions([]);
+        onExamEnd(null);
+        return;
+      }
+
       if (record.status !== 'in_progress') {
         // 如果状态是 graded 或其他非 in_progress 状态，显示警告但允许继续
         if (record.status === 'graded') {

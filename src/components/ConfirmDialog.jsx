@@ -1,32 +1,44 @@
 import React from 'react';
-import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import './ConfirmDialog.css';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { AlertTriangle, Info, AlertCircle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText = '确认', cancelText = '取消', type = 'danger' }) => {
-    if (!isOpen) return null;
-
-    const getTypeStyles = () => {
+    const getTypeConfig = () => {
         switch (type) {
             case 'danger':
                 return {
+                    icon: AlertTriangle,
                     iconBg: 'bg-red-100',
                     iconColor: 'text-red-600',
                     confirmBtn: 'bg-red-600 hover:bg-red-700'
                 };
             case 'warning':
                 return {
+                    icon: AlertTriangle,
                     iconBg: 'bg-yellow-100',
                     iconColor: 'text-yellow-600',
                     confirmBtn: 'bg-yellow-600 hover:bg-yellow-700'
                 };
             case 'info':
                 return {
+                    icon: Info,
                     iconBg: 'bg-blue-100',
                     iconColor: 'text-blue-600',
                     confirmBtn: 'bg-blue-600 hover:bg-blue-700'
                 };
             default:
                 return {
+                    icon: AlertCircle,
                     iconBg: 'bg-gray-100',
                     iconColor: 'text-gray-600',
                     confirmBtn: 'bg-gray-600 hover:bg-gray-700'
@@ -34,52 +46,42 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
         }
     };
 
-    const styles = getTypeStyles();
+    const config = getTypeConfig();
+    const Icon = config.icon;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-scale-up">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+        <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl ${styles.iconBg}`}>
-                            <ExclamationTriangleIcon className={`w-6 h-6 ${styles.iconColor}`} />
+                        <div className={cn("p-2 rounded-xl", config.iconBg)}>
+                            <Icon className={cn("w-6 h-6", config.iconColor)} />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                        <AlertDialogTitle className="text-lg font-bold">{title}</AlertDialogTitle>
                     </div>
-                    <button
+                </AlertDialogHeader>
+                <AlertDialogDescription className="text-gray-600 leading-relaxed pt-2">
+                    {message}
+                </AlertDialogDescription>
+                <AlertDialogFooter className="flex gap-3 sm:gap-3">
+                    <AlertDialogCancel
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-                    >
-                        <XMarkIcon className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Body */}
-                <div className="p-6">
-                    <p className="text-gray-600 leading-relaxed">{message}</p>
-                </div>
-
-                {/* Footer */}
-                <div className="flex gap-3 p-6 bg-gray-50 rounded-b-2xl">
-                    <button
-                        onClick={onClose}
-                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                        className="flex-1 border-gray-200 hover:bg-gray-50"
                     >
                         {cancelText}
-                    </button>
-                    <button
+                    </AlertDialogCancel>
+                    <AlertDialogAction
                         onClick={() => {
                             onConfirm();
                             onClose();
                         }}
-                        className={`flex-1 px-4 py-2.5 ${styles.confirmBtn} text-white rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg`}
+                        className={cn("flex-1", config.confirmBtn)}
                     >
                         {confirmText}
-                    </button>
-                </div>
-            </div>
-        </div>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 };
 

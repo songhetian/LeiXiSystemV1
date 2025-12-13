@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner';
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
 
@@ -46,6 +46,17 @@ export default function ScheduleManagement() {
   // 班次颜色样式生成器
   const getShiftStyle = (color) => {
     if (!color) return {}
+
+    // 特殊处理：如果是休息班次（ID为20），始终使用黑色字体
+    if (color === '#9CA3AF') {
+      return {
+        backgroundColor: color,
+        color: '#000000', // 黑色字体
+        borderColor: color,
+        fontWeight: '500',
+        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+      }
+    }
 
     // 计算颜色亮度的辅助函数
     const getContrastColor = (hexColor) => {
