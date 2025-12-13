@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Label } from '@/components/ui/label'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Table, Button, Card, Tag, Space, Modal, Select, message } from 'antd';
+import { Table, Button, Card, Tag, Space, Modal, message, Input, Checkbox, Select, Form, Typography } from 'antd';
 import { UserOutlined, TeamOutlined, ReloadOutlined, EyeOutlined, LockOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPut, apiPost } from '../../utils/apiClient';
@@ -604,9 +596,9 @@ const UserRoleManagement = () => {
       >
         <div className="py-4">
           <div className="mb-4">
-            <Label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               选择角色
-            </Label>
+            </label>
             <Select
               mode="multiple"
               placeholder="请选择角色"

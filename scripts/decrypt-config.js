@@ -8,7 +8,7 @@
 const path = require('path');
 const { decryptConfigFile } = require('../server/utils/config-crypto');
 
-const inputPath = path.join(__dirname, '../config/db-config.encrypted.json');
+const inputPath = path.join(__dirname, '../config/db-config.json');
 const outputPath = path.join(__dirname, '../config/db-config.decrypted.json');
 
 console.log('============================================');

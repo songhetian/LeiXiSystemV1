@@ -89,7 +89,7 @@
   },
   "build": {
     "appId": "com.leixi.customer-service",
-    "productName": "客服管理系统",
+    "productName": "雷犀客服管理系统",
     "directories": {
       "output": "dist-app"
     },
@@ -101,21 +101,22 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        "nsis",
+        "zip"
       ],
-      "icon": "build/content-management-system_64x64.ico"
+      "icon": "public/icons/logo.ico"
     },
     "mac": {
       "target": [
         "dmg"
       ],
-      "icon": "build/icon.icns"
+      "icon": "public/icons/logo.ico"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "build/icon.png"
+      "icon": "public/icons/logo.ico"
     },
     "extraResources": [
       {

@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Tabs } from 'antd';
+import { Button, Input, Checkbox, Select, Form, Typography, Tabs } from 'antd';
 import { CalendarOutlined, SettingOutlined } from '@ant-design/icons';
 import HolidayConfig from './HolidayConfig';
 import SystemConfigPage from './SystemConfigPage';
