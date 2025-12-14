@@ -41,7 +41,7 @@ import {
 
 // --- Component Definition ---
 
-const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
+const Sidebar = ({ activeTab, setActiveTab, user, onLogout, theme = { background: '#F3F4F6' } }) => {
   // State to manage which menus are expanded
   const [expandedMenus, setExpandedMenus] = useState(['hr', 'hr-employee', 'collaboration', 'information']);
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,7 +151,10 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   };
 
   return (
-    <aside className="w-80 bg-white border-r border-gray-200 shadow-sm flex flex-col">
+    <aside
+      className="w-80 border-r border-gray-200 shadow-sm flex flex-col"
+      style={{ backgroundColor: theme.background }}
+    >
       {/* Scrollable Main Area */}
       <div className="flex-1 overflow-y-auto p-6">
         <SidebarHeader />

@@ -3,6 +3,7 @@ import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 export default function AttendanceHome({ onNavigate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -19,6 +20,13 @@ export default function AttendanceHome({ onNavigate }) {
   const [refreshKey, setRefreshKey] = useState(0) // 用于强制刷新
   const [attendanceRules, setAttendanceRules] = useState(null) // 考勤规则
   const [restShiftId, setRestShiftId] = useState(null) // 休息班次ID
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger'
+  })
 
   // 导航函数
   const navigate = (tab) => {
@@ -571,18 +579,25 @@ export default function AttendanceHome({ onNavigate }) {
         <div className="flex items-center gap-4 justify-end">
             <span className="text-xs text-gray-400">开发测试:</span>
             <button
-            onClick={async () => {
-              if (!window.confirm('确定要删除今天的打卡记录吗？此操作不可恢复！')) return
-              try {
-                const today = formatBeijingDate()
-                await axios.delete(getApiUrl('/api/attendance/today'), {
-                  params: { employee_id: employee?.id, date: today }
-                })
-                toast.success('已删除打卡记录')
-                fetchTodayRecord()
-              } catch (error) {
-                toast.error('删除失败')
-              }
+            onClick={() => {
+              setConfirmDialog({
+                isOpen: true,
+                title: '删除打卡记录',
+                message: '确定要删除今天的打卡记录吗？此操作不可恢复！',
+                type: 'danger',
+                onConfirm: async () => {
+                  try {
+                    const today = formatBeijingDate()
+                    await axios.delete(getApiUrl('/api/attendance/today'), {
+                      params: { employee_id: employee?.id, date: today }
+                    })
+                    toast.success('已删除打卡记录')
+                    fetchTodayRecord()
+                  } catch (error) {
+                    toast.error('删除失败')
+                  }
+                }
+              })
             }}
             className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs transition-colors border border-red-100"
           >
@@ -590,19 +605,26 @@ export default function AttendanceHome({ onNavigate }) {
           </button>
 
           <button
-            onClick={async () => {
-              if (!window.confirm('确定要删除今天的班次安排吗？此操作不可恢复！')) return
-              try {
-                const today = formatBeijingDate();
-                await axios.delete(getApiUrl('/api/schedules/today'), {
-                  params: { employee_id: employee?.id, schedule_date: today }
-                })
-                toast.success('已删除今日班次')
-                setTodaySchedule(null)
-                fetchTodaySchedule()
-              } catch (error) {
-                toast.error('删除失败')
-              }
+            onClick={() => {
+              setConfirmDialog({
+                isOpen: true,
+                title: '删除今日班次',
+                message: '确定要删除今天的班次安排吗？此操作不可恢复！',
+                type: 'danger',
+                onConfirm: async () => {
+                  try {
+                    const today = formatBeijingDate();
+                    await axios.delete(getApiUrl('/api/schedules/today'), {
+                      params: { employee_id: employee?.id, schedule_date: today }
+                    })
+                    toast.success('已删除今日班次')
+                    setTodaySchedule(null)
+                    fetchTodaySchedule()
+                  } catch (error) {
+                    toast.error('删除失败')
+                  }
+                }
+              })
             }}
             className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs transition-colors border border-gray-200"
           >
@@ -703,6 +725,15 @@ export default function AttendanceHome({ onNavigate }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+      />
 
     </div>
    </div>

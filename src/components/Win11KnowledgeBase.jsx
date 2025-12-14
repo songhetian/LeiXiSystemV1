@@ -780,141 +780,110 @@ const Win11KnowledgeBase = () => {
     <div className="p-6 h-full flex flex-col bg-gray-100">
       {/* 顶部操作栏 */}
       <div className="mb-6">
-        <div className="bg-green-50 rounded-lg shadow-sm p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-start">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 flex-shrink-0">
-              <div className="w-12 h-12 flex items-center justify-center rounded-md bg-gray-100 text-gray-700 text-3xl">📂</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Left Side: Title and Search */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto flex-1">
+            <h1 className="text-lg font-semibold text-gray-800 flex items-center gap-2 flex-shrink-0">
+              <span className="text-xl">📂</span>
               知识库
             </h1>
 
-            {/* 搜索框和操作按钮 */}
-            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3 items-stretch ml-4">
-              {/* 搜索框 */}
-              <div className="relative flex-1 min-w-[250px]">
-                <input
-                  type="text"
-                  placeholder={currentFolderCategory
-                    ? `在 ${currentFolderCategory.name} 中搜索...`
-                    : '搜索所有文档...'}
-                  value={searchTerm}
+            {/* Search Box */}
+            <div className="relative flex-1 w-full sm:w-64 max-w-md">
+              <input
+                type="text"
+                placeholder={currentFolderCategory
+                  ? `在 ${currentFolderCategory.name} 中搜索...`
+                  : '搜索所有文档...'}
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                  setCategoryCurrentPage(1);
+                }}
+                className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">
+                🔍
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side: Page Size and View Mode */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
+            {/* Sorting */}
+            {currentFolderCategory && (
+              <div className="flex items-center gap-1 border border-gray-300 rounded-md overflow-hidden">
+                 <select
+                  value={sortBy}
                   onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    // Reset pagination for articles when search term changes
+                    setSortBy(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
-                />
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                  🔍
-                </div>
+                  className="px-2 py-1.5 text-sm border-none focus:ring-0 bg-white hover:bg-gray-50 cursor-pointer outline-none"
+                >
+                  <option value="name">名称</option>
+                  <option value="date">日期</option>
+                  <option value="views">浏览量</option>
+                </select>
+                <button
+                  onClick={() => {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1.5 text-sm bg-gray-50 border-l border-gray-300 hover:bg-gray-100 text-gray-600"
+                  title={sortOrder === 'asc' ? '升序' : '降序'}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
               </div>
+            )}
 
-              {/* 操作按钮 */}
-              <div className="flex items-center gap-2">
-                {/* 公共知识库不需要添加分类和添加文档功能 */}
+            {/* Page Size Selector */}
+            <select
+              value={currentFolderCategory ? pageSize : categoryPageSize}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                if (currentFolderCategory) {
+                  setPageSize(val);
+                  setCurrentPage(1);
+                } else {
+                  setCategoryPageSize(val);
+                  setCategoryCurrentPage(1);
+                }
+              }}
+              className="border-gray-300 rounded-md text-sm px-2 py-1.5 bg-white hover:bg-gray-50 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value={10}>10 / 页</option>
+              <option value={20}>20 / 页</option>
+              <option value={30}>30 / 页</option>
+              <option value={50}>50 / 页</option>
+            </select>
 
-                {/* View mode buttons for categories */}
-                {!currentFolderCategory && (
-                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setCategoryViewMode('card')}
-                      className={`px-3 py-2 text-sm ${categoryViewMode === 'card' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                    >
-                      卡片视图
-                    </button>
-                    <button
-                      onClick={() => setCategoryViewMode('list')}
-                      className={`px-3 py-2 text-sm border-l border-gray-200 ${categoryViewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                    >
-                      列表视图
-                    </button>
-                  </div>
-                )}
-
-                {/* View mode buttons for articles inside a folder */}
-                {currentFolderCategory && (
-                  <>
-                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => setViewMode('card')}
-                        className={`px-3 py-2 text-sm ${viewMode === 'card' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                      >
-                        卡片视图
-                      </button>
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={`px-3 py-2 text-sm border-l border-gray-200 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                      >
-                        列表视图
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-700 whitespace-nowrap">排序:</span>
-                      <select
-                        value={sortBy}
-                        onChange={(e) => {
-                          setSortBy(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[120px]"
-                      >
-                        <option value="name">名称</option>
-                        <option value="date">日期</option>
-                        <option value="views">浏览量</option>
-                      </select>
-
-                      <button
-                        onClick={() => {
-                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                          setCurrentPage(1);
-                        }}
-                        className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                        title={sortOrder === 'asc' ? '升序' : '降序'}
-                      >
-                        {sortOrder === 'asc' ? '↑' : '↓'}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-700 whitespace-nowrap">每页:</span>
-                      <select
-                        value={pageSize}
-                        onChange={(e) => {
-                          setPageSize(Number(e.target.value));
-                          setCurrentPage(1);
-                        }}
-                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[100px]"
-                      >
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={30}>30</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {/* Items per page for categories */}
-                {!currentFolderCategory && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-700 whitespace-nowrap">每页:</span>
-                    <select
-                      value={categoryPageSize}
-                      onChange={(e) => {
-                        setCategoryPageSize(Number(e.target.value));
-                        setCategoryCurrentPage(1);
-                      }}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[100px]"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={30}>30</option>
-                    </select>
-                  </div>
-                )}
-              </div>
+            {/* View Mode Buttons */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+              <button
+                onClick={() => currentFolderCategory ? setViewMode('card') : setCategoryViewMode('card')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentFolderCategory ? viewMode : categoryViewMode) === 'card'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                title="卡片视图"
+              >
+                卡片
+              </button>
+              <button
+                onClick={() => currentFolderCategory ? setViewMode('list') : setCategoryViewMode('list')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentFolderCategory ? viewMode : categoryViewMode) === 'list'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                title="列表视图"
+              >
+                列表
+              </button>
             </div>
           </div>
         </div>

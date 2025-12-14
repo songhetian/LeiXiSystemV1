@@ -1026,105 +1026,126 @@ const Win11KnowledgeFolderView = () => {
     <div className="p-6 h-full flex flex-col bg-gray-100">
       {/* 顶部操作栏 */}
       <div className="mb-6">
-        <div className="bg-green-50 rounded-lg shadow-sm p-4">
-                      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-start"> {/* Changed justify-between to justify-start */}
-                        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 flex-shrink-0">
-                          <div className="w-12 h-12 flex items-center justify-center rounded-md bg-gray-100 text-gray-700 text-3xl">📂</div>
-                          知识文档
-                        </h1>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Left Side: Title and Search */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto flex-1">
+            <h1 className="text-lg font-semibold text-gray-800 flex items-center gap-2 flex-shrink-0">
+              <span className="text-xl">📂</span>
+              知识文档
+            </h1>
 
-                        {/* 搜索框和操作按钮 */}
-                        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3 items-stretch ml-4"> {/* Added ml-4 for spacing */}
-                          {/* 搜索框 */}
-                          <div className="relative flex-1 min-w-[250px]">
-                            <input
-                              type="text"
-                              placeholder={currentFolderCategory
-                                ? `在 ${currentFolderCategory.name} 中搜索...`
-                                : '搜索所有文档...'}
-                              value={currentFolderCategory ? folderSearchTerm : searchTerm}
-                              onChange={(e) => {
-                                if (currentFolderCategory) {
-                                  setFolderSearchTerm(e.target.value);
-                                } else {
-                                  setSearchTerm(e.target.value);
-                                }
-                              }}
-                              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
-                            />
-                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                              🔍
-                            </div>
-                          </div>
+            {/* Search Box */}
+            <div className="relative flex-1 w-full sm:w-64 max-w-md">
+              <input
+                type="text"
+                placeholder={currentFolderCategory
+                  ? `在 ${currentFolderCategory.name} 中搜索...`
+                  : '搜索所有文档...'}
+                value={currentFolderCategory ? folderSearchTerm : searchTerm}
+                onChange={(e) => {
+                  if (currentFolderCategory) {
+                    setFolderSearchTerm(e.target.value);
+                  } else {
+                    setSearchTerm(e.target.value);
+                  }
+                  // Reset pagination if needed
+                  if (currentFolderCategory) {
+                    setCurrentPage(1);
+                  } else {
+                    setCategoryCurrentPage(1);
+                  }
+                }}
+                className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">
+                🔍
+              </div>
+            </div>
+          </div>
 
-                          {/* 操作按钮 */}
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                if (currentFolderCategory) {
-                                  setShowCreateArticleModal(true);
-                                  setCreatingCategory(currentFolderCategory);
-                                } else {
-                                  setShowCreateCategoryModal(true);
-                                }
-                              }}
-                              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm whitespace-nowrap"
-                            >
-                              {currentFolderCategory ? '添加文档' : '添加分类'}
-                            </button>
+          {/* Right Side: Page Size, View Mode, Actions */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
+            {/* Page Size Selector */}
+            <select
+              value={currentFolderCategory ? pageSize : categoryPageSize}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                if (currentFolderCategory) {
+                  setPageSize(val);
+                  setCurrentPage(1);
+                } else {
+                  setCategoryPageSize(val);
+                  setCategoryCurrentPage(1);
+                }
+              }}
+              className="border-gray-300 rounded-md text-sm px-2 py-1.5 bg-white hover:bg-gray-50 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value={10}>10 / 页</option>
+              <option value={20}>20 / 页</option>
+              <option value={30}>30 / 页</option>
+              <option value={50}>50 / 页</option>
+            </select>
 
-                            <button
-                              onClick={() => {
-                                setShowRecycleBin(!showRecycleBin);
-                                if (!showRecycleBin) fetchRecycleBinData();
-                              }}
-                              className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-colors ${
-                                showRecycleBin
-                                  ? 'bg-blue-100 text-blue-600'
-                                  : 'text-gray-600 hover:bg-gray-100'
-                              }`}
-                            >
-                              <span>🗑️</span>
-                              回收站
-                            </button>
+            {/* View Mode Buttons */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+              <button
+                onClick={() => currentFolderCategory ? setViewMode('card') : setCategoryViewMode('card')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentFolderCategory ? viewMode : categoryViewMode) === 'card'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                title="卡片视图"
+              >
+                卡片
+              </button>
+              <button
+                onClick={() => currentFolderCategory ? setViewMode('list') : setCategoryViewMode('list')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentFolderCategory ? viewMode : categoryViewMode) === 'list'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                title="列表视图"
+              >
+                列表
+              </button>
+            </div>
 
-                            {/* 视图切换按钮 - 仅在分类视图中显示 */}
-                            {!currentFolderCategory && ( // Only show for categories
-                              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                                <button
-                                  onClick={() => setCategoryViewMode('card')}
-                                  className={`px-3 py-2 text-sm ${categoryViewMode === 'card' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                  卡片视图
-                                </button>
-                                <button
-                                  onClick={() => setCategoryViewMode('list')}
-                                  className={`px-3 py-2 text-sm border-l border-gray-200 ${categoryViewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                  列表视图
-                                </button>
-                              </div>
-                            )}
+            {/* Actions: Add & Recycle Bin */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (currentFolderCategory) {
+                    setShowCreateArticleModal(true);
+                    setCreatingCategory(currentFolderCategory);
+                  } else {
+                    setShowCreateCategoryModal(true);
+                  }
+                }}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium whitespace-nowrap"
+              >
+                {currentFolderCategory ? '添加文档' : '添加分类'}
+              </button>
 
-                            {currentFolderCategory && ( // Only show for articles
-                              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                                <button
-                                  onClick={() => setViewMode('card')}
-                                  className={`px-3 py-2 text-sm ${viewMode === 'card' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                  卡片视图
-                                </button>
-                                <button
-                                  onClick={() => setViewMode('list')}
-                                  className={`px-3 py-2 text-sm border-l border-gray-200 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                  列表视图
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>        </div>
+              <button
+                onClick={() => {
+                  setShowRecycleBin(!showRecycleBin);
+                  if (!showRecycleBin) fetchRecycleBinData();
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1 transition-colors border ${
+                  showRecycleBin
+                    ? 'bg-blue-50 text-blue-600 border-blue-200'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+                title="回收站"
+              >
+                <span>🗑️</span>
+                <span className="hidden sm:inline">回收站</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 主内容区域 */}

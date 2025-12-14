@@ -2,136 +2,135 @@ import React, { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import './EmployeeMemos.css'
-
+import { Table, Button, Modal, Form, Input, Select, Tag, message, Card, Space, Tooltip, DatePicker, Radio } from 'antd'
+import {
+  FileTextOutlined,
+  PlusOutlined,
+  TeamOutlined,
+  UserOutlined,
+  EyeOutlined,
+  ExclamationCircleOutlined,
+  CheckCircleOutlined,
+  SyncOutlined
+} from '@ant-design/icons'
+import Breadcrumb from '../../components/Breadcrumb'
 import { getApiUrl } from '../../utils/apiConfig'
 import { wsManager } from '../../services/websocket'
+import { formatDate, getBeijingDate } from '../../utils/date'
+import './EmployeeMemos.css'
 
-// 从JWT token中解码获取用户信息
-const decodeToken = (token) => {
-  try {
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-    }).join(''))
-    return JSON.parse(jsonPayload)
-  } catch (error) {
-    console.error('Token解码失败:', error)
-    return null
-  }
-}
+const { Option } = Select
+const { TextArea } = Input
+const { RangePicker } = DatePicker
 
 const EmployeeMemos = () => {
   const [memos, setMemos] = useState([])
   const [loading, setLoading] = useState(false)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showRecipientsModal, setShowRecipientsModal] = useState(false)
+  const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [recipientsModalVisible, setRecipientsModalVisible] = useState(false)
   const [currentMemo, setCurrentMemo] = useState(null)
   const [recipients, setRecipients] = useState([])
+  const [submitting, setSubmitting] = useState(false)
 
-  // 部门和员工列表
+  // Filter state
+  const [quickFilter, setQuickFilter] = useState('')
+  const [dateRange, setDateRange] = useState(null)
+
+  // Form
+  const [form] = Form.useForm()
   const [departments, setDepartments] = useState([])
   const [employees, setEmployees] = useState([])
 
-  // 模态框状态
-  const [modalConfig, setModalConfig] = useState({
-    show: false,
-    title: '',
-    message: '',
-    type: 'info' // info, success, error, confirm
-  })
-
-  // 表单数据
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    priority: 'normal',
-    sendMode: 'department',
-    targetDepartmentId: '',
-    targetUserId: ''
-  })
-
-  // 分页
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 20,
-    total: 0
-  })
-
+  // Decoded token info
   const token = localStorage.getItem('token')
-
-  // 处理WebSocket新备忘录事件
-  const handleNewMemo = (memo) => {
-    console.log('收到新备忘录:', memo)
-    // 重新加载备忘录列表以显示新备忘录
-    loadMemos()
-  }
-
-  // 组件挂载时添加WebSocket事件监听器
-  useEffect(() => {
-    // 注册事件监听器
-    wsManager.on('memo', handleNewMemo)
-
-    // 清理函数 - 组件卸载时移除监听器
-    return () => {
-      wsManager.off('memo', handleNewMemo)
-    }
-  }, [])
-
-  // 从JWT token中获取用户信息
   const userInfo = useMemo(() => {
     if (!token) return null
-    return decodeToken(token)
+    try {
+        const base64Url = token.split('.')[1]
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        }).join(''))
+        return JSON.parse(jsonPayload)
+    } catch (e) { return null }
   }, [token])
-
   const userDepartmentId = userInfo?.department_id
 
-  // 显示模态框
-  const showModal = (title, message, type = 'info') => {
-    setModalConfig({ show: true, title, message, type })
-  }
-
-  // 关闭模态框
-  const closeModal = () => {
-    setModalConfig({ show: false, title: '', message: '', type: 'info' })
-  }
+  useEffect(() => {
+    // WebSocket
+    const handleNewMemo = () => loadMemos()
+    wsManager.on('memo', handleNewMemo)
+    return () => wsManager.off('memo', handleNewMemo)
+  }, [])
 
   useEffect(() => {
     loadMemos()
-    loadDepartments()
-  }, [pagination.page])
+    if (departments.length === 0) loadDepartments()
+  }, [quickFilter, dateRange])
+
+  // Watch create modal form values to load employees if needed
+  const sendMode = Form.useWatch('sendMode', form)
+  const targetDepartmentId = Form.useWatch('targetDepartmentId', form)
 
   useEffect(() => {
-    if (formData.sendMode === 'individual' && formData.targetDepartmentId) {
-      loadEmployees(formData.targetDepartmentId)
+    if (sendMode === 'individual' && targetDepartmentId) {
+      loadEmployees(targetDepartmentId)
     }
-  }, [formData.targetDepartmentId, formData.sendMode])
+  }, [sendMode, targetDepartmentId])
 
   const loadMemos = async () => {
     setLoading(true)
     try {
-      const response = await axios.get(getApiUrl('/api/memos/department/created'), {
-        params: {
-          page: pagination.page,
-          pageSize: pagination.pageSize
-        },
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const params = { pageSize: 100 }
+
+      // Date filter logic
+      const getFormattedDate = (date) => formatDate(date, false);
+      let startDate, endDate;
+
+      if (quickFilter) {
+        if (quickFilter === 'today') {
+          const d = getBeijingDate();
+          const dateStr = getFormattedDate(d);
+          startDate = `${dateStr} 00:00:00`;
+          endDate = `${dateStr} 23:59:59`;
+        } else if (quickFilter === 'yesterday') {
+          const d = getBeijingDate();
+          d.setDate(d.getDate() - 1);
+          const dateStr = getFormattedDate(d);
+          startDate = `${dateStr} 00:00:00`;
+          endDate = `${dateStr} 23:59:59`;
+        } else if (quickFilter === 'last3days') {
+          const start = getBeijingDate();
+          start.setDate(start.getDate() - 2);
+          const end = getBeijingDate();
+          startDate = `${getFormattedDate(start)} 00:00:00`;
+          endDate = `${getFormattedDate(end)} 23:59:59`;
+        } else if (quickFilter === 'last7days') {
+          const start = getBeijingDate();
+          start.setDate(start.getDate() - 6);
+          const end = getBeijingDate();
+          startDate = `${getFormattedDate(start)} 00:00:00`;
+          endDate = `${getFormattedDate(end)} 23:59:59`;
         }
+      } else if (dateRange && dateRange.length === 2) {
+        startDate = dateRange[0].format('YYYY-MM-DD 00:00:00');
+        endDate = dateRange[1].format('YYYY-MM-DD 23:59:59');
+      }
+
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const response = await axios.get(getApiUrl('/api/memos/department/created'), {
+        params: { ...params, _t: Date.now() },
+        headers: { 'Authorization': `Bearer ${token}` }
       })
 
       if (response.data.success) {
         setMemos(response.data.data)
-        setPagination(prev => ({
-          ...prev,
-          total: response.data.pagination.total
-        }))
       }
     } catch (error) {
       console.error('加载备忘录失败:', error)
-      console.error('错误详情:', error.response?.data)
-      showModal('加载失败', error.response?.data?.message || '加载备忘录失败', 'error')
+      message.error('加载备忘录失败')
     } finally {
       setLoading(false)
     }
@@ -139,494 +138,313 @@ const EmployeeMemos = () => {
 
   const loadDepartments = async () => {
     try {
-      console.log('开始加载部门列表...')
       const response = await axios.get(getApiUrl('/api/departments'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      console.log('部门API响应:', response.data)
-
-      // API直接返回数组，不是 {success: true, data: []}
       if (Array.isArray(response.data)) {
         setDepartments(response.data)
-        console.log('部门列表加载成功:', response.data)
       } else if (response.data.success && response.data.data) {
         setDepartments(response.data.data)
-        console.log('部门列表加载成功:', response.data.data)
-      } else {
-        console.warn('部门数据格式异常:', response.data)
-        setDepartments([])
       }
-    } catch (error) {
-      console.error('加载部门列表失败:', error)
-      console.error('错误详情:', error.response?.data)
-      setDepartments([])
-    }
+    } catch (error) { console.error(error) }
   }
 
-  const loadEmployees = async (departmentId) => {
-    if (!departmentId) {
-      setEmployees([])
-      return
-    }
-
+  const loadEmployees = async (deptId) => {
     try {
       const response = await axios.get(getApiUrl('/api/employees'), {
-        params: { department_id: departmentId },
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        params: { department_id: deptId },
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-
-      // 检查响应数据结构
       if (Array.isArray(response.data)) {
         setEmployees(response.data)
       } else if (response.data.success) {
         setEmployees(response.data.data || [])
-      } else {
-        setEmployees([])
       }
-    } catch (error) {
-      console.error('加载员工列表失败:', error)
-      console.error('错误详情:', error.response?.data)
-      setEmployees([])
-    }
+    } catch (error) { console.error(error) }
   }
 
-  const handleCreate = () => {
-    setFormData({
-      title: '',
-      content: '',
-      priority: 'normal',
-      sendMode: 'department',
-      targetDepartmentId: userDepartmentId || '',
-      targetUserId: ''
-    })
-    setShowCreateModal(true)
-  }
-
-  const handleSend = async () => {
-    if (!formData.title || !formData.content) {
-      showModal('提示', '标题和内容不能为空', 'error')
-      return
-    }
-
-    if (formData.sendMode === 'department' && !formData.targetDepartmentId) {
-      showModal('提示', '请选择目标部门', 'error')
-      return
-    }
-
-    if (formData.sendMode === 'individual' && !formData.targetUserId) {
-      showModal('提示', '请选择目标员工', 'error')
-      return
-    }
-
+  const handleCreate = async (values) => {
+    setSubmitting(true)
     try {
-      // 确保内容使用UTF-8编码并清理首尾空格
-      const requestData = {
-        ...formData,
-        title: formData.title.trim(),
-        content: formData.content.trim()
-      };
-
-      await axios.post(getApiUrl('/api/memos/department'), requestData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json; charset=utf-8'
-        }
+      const payload = {
+        ...values,
+        title: values.title.trim(),
+        content: values.content.trim()
+      }
+      await axios.post(getApiUrl('/api/memos/department'), payload, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      showModal('成功', '备忘录发送成功', 'success')
-      setShowCreateModal(false)
+      message.success('备忘录发送成功')
+      setCreateModalVisible(false)
+      form.resetFields()
       loadMemos()
     } catch (error) {
-      console.error('发送失败:', error)
-      showModal('发送失败', error.response?.data?.message || '发送失败', 'error')
+      console.error(error)
+      message.error(error.response?.data?.message || '发送失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleViewRecipients = async (memo) => {
     try {
-      const response = await axios.get(
-        getApiUrl(`/api/memos/department/${memo.id}/recipients`),
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      )
-
+      const response = await axios.get(getApiUrl(`/api/memos/department/${memo.id}/recipients`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       if (response.data.success) {
         setCurrentMemo(response.data.data.memo)
         setRecipients(response.data.data.recipients)
-        setShowRecipientsModal(true)
+        setRecipientsModalVisible(true)
       }
     } catch (error) {
-      console.error('加载接收者列表失败:', error)
-      showModal('加载失败', error.response?.data?.message || '加载失败', 'error')
+      message.error('加载详情失败')
     }
   }
 
-  const getPriorityColor = (priority) => {
-    const colors = {
-      low: '#95a5a6',
-      normal: '#3498db',
-      high: '#f39c12',
-      urgent: '#e74c3c'
-    }
-    return colors[priority] || colors.normal
+  const handleQuickFilter = (type) => {
+    setQuickFilter(type)
+    setDateRange(null)
   }
 
-  const getPriorityText = (priority) => {
-    const texts = {
-      low: '低',
-      normal: '普通',
-      high: '高',
-      urgent: '紧急'
-    }
-    return texts[priority] || '普通'
+  const handleRangePickerChange = (dates) => {
+    setDateRange(dates)
+    if (dates) setQuickFilter('')
   }
+
+  const priorityColors = {
+    low: 'default',
+    normal: 'blue',
+    high: 'gold',
+    urgent: 'volcano'
+  }
+
+  const priorityLabels = {
+    low: '低',
+    normal: '普通',
+    high: '高',
+    urgent: '紧急'
+  }
+
+  const columns = [
+    {
+      title: '标题',
+      dataIndex: 'title',
+      key: 'title',
+      render: (text) => <span className="font-medium">{text}</span>
+    },
+    {
+      title: '发送对象',
+      key: 'target',
+      render: (_, record) => {
+        if (record.target_user_name) {
+          return <Tag icon={<UserOutlined />}>{record.target_user_name}</Tag>
+        }
+        return <Tag icon={<TeamOutlined />} color="blue">{record.department_name}</Tag>
+      }
+    },
+    {
+      title: '优先级',
+      dataIndex: 'priority',
+      key: 'priority',
+      render: (p) => <Tag color={priorityColors[p]}>{priorityLabels[p]}</Tag>
+    },
+    {
+      title: '阅读情况',
+      key: 'stats',
+      render: (_, record) => (
+        <Tooltip title={`已读: ${record.read_count} / 总数: ${record.total_recipients}`}>
+          <Tag color={record.read_count === record.total_recipients ? 'success' : 'processing'}>
+            {record.read_count} / {record.total_recipients}
+          </Tag>
+        </Tooltip>
+      )
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (text) => new Date(text).toLocaleString('zh-CN')
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleViewRecipients(record)}>
+          详情
+        </Button>
+      )
+    }
+  ]
+
+  const recipientsColumns = [
+    { title: '姓名', dataIndex: 'real_name', key: 'name' },
+    { title: '部门', dataIndex: 'department_name', key: 'dept' },
+    {
+      title: '状态',
+      key: 'status',
+      render: (_, r) => r.is_read ? <Tag icon={<CheckCircleOutlined />} color="success">已读</Tag> : <Tag icon={<ExclamationCircleOutlined />} color="warning">未读</Tag>
+    },
+    {
+      title: '阅读时间',
+      dataIndex: 'read_at',
+      key: 'read_at',
+      render: (t) => t ? new Date(t).toLocaleString('zh-CN') : '-'
+    }
+  ]
 
   return (
-    <div className="employee-memos-container">
-      <div className="page-header">
-        <h2>员工备忘录管理</h2>
-        <button className="btn-primary" onClick={handleCreate}>
-          发送备忘录
-        </button>
+    <div className="p-6">
+      <div className="mb-4 bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-4 relative z-10">
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {[
+              { id: '', label: '全部' },
+              { id: 'today', label: '今天' },
+              { id: 'yesterday', label: '昨天' },
+              { id: 'last3days', label: '近三天' },
+              { id: 'last7days', label: '近七天' },
+            ].map((item) => (
+              <Button
+                key={item.id}
+                type={quickFilter === item.id ? 'primary' : 'text'}
+                size="small"
+                onClick={() => handleQuickFilter(item.id)}
+                className={`!rounded-md ${quickFilter !== item.id ? 'text-gray-500 hover:text-gray-700' : ''}`}
+                style={{ fontSize: '12px', height: '28px' }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+          <RangePicker
+            value={dateRange}
+            onChange={handleRangePickerChange}
+            placeholder={['开始日期', '结束日期']}
+            className="w-64"
+          />
       </div>
 
-      {/* 备忘录列表 */}
-      {loading ? (
-        <div className="loading">加载中...</div>
-      ) : memos.length === 0 ? (
-        <div className="empty-state">
-          <i className="fas fa-inbox"></i>
-          <h3>暂无备忘录</h3>
-          <p>点击上方"发送备忘录"按钮创建第一条备忘录</p>
-        </div>
-      ) : (
-        <>
-          <div className="table-container">
-            <table className="memos-table">
-              <thead>
-                <tr>
-                  <th>标题</th>
-                  <th>发送对象</th>
-                  <th>优先级</th>
-                  <th>阅读情况</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memos.map(memo => (
-                  <tr key={memo.id}>
-                    <td>
-                      <div className="memo-title-cell">{memo.title}</div>
-                    </td>
-                    <td>
-                      {memo.target_user_name ? (
-                        <span className="target-user">
-                          <i className="fas fa-user"></i> {memo.target_user_name}
-                        </span>
-                      ) : (
-                        <span className="target-department">
-                          <i className="fas fa-users"></i> {memo.department_name}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <span
-                        className="priority-badge"
-                        style={{ backgroundColor: getPriorityColor(memo.priority) }}
-                      >
-                        {getPriorityText(memo.priority)}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="read-stats">
-                        <span className="read-count">{memo.read_count}</span>
-                        <span className="separator">/</span>
-                        <span className="total-count">{memo.total_recipients}</span>
-                        <span className="percentage">
-                          ({memo.total_recipients > 0
-                            ? Math.round((memo.read_count / memo.total_recipients) * 100)
-                            : 0}%)
-                        </span>
-                      </div>
-                    </td>
-                    <td>{new Date(memo.created_at).toLocaleString()}</td>
-                    <td>
-                      <button
-                        className="btn-link"
-                        onClick={() => handleViewRecipients(memo)}
-                      >
-                        <i className="fas fa-eye"></i> 查看详情
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <Card
+        title={
+          <Space>
+            <FileTextOutlined />
+            <span>员工备忘录管理</span>
+          </Space>
+        }
+        extra={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+            form.resetFields()
+            setCreateModalVisible(true)
+            // Pre-fill department
+            if (userDepartmentId) {
+                form.setFieldsValue({ targetDepartmentId: userDepartmentId, sendMode: 'department' })
+            }
+          }}>
+            发送备忘录
+          </Button>
+        }
+        bordered={false}
+      >
+        <Table
+          columns={columns}
+          dataSource={memos}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
+        />
+      </Card>
 
-          {/* 分页 */}
-          {pagination.total > pagination.pageSize && (
-            <div className="pagination">
-              <button
-                disabled={pagination.page === 1}
-                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-              >
-                上一页
-              </button>
-              <span>第 {pagination.page} 页 / 共 {Math.ceil(pagination.total / pagination.pageSize)} 页</span>
-              <button
-                disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize)}
-                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-              >
-                下一页
-              </button>
-            </div>
-          )}
-        </>
-      )}
+      <Modal
+        title="发送备忘录"
+        open={createModalVisible}
+        onCancel={() => setCreateModalVisible(false)}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleCreate} initialValues={{ priority: 'normal', sendMode: 'department' }}>
+          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="备忘录标题" />
+          </Form.Item>
 
-      {/* 创建备忘录模态框 */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>发送备忘录</h3>
-              <button className="close-btn" onClick={() => setShowCreateModal(false)}>×</button>
-            </div>
+          <Form.Item name="priority" label="优先级">
+             <Select>
+               <Option value="low">低</Option>
+               <Option value="normal">普通</Option>
+               <Option value="high">高</Option>
+               <Option value="urgent">紧急</Option>
+             </Select>
+          </Form.Item>
 
-            <div className="modal-body">
-              <div className="form-group">
-                <label>标题 *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="请输入标题"
-                  className="form-input"
-                  autoFocus
-                />
-              </div>
+          <Form.Item name="sendMode" label="发送模式">
+            <Radio.Group>
+              <Radio.Button value="department">整个部门</Radio.Button>
+              <Radio.Button value="individual">指定员工</Radio.Button>
+            </Radio.Group>
+          </Form.Item>
 
-              <div className="form-group">
-                <label>优先级</label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="low">低</option>
-                  <option value="normal">普通</option>
-                  <option value="high">高</option>
-                  <option value="urgent">紧急</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>发送模式 *</label>
-                <div className="send-mode-toggle">
-                  <button
-                    type="button"
-                    className={`toggle-btn ${formData.sendMode === 'department' ? 'active' : ''}`}
-                    onClick={() => setFormData({
-                      ...formData,
-                      sendMode: 'department',
-                      targetUserId: ''
-                    })}
-                  >
-                    <span>整个部门</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${formData.sendMode === 'individual' ? 'active' : ''}`}
-                    onClick={() => setFormData({ ...formData, sendMode: 'individual' })}
-                  >
-                    <span>指定员工</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>目标部门 *</label>
-                <select
-                  value={formData.targetDepartmentId}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    targetDepartmentId: e.target.value,
-                    targetUserId: ''
-                  })}
-                  className="form-select"
-                >
-                  <option value="">请选择部门</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
-                {departments.length === 0 && (
-                  <div className="form-hint">
-                    <i className="fas fa-info-circle"></i>
-                    暂无可用部门
-                  </div>
-                )}
-              </div>
-
-              {formData.sendMode === 'individual' && (
-                <div className="form-group">
-                  <label>目标员工 *</label>
-                  <select
-                    value={formData.targetUserId}
-                    onChange={(e) => setFormData({ ...formData, targetUserId: e.target.value })}
-                    disabled={!formData.targetDepartmentId}
-                    className="form-select"
-                  >
-                    <option value="">
-                      {!formData.targetDepartmentId ? '请先选择部门' : '请选择员工'}
-                    </option>
-                    {employees.map(emp => (
-                      <option key={emp.user_id} value={emp.user_id}>
-                        {emp.real_name} ({emp.employee_no})
-                      </option>
-                    ))}
-                  </select>
-                  {!formData.targetDepartmentId && (
-                    <div className="form-hint">
-                      <i className="fas fa-info-circle"></i>
-                      请先选择目标部门
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) => prev.sendMode !== curr.sendMode}
+          >
+            {({ getFieldValue }) => {
+                const mode = getFieldValue('sendMode');
+                return (
+                    <div className="grid grid-cols-2 gap-4">
+                        <Form.Item name="targetDepartmentId" label="目标部门" rules={[{ required: true, message: '请选择部门' }]}>
+                            <Select placeholder="选择部门">
+                                {departments.map(d => <Option key={d.id} value={d.id}>{d.name}</Option>)}
+                            </Select>
+                        </Form.Item>
+                        {mode === 'individual' && (
+                            <Form.Item name="targetUserId" label="目标员工" rules={[{ required: true, message: '请选择员工' }]}>
+                                <Select placeholder="选择员工" showSearch optionFilterProp="children">
+                                    {employees.map(e => <Option key={e.user_id} value={e.user_id}>{e.real_name} ({e.username})</Option>)}
+                                </Select>
+                            </Form.Item>
+                        )}
                     </div>
-                  )}
-                  {formData.targetDepartmentId && employees.length === 0 && (
-                    <div className="form-hint">
-                      <i className="fas fa-exclamation-triangle"></i>
-                      该部门暂无可用员工
-                    </div>
-                  )}
-                </div>
-              )}
+                )
+            }}
+          </Form.Item>
 
-              <div className="form-group">
-                <label>内容 *</label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="请输入内容..."
-                  className="form-textarea"
-                  rows="8"
-                />
-              </div>
-            </div>
+          <Form.Item name="content" label="内容" rules={[{ required: true, message: '请输入内容' }]}>
+            <TextArea rows={4} placeholder="支持 Markdown 格式" />
+          </Form.Item>
 
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowCreateModal(false)}>取消</button>
-              <button className="btn-primary" onClick={handleSend}>
-                发送
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          <Form.Item className="flex justify-end mb-0">
+             <Space>
+               <Button onClick={() => setCreateModalVisible(false)}>取消</Button>
+               <Button type="primary" htmlType="submit" loading={submitting}>发送</Button>
+             </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
 
-      {/* 接收者列表模态框 */}
-      {showRecipientsModal && currentMemo && (
-        <div className="modal-overlay" onClick={() => setShowRecipientsModal(false)}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{currentMemo.title}</h3>
-              <button className="close-btn" onClick={() => setShowRecipientsModal(false)}>×</button>
-            </div>
-
-            <div className="modal-body">
-              <div className="memo-detail-section">
-                <h4>备忘录内容</h4>
-                <div className="memo-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      <Modal
+         title={currentMemo?.title}
+         open={recipientsModalVisible}
+         onCancel={() => setRecipientsModalVisible(false)}
+         footer={[<Button key="close" onClick={() => setRecipientsModalVisible(false)}>关闭</Button>]}
+         width={700}
+      >
+          {currentMemo && (
+              <div className="mb-6 bg-gray-50 p-4 rounded-md">
+                 <ReactMarkdown remarkPlugins={[remarkGfm]} className="text-sm prose prose-sm max-w-none">
                     {currentMemo.content}
-                  </ReactMarkdown>
-                </div>
+                 </ReactMarkdown>
               </div>
-
-              <div className="recipients-section">
-                <h4>接收者列表 ({recipients.length}人)</h4>
-                <div className="recipients-stats">
-                  <span className="stat-item read">
-                    已读：{recipients.filter(r => r.is_read).length}人
-                  </span>
-                  <span className="stat-item unread">
-                    未读：{recipients.filter(r => !r.is_read).length}人
-                  </span>
-                </div>
-
-                <table className="recipients-table">
-                  <thead>
-                    <tr>
-                      <th>姓名</th>
-                      <th>部门</th>
-                      <th>状态</th>
-                      <th>阅读时间</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recipients.map(recipient => (
-                      <tr key={recipient.user_id} className={recipient.is_read ? 'read' : 'unread'}>
-                        <td>{recipient.real_name}</td>
-                        <td>{recipient.department_name}</td>
-                        <td>
-                          {recipient.is_read ? (
-                            <span className="status-badge read">
-                              <i className="fas fa-check-circle"></i> 已读
-                            </span>
-                          ) : (
-                            <span className="status-badge unread">
-                              <i className="fas fa-circle"></i> 未读
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {recipient.read_at
-                            ? new Date(recipient.read_at).toLocaleString()
-                            : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowRecipientsModal(false)}>关闭</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 通用消息模态框 */}
-      {modalConfig.show && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content small" onClick={(e) => e.stopPropagation()}>
-            <div className={`modal-header ${modalConfig.type}`}>
-              <h3>
-                {modalConfig.type === 'success' && <i className="fas fa-check-circle"></i>}
-                {modalConfig.type === 'error' && <i className="fas fa-exclamation-circle"></i>}
-                {modalConfig.type === 'info' && <i className="fas fa-info-circle"></i>}
-                {' '}{modalConfig.title}
-              </h3>
-              <button className="close-btn" onClick={closeModal}>×</button>
-            </div>
-            <div className="modal-body">
-              <p>{modalConfig.message}</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={closeModal}>确定</button>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
+          <Table
+            columns={recipientsColumns}
+            dataSource={recipients}
+            rowKey="user_id"
+            pagination={{ pageSize: 5 }}
+            size="small"
+          />
+      </Modal>
     </div>
   )
 }

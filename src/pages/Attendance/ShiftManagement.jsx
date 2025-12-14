@@ -10,6 +10,7 @@ export default function ShiftManagement() {
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingShift, setEditingShift] = useState(null)
+  const [globalSettings, setGlobalSettings] = useState(null) // 全局考勤设置
 
   // 分页状态
   const [pagination, setPagination] = useState({
@@ -34,6 +35,7 @@ export default function ShiftManagement() {
     work_hours: 8,
     late_threshold: 30,
     early_threshold: 30,
+    use_global_threshold: false, // 使用布尔值明确标识是否使用全局设置
     is_active: true,
     department_id: '',
     description: '',
@@ -43,7 +45,20 @@ export default function ShiftManagement() {
   useEffect(() => {
     fetchDepartments()
     fetchShifts()
+    fetchGlobalSettings()
   }, [pagination.page, pagination.limit, filters])
+
+  // 获取全局考勤设置
+  const fetchGlobalSettings = async () => {
+    try {
+      const response = await axios.get(getApiUrl('/api/attendance/settings'))
+      if (response.data.success) {
+        setGlobalSettings(response.data.data)
+      }
+    } catch (error) {
+      console.error('获取全局考勤设置失败:', error)
+    }
+  }
 
   const fetchDepartments = async () => {
     try {
@@ -118,6 +133,7 @@ export default function ShiftManagement() {
       work_hours: 8,
       late_threshold: 30,
       early_threshold: 30,
+      use_global_threshold: false, // 默认使用自定义阈值
       is_active: true,
       department_id: '',
       description: '',
@@ -136,6 +152,7 @@ export default function ShiftManagement() {
       work_hours: shift.work_hours,
       late_threshold: shift.late_threshold,
       early_threshold: shift.early_threshold,
+      use_global_threshold: shift.use_global_threshold === 1 || shift.use_global_threshold === true, // 使用数据库中的真实字段
       is_active: shift.is_active === 1,
       department_id: shift.department_id || '',
       description: shift.description || '',
@@ -148,9 +165,17 @@ export default function ShiftManagement() {
     e.preventDefault()
 
     try {
+      // 准备提交的数据
+      const submitData = {
+        ...formData,
+        // 如果使用全局设置，将阈值设置为null
+        late_threshold: formData.use_global_threshold ? null : formData.late_threshold,
+        early_threshold: formData.use_global_threshold ? null : formData.early_threshold
+      };
+
       if (editingShift) {
         // 更新
-        const response = await axios.put(getApiUrl(`/api/shifts/${editingShift.id}`), formData)
+        const response = await axios.put(getApiUrl(`/api/shifts/${editingShift.id}`), submitData)
         if (response.data.success) {
           toast.success('班次更新成功')
           setShowModal(false)
@@ -158,7 +183,7 @@ export default function ShiftManagement() {
         }
       } else {
         // 创建
-        const response = await axios.post(getApiUrl('/api/shifts'), formData)
+        const response = await axios.post(getApiUrl('/api/shifts'), submitData)
         if (response.data.success) {
           toast.success('班次创建成功')
           setShowModal(false)
@@ -333,7 +358,16 @@ export default function ShiftManagement() {
                     <div className="flex items-center gap-2">
                       <span>⚠️</span>
                       <span>
-                        迟到：{shift.late_threshold}分钟 / 早退：{shift.early_threshold}分钟
+                        {shift.use_global_threshold ? (
+                          <span>
+                            迟到：{globalSettings?.late_minutes || '--'}分钟 / 早退：{globalSettings?.early_leave_minutes || '--'}分钟
+                            <span className="text-gray-400 ml-1">(全局)</span>
+                          </span>
+                        ) : (
+                          <span>
+                            迟到：{shift.late_threshold}分钟 / 早退：{shift.early_threshold}分钟
+                          </span>
+                        )}
                       </span>
                     </div>
                     {shift.description && (
@@ -470,24 +504,20 @@ export default function ShiftManagement() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       上班时间 <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="time"
-                      required
+                    <TimePicker
                       value={formData.start_time}
-                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
+                      onChange={(value) => setFormData({ ...formData, start_time: value })}
+                      placeholder="请选择上班时间"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       下班时间 <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="time"
-                      required
+                    <TimePicker
                       value={formData.end_time}
-                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
+                      onChange={(value) => setFormData({ ...formData, end_time: value })}
+                      placeholder="请选择下班时间"
                     />
                   </div>
                 </div>
@@ -530,31 +560,80 @@ export default function ShiftManagement() {
                   <p className="text-xs text-gray-500 mt-1">自动计算：下班时间 - 上班时间 - 休息时长</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      迟到阈值（分钟）
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.late_threshold}
-                      onChange={(e) => setFormData({ ...formData, late_threshold: parseInt(e.target.value) })}
-                      className="w-full border rounded px-3 py-2"
-                    />
+                {!formData.use_global_threshold && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        迟到阈值（分钟）
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.late_threshold}
+                        onChange={(e) => setFormData({ ...formData, late_threshold: parseInt(e.target.value) })}
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        早退阈值（分钟）
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.early_threshold}
+                        onChange={(e) => setFormData({ ...formData, early_threshold: parseInt(e.target.value) })}
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      早退阈值（分钟）
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.early_threshold}
-                      onChange={(e) => setFormData({ ...formData, early_threshold: parseInt(e.target.value) })}
-                      className="w-full border rounded px-3 py-2"
-                    />
+                )}
+
+                {/* 阈值设置选项 */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-gray-800">⏰ 阈值设置</h4>
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-600 mr-2">
+                        {formData.use_global_threshold ? '使用全局设置' : '使用自定义'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          use_global_threshold: !formData.use_global_threshold,
+                          // 当切换到使用全局设置时，重置阈值为0（表示使用全局设置）
+                          // 当切换到自定义时，设置默认值30分钟
+                          late_threshold: !formData.use_global_threshold ? 0 : 30,
+                          early_threshold: !formData.use_global_threshold ? 0 : 30
+                        })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                          formData.use_global_threshold ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            formData.use_global_threshold ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
                   </div>
+
+                  {formData.use_global_threshold ? (
+                    <div className="text-sm text-gray-600 bg-blue-100 p-3 rounded">
+                      <p>✅ 当前班次将使用全局考勤设置中的阈值</p>
+                      <div className="mt-2 text-xs font-semibold text-blue-800">
+                         迟到：{globalSettings?.late_minutes || '--'}分钟 / 早退：{globalSettings?.early_leave_minutes || '--'}分钟
+                      </div>
+                      <p className="mt-1">如需自定义，请切换开关</p>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-600 bg-green-100 p-3 rounded">
+                      <p>✅ 当前班次使用自定义阈值设置</p>
+                      <p className="mt-1">如需使用全局设置，请切换开关</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -667,3 +746,164 @@ export default function ShiftManagement() {
     </div>
   )
 }
+
+// 在文件末尾添加 TimePicker 组件
+const TimePicker = ({ value, onChange, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value || '');
+  const [hour, minute] = value ? value.split(':').map(Number) : [null, null];
+
+  // 预设时间选项
+  const presetTimes = [
+    '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
+    '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
+    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00', '22:00',
+    '23:00', '00:00'
+  ];
+
+  // 快捷选项（整点）
+  const quickHours = Array.from({ length: 24 }, (_, i) => i);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInputValue(val);
+
+    // 验证时间格式
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val)) {
+      // 注意：这里不再直接调用 onChange，而是在失去焦点时才调用
+    }
+  };
+
+  const handleInputBlur = () => {
+    // 验证时间格式并在失去焦点时才调用 onChange
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(inputValue)) {
+      onChange(inputValue);
+    } else {
+      // 如果格式不正确，恢复原来的值
+      setInputValue(value || '');
+    }
+  };
+
+  const handleSelectTime = (time) => {
+    onChange(time);
+    setInputValue(time);
+    setIsOpen(false);
+  };
+
+  const handleHourSelect = (h) => {
+    const m = minute !== null ? minute : 0;
+    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    onChange(time);
+    setInputValue(time);
+  };
+
+  const handleMinuteSelect = (m) => {
+    const h = hour !== null ? hour : 0;
+    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    onChange(time);
+    setInputValue(time);
+  };
+
+  const handleNow = () => {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const time = `${h}:${m}`;
+    onChange(time);
+    setInputValue(time);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={inputValue}
+        onChange={handleInputChange}
+        onBlur={handleInputBlur}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder || "请选择时间"}
+        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      {isOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg">
+          {/* 快捷操作 */}
+          <div className="p-3 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={handleNow}
+              className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded mr-2"
+            >
+              此刻
+            </button>
+            <span className="text-xs text-gray-500">快速选择:</span>
+          </div>
+
+          {/* 快捷小时选择 */}
+          <div className="p-3 border-b border-gray-200">
+            <div className="text-xs text-gray-500 mb-2">整点:</div>
+            <div className="grid grid-cols-8 gap-1">
+              {quickHours.map((h) => (
+                <button
+                  type="button"
+                  key={h}
+                  onClick={() => handleHourSelect(h)}
+                  className={`text-xs px-2 py-1 rounded ${
+                    hour === h
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                  }`}
+                >
+                  {String(h).padStart(2, '0')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 分钟选择 */}
+          <div className="p-3 border-b border-gray-200">
+            <div className="text-xs text-gray-500 mb-2">分钟:</div>
+            <div className="grid grid-cols-12 gap-1">
+              {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+                <button
+                  type="button"
+                  key={m}
+                  onClick={() => handleMinuteSelect(m)}
+                  className={`text-xs px-1 py-1 rounded ${
+                    minute === m
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                  }`}
+                >
+                  {String(m).padStart(2, '0')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 预设时间 */}
+          <div className="p-3 max-h-40 overflow-y-auto">
+            <div className="text-xs text-gray-500 mb-2">预设时间:</div>
+            <div className="grid grid-cols-4 gap-1">
+              {presetTimes.map((time) => (
+                <button
+                  type="button"
+                  key={time}
+                  onClick={() => handleSelectTime(time)}
+                  className={`text-xs px-2 py-1 rounded ${
+                    value === time
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                  }`}
+                >
+                  {time}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

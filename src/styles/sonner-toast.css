@@ -18,183 +18,131 @@
 /* Toast容器 - 调整宽度 */
 [data-sonner-toaster] {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  width: 380px !important;
-  max-width: 380px !important;
+  width: 380px;
+  max-width: 380px;
 }
 
 /* Toast基础样式 - 简洁设计 */
 [data-sonner-toast] {
-  background: var(--toast-bg) !important;
-  border: 1px solid var(--toast-border) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  padding: 18px 20px !important;
-  min-height: 80px !important;
-  transition: box-shadow 0.2s ease !important;
-  width: 100% !important;
+  background: var(--toast-bg);
+  border: 1px solid var(--toast-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  min-height: 60px;
+  width: 100%;
 }
 
 /* 鼠标悬停时增强阴影 */
 [data-sonner-toast]:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
-/* Ensure relative positioning for absolute child */
-[data-sonner-toast] {
-  position: relative !important;
-  overflow: visible !important;
-}
-
-/* 关闭按钮 - 强力定位和样式 */
+/* 关闭按钮 */
 [data-sonner-toast] [data-close-button] {
-  position: absolute !important;
-  top: -8px !important; /* Slightly overhang or flush top */
-  right: -8px !important; /* Slightly overhang or flush right */
-  left: auto !important; /* Override any potential left positioning */
-  background: #f1f5f9 !important; /* Visible background */
-  border: 1px solid #cbd5e1 !important;
-  color: #64748b !important;
-  opacity: 1 !important; /* Always visible */
-  width: 24px !important;
-  height: 24px !important;
-  border-radius: 50% !important; /* Circle */
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  z-index: 99 !important;
-  pointer-events: auto !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-  transform: translate(0, 0) !important;
+  top: -8px;
+  right: -8px;
+  left: auto;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 [data-sonner-toast] [data-close-button]:hover {
-  background: #e2e8f0 !important;
-  color: #0f172a !important;
-  transform: scale(1.1) !important;
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: scale(1.1);
 }
 
-/* 调整内容区域以避免遮挡关闭按钮 */
+/* 调整内容区域 */
 [data-sonner-toast] [data-content] {
-  display: flex;
-  align-items: flex-start;
   gap: 12px;
-  padding-right: 20px !important;
+}
+
+/* 标题样式 */
+[data-sonner-toast] [data-title] {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--toast-text);
+}
+
+/* 描述文字样式 */
+[data-sonner-toast] [data-description] {
+  font-size: 13px;
+  color: var(--toast-text-secondary);
+  line-height: 1.5;
 }
 
 /* Info类型 */
 [data-sonner-toast][data-type='info'] [data-icon] {
-  color: var(--toast-info) !important;
+  color: var(--toast-info);
 }
 
 /* Success类型 */
 [data-sonner-toast][data-type='success'] [data-icon] {
-  color: var(--toast-success) !important;
+  color: var(--toast-success);
 }
 
 /* Warning类型 */
 [data-sonner-toast][data-type='warning'] [data-icon] {
-  color: var(--toast-warning) !important;
+  color: var(--toast-warning);
 }
 
 /* Error类型 */
 [data-sonner-toast][data-type='error'] [data-icon] {
-  color: var(--toast-error) !important;
+  color: var(--toast-error);
 }
 
 /* 广播Toast样式 - 保持简洁 */
 [data-sonner-toast].broadcast-toast {
-  background: #ffffff !important;
-  border-color: #e5e7eb !important;
+  background: #ffffff;
 }
 
 [data-sonner-toast].broadcast-toast [data-title] {
-  font-weight: 700 !important;
-  font-size: 16px !important;
-}
-
-/* 加载状态 */
-[data-sonner-toast][data-type='loading'] [data-icon] {
-  color: var(--toast-info) !important;
+  font-weight: 700;
+  font-size: 15px;
 }
 
 /* 操作按钮样式 */
 [data-sonner-toast] [data-button] {
-  background: transparent !important;
-  border: 1px solid var(--toast-border) !important;
-  color: var(--toast-text) !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  padding: 6px 12px !important;
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
-  cursor: pointer !important;
+  background: transparent;
+  border: 1px solid var(--toast-border);
+  color: var(--toast-text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
 }
 
 [data-sonner-toast] [data-button]:hover {
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
 /* 响应式设计 */
 @media only screen and (max-width: 480px) {
   [data-sonner-toaster] {
-    left: 16px !important;
-    right: 16px !important;
-    bottom: 16px !important;
-    width: calc(100vw - 32px) !important;
-    max-width: calc(100vw - 32px) !important;
-  }
-
-  [data-sonner-toast] {
-    padding: 16px 18px !important;
-    min-height: 72px !important;
-  }
-
-  [data-sonner-toast] [data-title] {
-    font-size: 14px !important;
-  }
-
-  [data-sonner-toast] [data-description] {
-    font-size: 13px !important;
-  }
-}
-
-/* 动画 */
-[data-sonner-toast][data-mounted='true'] {
-  animation: slideIn 0.2s ease-out;
-}
-
-[data-sonner-toast][data-removed='true'] {
-  animation: slideOut 0.15s ease-in;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOut {
-  from {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateY(100%);
-    opacity: 0;
+    width: 100%;
+    left: 16px;
+    right: 16px;
   }
 }
 
 /* 进度条 */
 [data-sonner-toast] [data-progress] {
-  background: rgba(0, 0, 0, 0.08) !important;
-  height: 2px !important;
+  background: rgba(0, 0, 0, 0.08);
+  height: 2px;
 }
 
 /* 文字渲染优化 */

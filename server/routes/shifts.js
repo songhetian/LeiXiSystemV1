@@ -196,7 +196,7 @@ module.exports = async function (fastify, opts) {
 
   // 创建班次
   fastify.post('/api/shifts', async (request, reply) => {
-    const { name, start_time, end_time, rest_duration, late_threshold, early_threshold, is_active, department_id, description, color } = request.body
+    const { name, start_time, end_time, rest_duration, late_threshold, early_threshold, use_global_threshold, is_active, department_id, description, color } = request.body
 
     try {
       // 验证必填字段
@@ -249,11 +249,16 @@ module.exports = async function (fastify, opts) {
       // Ensure work_hours is not negative
       const finalWorkHours = Math.max(0, calculatedWorkHours);
 
+      // 处理阈值设置
+      const lateThreshold = late_threshold !== undefined ? late_threshold : null;
+      const earlyThreshold = early_threshold !== undefined ? early_threshold : null;
+      const useGlobalThreshold = use_global_threshold !== undefined ? use_global_threshold : 0;
+
       const [result] = await pool.query(
         `INSERT INTO work_shifts
-        (name, start_time, end_time, work_hours, rest_duration, late_threshold, early_threshold, is_active, department_id, description, color)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [name, start_time, end_time, finalWorkHours, restMinutes, late_threshold || 30, early_threshold || 30, is_active !== false ? 1 : 0, department_id || null, description || null, shiftColor]
+        (name, start_time, end_time, work_hours, rest_duration, late_threshold, early_threshold, use_global_threshold, is_active, department_id, description, color)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, start_time, end_time, finalWorkHours, restMinutes, lateThreshold, earlyThreshold, useGlobalThreshold, is_active !== false ? 1 : 0, department_id || null, description || null, shiftColor]
       )
 
       return {
@@ -270,7 +275,7 @@ module.exports = async function (fastify, opts) {
   // 更新班次
   fastify.put('/api/shifts/:id', async (request, reply) => {
     const { id } = request.params
-    const { name, start_time, end_time, rest_duration, late_threshold, early_threshold, is_active, department_id, description, color } = request.body
+    const { name, start_time, end_time, rest_duration, late_threshold, early_threshold, use_global_threshold, is_active, department_id, description, color } = request.body
 
     try {
       // 检查班次是否存在
@@ -312,6 +317,11 @@ module.exports = async function (fastify, opts) {
       const calculatedWorkHours = (totalMinutes - restMinutes) / 60
       const finalWorkHours = Math.max(0, calculatedWorkHours)
 
+      // 处理阈值设置
+      const lateThreshold = late_threshold !== undefined ? late_threshold : null;
+      const earlyThreshold = early_threshold !== undefined ? early_threshold : null;
+      const useGlobalThreshold = use_global_threshold !== undefined ? use_global_threshold : 0;
+
       let updateQuery = `UPDATE work_shifts SET
           name = ?,
           start_time = ?,
@@ -320,11 +330,12 @@ module.exports = async function (fastify, opts) {
           rest_duration = ?,
           late_threshold = ?,
           early_threshold = ?,
+          use_global_threshold = ?,
           is_active = ?,
           department_id = ?,
           description = ?`
 
-      const updateParams = [name, start_time, end_time, finalWorkHours, restMinutes, late_threshold, early_threshold, is_active ? 1 : 0, department_id || null, description || null]
+      const updateParams = [name, start_time, end_time, finalWorkHours, restMinutes, lateThreshold, earlyThreshold, useGlobalThreshold, is_active ? 1 : 0, department_id || null, description || null]
 
       // 如果提供了颜色，更新颜色
       if (color) {

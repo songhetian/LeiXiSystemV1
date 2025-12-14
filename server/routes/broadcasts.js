@@ -231,7 +231,8 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/broadcasts/my-broadcasts', async (request, reply) => {
     try {
       const user = getUserFromToken(request)
-      const { page = 1, limit = 20, isRead } = request.query
+      const { page = 1, limit = 20, isRead, type, startDate, endDate } = request.query
+      console.log('DEBUG: Filter params received:', { page, limit, isRead, type, startDate, endDate });
 
       const offset = (page - 1) * limit
 
@@ -254,10 +255,26 @@ module.exports = async function (fastify, opts) {
       `
       const params = [user.id]
 
+      // 过滤类型
+      if (type) {
+        query += ' AND b.type = ?'
+        params.push(type)
+      }
+
       // 过滤已读/未读
       if (isRead !== undefined) {
         query += ' AND br.is_read = ?'
         params.push(isRead === 'true' ? 1 : 0)
+      }
+
+      // 过滤日期范围
+      if (startDate) {
+        query += ' AND b.created_at >= ?'
+        params.push(startDate)
+      }
+      if (endDate) {
+        query += ' AND b.created_at <= ?'
+        params.push(endDate)
       }
 
       // 过滤过期的广播
@@ -277,9 +294,23 @@ module.exports = async function (fastify, opts) {
       `
       const countParams = [user.id]
 
+      if (type) {
+        countQuery += ' AND b.type = ?'
+        countParams.push(type)
+      }
+
       if (isRead !== undefined) {
         countQuery += ' AND br.is_read = ?'
         countParams.push(isRead === 'true' ? 1 : 0)
+      }
+
+      if (startDate) {
+        countQuery += ' AND b.created_at >= ?'
+        countParams.push(startDate)
+      }
+      if (endDate) {
+        countQuery += ' AND b.created_at <= ?'
+        countParams.push(endDate)
       }
 
       countQuery += ' AND (b.expires_at IS NULL OR b.expires_at > NOW())'
@@ -370,26 +401,48 @@ module.exports = async function (fastify, opts) {
         return reply.code(403).send({ success: false, message: '无权访问' })
       }
 
-      const { page = 1, limit = 20 } = request.query
+      const { page = 1, limit = 20, startDate, endDate } = request.query
 
       const offset = (page - 1) * limit
+      const params = [user.id]
 
-      const [broadcasts] = await pool.query(
-        `SELECT
+      let query = `
+        SELECT
           b.*,
           (SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = b.id) as recipient_count,
           (SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = b.id AND is_read = TRUE) as read_count
          FROM broadcasts b
          WHERE b.creator_id = ?
-         ORDER BY b.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [user.id, parseInt(limit), parseInt(offset)]
-      )
+      `
 
-      const [countResult] = await pool.query(
-        'SELECT COUNT(*) as total FROM broadcasts WHERE creator_id = ?',
-        [user.id]
-      )
+      if (startDate) {
+        query += ' AND b.created_at >= ?'
+        params.push(startDate)
+      }
+      if (endDate) {
+        query += ' AND b.created_at <= ?'
+        params.push(endDate)
+      }
+
+      query += ' ORDER BY b.created_at DESC LIMIT ? OFFSET ?'
+      params.push(parseInt(limit), parseInt(offset))
+
+      const [broadcasts] = await pool.query(query, params)
+
+      // Count query
+      let countQuery = 'SELECT COUNT(*) as total FROM broadcasts WHERE creator_id = ?'
+      const countParams = [user.id]
+
+      if (startDate) {
+        countQuery += ' AND created_at >= ?'
+        countParams.push(startDate)
+      }
+      if (endDate) {
+        countQuery += ' AND created_at <= ?'
+        countParams.push(endDate)
+      }
+
+      const [countResult] = await pool.query(countQuery, countParams)
 
       return {
         success: true,

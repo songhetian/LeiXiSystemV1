@@ -111,6 +111,16 @@ function App() {
   const [showMemoPopup, setShowMemoPopup] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0) // 未读通知数
 
+  const [contentZoom, setContentZoom] = useState(() => {
+    const saved = localStorage.getItem('contentZoom');
+    return saved ? parseInt(saved) : 90;
+  });
+
+  const handleZoomChange = (value) => {
+    setContentZoom(value);
+    localStorage.setItem('contentZoom', value);
+  };
+
   useEffect(() => {
 
     console.log('Current Active Tab:', activeTab);
@@ -517,6 +527,51 @@ function App() {
         return <NotFound />    }
   }
 
+  // 加载主题
+  const [appTheme, setAppTheme] = useState({
+    background: '#F3F4F6'
+  });
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('personalInfoTheme');
+    if (savedTheme) {
+      try {
+        setAppTheme(JSON.parse(savedTheme));
+      } catch (e) {
+        console.error('Theme parse error', e);
+        setAppTheme({ background: '#F3F4F6' });
+      }
+    }
+  }, []);
+
+  // 监听localStorage变化，确保主题更新能及时反映到侧边栏
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'personalInfoTheme') {
+        try {
+          const newTheme = JSON.parse(e.newValue);
+          setAppTheme(newTheme);
+        } catch (error) {
+          console.error('Failed to parse theme from storage event', error);
+          setAppTheme({ background: '#F3F4F6' });
+        }
+      }
+    };
+
+    // 监听自定义主题变化事件
+    const handleThemeChange = (e) => {
+      setAppTheme(e.detail);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('themeChange', handleThemeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange);
+    };
+  }, []);
+
   if (!isLoggedIn) {
     return <Login onLoginSuccess={handleLoginSuccess} />
   }
@@ -531,16 +586,22 @@ function App() {
               setActiveTab={handleSetActiveTab}
               user={user}
               onLogout={handleLogout}
+              theme={appTheme}  // 传递主题信息
             />
-            <main className="flex-1 bg-gray-50 flex flex-col">
+            <main
+              className="flex-1 flex flex-col"
+              style={{ backgroundColor: appTheme.background }}
+            >
               <TopNavbar
                 activeTab={activeTab.name}
                 user={user}
                 onLogout={handleLogout}
                 unreadCount={unreadCount}
                 onNavigate={handleSetActiveTab}
+                zoomLevel={contentZoom}
+                onZoomChange={handleZoomChange}
               />
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-auto" style={{ zoom: contentZoom / 100 }}>
                 <Suspense fallback={<div className="flex justify-center items-center h-full"><Spin size="large" /></div>}>
                   {renderContent()}
                 </Suspense>

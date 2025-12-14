@@ -21,7 +21,13 @@ module.exports = async function (fastify, opts) {
           ss.employee_id,
           ss.shift_id,
           DATE_FORMAT(ss.schedule_date, '%Y-%m-%d') as schedule_date,
-          ss.is_rest_day,
+          CASE
+            WHEN ss.is_rest_day = 1 THEN 1
+            WHEN s.name LIKE '%休息%' THEN 1
+            WHEN s.name LIKE '%rest%' THEN 1
+            WHEN s.work_hours = 0 THEN 1
+            ELSE 0
+          END as is_rest_day,
           e.employee_no,
           u.real_name as employee_name,
           u.department_id,
@@ -29,6 +35,7 @@ module.exports = async function (fastify, opts) {
           s.name as shift_name,
           s.start_time,
           s.end_time,
+          s.work_hours,
           s.color
         FROM shift_schedules ss
         LEFT JOIN employees e ON ss.employee_id = e.id

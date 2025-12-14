@@ -571,8 +571,10 @@ module.exports = async function (fastify, opts) {
         return reply.code(401).send({ success: false, message: '无效的认证令牌' })
       }
 
-      const { page = 1, pageSize = 20, departmentId } = request.query
+      const { page = 1, pageSize = 20, departmentId, startDate, endDate } = request.query
       const offset = (page - 1) * pageSize
+
+      console.log('API /memos/department/created received:', { departmentId, startDate, endDate });
 
       let query = `
         SELECT
@@ -599,6 +601,15 @@ module.exports = async function (fastify, opts) {
       if (departmentId) {
         query += ` AND m.target_department_id = ?`
         params.push(departmentId)
+      }
+
+      if (startDate) {
+        query += ' AND m.created_at >= ?'
+        params.push(startDate)
+      }
+      if (endDate) {
+        query += ' AND m.created_at <= ?'
+        params.push(endDate)
       }
 
       // 获取总数

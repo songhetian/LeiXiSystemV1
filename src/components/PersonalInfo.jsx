@@ -2,6 +2,40 @@ import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner';
 import { getApiBaseUrl } from '../utils/apiConfig'
 import Modal from './Modal'
+import {
+  UserIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  AcademicCapIcon,
+  HomeIcon,
+  LockClosedIcon,
+  PencilSquareIcon,
+  CheckIcon,
+  XMarkIcon,
+  UsersIcon,
+  InformationCircleIcon,
+  UserCircleIcon,
+  IdentificationIcon,
+  ChevronDownIcon,
+  SwatchIcon
+} from '@heroicons/react/24/outline'
+
+const PALETTE_MORANDI = [
+  '#F3F4F6', // Default Gray
+  '#FFFFFF', // White
+  '#DCDCDC', // Gainsboro
+  '#F5F5DC', // Beige
+  '#FAEBD7', // AntiqueWhite
+  '#E6E6FA', // Lavender
+  '#F0F8FF', // AliceBlue
+  '#F0FFF0', // Honeydew
+  '#FFF0F5', // LavenderBlush
+  '#FFE4E1', // MistyRose
+  '#D3D3D3', // LightGray
+  '#B0C4DE', // LightSteelBlue
+  '#C1CDC1', // Honeydew 3 (Sage-ish)
+  '#E0FFFF', // LightCyan
+]
 
 const PersonalInfo = () => {
   const [user, setUser] = useState(null)
@@ -9,6 +43,37 @@ const PersonalInfo = () => {
   const [editing, setEditing] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
+  const [showThemeModal, setShowThemeModal] = useState(false)
+
+  // 主题设置
+  const [theme, setTheme] = useState({
+    background: '#F3F4F6'  // 使用单一背景色替代左右分区
+  })
+
+  // 加载主题
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('personalInfoTheme')
+    if (savedTheme) {
+      try {
+        setTheme(JSON.parse(savedTheme))
+      } catch (e) {
+        console.error('Theme parse error', e)
+        // 如果解析失败，使用默认主题
+        setTheme({ background: '#F3F4F6' })
+      }
+    }
+  }, [])
+
+  // 保存主题
+  const updateTheme = (newTheme) => {
+    setTheme(newTheme)
+    localStorage.setItem('personalInfoTheme', JSON.stringify(newTheme))
+
+    // 触发自定义事件，通知其他组件主题已更新
+    window.dispatchEvent(new CustomEvent('themeChange', { detail: newTheme }))
+  }
+
+  // 表单状态
   const [formData, setFormData] = useState({
     real_name: '',
     email: '',
@@ -18,12 +83,15 @@ const PersonalInfo = () => {
     address: '',
     education: ''
   })
+
+  // 密码修改状态
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
 
+  // 1. 加载用户信息
   useEffect(() => {
     loadUserInfo()
   }, [])
@@ -49,6 +117,7 @@ const PersonalInfo = () => {
     }
   }
 
+  // 2. 保存修改
   const handleSave = async () => {
     try {
       setLoading(true)
@@ -82,6 +151,7 @@ const PersonalInfo = () => {
     }
   }
 
+  // 3. 修改密码
   const handlePasswordChange = async (e) => {
     e.preventDefault()
 
@@ -152,158 +222,217 @@ const PersonalInfo = () => {
 
   if (!user) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="text-gray-500">加载中...</div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
-  const InfoItem = ({ label, value, icon, editing, type = 'text', options = [] }) => (
+  // --- UI 组件 ---
+
+  const InfoItem = ({ label, value, icon, editing, type = 'text', options = [], name }) => (
     <div className="group">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-3">
-        <span className="text-lg">{icon}</span>
+      <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">
+        <span className="text-blue-500">{icon}</span>
         {label}
       </label>
+
       {editing ? (
         type === 'select' ? (
-          <select
-            value={value}
-            onChange={(e) => setFormData({ ...formData, [Object.keys(formData).find(k => formData[k] === value)]: e.target.value })}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
-          >
-            <option value="">请选择</option>
-            {options.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={value}
+              onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
+              className="w-full pl-4 pr-10 py-2.5 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-100 hover:bg-gray-50 text-gray-800 appearance-none"
+            >
+              <option value="">请选择</option>
+              {options.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+               <ChevronDownIcon className="w-4 h-4" />
+            </div>
+          </div>
         ) : (
           <input
             type={type}
             value={value}
-            onChange={(e) => {
-              const key = Object.keys(formData).find(k => formData[k] === value)
-              setFormData({ ...formData, [key]: e.target.value })
-            }}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+            onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
+            className="w-full px-4 py-2.5 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-100 hover:bg-gray-50 text-gray-800 placeholder-gray-400"
+            placeholder={`请输入${label}`}
           />
         )
       ) : (
-        <p className="text-gray-900 py-2.5 px-4 bg-gray-50 rounded-lg group-hover:bg-gray-100 transition-colors">
-          {value || <span className="text-gray-400">未填写</span>}
-        </p>
+        <div className="py-2.5 px-4 bg-gray-100 rounded-xl border border-transparent transition-all text-gray-800 font-medium min-h-[46px] flex items-center">
+           {value ? value : <span className="text-gray-400 text-sm font-normal">未填写</span>}
+        </div>
       )}
     </div>
   )
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        {/* 页面标题 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary-100 rounded-xl">
-                <span className="text-3xl">👤</span>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">个人中心</h1>
-                <p className="text-sm text-gray-600 mt-1">管理您的个人信息和账户设置</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
-            >
-              <span className="text-lg">🔒</span>
-              修改密码
-            </button>
-          </div>
-        </div>
+    <div
+      className="min-h-full p-6 md:p-8 transition-colors duration-500"
+      style={{ backgroundColor: theme.background }}  // 使用单一背景色
+    >
+      <div className="max-w-5xl mx-auto space-y-6 pt-6">
+        {/* 主要内容卡片 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
 
-        {/* 个人信息卡片 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* 头部 - 柔和色调 */}
-          <div className="relative bg-gradient-to-r from-slate-100 to-gray-100 px-8 py-12 border-b border-gray-200">
-            <div className="relative flex items-center gap-8">
-              <div className="w-28 h-28 rounded-2xl bg-white shadow-md flex items-center justify-center text-4xl font-semibold text-slate-700 ring-4 ring-gray-200">
-                {user.real_name?.charAt(0) || '员'}
-              </div>
-              <div className="text-slate-800 flex-1">
-                <h2 className="text-3xl font-bold mb-3 tracking-tight">{user.real_name}</h2>
-                <div className="flex items-center gap-6 text-slate-600">
-                  <div className="flex items-center gap-2 bg-white/70 text-slate-700 px-3 py-1.5 rounded-lg">
-                    <span>👤</span>
-                    <span className="font-medium">{user.username}</span>
-                  </div>
-                  {user.employee_no && (
-                    <div className="flex items-center gap-2 bg-white/70 text-slate-700 px-3 py-1.5 rounded-lg">
-                      <span>🏷️</span>
-                      <span className="font-medium">工号：{user.employee_no}</span>
+          {/* 用户概览头部 Banner - 改为简约风格 */}
+          <div className="relative h-32 bg-gradient-to-r from-slate-100 to-gray-50 border-b border-gray-200">
+             <div className="absolute top-6 right-6 flex items-center gap-3">
+               <button
+                  onClick={() => setShowThemeModal(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 hover:text-blue-600 transition-all shadow-sm font-medium text-sm"
+               >
+                  <SwatchIcon className="w-4 h-4" />
+                  <span>个性主题</span>
+               </button>
+               <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all shadow-sm font-medium text-sm"
+                >
+                  <LockClosedIcon className="w-4 h-4 text-gray-400" />
+                  修改密码
+              </button>
+             </div>
+          </div>
+
+          <div className="px-8 pb-8 relative">
+             {/* 头像区域 */}
+             <div className="flex flex-col md:flex-row items-center md:items-end gap-6 -mt-12 mb-8">
+                <div className="w-24 h-24 rounded-2xl bg-white p-1.5 shadow-lg ring-1 ring-gray-100">
+                   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center text-3xl font-bold text-gray-600">
+                      {user.real_name?.charAt(0) || 'User'}
+                   </div>
+                </div>
+
+                <div className="flex-1 text-center md:text-left space-y-1 pb-1">
+                   <h2 className="text-2xl font-bold text-gray-900">{user.real_name}</h2>
+                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm">
+                      <span className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
+                        <UserCircleIcon className="w-4 h-4 text-gray-400" />
+                        {user.username}
+                      </span>
+                      {user.employee_no && (
+                        <span className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
+                          <IdentificationIcon className="w-4 h-4 text-gray-400" />
+                          {user.employee_no}
+                        </span>
+                      )}
+                   </div>
+                </div>
+
+                {/* 编辑按钮 */}
+                <div className="pb-1">
+                  {!editing ? (
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors font-medium text-sm"
+                    >
+                      <PencilSquareIcon className="w-4 h-4" />
+                      编辑资料
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditing(false)
+                          loadUserInfo()
+                        }}
+                        className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium text-sm shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none"
+                      >
+                        {loading ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <CheckIcon className="w-4 h-4" />
+                        )}
+                        保存修改
+                      </button>
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
+             </div>
 
-          {/* 信息内容 */}
-          <div className="p-10">
-            <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-slate-400 rounded-full"></span>
-                基本信息
-              </h3>
-              {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
-                >
-                  <span>✏️</span>
-                  编辑信息
-                </button>
-              ) : (
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setEditing(false)
-                      loadUserInfo()
-                    }}
-                    className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                  >
-                    <span>💾</span>
-                    {loading ? '保存中...' : '保存'}
-                  </button>
-                </div>
-              )}
-            </div>
+             {/* 分割线 */}
+             <div className="h-px bg-gray-100 w-full mb-8"></div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              <InfoItem label="姓名" value={formData.real_name} icon="👤" editing={editing} />
-              <InfoItem label="邮箱" value={formData.email} icon="📧" editing={editing} type="email" />
-              <InfoItem label="手机号" value={formData.phone} icon="📱" editing={editing} type="tel" />
-              <InfoItem
-                label="学历"
-                value={formData.education}
-                icon="🎓"
-                editing={editing}
-                type="select"
-                options={['高中', '大专', '本科', '硕士', '博士']}
-              />
-              <InfoItem label="紧急联系人" value={formData.emergency_contact} icon="🆘" editing={editing} />
-              <InfoItem label="紧急联系电话" value={formData.emergency_phone} icon="☎️" editing={editing} type="tel" />
-              <div className="md:col-span-2">
-                <InfoItem label="家庭住址" value={formData.address} icon="🏠" editing={editing} />
-              </div>
-            </div>
+             {/* 详细信息网格 */}
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
+               <InfoItem
+                  label="真实姓名"
+                  value={formData.real_name}
+                  name="real_name"
+                  icon={<UserIcon className="w-4 h-4" />}
+                  editing={editing}
+               />
+               <InfoItem
+                  label="电子邮箱"
+                  value={formData.email}
+                  name="email"
+                  icon={<EnvelopeIcon className="w-4 h-4" />}
+                  editing={editing}
+                  type="email"
+               />
+               <InfoItem
+                  label="手机号码"
+                  value={formData.phone}
+                  name="phone"
+                  icon={<PhoneIcon className="w-4 h-4" />}
+                  editing={editing}
+                  type="tel"
+               />
+               <InfoItem
+                  label="最高学历"
+                  value={formData.education}
+                  name="education"
+                  icon={<AcademicCapIcon className="w-4 h-4" />}
+                  editing={editing}
+                  type="select"
+                  options={['高中', '大专', '本科', '硕士', '博士']}
+               />
+
+               <div className="hidden md:block md:col-span-2 h-px bg-gray-50 my-2"></div>
+
+               <InfoItem
+                  label="紧急联系人"
+                  value={formData.emergency_contact}
+                  name="emergency_contact"
+                  icon={<UsersIcon className="w-4 h-4" />}
+                  editing={editing}
+               />
+               <InfoItem
+                  label="紧急联系电话"
+                  value={formData.emergency_phone}
+                  name="emergency_phone"
+                  icon={<PhoneIcon className="w-4 h-4" />}
+                  editing={editing}
+                  type="tel"
+               />
+
+               <div className="md:col-span-2">
+                 <InfoItem
+                    label="家庭住址"
+                    value={formData.address}
+                    name="address"
+                    icon={<HomeIcon className="w-4 h-4" />}
+                    editing={editing}
+                 />
+               </div>
+             </div>
+
           </div>
         </div>
+
       </div>
 
       {/* 修改密码模态框 */}
@@ -317,108 +446,164 @@ const PersonalInfo = () => {
             confirmPassword: ''
           })
         }}
-        title="🔒 修改密码"
+        title={
+          <div className="flex items-center gap-2">
+            <LockClosedIcon className="w-5 h-5 text-gray-500" />
+            <span>修改密码</span>
+          </div>
+        }
         size="small"
       >
-        <form onSubmit={handlePasswordChange} className="space-y-6">
-          {/* 当前密码 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              当前密码
-            </label>
-            <input
-              type="password"
-              value={passwordData.oldPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-              placeholder="请输入当前密码"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-              required
-            />
+        <form onSubmit={handlePasswordChange} className="space-y-5 px-1">
+          <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-sm text-blue-800 flex items-start gap-3">
+             <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+             <div className="space-y-1">
+               <p className="font-medium">安全提示</p>
+               <ul className="list-disc list-inside text-blue-700/80 space-y-0.5 text-xs">
+                 <li>密码长度至少6位</li>
+                 <li>新密码不能与旧密码相同</li>
+                 <li>修改后需要重新登录</li>
+               </ul>
+             </div>
           </div>
 
-          {/* 新密码 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              新密码
-            </label>
-            <input
-              type="password"
-              value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              placeholder="请输入新密码（至少6位）"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-              required
-            />
-            {passwordData.newPassword && passwordData.newPassword.length < 6 && (
-              <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <span>⚠️</span>
-                密码长度至少6位
-              </p>
-            )}
-          </div>
-
-          {/* 确认新密码 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              确认新密码
-            </label>
-            <input
-              type="password"
-              value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-              placeholder="请再次输入新密码"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-              required
-            />
-            {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-              <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <span>⚠️</span>
-                两次输入的密码不一致
-              </p>
-            )}
-          </div>
-
-          {/* 提示信息 */}
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <span className="text-yellow-600 text-xl">⚠️</span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-yellow-900 mb-2">重要提示</p>
-                <ul className="text-sm text-yellow-800 space-y-1">
-                  <li>• 密码长度至少6位</li>
-                  <li>• 新密码不能与旧密码相同</li>
-                  <li>• 修改成功后需要重新登录</li>
-                </ul>
-              </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">当前密码</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={passwordData.oldPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="请输入当前使用的密码"
+                required
+              />
             </div>
           </div>
 
-          {/* 提交按钮 */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">新密码</label>
+                <input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  placeholder="6位以上新密码"
+                  required
+                />
+             </div>
+             <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">确认新密码</label>
+                <input
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  placeholder="重复新密码"
+                  required
+                />
+             </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-50 mt-2">
             <button
               type="button"
-              onClick={() => {
-                setShowPasswordModal(false)
-                setPasswordData({
-                  oldPassword: '',
-                  newPassword: '',
-                  confirmPassword: ''
-                })
-              }}
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              onClick={() => setShowPasswordModal(false)}
+              className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-all font-medium text-sm"
             >
               取消
             </button>
             <button
               type="submit"
               disabled={passwordLoading}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium text-sm shadow-md shadow-blue-500/20 flex items-center gap-2"
             >
-              <span>🔒</span>
-              {passwordLoading ? '修改中...' : '确认修改'}
+              {passwordLoading && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+              确认修改
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* 主题设置模态框 */}
+      <Modal
+        isOpen={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        title={
+          <div className="flex items-center gap-2">
+            <SwatchIcon className="w-5 h-5 text-gray-500" />
+            <span>个性化背景设置</span>
+          </div>
+        }
+        size="small"
+      >
+         <div className="space-y-6 p-1">
+            <div className="p-4 bg-gray-50 rounded-xl text-sm text-gray-600 border border-gray-100">
+               <p>✨ 选择您喜欢的莫兰迪色系，自定义页面背景颜色，打造专属的护眼界面。</p>
+            </div>
+
+            <div className="space-y-3">
+               <label className="block text-sm font-bold text-gray-700 mx-1">🎨 背景颜色</label>
+               <div className="grid grid-cols-7 gap-2 mt-2">
+                  {PALETTE_MORANDI.map(color => (
+                     <button
+                       key={color}
+                       onClick={() => updateTheme({ ...theme, background: color })}
+                       className={`w-8 h-8 rounded-lg border-2 shadow-sm hover:scale-110 transition-transform ${
+                         theme.background === color
+                           ? 'border-blue-500 ring-2 ring-blue-200'
+                           : 'border-gray-200 hover:border-gray-300'
+                       }`}
+                       style={{ backgroundColor: color }}
+                       title={color}
+                     />
+                  ))}
+               </div>
+               {/* 增加第二行颜色选择 */}
+               <div className="grid grid-cols-7 gap-2">
+                  {/* 添加更多颜色选项 */}
+                  {[
+                    '#8B5CF6', // 紫色
+                    '#EC4899', // 粉色
+                    '#F59E0B', // 琥珀色
+                    '#10B981', // 绿色
+                    '#3B82F6', // 蓝色
+                    '#EF4444', // 红色
+                    '#6B7280'  // 灰色
+                  ].map(color => (
+                     <button
+                       key={color}
+                       onClick={() => updateTheme({ ...theme, background: color })}
+                       className={`w-8 h-8 rounded-lg border-2 shadow-sm hover:scale-110 transition-transform ${
+                         theme.background === color
+                           ? 'border-blue-500 ring-2 ring-blue-200'
+                           : 'border-gray-200 hover:border-gray-300'
+                       }`}
+                       style={{ backgroundColor: color }}
+                       title={color}
+                     />
+                  ))}
+               </div>
+            </div>
+
+            <div className="pt-4 flex justify-end">
+               <button
+                  onClick={() => {
+                     updateTheme({ background: '#F3F4F6' })
+                  }}
+                  className="mr-auto text-sm text-gray-500 hover:text-gray-700 underline"
+               >
+                  恢复默认
+               </button>
+               <button
+                 onClick={() => setShowThemeModal(false)}
+                 className="px-6 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all font-medium text-sm shadow-lg shadow-gray-200"
+               >
+                 完成设置
+               </button>
+            </div>
+         </div>
       </Modal>
     </div>
   )

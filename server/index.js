@@ -204,7 +204,7 @@ fastify.get('/api', async (request, reply) => {
     message: '客服管理系统API服务',
     version: '1.0.0',
     serverTime: new Date().toISOString(),
-    codeVersion: 'v2024-12-02-12:10', // 添加代码版本标识
+    codeVersion: 'v2024-12-14-14:55', // 添加代码版本标识
     endpoints: [
       'GET /api/health - 健康检查',
       'POST /api/auth/login - 用户登录',

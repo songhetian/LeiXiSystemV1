@@ -825,8 +825,25 @@ module.exports = async function (fastify, opts) {
               const shiftStartTime = new Date(`${recordDate} ${schedule.start_time}`)
               const shiftEndTime = new Date(`${recordDate} ${schedule.end_time}`)
 
-              const lateThreshold = (schedule.late_threshold || 30) * 60 * 1000
-              const earlyThreshold = (schedule.early_threshold || 30) * 60 * 1000
+              // 使用班次的迟到阈值，如果为NULL则使用全局设置
+              let lateThreshold;
+              if (schedule.late_threshold !== null) {
+                // 使用班次设置的迟到阈值（分钟转毫秒）
+                lateThreshold = schedule.late_threshold * 60 * 1000
+              } else {
+                // 回退到全局设置的迟到阈值（分钟转毫秒）
+                lateThreshold = 30 * 60 * 1000
+              }
+
+              // 使用班次的早退阈值，如果为NULL则使用全局设置
+              let earlyThreshold;
+              if (schedule.early_threshold !== null) {
+                // 使用班次设置的早退阈值（分钟转毫秒）
+                earlyThreshold = schedule.early_threshold * 60 * 1000
+              } else {
+                // 回退到全局设置的早退阈值（分钟转毫秒）
+                earlyThreshold = 30 * 60 * 1000
+              }
 
               // 判断迟到
               if (clockInTime - shiftStartTime > lateThreshold) {
@@ -848,7 +865,16 @@ module.exports = async function (fastify, opts) {
             const clockInTime = new Date(newClockInTime)
             const recordDate = makeup.record_date
             const shiftStartTime = new Date(`${recordDate} ${schedule.start_time}`)
-            const lateThreshold = (schedule.late_threshold || 30) * 60 * 1000
+
+            // 使用班次的迟到阈值，如果为NULL则使用全局设置
+            let lateThreshold;
+            if (schedule.late_threshold !== null) {
+              // 使用班次设置的迟到阈值（分钟转毫秒）
+              lateThreshold = schedule.late_threshold * 60 * 1000
+            } else {
+              // 回退到全局设置的迟到阈值（分钟转毫秒）
+              lateThreshold = 30 * 60 * 1000
+            }
 
             let attendanceStatus = 'normal'
             if (clockInTime - shiftStartTime > lateThreshold) {
@@ -869,7 +895,16 @@ module.exports = async function (fastify, opts) {
             const clockInTime = new Date(makeup.clock_time)
             const recordDate = makeup.record_date
             const shiftStartTime = new Date(`${recordDate} ${schedule.start_time}`)
-            const lateThreshold = (schedule.late_threshold || 30) * 60 * 1000
+
+            // 使用班次的迟到阈值，如果为NULL则使用全局设置
+            let lateThreshold;
+            if (schedule.late_threshold !== null) {
+              // 使用班次设置的迟到阈值（分钟转毫秒）
+              lateThreshold = schedule.late_threshold * 60 * 1000
+            } else {
+              // 回退到全局设置的迟到阈值（分钟转毫秒）
+              lateThreshold = 30 * 60 * 1000
+            }
 
             if (clockInTime - shiftStartTime > lateThreshold) {
               attendanceStatus = 'late'

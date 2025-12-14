@@ -416,4 +416,154 @@ module.exports = async function (fastify, opts) {
       return reply.code(500).send({ success: false, message: '导出失败' })
     }
   })
+
+  // 导出个人排班
+  fastify.get('/api/schedules/export-personal', async (request, reply) => {
+    const { employee_id, month } = request.query
+
+    try {
+      if (!employee_id || !month) {
+        return reply.code(400).send({ success: false, message: '缺少必要参数' })
+      }
+
+      const [year, monthNum] = month.split('-')
+      const daysInMonth = new Date(year, monthNum, 0).getDate()
+
+      // 获取员工信息
+      const [employees] = await pool.query(
+        `SELECT e.id, e.employee_no, u.real_name, d.name as department_name
+         FROM employees e
+         LEFT JOIN users u ON e.user_id = u.id
+         LEFT JOIN departments d ON u.department_id = d.id
+         WHERE e.id = ?`,
+        [employee_id]
+      )
+
+      if (employees.length === 0) {
+        return reply.code(404).send({ success: false, message: '员工不存在' })
+      }
+      const employee = employees[0]
+
+      // 获取排班数据
+      const startDate = `${year}-${monthNum}-01`
+      const endDate = new Date(year, monthNum, 0).toISOString().split('T')[0]
+
+      const [schedules] = await pool.query(
+        `SELECT ss.*, ws.name as shift_name, ws.start_time, ws.end_time, ws.work_hours,
+         DATE_FORMAT(ss.schedule_date, '%Y-%m-%d') as schedule_date_str
+        FROM shift_schedules ss
+        LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
+        WHERE DATE(ss.schedule_date) BETWEEN ? AND ?
+        AND ss.employee_id = ?
+        ORDER BY ss.schedule_date`,
+        [startDate, endDate, employee_id]
+      )
+
+      // 创建排班映射
+      const scheduleMap = new Map()
+      schedules.forEach(s => {
+        scheduleMap.set(s.schedule_date_str, s)
+      })
+
+      // 创建工作簿
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('个人排班表')
+
+      // 设置列
+      worksheet.columns = [
+        { header: '日期', key: 'date', width: 15 },
+        { header: '星期', key: 'weekday', width: 10 },
+        { header: '班次', key: 'shift', width: 15 },
+        { header: '时间段', key: 'time_range', width: 20 },
+        { header: '状态', key: 'status', width: 10 }
+      ]
+
+      // 设置表头样式
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' }
+      }
+      worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' }
+
+      // 填充数据
+      let restDays = 0
+      let workDays = 0
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${monthNum}-${String(day).padStart(2, '0')}`
+        const dateObj = new Date(year, monthNum - 1, day)
+        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+        const weekday = weekdays[dateObj.getDay()]
+
+        const schedule = scheduleMap.get(dateStr)
+        let shiftName = '-'
+        let timeRange = '-'
+        let status = '未排班'
+
+        if (schedule) {
+          const isRest = Boolean(schedule.is_rest_day) ||
+                         schedule.shift_name?.includes('休息') ||
+                         Number(schedule.work_hours) === 0
+
+          if (isRest) {
+            shiftName = '休息'
+            status = '休息'
+            restDays++
+          } else {
+            shiftName = schedule.shift_name || '-'
+            timeRange = `${schedule.start_time?.substring(0, 5) || ''} - ${schedule.end_time?.substring(0, 5) || ''}`
+            status = '正常'
+            workDays++
+          }
+        }
+
+        const row = worksheet.addRow({
+          date: dateStr,
+          weekday: weekday,
+          shift: shiftName,
+          time_range: timeRange,
+          status: status
+        })
+
+        // 周末行高亮
+        if (dateObj.getDay() === 0 || dateObj.getDay() === 6) {
+            row.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFF5F5F5' } // 浅灰背景
+                }
+            })
+        }
+
+        // 休息日文字变色
+        if (status === '休息') {
+            row.getCell('status').font = { color: { argb: 'FF16A34A' }, bold: true } // 绿色
+            row.getCell('shift').font = { color: { argb: 'FF16A34A' } }
+        }
+      }
+
+      // 添加统计信息
+      worksheet.addRow({})
+      worksheet.addRow({ date: '统计汇总', weekday: '', shift: '', time_range: '', status: '' }).font = { bold: true }
+      worksheet.addRow({ date: '姓名:', weekday: employee.real_name, shift: '部门:', time_range: employee.department_name || '-' })
+      worksheet.addRow({ date: '工作天数:', weekday: workDays + '天', shift: '休息天数:', time_range: restDays + '天' })
+
+      // 设置响应头
+      const filename = `schedule_${employee.real_name}_${month}.xlsx`
+      const encodedFilename = encodeURIComponent(filename)
+
+      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      reply.header('Content-Disposition', `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`)
+
+      // 发送文件
+      const buffer = await workbook.xlsx.writeBuffer()
+      return reply.send(buffer)
+    } catch (error) {
+      console.error('导出个人排班失败:', error)
+      return reply.code(500).send({ success: false, message: '导出失败' })
+    }
+  })
 }

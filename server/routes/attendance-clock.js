@@ -35,7 +35,8 @@ module.exports = async function (fastify, opts) {
 
       // 获取员工的排班信息（shift_schedules表使用employee_id）
       const [schedules] = await pool.query(
-        `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours
+        `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours,
+                ws.late_threshold, ws.early_threshold, ws.use_global_threshold
          FROM shift_schedules ss
          LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
          WHERE ss.employee_id = ? AND ss.schedule_date = ?`,
@@ -60,8 +61,16 @@ module.exports = async function (fastify, opts) {
         const setting = settings[0]
 
         const shiftStartTime = new Date(`${today} ${schedule.start_time}`)
-        // 使用考勤设置的迟到阈值（分钟转毫秒）
-        const lateThreshold = (setting.late_minutes || 30) * 60 * 1000
+
+        // 判断是否使用全局阈值
+        let lateThreshold;
+        if (schedule.use_global_threshold) {
+           // 使用全局设置 (分钟 -> 毫秒)
+           lateThreshold = (setting.late_minutes || 0) * 60 * 1000;
+        } else {
+           // 使用班次设置 (分钟 -> 毫秒), 默认为0
+           lateThreshold = (schedule.late_threshold || 0) * 60 * 1000;
+        }
 
         if (clockInTime - shiftStartTime > lateThreshold) {
           status = 'late'
@@ -136,7 +145,8 @@ module.exports = async function (fastify, opts) {
 
       // 获取员工的排班信息（shift_schedules表使用employee_id）
       const [schedules] = await pool.query(
-        `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours
+        `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours,
+                ws.late_threshold, ws.early_threshold, ws.use_global_threshold
          FROM shift_schedules ss
          LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
          WHERE ss.employee_id = ? AND ss.schedule_date = ?`,
@@ -161,8 +171,16 @@ module.exports = async function (fastify, opts) {
         const setting = settings[0]
 
         const shiftEndTime = new Date(`${today} ${schedule.end_time}`)
-        // 使用考勤设置的早退阈值（分钟转毫秒）
-        const earlyThreshold = (setting.early_leave_minutes || 30) * 60 * 1000
+
+        // 判断是否使用全局阈值
+        let earlyThreshold;
+        if (schedule.use_global_threshold) {
+           // 使用全局设置 (分钟 -> 毫秒)
+           earlyThreshold = (setting.early_leave_minutes || 0) * 60 * 1000;
+        } else {
+           // 使用班次设置 (分钟 -> 毫秒), 默认为0
+           earlyThreshold = (schedule.early_threshold || 0) * 60 * 1000;
+        }
 
         if (shiftEndTime - clockOutTime > earlyThreshold) {
           status = 'early_leave'

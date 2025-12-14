@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { getApiUrl } from '../../utils/apiConfig'
-import { Table, Button, Modal, Form, Input, Select, Tag, message, Card, Space, Tooltip } from 'antd'
+import { Table, Button, Modal, Form, Input, Select, Tag, message, Card, Space, Tooltip, DatePicker } from 'antd'
 import {
   SoundOutlined,
   PlusOutlined,
@@ -12,12 +12,18 @@ import {
   WarningOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  NotificationOutlined
+  NotificationOutlined,
+  CalendarOutlined
 } from '@ant-design/icons'
+import dayjs from 'dayjs' // Antd v5 uses dayjs
+import { formatDate, getBeijingDate } from '../../utils/date'
 import './BroadcastManagement.css'
 
 const { Option } = Select
 const { TextArea } = Input
+const { RangePicker } = DatePicker
+
+import Breadcrumb from '../../components/Breadcrumb'
 
 const BroadcastManagement = () => {
   const [broadcasts, setBroadcasts] = useState([])
@@ -28,6 +34,15 @@ const BroadcastManagement = () => {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
 
+  // 筛选状态
+  const [quickFilter, setQuickFilter] = useState('') // 'today', 'yesterday', ...
+  const [dateRange, setDateRange] = useState(null) // Antd RangePicker value (dayjs array)
+  // 实际查询参数
+  const [queryParams, setQueryParams] = useState({
+    startDate: undefined,
+    endDate: undefined
+  })
+
   // 保存已选联系人到localStorage
   const [savedRecipients, setSavedRecipients] = useState([])
 
@@ -37,13 +52,20 @@ const BroadcastManagement = () => {
     loadBroadcasts()
     loadDepartments()
     loadEmployees()
-  }, [])
+  }, [queryParams]) // Reload when queryParams change
 
   const loadBroadcasts = async () => {
     setLoading(true)
     try {
+      const params = {}
+      if (queryParams.startDate) params.startDate = queryParams.startDate
+      if (queryParams.endDate) params.endDate = queryParams.endDate
+
+      console.log('Loading broadcasts with params:', params) // Debug log
+
       const response = await axios.get(getApiUrl('/api/broadcasts/created'), {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        params
       })
       if (response.data.success) {
         setBroadcasts(response.data.data)
@@ -55,6 +77,76 @@ const BroadcastManagement = () => {
       setLoading(false)
     }
   }
+
+  // 快速筛选处理
+  const handleQuickFilter = (type) => {
+    console.log('Quick filter clicked:', type) // Debug log
+    setQuickFilter(type)
+    setDateRange(null) // Clear manual picker
+
+    if (!type) { // 全部
+      setQueryParams({ startDate: undefined, endDate: undefined })
+      return
+    }
+
+    // Helper from utils/date
+    const getFormattedDate = (date) => formatDate(date, false);
+    let startStr, endStr;
+
+    if (type === 'today') {
+      const d = getBeijingDate();
+      const dateStr = getFormattedDate(d);
+      startStr = `${dateStr} 00:00:00`;
+      endStr = `${dateStr} 23:59:59`;
+    } else if (type === 'yesterday') {
+      const d = getBeijingDate();
+      d.setDate(d.getDate() - 1);
+      const dateStr = getFormattedDate(d);
+      startStr = `${dateStr} 00:00:00`;
+      endStr = `${dateStr} 23:59:59`;
+    } else if (type === 'last3days') {
+      const start = getBeijingDate();
+      start.setDate(start.getDate() - 2);
+      const end = getBeijingDate();
+      startStr = `${getFormattedDate(start)} 00:00:00`;
+      endStr = `${getFormattedDate(end)} 23:59:59`;
+    } else if (type === 'last7days') {
+      const start = getBeijingDate();
+      start.setDate(start.getDate() - 6);
+      const end = getBeijingDate();
+      startStr = `${getFormattedDate(start)} 00:00:00`;
+      endStr = `${getFormattedDate(end)} 23:59:59`;
+    }
+
+    console.log('Setting query params:', { startDate: startStr, endDate: endStr }) // Debug log
+    setQueryParams({ startDate: startStr, endDate: endStr })
+  }
+
+  // 日期选择器处理
+  const handleRangePickerChange = (dates) => {
+    console.log('Range picker changed:', dates) // Debug log
+    setDateRange(dates)
+    setQuickFilter('') // Clear quick filter button state
+
+    if (dates && dates.length === 2) {
+      const startStr = dates[0].format('YYYY-MM-DD 00:00:00')
+      const endStr = dates[1].format('YYYY-MM-DD 23:59:59')
+      console.log('Setting query params from picker:', { startDate: startStr, endDate: endStr }) // Debug log
+      setQueryParams({ startDate: startStr, endDate: endStr })
+    } else {
+      setQueryParams({ startDate: undefined, endDate: undefined })
+    }
+  }
+
+  // ... (rest of loads)
+
+  // ... (handleSubmit)
+
+  // ... (options definition)
+
+  // ... (columns definition)
+
+
 
   const loadDepartments = async () => {
     try {
@@ -189,6 +281,41 @@ const BroadcastManagement = () => {
 
   return (
     <div className="p-6">
+      <div className="mb-4">
+        <Breadcrumb items={['首页', '办公协作', '信息发布', '发布广播']} />
+      </div>
+
+      <div className="mb-4 bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-4">
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {[
+              { id: '', label: '全部' },
+              { id: 'today', label: '今天' },
+              { id: 'yesterday', label: '昨天' },
+              { id: 'last3days', label: '近三天' },
+              { id: 'last7days', label: '近七天' },
+            ].map((item) => (
+              <Button
+                key={item.id}
+                type={quickFilter === item.id ? 'primary' : 'text'}
+                size="small"
+                onClick={() => handleQuickFilter(item.id)}
+                className={`!rounded-md ${quickFilter !== item.id ? 'text-gray-500 hover:text-gray-700' : ''}`}
+                style={{ fontSize: '12px', height: '28px' }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+          <RangePicker
+            value={dateRange}
+            onChange={handleRangePickerChange}
+            placeholder={['开始日期', '结束日期']}
+            className="w-64"
+          />
+      </div>
       <Card
         title={
           <Space>

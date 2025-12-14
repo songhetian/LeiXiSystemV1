@@ -1,16 +1,20 @@
 import React, { useMemo, useState } from 'react';
+import { Popover, Slider } from 'antd';
 import {
   UserOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   HomeOutlined,
-  BellOutlined
+  BellOutlined,
+  FontSizeOutlined
 } from '@ant-design/icons';
 import NotificationDropdown from './NotificationDropdown';
 
-const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) => {
+const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoomLevel = 100, onZoomChange }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  // Menu items definition (copied from Sidebar for breadcrumb mapping)
+  // Ideally this should be in a shared config file
   // Menu items definition (copied from Sidebar for breadcrumb mapping)
   // Ideally this should be in a shared config file
   const menuItems = [
@@ -36,10 +40,14 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
     },
     {
       id: 'messaging',
-      label: '信息系统',
+      label: '办公协作', // Renamed from '信息系统' to match user perception if needed, or keep '信息系统'
       children: [
         { id: 'messaging-chat', label: '聊天系统' },
         { id: 'messaging-create-group', label: '群组管理' },
+        { id: 'messaging-broadcast', label: '系统广播' },
+        { id: 'broadcast-management', label: '发布广播' },
+        { id: 'notification-settings', label: '通知设置' },
+        { id: 'employee-memos', label: '部门备忘录' },
       ],
     },
     {
@@ -72,6 +80,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
         { id: 'quota-config', label: '额度配置' },
         { id: 'vacation-summary', label: '假期汇总' },
         { id: 'compensatory-approval', label: '调休审批' },
+        { id: 'vacation-permissions', label: '假期权限' },
       ],
     },
     {
@@ -83,6 +92,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
         { id: 'quality-tags', label: '标签管理' },
         { id: 'quality-case-library', label: '案例库' },
         { id: 'quality-case-categories', label: '案例分类管理' },
+        { id: 'quality-recommendation', label: '案例推荐' },
       ],
     },
     {
@@ -92,6 +102,8 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
         { id: 'knowledge-articles', label: '公共知识库' },
         { id: 'knowledge-base', label: '知识库' },
         { id: 'my-knowledge', label: '我的知识库' },
+        { id: 'knowledge-articles-win11', label: '知识库' },
+        { id: 'my-knowledge-win11', label: '我的知识库' },
       ],
     },
     {
@@ -103,6 +115,8 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
         { id: 'assessment-categories', label: '分类管理' },
         { id: 'exam-results', label: '考试结果' },
         { id: 'my-exams', label: '我的考试' },
+        { id: 'my-exam-results', label: '我的考试结果' },
+        { id: 'assessment-management', label: '考核管理' },
       ],
     },
     {
@@ -110,7 +124,9 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
       label: '个人中心',
       children: [
         { id: 'personal-info', label: '个人信息' },
-        { id: 'my-exam-results', label: '我的考试结果' },
+        { id: 'my-schedule', label: '我的排班' },
+        { id: 'my-notifications', label: '我的通知' },
+        { id: 'my-memos', label: '我的备忘录' },
       ],
     },
   ];
@@ -152,6 +168,39 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate }) =
 
       {/* Right: User Info & Logout */}
       <div className="flex items-center gap-6">
+        {/* Zoom Control */}
+        <div className="flex items-center">
+            <Popover
+                content={
+                    <div className="w-48 p-2">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>75%</span>
+                            <span>{zoomLevel}%</span>
+                            <span>100%</span>
+                        </div>
+                        <Slider
+                            min={75}
+                            max={100}
+                            value={zoomLevel}
+                            onChange={(value) => onZoomChange && onZoomChange(value)}
+                        />
+                    </div>
+                }
+                title={<span className="text-sm font-medium">界面缩放</span>}
+                trigger="click"
+                placement="bottom"
+            >
+                <div
+                    className="cursor-pointer text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1"
+                    title="调整界面大小"
+                >
+                    <FontSizeOutlined className="text-lg" />
+                    <span className="text-xs font-medium">{zoomLevel}%</span>
+                </div>
+            </Popover>
+        </div>
+
+        <div className="h-8 w-px bg-gray-200"></div>
         {/* 未读通知 */}
         <div className="relative">
           <div

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig';
+import { formatDate, getBeijingDate } from '../../utils/date';
+import Breadcrumb from '../../components/Breadcrumb';
 import {
   SpeakerWaveIcon,
   ExclamationCircleIcon,
@@ -10,9 +12,13 @@ import {
   XMarkIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ChevronRightIcon,
   ClockIcon,
   EyeIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  BellAlertIcon,
+  InformationCircleIcon,
+  MegaphoneIcon
 } from '@heroicons/react/24/outline';
 
 export default function BroadcastList() {
@@ -58,12 +64,47 @@ export default function BroadcastList() {
         return;
       }
 
+      let startDate, endDate;
+
+      // Get current Beijing date base
+      // Helper to format date string to "YYYY-MM-DD" using project util (handles timezone)
+      const getFormattedDate = (date) => formatDate(date, false);
+
+      if (quickFilter === 'today') {
+        const d = getBeijingDate();
+        const dateStr = getFormattedDate(d);
+        startDate = `${dateStr} 00:00:00`;
+        endDate = `${dateStr} 23:59:59`;
+      } else if (quickFilter === 'yesterday') {
+        const d = getBeijingDate();
+        d.setDate(d.getDate() - 1);
+        const dateStr = getFormattedDate(d);
+        startDate = `${dateStr} 00:00:00`;
+        endDate = `${dateStr} 23:59:59`;
+      } else if (quickFilter === 'last3days') {
+        const start = getBeijingDate();
+        start.setDate(start.getDate() - 2);
+        const end = getBeijingDate();
+
+        startDate = `${getFormattedDate(start)} 00:00:00`;
+        endDate = `${getFormattedDate(end)} 23:59:59`;
+      } else if (quickFilter === 'last7days') {
+        const start = getBeijingDate();
+        start.setDate(start.getDate() - 6);
+        const end = getBeijingDate();
+
+        startDate = `${getFormattedDate(start)} 00:00:00`;
+        endDate = `${getFormattedDate(end)} 23:59:59`;
+      }
+
       const params = {
         page: pagination.page,
         limit: pagination.pageSize,
         type: filters.type || undefined,
-        isRead: filters.isRead || undefined,
-        quickFilter: quickFilter || undefined
+        // Convert string "true"/"false" to boolean, or undefined if empty
+        isRead: filters.isRead === 'true' ? true : (filters.isRead === 'false' ? false : undefined),
+        startDate,
+        endDate
       };
 
       Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
@@ -140,396 +181,290 @@ export default function BroadcastList() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  /* --- Helper Functions --- */
+
   const getIcon = (type) => {
     switch (type) {
-      case 'info': return <SpeakerWaveIcon className="w-5 h-5" />;
+      case 'info': return <InformationCircleIcon className="w-5 h-5" />;
       case 'warning': return <ExclamationCircleIcon className="w-5 h-5" />;
-      case 'error': return <ExclamationCircleIcon className="w-5 h-5" />;
-      case 'announcement': return <SpeakerWaveIcon className="w-5 h-5" />;
+      case 'error': return <BellAlertIcon className="w-5 h-5" />;
+      case 'announcement': return <MegaphoneIcon className="w-5 h-5" />;
       case 'success': return <CheckCircleIcon className="w-5 h-5" />;
       default: return <SpeakerWaveIcon className="w-5 h-5" />;
     }
   };
 
-  const getColorClass = (type) => {
-    switch (type) {
-      case 'info': return 'bg-blue-100 text-blue-700';
-      case 'warning': return 'bg-orange-100 text-orange-700';
-      case 'error': return 'bg-red-100 text-red-700';
-      case 'announcement': return 'bg-purple-100 text-purple-700';
-      case 'success': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
+  const getColorClass = (type, variant = 'bg') => {
+    // variant: 'bg' (background), 'text' (text color), 'border' (border color), 'ring' (ring color)
+    const colors = {
+      info: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', ring: 'ring-blue-500/20' },
+      warning: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', ring: 'ring-amber-500/20' },
+      error: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', ring: 'ring-rose-500/20' },
+      announcement: { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200', ring: 'ring-violet-500/20' },
+      success: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', ring: 'ring-emerald-500/20' },
+      default: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', ring: 'ring-gray-500/20' },
+    };
+
+    const style = colors[type] || colors.default;
+
+    if (variant === 'all') return `${style.bg} ${style.text} ${style.border}`;
+    return style[variant];
   };
 
   const getTypeName = (type) => {
     const names = {
-      'info': '系统广播',
+      'info': '系统通知',
       'warning': '重要提醒',
-      'error': '紧急通知',
-      'announcement': '公告',
-      'success': '成功通知'
+      'error': '紧急警报',
+      'announcement': '公司公告',
+      'success': '操作成功'
     };
-    return names[type] || '系统通知';
+    return names[type] || '通用广播';
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* 头部 */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <SpeakerWaveIcon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">系统广播</h1>
-                <p className="text-sm text-gray-600">查看所有系统广播消息</p>
-              </div>
-            </div>
-            <button
-              onClick={loadBroadcasts}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium"
-            >
-              <ArrowPathIcon className="w-5 h-5" />
-              刷新
-            </button>
+      {/* 顶部面包屑和标题 */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col gap-2 shrink-0">
+        <div className="flex items-center justify-between mt-1">
+          <div className="flex items-center gap-3">
+             <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+                <SpeakerWaveIcon className="w-5 h-5" />
+             </div>
+             <h1 className="text-xl font-bold text-gray-900">系统广播</h1>
           </div>
+          <button
+              onClick={loadBroadcasts}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="刷新列表"
+            >
+              <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* 快捷筛选 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-6 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">快速筛选:</span>
-              <button
-                onClick={() => setQuickDateFilter('')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  quickFilter === ''
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                全部
-              </button>
-              <button
-                onClick={() => setQuickDateFilter('today')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  quickFilter === 'today'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                今天
-              </button>
-              <button
-                onClick={() => setQuickDateFilter('yesterday')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  quickFilter === 'yesterday'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                昨天
-              </button>
-              <button
-                onClick={() => setQuickDateFilter('last3days')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  quickFilter === 'last3days'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                近三天
-              </button>
-              <button
-                onClick={() => setQuickDateFilter('last7days')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  quickFilter === 'last7days'
-                    ? 'bg-pink-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                近七天
-              </button>
+      {/* 筛选工具栏 */}
+      <div className="px-6 py-3 bg-white border-b border-gray-200 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] z-10">
+         <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* 左侧：快速筛选和类型 */}
+            <div className="flex flex-wrap items-center gap-2">
+               <div className="flex bg-gray-100 p-1 rounded-lg">
+                  {[
+                    { id: '', label: '全部' },
+                    { id: 'today', label: '今天' },
+                    { id: 'yesterday', label: '昨天' },
+                    { id: 'last3days', label: '近三天' },
+                    { id: 'last7days', label: '近七天' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setQuickDateFilter(item.id)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        quickFilter === item.id
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+               </div>
+
+               <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+
+               {/* 阅读状态 - 按钮组 */}
+               <div className="flex bg-gray-100 p-1 rounded-lg">
+                  {[
+                    { value: '', label: '全部状态' },
+                    { value: 'false', label: '未读' },
+                    { value: 'true', label: '已读' }
+                  ].map((status) => (
+                    <button
+                      key={status.value}
+                      onClick={() => {
+                         setFilters(prev => ({ ...prev, isRead: status.value }));
+                         setPagination(prev => ({ ...prev, page: 1 }));
+                      }}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        filters.isRead === status.value
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                      }`}
+                    >
+                      {status.label}
+                    </button>
+                  ))}
+               </div>
+
+               <div className="relative group">
+                  <select
+                    className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none focus:outline-none block w-full pl-3 pr-8 py-1.5 cursor-pointer hover:bg-gray-100 transition-colors"
+                    value={filters.type}
+                    onChange={(e) => {
+                      setFilters(prev => ({ ...prev, type: e.target.value }));
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <option value="">全部类型</option>
+                    <option value="info">系统通知</option>
+                    <option value="warning">重要提醒</option>
+                    <option value="error">紧急警报</option>
+                    <option value="announcement">公司公告</option>
+                    <option value="success">操作成功</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <FunnelIcon className="h-3 w-3" />
+                  </div>
+               </div>
             </div>
 
+            {/* 右侧：清除筛选 */}
             {(filters.type || filters.isRead || quickFilter) && (
               <button
                 onClick={clearFilters}
-                className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1 text-sm font-medium"
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors px-2 py-1"
               >
                 <XMarkIcon className="w-4 h-4" />
-                清除筛选
+                清除
               </button>
             )}
-          </div>
-        </div>
+         </div>
       </div>
 
-           {/* 筛选选项 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-6 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <select
-                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                value={filters.type}
-                onChange={(e) => {
-                  setFilters(prev => ({ ...prev, type: e.target.value }));
-                  setPagination(prev => ({ ...prev, page: 1 }));
-                }}
-              >
-                <option value="">全部类型</option>
-                <option value="info">系统广播</option>
-                <option value="warning">重要提醒</option>
-                <option value="error">紧急通知</option>
-                <option value="announcement">公告</option>
-                <option value="success">成功通知</option>
-              </select>
+      {/* 内容列表 */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+         {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-current border-t-transparent mb-3"></div>
+              <span className="text-sm">加载数据中...</span>
             </div>
-
-            <div className="flex-1">
-              <select
-                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                value={filters.isRead}
-                onChange={(e) => {
-                  setFilters(prev => ({ ...prev, isRead: e.target.value }));
-                  setPagination(prev => ({ ...prev, page: 1 }));
-                }}
-              >
-                <option value="">全部状态</option>
-                <option value="false">未读</option>
-                <option value="true">已读</option>
-              </select>
-            </div>
-
-            {(filters.type || filters.isRead || quickFilter) && (
-              <div className="text-sm text-gray-600 whitespace-nowrap">
-                找到 <span className="font-semibold text-blue-600">{pagination.total}</span> 条
+          ) : broadcasts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+              <div className="p-4 bg-gray-100 rounded-full mb-3">
+                 <SpeakerWaveIcon className="w-8 h-8 opacity-50" />
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 主内容区域 */}
-      <div className="flex-1 overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">正在加载...</p>
-          </div>
-        ) : broadcasts.length === 0 ? (
-          <div className="flex items-center justify-center h-full p-4">
-            <div className="text-center">
-              <SpeakerWaveIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">暂无广播消息</h3>
-              <p className="text-gray-600">
-                {filters.type || filters.isRead || quickFilter
-                  ? "没有找到符合条件的广播消息"
-                  : "目前没有任何广播消息"}
-              </p>
+              <p className="text-sm font-medium text-gray-500">暂无广播消息</p>
             </div>
-          </div>
-        ) : (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">状态</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">类型</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">标题</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-44">发送时间</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {broadcasts.map(broadcast => (
-                    <tr
-                      key={broadcast.id}
-                      onClick={() => handleBroadcastClick(broadcast)}
-                      className={`cursor-pointer transition-colors ${
-                        broadcast.is_read
-                          ? 'bg-white hover:bg-gray-50'
-                          : 'bg-blue-50 hover:bg-blue-100'
-                      }`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          broadcast.is_read
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {broadcast.is_read ? '已读' : '未读'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getColorClass(broadcast.type)}`}>
-                          {getTypeName(broadcast.type)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`text-sm font-medium ${broadcast.is_read ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>
-                          {broadcast.title}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-600 line-clamp-2 max-w-md">
-                          {broadcast.content}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(broadcast.created_at).toLocaleDateString('zh-CN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          ) : (
+            <div className="max-w-5xl mx-auto space-y-2">
+               {broadcasts.map(broadcast => (
+                 <div
+                   key={broadcast.id}
+                   onClick={() => handleBroadcastClick(broadcast)}
+                   className={`group bg-white rounded-lg border border-gray-200 p-3 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer relative overflow-hidden ${
+                      broadcast.is_read ? 'opacity-80' : 'bg-white'
+                   }`}
+                 >
+                    {/* 未读指示条 */}
+                    {!broadcast.is_read && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                    )}
 
-            {/* 分页 */}
-            {pagination.total > 0 && (
-              <div className="bg-white border-t border-gray-200 px-6 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    共 <span className="font-semibold text-blue-600">{pagination.total}</span> 条，
-                    第 <span className="font-semibold">{(pagination.page - 1) * pagination.pageSize + 1}</span> -
-                    <span className="font-semibold">{Math.min(pagination.page * pagination.pageSize, pagination.total)}</span> 条
-                  </div>
+                    <div className="flex items-start gap-3 pl-2">
+                       {/* 图标 */}
+                       <div className={`shrink-0 mt-0.5 p-1.5 rounded-md ${getColorClass(broadcast.type)}`}>
+                          {getIcon(broadcast.type)}
+                       </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPagination(prev => ({ ...prev, page: 1 }))}
-                      disabled={pagination.page === 1}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      首页
-                    </button>
-                    <button
-                      onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                      disabled={pagination.page === 1}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      上一页
-                    </button>
+                       {/* 文本内容 */}
+                       <div className="flex-1 min-w-0 grid gap-1">
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${getColorClass(broadcast.type)} bg-opacity-20`}>
+                                   {getTypeName(broadcast.type)}
+                                </span>
+                                <h3 className={`text-sm truncate ${broadcast.is_read ? 'font-medium text-gray-700' : 'font-bold text-gray-900'}`}>
+                                   {broadcast.title}
+                                </h3>
+                                {!broadcast.is_read && (
+                                   <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                )}
+                             </div>
+                             <span className="text-xs text-gray-400 shrink-0">
+                                {new Date(broadcast.created_at).toLocaleString('zh-CN', {
+                                   month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
+                                })}
+                             </span>
+                          </div>
 
-                    <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg">
-                      <input
-                        type="number"
-                        min="1"
-                        max={pagination.totalPages}
-                        value={pagination.page}
-                        onChange={(e) => {
-                          const page = parseInt(e.target.value);
-                          if (page >= 1 && page <= pagination.totalPages) {
-                            setPagination(prev => ({ ...prev, page }));
-                          }
-                        }}
-                        className="w-12 bg-white text-center text-sm border border-gray-300 rounded px-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-600">/ {pagination.totalPages}</span>
+                          <p className="text-xs text-gray-500 line-clamp-1 pr-4">
+                             {broadcast.content}
+                          </p>
+                       </div>
+
+                       <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-blue-400 self-center" />
                     </div>
-
-                    <button
-                      onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-                      disabled={pagination.page === pagination.totalPages}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      下一页
-                    </button>
-                    <button
-                      onClick={() => setPagination(prev => ({ ...prev, page: prev.totalPages }))}
-                      disabled={pagination.page === pagination.totalPages}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      尾页
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">每页:</span>
-                    <select
-                      value={pagination.pageSize}
-                      onChange={(e) => {
-                        setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
-                      }}
-                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      <option value="10">10条</option>
-                      <option value="20">20条</option>
-                      <option value="50">50条</option>
-                      <option value="100">100条</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                 </div>
+               ))}
+            </div>
+         )}
       </div>
 
-      {/* 详情模态框 */}
+      {/* 分页 */}
+      {pagination.total > 0 && (
+        <div className="bg-white border-t border-gray-200 px-6 py-3 shrink-0 flex items-center justify-between text-sm">
+           <span className="text-gray-500">共 {pagination.total} 条</span>
+           <div className="flex items-center gap-2">
+              <button
+                disabled={pagination.page === 1}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                className="px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 text-xs"
+              >
+                上一页
+              </button>
+              <span className="text-gray-700">{pagination.page} / {pagination.totalPages}</span>
+              <button
+                disabled={pagination.page === pagination.totalPages}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                className="px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 text-xs"
+              >
+                下一页
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* 模态框 */}
       {showModal && selectedBroadcast && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${getColorClass(selectedBroadcast.type)}`}>
-                  {getIcon(selectedBroadcast.type)}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{getTypeName(selectedBroadcast.type)}</h3>
-                  <div className="flex items-center text-xs text-gray-500 mt-0.5">
-                    <ClockIcon className="h-3.5 w-3.5 mr-1" />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+           <div
+             className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+             onClick={e => e.stopPropagation()}
+           >
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded ${getColorClass(selectedBroadcast.type)}`}>
+                       {getIcon(selectedBroadcast.type)}
+                    </div>
+                    <span className="font-semibold text-gray-900">{getTypeName(selectedBroadcast.type)}</span>
+                 </div>
+                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+                    <XMarkIcon className="w-5 h-5" />
+                 </button>
+              </div>
+
+              <div className="p-6">
+                 <h2 className="text-lg font-bold text-gray-900 mb-2">{selectedBroadcast.title}</h2>
+                 <div className="text-xs text-gray-400 mb-4 flex items-center gap-4">
                     <span>{new Date(selectedBroadcast.created_at).toLocaleString('zh-CN')}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <XMarkIcon className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">{selectedBroadcast.title}</h2>
-              <div className="bg-gray-50 p-4 rounded-lg text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {selectedBroadcast.content}
+                    <span className={selectedBroadcast.is_read ? 'text-green-600' : 'text-red-500'}>
+                       {selectedBroadcast.is_read ? '已读' : '未读'}
+                    </span>
+                 </div>
+                 <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    {selectedBroadcast.content}
+                 </div>
               </div>
 
-              <div className="mt-6">
-                <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                  selectedBroadcast.is_read
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {selectedBroadcast.is_read ? '已读' : '未读'}
-                </span>
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                 <button
+                   onClick={() => setShowModal(false)}
+                   className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800"
+                 >
+                   关闭
+                 </button>
               </div>
-            </div>
-
-            <div className="px-6 py-4 bg-gray-50 flex justify-end border-t border-gray-200">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
+           </div>
         </div>
       )}
     </div>
