@@ -25,7 +25,7 @@ const PlatformShopManagement = () => {
 
 
     useEffect(() => {
-        loadPlatforms();
+        loadPlatforms(); 
     }, []);
 
     useEffect(() => {

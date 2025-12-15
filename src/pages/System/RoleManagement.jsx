@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Popconfirm, Drawer, Select } from 'antd';
+import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Drawer, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined, CopyOutlined, FileAddOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import RoleDepartmentModal from '../../components/RoleDepartmentModal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const { Option } = Select;
 
@@ -37,6 +38,12 @@ const RoleManagement = () => {
   const [cloneSuffix, setCloneSuffix] = useState('副本');
   const [cloneCopyDepartments, setCloneCopyDepartments] = useState(false);
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+    const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+      title: '',
+      message: '',
+      onConfirm: null
+    });
 
   // 部门权限状态
   const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
@@ -333,43 +340,46 @@ const RoleManagement = () => {
       key: 'action',
       width: 180,
       render: (_, record) => (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-col gap-1">
           <Button
             size="small"
             type="primary"
-            ghost
-            icon={<UserOutlined />}
             onClick={() => handleAssignUsers(record)}
-            title="分配用户"
-          />
+          >
+            分配用户
+          </Button>
           <Button
             size="small"
-            icon={<EyeOutlined />}
+            style={{ backgroundColor: '#93c5fd', borderColor: '#93c5fd', color: '#1e3a8a' }}
             onClick={() => handleManageDepartments(record)}
-            title="部门权限"
-          />
+          >
+            部门权限
+          </Button>
           <Button
             size="small"
-            icon={<EditOutlined />}
+            style={{ backgroundColor: '#a7f3d0', borderColor: '#a7f3d0', color: '#065f46' }}
             onClick={() => handleEdit(record)}
             disabled={record.name === '超级管理员'}
-            title="编辑角色"
-          />
+          >
+            编辑
+          </Button>
           {!record.is_system && (
-            <Popconfirm
-              title="确定删除该角色吗？"
-              description="删除后将无法恢复"
-              onConfirm={() => handleDelete(record.id)}
-              okText="确定"
-              cancelText="取消"
+            <Button
+              size="small"
+              danger
+              onClick={() => {
+                setConfirmDialogConfig({
+                  title: '删除角色',
+                  message: '确定删除该角色吗？删除后将无法恢复',
+                  onConfirm: async () => {
+                    await handleDelete(record.id);
+                  }
+                });
+                setIsConfirmDialogOpen(true);
+              }}
             >
-              <Button
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                title="删除角色"
-              />
-            </Popconfirm>
+              删除
+            </Button>
           )}
         </div>
       ),
@@ -691,7 +701,16 @@ const RoleManagement = () => {
               <Button
                 size="small"
                 danger
-                onClick={handleBatchDeleteRoles}
+                onClick={() => {
+                  setConfirmDialogConfig({
+                    title: '批量删除角色',
+                    message: `确定删除选中的 ${selectedRoleIds.length} 个角色吗？删除后将无法恢复`,
+                    onConfirm: async () => {
+                      await handleBatchDeleteRoles();
+                    }
+                  });
+                  setIsConfirmDialogOpen(true);
+                }}
                 disabled={isProcessingBatch}
                 className="flex items-center gap-1"
               >
@@ -801,11 +820,18 @@ const RoleManagement = () => {
             </Select>
           </Form.Item>
         </Form>
-        <div className="flex justify-end gap-3 mt-6">
-          <Button onClick={() => setDrawerVisible(false)}>
+        <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+          <Button
+            onClick={() => setDrawerVisible(false)}
+            style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+          >
             取消
           </Button>
-          <Button type="primary" onClick={handleSaveUserAssignment}>
+          <Button
+            type="primary"
+            onClick={handleSaveUserAssignment}
+            className="flex items-center justify-center"
+          >
             保存
           </Button>
         </div>
@@ -885,40 +911,50 @@ const RoleManagement = () => {
           </div>
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">已选择 {templateForm.permission_ids.length} 项</div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               {editingTemplate && (
-                <Button danger onClick={async () => {
+                <Button
+                  danger
+                  onClick={async () => {
+                    try {
+                      await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                      await fetchPermissionTemplates();
+                      setIsTemplateManageOpen(false);
+                      setEditingTemplate(null);
+                      message.success('模板已删除');
+                    } catch {
+                      message.error('删除失败');
+                    }
+                  }}
+                >
+                  删除
+                </Button>
+              )}
+              <Button
+                type="primary"
+                onClick={async () => {
+                  if (!templateForm.name.trim()) {
+                    message.error('请输入模板名称');
+                    return;
+                  }
                   try {
-                    await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                    if (editingTemplate) {
+                      await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
+                    } else {
+                      await apiPost('/api/permission-templates', templateForm);
+                    }
                     await fetchPermissionTemplates();
                     setIsTemplateManageOpen(false);
                     setEditingTemplate(null);
-                    message.success('模板已删除');
+                    setTemplateForm({ name: '', description: '', permission_ids: [] });
+                    message.success('已保存模板');
                   } catch {
-                    message.error('删除失败');
+                    message.error('保存失败');
                   }
-                }}>删除</Button>
-              )}
-              <Button type="primary" onClick={async () => {
-                if (!templateForm.name.trim()) {
-                  message.error('请输入模板名称');
-                  return;
-                }
-                try {
-                  if (editingTemplate) {
-                    await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
-                  } else {
-                    await apiPost('/api/permission-templates', templateForm);
-                  }
-                  await fetchPermissionTemplates();
-                  setIsTemplateManageOpen(false);
-                  setEditingTemplate(null);
-                  setTemplateForm({ name: '', description: '', permission_ids: [] });
-                  message.success('已保存模板');
-                } catch {
-                  message.error('保存失败');
-                }
-              }}>保存</Button>
+                }}
+              >
+                保存
+              </Button>
             </div>
           </div>
           <div className="pt-4 border-t">
@@ -1063,9 +1099,20 @@ const RoleManagement = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsTemplateModalOpen(false)}>取消</Button>
-            <Button type="primary" onClick={handleApplyTemplateToSelectedRoles}>应用模板</Button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+            <Button
+              onClick={() => setIsTemplateModalOpen(false)}
+              style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            >
+              取消
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleApplyTemplateToSelectedRoles}
+              className="flex items-center justify-center"
+            >
+              应用模板
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1128,12 +1175,19 @@ const RoleManagement = () => {
               </label>
             ))}
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsBatchDeptOpen(false)} disabled={isProcessingBatch}>取消</Button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+            <Button
+              onClick={() => setIsBatchDeptOpen(false)}
+              disabled={isProcessingBatch}
+              style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            >
+              取消
+            </Button>
             <Button
               type="primary"
               onClick={handleBatchDepartmentsSave}
               disabled={isProcessingBatch}
+              className="flex items-center justify-center"
             >
               保存
             </Button>
@@ -1177,12 +1231,31 @@ const RoleManagement = () => {
             />
             克隆时复制部门可见范围
           </label>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button onClick={() => setIsCloneModalOpen(false)}>取消</Button>
-            <Button type="primary" onClick={handleCloneSelectedRoles}>开始克隆</Button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+            <Button
+              onClick={() => setIsCloneModalOpen(false)}
+              style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            >
+              取消
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleCloneSelectedRoles}
+              className="flex items-center justify-center"
+            >
+              开始克隆
+            </Button>
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={confirmDialogConfig.onConfirm}
+        title={confirmDialogConfig.title}
+        message={confirmDialogConfig.message}
+      />
     </div>
   );
 };

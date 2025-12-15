@@ -2,7 +2,7 @@
   "name": "customer-service-desktop",
   "version": "1.0.0",
   "description": "客服管理系统 - 桌面版",
-  "main": "electron/main.js",
+  "main": "electron/main_with_fix.js",
   "author": "Leixi Team",
   "license": "MIT",
   "scripts": {
@@ -104,7 +104,15 @@
         "nsis",
         "zip"
       ],
-      "icon": "public/icons/logo.ico"
+      "icon": "public/icons/logo.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icons/logo.ico",
+      "uninstallerIcon": "public/icons/logo.ico",
+      "installerHeaderIcon": "public/icons/logo.ico"
     },
     "mac": {
       "target": [
@@ -122,6 +130,10 @@
       {
         "from": "config/db-config.json",
         "to": "config/db-config.json"
+      },
+      {
+        "from": "public/icons/",
+        "to": "icons/"
       }
     ],
     "npmRebuild": false

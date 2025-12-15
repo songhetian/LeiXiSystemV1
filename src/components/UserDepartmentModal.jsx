@@ -229,12 +229,13 @@ function UserDepartmentModal({ isOpen, onClose, user, onSuccess }) {
         )}
 
         {/* 操作按钮 */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            className="px-4 py-2 rounded-lg disabled:opacity-50"
           >
             取消
           </button>
@@ -242,7 +243,8 @@ function UserDepartmentModal({ isOpen, onClose, user, onSuccess }) {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+            style={{ backgroundColor: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}
+            className="px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

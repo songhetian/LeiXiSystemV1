@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { formatDate } from '../utils/date'
 import { toast } from 'sonner';
 import Modal from './Modal'
+import ConfirmDialog from './ConfirmDialog'  // 添加导入
 import { getApiUrl } from '../utils/apiConfig'
 
 function DepartmentManagement() {
@@ -21,6 +22,14 @@ function DepartmentManagement() {
     name: '',
     description: '',
     status: 'active'
+  })
+
+  // 添加确认对话框状态
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: null
   })
 
   useEffect(() => {
@@ -144,11 +153,24 @@ function DepartmentManagement() {
       const employeeAction = newStatus === 'active' ? '启用' : '停用'
       const confirmMsg = `该部门有 ${employeeCount} 名员工，${action}部门后，所有员工状态将同步${employeeAction}。\n\n确定要继续吗？`
 
-      if (!confirm(confirmMsg)) {
-        return
-      }
+      // 使用模态框替换原生confirm
+      setConfirmDialogConfig({
+        title: '确认操作',
+        message: confirmMsg,
+        onConfirm: async () => {
+          await performStatusChange(newStatus)
+        }
+      })
+      setIsConfirmDialogOpen(true)
+      return
     }
 
+    // 直接执行状态变更
+    await performStatusChange(newStatus)
+  }
+
+  // 抽离状态变更逻辑
+  const performStatusChange = async (newStatus) => {
     try {
       const response = await fetch(getApiUrl(`/api/departments/${statusChangingDept.id}`), {
         method: 'PUT',
@@ -224,35 +246,47 @@ function DepartmentManagement() {
 
     confirmMsg += '删除后可以随时恢复。'
 
-    if (!confirm(confirmMsg)) return
-
-    try {
-      const response = await fetch(getApiUrl(`/api/departments/${dept.id}`), {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        toast.success('部门已删除（可恢复）')
-        fetchDepartments()
+    // 使用模态框替换原生confirm
+    setConfirmDialogConfig({
+      title: '删除部门',
+      message: confirmMsg,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(getApiUrl(`/api/departments/${dept.id}`), {
+            method: 'DELETE'
+          })
+          if (response.ok) {
+            toast.success('部门已删除（可恢复）')
+            fetchDepartments()
+          }
+        } catch (error) {
+          toast.error('删除失败')
+        }
       }
-    } catch (error) {
-      toast.error('删除失败')
-    }
+    })
+    setIsConfirmDialogOpen(true)
   }
 
   const handleRestore = async (id) => {
-    if (!confirm('确定要恢复这个部门吗？\n\n恢复后部门和员工状态将变为启用。')) return
-
-    try {
-      const response = await fetch(getApiUrl(`/api/departments/${id}/restore`), {
-        method: 'POST'
-      })
-      if (response.ok) {
-        toast.success('部门已恢复')
-        fetchDepartments()
+    // 使用模态框替换原生confirm
+    setConfirmDialogConfig({
+      title: '恢复部门',
+      message: '确定要恢复这个部门吗？\n\n恢复后部门和员工状态将变为启用。',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(getApiUrl(`/api/departments/${id}/restore`), {
+            method: 'POST'
+          })
+          if (response.ok) {
+            toast.success('部门已恢复')
+            fetchDepartments()
+          }
+        } catch (error) {
+          toast.error('恢复失败')
+        }
       }
-    } catch (error) {
-      toast.error('恢复失败')
-    }
+    })
+    setIsConfirmDialogOpen(true)
   }
 
   const resetForm = () => {
@@ -834,6 +868,15 @@ function DepartmentManagement() {
           </div>
         )}
       </Modal>
+
+      {/* 添加确认对话框 */}
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={confirmDialogConfig.onConfirm}
+        title={confirmDialogConfig.title}
+        message={confirmDialogConfig.message}
+      />
     </div>
   )
 }

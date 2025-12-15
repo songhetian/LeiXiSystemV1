@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { formatDate } from '../utils/date'
 import { toast } from 'sonner';
 import Modal from './Modal'
+import ConfirmDialog from './ConfirmDialog'  // 添加导入
 import RoleDepartmentModal from './RoleDepartmentModal'
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/apiClient'
 
@@ -54,6 +55,14 @@ function PermissionManagement() {
   const [isUserRoleModalOpen, setIsUserRoleModalOpen] = useState(false)
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false)
   const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false)
+
+  // 添加确认对话框状态
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: null
+  })
 
   // 编辑状态
   const [editingRole, setEditingRole] = useState(null)
@@ -418,16 +427,22 @@ function PermissionManagement() {
   }
 
   const handleDeleteRole = async (roleId) => {
-    if (!confirm('确定要删除这个角色吗？')) return
-
-    try {
-      const result = await apiDelete(`/api/roles/${roleId}`)
-      // 若后端未实现该接口，result 可能为错误，上层捕获
-      toast.success('角色删除成功')
-      fetchRoles()
-    } catch (error) {
-      toast.error('删除失败')
-    }
+    // 使用模态框替换原生confirm
+    setConfirmDialogConfig({
+      title: '删除角色',
+      message: '确定要删除这个角色吗？',
+      onConfirm: async () => {
+        try {
+          const result = await apiDelete(`/api/roles/${roleId}`)
+          // 若后端未实现该接口，result 可能为错误，上层捕获
+          toast.success('角色删除成功')
+          fetchRoles()
+        } catch (error) {
+          toast.error('删除失败')
+        }
+      }
+    })
+    setIsConfirmDialogOpen(true)
   }
 
   const toggleSelectRole = (roleId, checked) => {
@@ -448,23 +463,30 @@ function PermissionManagement() {
 
   const handleBatchDeleteRoles = async () => {
     if (selectedRoleIds.length === 0) return
-    if (!confirm(`确定删除选中的 ${selectedRoleIds.length} 个角色？`)) return
-    setIsProcessingBatch(true)
-    try {
-      for (const roleId of selectedRoleIds) {
-        const role = roles.find(r => r.id === roleId)
-        if (role && !role.is_system) {
-          await apiDelete(`/api/roles/${roleId}`)
+    // 使用模态框替换原生confirm
+    setConfirmDialogConfig({
+      title: '批量删除角色',
+      message: `确定删除选中的 ${selectedRoleIds.length} 个角色？`,
+      onConfirm: async () => {
+        setIsProcessingBatch(true)
+        try {
+          for (const roleId of selectedRoleIds) {
+            const role = roles.find(r => r.id === roleId)
+            if (role && !role.is_system) {
+              await apiDelete(`/api/roles/${roleId}`)
+            }
+          }
+          toast.success('批量删除完成')
+          setSelectedRoleIds([])
+          fetchRoles()
+        } catch (e) {
+          toast.error('批量删除失败')
+        } finally {
+          setIsProcessingBatch(false)
         }
       }
-      toast.success('批量删除完成')
-      setSelectedRoleIds([])
-      fetchRoles()
-    } catch (e) {
-      toast.error('批量删除失败')
-    } finally {
-      setIsProcessingBatch(false)
-    }
+    })
+    setIsConfirmDialogOpen(true)
   }
 
   const handleBatchToggleModule = async (enable) => {
@@ -1856,6 +1878,15 @@ function PermissionManagement() {
           </div>
         </div>
       </Modal>
+
+      {/* 添加确认对话框 */}
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={confirmDialogConfig.onConfirm}
+        title={confirmDialogConfig.title}
+        message={confirmDialogConfig.message}
+      />
     </div>
   )
 }

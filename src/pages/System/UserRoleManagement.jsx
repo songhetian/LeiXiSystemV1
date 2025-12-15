@@ -383,21 +383,21 @@ const UserRoleManagement = () => {
       key: 'action',
       width: 180,
       render: (_, record) => (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-col gap-1">
           <Button
             size="small"
             type="primary"
-            ghost
-            icon={<TeamOutlined />}
             onClick={() => handleManageRoles(record)}
-            title="分配角色"
-          />
+          >
+            分配角色
+          </Button>
           <Button
             size="small"
-            icon={<EyeOutlined />}
+            style={{ backgroundColor: '#93c5fd', borderColor: '#93c5fd', color: '#1e3a8a' }}
             onClick={() => handleManageUserDepartments(record)}
-            title="部门权限"
-          />
+          >
+            部门权限
+          </Button>
         </div>
       ),
     },
@@ -547,23 +547,20 @@ const UserRoleManagement = () => {
             <div className="text-sm text-blue-800">
               已选择 {selectedUserIds.length} 名员工
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
               <Button
                 size="small"
+                type="primary"
                 onClick={() => setIsBatchAssignOpen(true)}
-                className="flex items-center gap-1"
               >
-                <TeamOutlined className="text-xs" />
                 分配角色
               </Button>
               <Button
                 size="small"
-                danger
+                style={{ backgroundColor: '#fca5a5', borderColor: '#fca5a5', color: '#7f1d1d' }}
                 onClick={() => setIsBatchRemoveOpen(true)}
                 disabled={isProcessingBatch}
-                className="flex items-center gap-1"
               >
-                <LockOutlined className="text-xs" />
                 移除角色
               </Button>
             </div>
@@ -590,8 +587,8 @@ const UserRoleManagement = () => {
       <Modal
         title={`为 "${selectedUser?.real_name}" 分配角色`}
         open={modalVisible}
-        onOk={handleSaveRoles}
         onCancel={() => setModalVisible(false)}
+        footer={null}
         width={600}
       >
         <div className="py-4">
@@ -632,9 +629,20 @@ const UserRoleManagement = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={() => setModalVisible(false)}>取消</Button>
-            <Button type="primary" onClick={handleSaveRoles}>保存</Button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+            <Button
+              onClick={() => setModalVisible(false)}
+              style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            >
+              取消
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSaveRoles}
+              className="flex items-center justify-center"
+            >
+              保存
+            </Button>
           </div>
         </div>
       </Modal>
@@ -663,12 +671,18 @@ const UserRoleManagement = () => {
               ))}
             </Select>
           </div>
-          <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsBatchAssignOpen(false)}>取消</Button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
+            <Button
+              onClick={() => setIsBatchAssignOpen(false)}
+              style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            >
+              取消
+            </Button>
             <Button
               type="primary"
               onClick={handleBatchAssignRoles}
               disabled={isProcessingBatch || !batchAssignRoleId}
+              className="flex items-center justify-center"
             >
               保存
             </Button>
@@ -692,13 +706,19 @@ const UserRoleManagement = () => {
               此操作会清空所选员工的所有角色，请谨慎执行。
             </div>
           </div>
-          <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsBatchRemoveOpen(false)}>取消</Button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
+            <Button
+              onClick={() => setIsBatchRemoveOpen(false)}
+              style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
+            >
+              取消
+            </Button>
             <Button
               type="primary"
               danger
               onClick={handleBatchRemoveRoles}
               disabled={isProcessingBatch}
+              className="flex items-center justify-center"
             >
               移除
             </Button>

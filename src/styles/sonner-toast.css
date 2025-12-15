@@ -43,8 +43,8 @@
 /* 关闭按钮 */
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
-  top: -8px !important;
-  left: -8px !important;
+  top: 8px !important;
+  left: 8px !important;
   right: auto !important;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner';
 import Modal from './Modal'
+import ConfirmDialog from './ConfirmDialog'  // 添加导入
 import { getApiUrl } from '../utils/apiConfig'
 
 function PositionManagement() {
@@ -23,6 +24,14 @@ function PositionManagement() {
     department_id: '',
     description: '',
     status: 'active'
+  })
+
+  // 添加确认对话框状态
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: null
   })
 
   useEffect(() => {
@@ -167,29 +176,35 @@ function PositionManagement() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('确定要删除这个职位吗？')) return
+    // 使用模态框替换原生confirm
+    setConfirmDialogConfig({
+      title: '删除职位',
+      message: '确定要删除这个职位吗？',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
-    try {
-      const token = localStorage.getItem('token')
-      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+          const response = await fetch(getApiUrl(`/api/positions/${id}`), {
+            method: 'DELETE',
+            headers
+          })
 
-      const response = await fetch(getApiUrl(`/api/positions/${id}`), {
-        method: 'DELETE',
-        headers
-      })
+          const result = await response.json()
 
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        toast.success('职位删除成功')
-        fetchPositions()
-      } else {
-        toast.error(result.message || '删除失败')
+          if (response.ok && result.success) {
+            toast.success('职位删除成功')
+            fetchPositions()
+          } else {
+            toast.error(result.message || '删除失败')
+          }
+        } catch (error) {
+          console.error('删除失败:', error)
+          toast.error('删除失败')
+        }
       }
-    } catch (error) {
-      console.error('删除失败:', error)
-      toast.error('删除失败')
-    }
+    })
+    setIsConfirmDialogOpen(true)
   }
 
   const handleStatusClick = (pos) => {
@@ -210,47 +225,53 @@ function PositionManagement() {
     // 获取该职位的员工数量（需要从后端获取）
     const confirmMsg = `确定要${newStatus === 'active' ? '启用' : '停用'}这个职位吗？\n\n该职位的所有员工状态将同步${newStatus === 'active' ? '启用' : '停用'}。`
 
-    if (!confirm(confirmMsg)) return
+    // 使用模态框替换原生confirm
+    setConfirmDialogConfig({
+      title: '修改职位状态',
+      message: confirmMsg,
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const headers = {
+            'Content-Type': 'application/json'
+          }
+          if (token) {
+            headers.Authorization = `Bearer ${token}`
+          }
 
-    try {
-      const token = localStorage.getItem('token')
-      const headers = {
-        'Content-Type': 'application/json'
-      }
-      if (token) {
-        headers.Authorization = `Bearer ${token}`
-      }
+          const response = await fetch(getApiUrl(`/api/positions/${statusChangingPos.id}`), {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              ...statusChangingPos,
+              status: newStatus
+            })
+          })
 
-      const response = await fetch(getApiUrl(`/api/positions/${statusChangingPos.id}`), {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          ...statusChangingPos,
-          status: newStatus
-        })
-      })
+          const result = await response.json()
 
-      const result = await response.json()
+          if (response.ok && result.success) {
+            const affectedCount = result.affectedEmployees || 0
 
-      if (response.ok && result.success) {
-        const affectedCount = result.affectedEmployees || 0
+            if (affectedCount > 0) {
+              toast.success(`职位状态已修改，同时更新了 ${affectedCount} 名员工的状态`)
+            } else {
+              toast.success('职位状态修改成功')
+            }
 
-        if (affectedCount > 0) {
-          toast.success(`职位状态已修改，同时更新了 ${affectedCount} 名员工的状态`)
-        } else {
-          toast.success('职位状态修改成功')
+            setIsStatusModalOpen(false)
+            setStatusChangingPos(null)
+            fetchPositions()
+          } else {
+            toast.error(result.message || '状态修改失败')
+          }
+        } catch (error) {
+          console.error('操作失败:', error)
+          toast.error('操作失败')
         }
-
-        setIsStatusModalOpen(false)
-        setStatusChangingPos(null)
-        fetchPositions()
-      } else {
-        toast.error(result.message || '状态修改失败')
       }
-    } catch (error) {
-      console.error('操作失败:', error)
-      toast.error('操作失败')
-    }
+    })
+    setIsConfirmDialogOpen(true)
   }
 
   const resetForm = () => {
@@ -707,6 +728,15 @@ function PositionManagement() {
           </div>
         )}
       </Modal>
+
+      {/* 添加确认对话框 */}
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={confirmDialogConfig.onConfirm}
+        title={confirmDialogConfig.title}
+        message={confirmDialogConfig.message}
+      />
     </div>
   )
 }
