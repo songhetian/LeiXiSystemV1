@@ -550,16 +550,16 @@
 .modal-close {
   background: none;
   border: none;
-  color: #718096;
-  font-size: 28px;
+  color: white;
+  font-size: 32px;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  line-height: 1;
 }
 
 .modal-close:hover {
@@ -1196,7 +1196,6 @@
 
 .modal-close:hover {
   background: rgba(255, 255, 255, 0.2);
-  transform: rotate(90deg);
 }
 
 .modal-body {

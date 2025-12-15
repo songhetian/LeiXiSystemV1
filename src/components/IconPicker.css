@@ -49,8 +49,8 @@
 .close-btn {
   background: none;
   border: none;
-  font-size: 28px;
-  color: #6b7280;
+  font-size: 24px;
+  color: #9ca3af;
   cursor: pointer;
   padding: 0;
   width: 40px;
@@ -59,13 +59,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .close-btn:hover {
   background-color: #e5e7eb;
   color: #1f2937;
-  transform: rotate(90deg);
 }
 
 .icon-picker-search {

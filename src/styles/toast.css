@@ -304,7 +304,6 @@
   color: #1a1a2e;
   opacity: 1;
   background: rgba(0, 0, 0, 0.08);
-  transform: rotate(90deg);
 }
 
 /* 动画优化 - 更流畅的进入动画 */

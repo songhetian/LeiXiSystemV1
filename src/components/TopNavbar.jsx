@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Popover, Slider } from 'antd';
+import { Popover, Slider, Modal } from 'antd';
 import {
   UserOutlined,
   LogoutOutlined,
@@ -7,7 +7,8 @@ import {
   MenuUnfoldOutlined,
   HomeOutlined,
   BellOutlined,
-  FontSizeOutlined
+  FontSizeOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import NotificationDropdown from './NotificationDropdown';
 
@@ -146,6 +147,19 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
     return [];
   }, [activeTab]);
 
+  // 修改退出按钮的点击处理函数
+  const handleLogoutClick = () => {
+    Modal.confirm({
+      title: '确认退出',
+      icon: <ExclamationCircleOutlined />,
+      content: '确定要退出登录吗？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: onLogout,
+      centered: true,
+    });
+  };
+
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
       {/* Left: Breadcrumbs */}
@@ -249,7 +263,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
         <div className="h-8 w-px bg-gray-200"></div>
 
         <button
-          onClick={onLogout}
+          onClick={handleLogoutClick} // 修改为新的处理函数
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors text-sm"
           title="退出登录"
         >

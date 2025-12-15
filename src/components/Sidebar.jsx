@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePermission } from '../contexts/PermissionContext';
 
 import {
@@ -39,9 +39,22 @@ import {
   ThunderboltFilled,
 } from '@ant-design/icons';
 
+import { Modal } from 'antd';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+
 // --- Component Definition ---
 
-const Sidebar = ({ activeTab, setActiveTab, user, onLogout, theme = { background: '#F3F4F6' } }) => {
+const Sidebar = ({
+  activeTab,
+  setActiveTab,  // 使用这个prop而不是忽略它
+  user,
+  onLogout,
+  isCollapsed,
+  onToggleCollapse,
+  permissions = [],
+  onNavigate,
+  theme = { background: '#F3F4F6' }
+}) => {
   // State to manage which menus are expanded
   const [expandedMenus, setExpandedMenus] = useState(['hr', 'hr-employee', 'collaboration', 'information']);
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,6 +163,26 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, theme = { background
     setExpandedMenus(['hr', 'hr-employee', 'collaboration', 'information']);
   };
 
+  // 修改退出按钮的点击处理函数
+  const handleLogoutClick = () => {
+    Modal.confirm({
+      title: '确认退出',
+      icon: <ExclamationCircleOutlined />,
+      content: '确定要退出登录吗？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: onLogout,
+      centered: true,
+    });
+  };
+
+  // 处理菜单项点击 - 直接使用从父组件传入的setActiveTab
+  const handleMenuClick = (tabId, params = {}) => {
+    if (setActiveTab) {
+      setActiveTab(tabId, params);
+    }
+  };
+
   return (
     <aside
       className="w-80 border-r border-gray-200 shadow-sm flex flex-col"
@@ -167,7 +200,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, theme = { background
         <MainMenu
           menuItems={filteredMenuItems}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleMenuClick}  // 使用新的handleMenuClick函数
           expandedMenus={expandedMenus}
           toggleMenu={toggleMenu}
           searchQuery={searchQuery}
@@ -325,11 +358,21 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
     );
   };
 
+  // 处理菜单项点击事件
+  const handleMenuClick = () => {
+    if (hasChildren) {
+      toggleMenu(item.id);
+    } else {
+      // 使用从父组件传入的setActiveTab函数
+      setActiveTab(item.id);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Menu Item Button */}
       <button
-        onClick={() => (hasChildren ? toggleMenu(item.id) : setActiveTab(item.id))}
+        onClick={handleMenuClick}
         className={`w-full flex items-center justify-between ${styles.button}`}
       >
         <div className="flex items-center gap-2.5">
@@ -366,26 +409,41 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
   );
 };
 
-const SidebarFooter = ({ user, onLogout }) => (
-  <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-    <div className="flex items-center gap-3 mb-3">
-       <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-500 border-2 border-white shadow-sm">
-          {user?.real_name?.charAt(0) || <UserOutlined />}
-       </div>
-       <div className="flex-1 min-w-0">
-         <div className="text-sm font-semibold text-gray-700 truncate">{user?.real_name || '未登录'}</div>
-         <div className="text-xs text-gray-400 truncate">@{user?.username || 'guest'}</div>
-       </div>
+const SidebarFooter = ({ user, onLogout }) => {
+  // 修改退出按钮的点击处理函数
+  const handleLogoutClick = () => {
+    Modal.confirm({
+      title: '确认退出',
+      icon: <ExclamationCircleOutlined />,
+      content: '确定要退出登录吗？',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: onLogout,
+      centered: true,
+    });
+  };
+
+  return (
+    <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+      <div className="flex items-center gap-3 mb-3">
+         <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-500 border-2 border-white shadow-sm">
+            {user?.real_name?.charAt(0) || <UserOutlined />}
+         </div>
+         <div className="flex-1 min-w-0">
+           <div className="text-sm font-semibold text-gray-700 truncate">{user?.real_name || '未登录'}</div>
+           <div className="text-xs text-gray-400 truncate">@{user?.username || 'guest'}</div>
+         </div>
+      </div>
+      <button
+        onClick={handleLogoutClick} // 修改为新的处理函数
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-100 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow"
+      >
+        <LogoutOutlined />
+        <span>退出登录</span>
+      </button>
     </div>
-    <button
-      onClick={onLogout}
-      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-100 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow"
-    >
-      <LogoutOutlined />
-      <span>退出登录</span>
-    </button>
-  </div>
-);
+  );
+};
 
 // --- Menu Item Definitions with Three-Level Structure ---
 

@@ -331,7 +331,7 @@ const Login = ({ onLoginSuccess }) => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-block p-3 bg-primary-100 rounded-full mb-4">
-            <span className="text-4xl">💬</span>
+            <img src="/icons/logo.ico" alt="雷犀客服管理系统" className="w-16 h-16" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800">雷犀客服管理系统</h1>
           <p className="text-gray-500 mt-2">企业级客服管理平台</p>

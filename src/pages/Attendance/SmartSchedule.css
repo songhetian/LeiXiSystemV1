@@ -677,6 +677,5 @@
 
 .btn-close-modal:hover {
   background: #2c5282;
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
 }

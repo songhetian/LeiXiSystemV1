@@ -31,6 +31,8 @@
   padding: 16px;
   min-height: 60px;
   width: 100%;
+  position: relative;
+  overflow: visible;
 }
 
 /* 鼠标悬停时增强阴影 */
@@ -40,9 +42,10 @@
 
 /* 关闭按钮 */
 [data-sonner-toast] [data-close-button] {
-  top: -8px;
-  right: -8px;
-  left: auto;
+  position: absolute !important;
+  top: -8px !important;
+  left: -8px !important;
+  right: auto !important;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
   color: #64748b;
@@ -53,13 +56,21 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  z-index: 99 !important;
+  pointer-events: auto !important;
+  transform: translate(0, 0) !important;
+  transform-origin: top left !important;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 [data-sonner-toast] [data-close-button]:hover {
   background: #e2e8f0;
   color: #0f172a;
-  transform: scale(1.1);
+  transform: translate(0, 0) !important;
+}
+
+[data-sonner-toast] [data-content] {
+  padding-left: 20px;
 }
 
 /* 调整内容区域 */
