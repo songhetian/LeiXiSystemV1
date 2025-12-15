@@ -157,7 +157,7 @@ const Login = ({ onLoginSuccess }) => {
       }, {
         timeout: 10000 // 10秒超时
       })
-      
+
       console.log('登录API响应:', response.data);
 
       if (response.data.success) {
@@ -196,14 +196,14 @@ const Login = ({ onLoginSuccess }) => {
     console.log('.handleSubmit开始执行');
     setLoading(true)
     setErrorMessage('') // 清除之前的错误
-    
+
     // 表单验证
     if (!validateForm()) {
       console.log('表单验证失败');
       setLoading(false)
       return
     }
-    
+
     console.log('开始登录流程，用户名:', formData.username);
 
     try {
@@ -216,7 +216,7 @@ const Login = ({ onLoginSuccess }) => {
         }, {
           timeout: 10000 // 10秒超时
         })
-        
+
         console.log('检查会话响应:', checkResponse.data);
 
         if (checkResponse.data.hasActiveSession) {
@@ -241,7 +241,7 @@ const Login = ({ onLoginSuccess }) => {
         const response = await axios.post(getApiUrl('/api/auth/register'), formData, {
           timeout: 10000 // 10秒超时
         })
-        
+
         console.log('注册响应:', response.data);
 
         if (response.data.success) {
@@ -333,7 +333,7 @@ const Login = ({ onLoginSuccess }) => {
           <div className="inline-block p-3 bg-primary-100 rounded-full mb-4">
             <span className="text-4xl">💬</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">雷犀客服系统</h1>
+          <h1 className="text-3xl font-bold text-gray-800">雷犀客服管理系统</h1>
           <p className="text-gray-500 mt-2">企业级客服管理平台</p>
         </div>
 

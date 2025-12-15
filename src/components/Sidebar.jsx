@@ -189,7 +189,7 @@ const SidebarHeader = () => (
       <ThunderboltFilled className="text-xl" />
     </div>
     <div>
-      <h1 className="text-lg font-bold text-gray-800 tracking-tight leading-tight">雷犀系统</h1>
+      <h1 className="text-lg font-bold text-gray-800 tracking-tight leading-tight">雷犀客服管理系统</h1>
       <div className="flex items-center gap-1.5 mt-0.5">
         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
         <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Enterprise</span>
