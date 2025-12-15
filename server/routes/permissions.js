@@ -16,6 +16,59 @@ const permissionRoutes = async (fastify, options) => {
   } finally {
     connInit.release();
   }
+  // Create default employee template
+  fastify.post('/api/permission-templates/create-default', {
+    preHandler: requirePermission('system:role:manage')
+  }, async (request, reply) => {
+    const connection = await fastify.mysql.getConnection();
+    try {
+      // 检查是否已存在同名模板
+      const [existing] = await connection.query(
+        'SELECT id FROM permission_templates WHERE name = ?',
+        ['员工基础权限']
+      );
+
+      if (existing.length > 0) {
+        return { success: false, message: '员工基础权限模板已存在' };
+      }
+
+      // 获取所需权限的ID
+      const [permissions] = await connection.query(`
+        SELECT id, code FROM permissions WHERE code IN (
+          'messaging:broadcast:view',
+          'attendance:record:view',
+          'vacation:record:view',
+          'attendance:approval:manage',
+          'vacation:approval:manage',
+          'knowledge:article:view',
+          'assessment:plan:view',
+          'assessment:result:view',
+          'user:profile:update',
+          'user:memo:manage'
+        )
+      `);
+
+      const permissionIds = permissions.map(p => p.id);
+
+      // 创建模板
+      const [result] = await connection.query(
+        'INSERT INTO permission_templates (name, description, permission_ids) VALUES (?, ?, ?)',
+        [
+          '员工基础权限',
+          '包含所有员工都需要的基本功能权限',
+          JSON.stringify(permissionIds)
+        ]
+      );
+
+      return { success: true, id: result.insertId, message: '员工基础权限模板创建成功' };
+    } catch (error) {
+      console.error('创建默认权限模板失败:', error);
+      return reply.code(500).send({ success: false, message: '创建模板失败' });
+    } finally {
+      connection.release();
+    }
+  });
+
   // Get all roles with their permissions
   fastify.get('/api/roles', {
     preHandler: requirePermission('system:role:view')
@@ -63,6 +116,23 @@ const permissionRoutes = async (fastify, options) => {
     try {
       await connection.beginTransaction();
 
+      // 检查是否尝试创建同名的超级管理员角色
+      if (name === '超级管理员') {
+        await connection.rollback();
+        return reply.code(403).send({ success: false, message: '不能创建名称为超级管理员的角色' });
+      }
+
+      // 检查是否已存在同名角色
+      const [existingRoles] = await connection.query(
+        'SELECT id FROM roles WHERE name = ?',
+        [name]
+      );
+
+      if (existingRoles.length > 0) {
+        await connection.rollback();
+        return reply.code(400).send({ success: false, message: '已存在同名角色' });
+      }
+
       const [result] = await connection.query(
         'INSERT INTO roles (name, description) VALUES (?, ?)',
         [name, description]
@@ -96,6 +166,17 @@ const permissionRoutes = async (fastify, options) => {
     const connection = await fastify.mysql.getConnection();
     try {
       await connection.beginTransaction();
+
+      // 检查是否为超级管理员角色
+      const [roleRows] = await connection.query('SELECT name, is_system FROM roles WHERE id = ?', [id]);
+      if (roleRows.length > 0) {
+        const role = roleRows[0];
+        // 如果是系统角色且原名称为'超级管理员'，不允许修改名称
+        if (role.is_system === 1 && role.name === '超级管理员' && name !== '超级管理员') {
+          await connection.rollback();
+          return reply.code(403).send({ success: false, message: '不能修改超级管理员角色的名称' });
+        }
+      }
 
       await connection.query(
         'UPDATE roles SET name = ?, description = ? WHERE id = ?',
@@ -298,10 +379,19 @@ const permissionRoutes = async (fastify, options) => {
       await connection.beginTransaction();
 
       // 检查是否为系统角色
-      const [roleRows] = await connection.query('SELECT is_system FROM roles WHERE id = ?', [id]);
-      if (roleRows.length > 0 && roleRows[0].is_system === 1) {
-        await connection.rollback();
-        return reply.code(403).send({ success: false, message: '不能删除系统角色' });
+      const [roleRows] = await connection.query('SELECT name, is_system FROM roles WHERE id = ?', [id]);
+      if (roleRows.length > 0) {
+        const role = roleRows[0];
+        // 特别保护超级管理员角色
+        if (role.name === '超级管理员') {
+          await connection.rollback();
+          return reply.code(403).send({ success: false, message: '不能删除超级管理员角色' });
+        }
+        // 保护其他系统角色
+        if (role.is_system === 1) {
+          await connection.rollback();
+          return reply.code(403).send({ success: false, message: '不能删除系统角色' });
+        }
       }
 
       // 删除角色相关的所有关联数据

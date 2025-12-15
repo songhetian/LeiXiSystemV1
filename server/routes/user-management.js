@@ -3,7 +3,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 const { requirePermission } = require('../middleware/auth')
 
 async function userManagementRoutes(fastify, options) {
-  const pool = fastify.mysql
+  const pool = fastify.mysql || options.mysql
 
   // 获取当前用户权限
   fastify.get('/api/users/permissions', async (request, reply) => {
@@ -77,6 +77,86 @@ async function userManagementRoutes(fastify, options) {
     } catch (error) {
       console.error('获取审批人失败:', error)
       return reply.code(500).send({ success: false, message: '获取审批人失败' })
+    }
+  })
+
+  // 更新用户个人资料（新增路由）
+  fastify.put('/api/users/:userId/profile', {
+    preHandler: requirePermission('user:profile:update')
+  }, async (request, reply) => {
+    const token = request.headers.authorization?.replace('Bearer ', '')
+    if (!token) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
+
+    // 验证token
+    let decoded
+    try {
+      decoded = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '令牌无效' })
+    }
+
+    const { userId } = request.params
+    // 检查用户是否在更新自己的资料
+    if (decoded.id != userId) {
+      // 如果不是更新自己的资料，需要检查是否为超级管理员
+      const pool = fastify.mysql
+      // 检查是否为超级管理员
+      const [userRoles] = await pool.query(
+        `SELECT r.name
+         FROM roles r
+         JOIN user_roles ur ON r.id = ur.role_id
+         WHERE ur.user_id = ?`,
+        [decoded.id]
+      )
+
+      const isAdmin = userRoles.some(r => r.name === '超级管理员');
+
+      // 只有超级管理员才能更新他人的资料
+      if (!isAdmin) {
+        return reply.code(403).send({ success: false, message: '权限不足' })
+      }
+    }
+
+    const {
+      real_name,
+      email,
+      phone,
+      emergency_contact,
+      emergency_phone,
+      address,
+      education
+    } = request.body
+
+    try {
+      // 执行更新
+      await pool.query(
+        `UPDATE users SET
+          real_name = ?,
+          email = ?,
+          phone = ?,
+          emergency_contact = ?,
+          emergency_phone = ?,
+          address = ?,
+          education = ?
+        WHERE id = ?`,
+        [
+          real_name || null,
+          email || null,
+          phone || null,
+          emergency_contact || null,
+          emergency_phone || null,
+          address || null,
+          education || null,
+          userId
+        ]
+      )
+
+      return { success: true, message: '个人资料更新成功' }
+    } catch (error) {
+      console.error('更新个人资料失败:', error)
+      return reply.code(500).send({ success: false, message: '更新失败' })
     }
   })
 }

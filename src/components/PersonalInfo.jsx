@@ -230,46 +230,74 @@ const PersonalInfo = () => {
 
   // --- UI 组件 ---
 
-  const InfoItem = ({ label, value, icon, editing, type = 'text', options = [], name }) => (
-    <div className="group">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">
-        <span className="text-blue-500">{icon}</span>
-        {label}
-      </label>
+  // 重构InfoItem组件，确保输入框正常工作且不会失去焦点
+  const InfoItem = ({ label, value, icon, editing, type = 'text', options = [], name }) => {
+    // 为每个输入项创建独立的状态
+    const [localValue, setLocalValue] = useState(value || '');
 
-      {editing ? (
-        type === 'select' ? (
-          <div className="relative">
-            <select
-              value={value}
-              onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
-              className="w-full pl-4 pr-10 py-2.5 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-100 hover:bg-gray-50 text-gray-800 appearance-none"
-            >
-              <option value="">请选择</option>
-              {options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-               <ChevronDownIcon className="w-4 h-4" />
+    // 当外部value变化时，更新本地状态（仅在初始加载或重置时）
+    useEffect(() => {
+      setLocalValue(value || '');
+    }, [value]);
+
+    // 处理值变化，只更新本地状态，不立即更新父组件
+    const handleLocalChange = (e) => {
+      const newValue = e.target.value;
+      setLocalValue(newValue);
+    };
+
+    // 当输入框失去焦点时，才更新父组件的表单数据
+    const handleBlur = () => {
+      setFormData(prev => ({ ...prev, [name]: localValue }));
+    };
+
+    return (
+      <div className="group">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">
+          <span className="text-blue-500">{icon}</span>
+          {label}
+        </label>
+
+        {editing ? (
+          type === 'select' ? (
+            <div className="relative">
+              <select
+                value={localValue}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setLocalValue(newValue);
+                  // 选择框变化后立即更新父组件
+                  setFormData(prev => ({ ...prev, [name]: newValue }));
+                }}
+                className="w-full pl-4 pr-10 py-2.5 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-100 hover:bg-gray-50 text-gray-800 appearance-none"
+              >
+                <option value="">请选择</option>
+                {options.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                 <ChevronDownIcon className="w-4 h-4" />
+              </div>
             </div>
-          </div>
+          ) : (
+            <input
+              type={type}
+              value={localValue}
+              onChange={handleLocalChange}
+              onBlur={handleBlur}
+              className="w-full px-4 py-2.5 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-100 hover:bg-gray-50 text-gray-800 placeholder-gray-400"
+              placeholder={`请输入${label}`}
+            />
+          )
         ) : (
-          <input
-            type={type}
-            value={value}
-            onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
-            className="w-full px-4 py-2.5 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-100 hover:bg-gray-50 text-gray-800 placeholder-gray-400"
-            placeholder={`请输入${label}`}
-          />
-        )
-      ) : (
-        <div className="py-2.5 px-4 bg-gray-100 rounded-xl border border-transparent transition-all text-gray-800 font-medium min-h-[46px] flex items-center">
-           {value ? value : <span className="text-gray-400 text-sm font-normal">未填写</span>}
-        </div>
-      )}
-    </div>
-  )
+          <div className="py-2.5 px-4 bg-gray-100 rounded-xl border border-transparent transition-all text-gray-800 font-medium min-h-[46px] flex items-center">
+             {localValue ? localValue : <span className="text-gray-400 text-sm font-normal">未填写</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div

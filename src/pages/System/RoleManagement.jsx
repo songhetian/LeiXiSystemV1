@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Drawer, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined, CopyOutlined, FileAddOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined, CopyOutlined, FileAddOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../../utils/apiConfig';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import RoleDepartmentModal from '../../components/RoleDepartmentModal';
@@ -131,13 +131,16 @@ const RoleManagement = () => {
   const moduleNames = {
     system: '系统管理',
     user: '用户管理',
+    organization: '组织架构',
+    messaging: '信息系统',
     attendance: '考勤管理',
-    leave: '请假管理',
+    vacation: '假期管理',
+    quality: '质检管理',
+    knowledge: '知识库',
+    assessment: '考核系统',
     schedule: '排班管理',
     exam: '考试管理',
     training: '培训管理',
-    assessment: '考核管理',
-    quality: '质检管理',
     memo: '备忘录管理',
     learning: '学习中心',
     device: '设备管理'
@@ -167,6 +170,15 @@ const RoleManagement = () => {
     setEditingRole(null);
     form.resetFields();
     setCheckedKeys([]);
+    // 清除模板选择的单选按钮
+    const templateRadios = document.querySelectorAll('input[name="template"]');
+    templateRadios.forEach(radio => {
+      if (radio.value === '') {
+        radio.checked = true;
+      } else {
+        radio.checked = false;
+      }
+    });
     setModalVisible(true);
   };
 
@@ -199,6 +211,11 @@ const RoleManagement = () => {
 
   const handleDepartmentSuccess = () => {
     fetchRoles();
+  };
+
+  // 清理模板搜索框
+  const clearTemplateSearch = () => {
+    setTemplateSearchText('');
   };
 
   // 分配用户给角色
@@ -241,6 +258,23 @@ const RoleManagement = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+
+      // 如果是创建新角色，检查是否已存在同名角色
+      if (!editingRole) {
+        const roleName = values.name.trim();
+        const existingRole = roles.find(role => role.name === roleName);
+        if (existingRole) {
+          message.error('已存在同名角色，请使用其他名称');
+          return;
+        }
+
+        // 特殊检查：不能创建名为"超级管理员"的角色
+        if (roleName === '超级管理员') {
+          message.error('不能创建名称为超级管理员的角色');
+          return;
+        }
+      }
+
       // 过滤掉模块节点，只保留实际的权限 ID
       const permissionIds = checkedKeys.filter(key => !key.startsWith('module-')).map(Number);
 
@@ -363,7 +397,7 @@ const RoleManagement = () => {
           >
             编辑
           </Button>
-          {!record.is_system && (
+          {!record.is_system ? (
             <Button
               size="small"
               danger
@@ -377,6 +411,15 @@ const RoleManagement = () => {
                 });
                 setIsConfirmDialogOpen(true);
               }}
+            >
+              删除
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              danger
+              disabled
+              title="系统角色不能删除"
             >
               删除
             </Button>
@@ -405,6 +448,18 @@ const RoleManagement = () => {
     { key: 'attendance_admin', name: '考勤管理员', modules: ['attendance', 'schedule'] },
     { key: 'qa_manager', name: '质检管理员', modules: ['quality'] },
     { key: 'org_admin', name: '组织管理员', modules: ['system', 'user'] },
+    { key: 'employee_basic', name: '员工基础权限', permissions: [
+      'messaging:broadcast:view',
+      'attendance:record:view',
+      'vacation:record:view',
+      'attendance:approval:manage',
+      'vacation:approval:manage',
+      'knowledge:article:view',
+      'assessment:plan:view',
+      'assessment:result:view',
+      'user:profile:update',
+      'user:memo:manage'
+    ]},
     { key: 'full_access', name: '全权限', modules: Object.keys(moduleNames) }
   ];
 
@@ -417,6 +472,15 @@ const RoleManagement = () => {
     }
     const tpl = BUILTIN_TEMPLATES.find(t => t.key === tplKey);
     if (!tpl) return [];
+
+    // 如果模板定义了具体的权限代码，直接使用这些权限
+    if (tpl.permissions) {
+      return permissions
+        .filter(p => tpl.permissions.includes(p.code))
+        .map(p => p.id);
+    }
+
+    // 否则按模块过滤
     return permissions
       .filter(p => tpl.modules.includes(p.module))
       .map(p => p.id);
@@ -527,6 +591,7 @@ const RoleManagement = () => {
   };
 
   const [searchText, setSearchText] = useState('');
+  const [templateSearchText, setTemplateSearchText] = useState('');
 
   // 克隆角色功能
   const handleCloneSelectedRoles = async () => {
@@ -595,6 +660,36 @@ const RoleManagement = () => {
     setSearchText('');
   };
 
+  // 在模板管理模态框中添加搜索功能
+  // 修改过滤模块的逻辑，只显示有权限项的模块
+  const filteredModules = Object.entries(moduleNames).filter(([key, name]) => {
+    // 检查该模块是否有权限项
+    const modulePermissions = permissions.filter(p => p.module === key);
+    if (modulePermissions.length === 0) return false; // 如果没有权限项，不显示该模块
+
+    // 如果搜索框为空，显示所有有权限项的模块
+    if (!templateSearchText) return true;
+
+    // 检查模块名称或模块key是否匹配搜索词，或者模块内有权限项匹配搜索词
+    return name.toLowerCase().includes(templateSearchText.toLowerCase()) ||
+           key.toLowerCase().includes(templateSearchText.toLowerCase()) ||
+           modulePermissions.some(p =>
+             p.description.toLowerCase().includes(templateSearchText.toLowerCase()) ||
+             p.code.toLowerCase().includes(templateSearchText.toLowerCase())
+           );
+  });
+
+  // 过滤权限项
+  const getFilteredPermissions = (moduleKey, permissions) => {
+    if (!templateSearchText) return permissions.filter(p => p.module === moduleKey);
+
+    return permissions.filter(p =>
+      p.module === moduleKey &&
+      (p.description.toLowerCase().includes(templateSearchText.toLowerCase()) ||
+       p.code.toLowerCase().includes(templateSearchText.toLowerCase()))
+    );
+  };
+
   return (
     <div className="p-4 md:p-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
@@ -619,20 +714,15 @@ const RoleManagement = () => {
               <span className="hidden sm:inline">复制角色</span>
             </Button>
             <Button
-              icon={<FileAddOutlined />}
-              onClick={() => {
-                setEditingTemplate(null);
-                setTemplateForm({ name: '', description: '', permission_ids: [] });
-                setIsTemplateManageOpen(true);
-              }}
-            >
-              <span className="hidden sm:inline">新建模板</span>
-            </Button>
-            <Button
               icon={<ReloadOutlined />}
               onClick={fetchRoles}
             >
               <span className="hidden sm:inline">刷新</span>
+            </Button>
+            <Button
+              onClick={() => setIsTemplateManageOpen(true)}
+            >
+              <span className="hidden sm:inline">模板管理</span>
             </Button>
           </div>
         </div>
@@ -765,6 +855,45 @@ const RoleManagement = () => {
           >
             <Input.TextArea placeholder="请输入角色描述" rows={2} />
           </Form.Item>
+
+          {/* 模板选择 */}
+          {!editingRole && (
+            <Form.Item label="权限模板">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                {customTemplates.map(tpl => (
+                  <label
+                    key={`custom-${tpl.id}`}
+                    className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50"
+                  >
+                    <input
+                      type="radio"
+                      name="template"
+                      value={`custom:${tpl.id}`}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          const templatePermissionIds = getTemplatePermissionIds(`custom:${tpl.id}`);
+                          setCheckedKeys(templatePermissionIds.map(id => id.toString()));
+                        }
+                      }}
+                    />
+                    <span className="text-sm">{tpl.name}</span>
+                  </label>
+                ))}
+                <label className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="template"
+                    value=""
+                    defaultChecked
+                    onChange={() => setCheckedKeys([])}
+                  />
+                  <span className="text-sm">无模板</span>
+                </label>
+              </div>
+              <div className="mt-2 text-sm text-gray-500">选择模板可快速填充权限配置</div>
+            </Form.Item>
+          )}
+
           <Form.Item label="权限配置">
             <div className="border rounded-lg p-3 max-h-80 overflow-y-auto bg-gray-50">
               <Tree
@@ -850,142 +979,256 @@ const RoleManagement = () => {
 
       {/* 模板管理模态框 */}
       <Modal
-        title={editingTemplate ? '编辑模板' : '新建模板'}
+        title="权限模板管理"
         open={isTemplateManageOpen}
-        onCancel={() => setIsTemplateManageOpen(false)}
+        onCancel={() => {
+          setIsTemplateManageOpen(false);
+          clearTemplateSearch(); // 关闭时清空搜索框
+        }}
         footer={null}
-        width={720}
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板名称</label>
-              <Input
-                value={templateForm.name}
-                onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-                placeholder="请输入模板名称"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">模板描述</label>
-              <Input
-                value={templateForm.description}
-                onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
-                placeholder="请输入模板描述"
-              />
-            </div>
+        width={1200}
+        style={{ top: 20 }}
+      >        <div className="space-y-6">
+          {/* 操作按钮区域 */}
+          <div className="flex flex-wrap gap-3 pb-4 border-b">
+            <Button
+              type="primary"
+              onClick={() => {
+                setEditingTemplate(null);
+                setTemplateForm({ name: '', description: '', permission_ids: [] });
+                clearTemplateSearch(); // 新建模板时清空搜索框
+              }}
+            >
+              新建模板
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await apiPost('/api/permission-templates/create-default', {});
+                  if (res.success) {
+                    message.success(res.message);
+                    fetchPermissionTemplates(); // 刷新模板列表
+                  } else {
+                    message.warning(res.message);
+                  }
+                } catch (error) {
+                  message.error('创建默认模板失败');
+                }
+              }}
+            >
+              创建默认模板
+            </Button>
+            <Button
+              onClick={fetchPermissionTemplates}
+            >
+              刷新
+            </Button>
           </div>
-          <div className="text-sm font-medium text-gray-700">选择权限</div>
-          <div className="max-h-64 overflow-y-auto space-y-3">
-            {Object.entries(moduleNames).map(([key, name]) => {
-              const modulePerms = permissions.filter(p => p.module === key);
-              if (modulePerms.length === 0) return null;
 
-              return (
-                <Card key={key} size="small" title={name} className="mb-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {modulePerms.map(perm => {
-                      const checked = templateForm.permission_ids.includes(perm.id);
-                      return (
-                        <label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => {
-                              setTemplateForm({
-                                ...templateForm,
-                                permission_ids: e.target.checked
-                                  ? [...templateForm.permission_ids, perm.id]
-                                  : templateForm.permission_ids.filter(id => id !== perm.id)
-                              });
-                            }}
-                          />
-                          <span>{perm.description}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">已选择 {templateForm.permission_ids.length} 项</div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              {editingTemplate && (
-                <Button
-                  danger
-                  onClick={async () => {
-                    try {
-                      await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
-                      await fetchPermissionTemplates();
-                      setIsTemplateManageOpen(false);
-                      setEditingTemplate(null);
-                      message.success('模板已删除');
-                    } catch {
-                      message.error('删除失败');
-                    }
-                  }}
-                >
-                  删除
-                </Button>
-              )}
-              <Button
-                type="primary"
-                onClick={async () => {
-                  if (!templateForm.name.trim()) {
-                    message.error('请输入模板名称');
-                    return;
-                  }
-                  try {
-                    if (editingTemplate) {
-                      await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
-                    } else {
-                      await apiPost('/api/permission-templates', templateForm);
-                    }
-                    await fetchPermissionTemplates();
-                    setIsTemplateManageOpen(false);
-                    setEditingTemplate(null);
-                    setTemplateForm({ name: '', description: '', permission_ids: [] });
-                    message.success('已保存模板');
-                  } catch {
-                    message.error('保存失败');
-                  }
-                }}
-              >
-                保存
-              </Button>
-            </div>
-          </div>
-          <div className="pt-4 border-t">
-            <div className="text-sm font-medium text-gray-700 mb-2">已有模板</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-              {customTemplates.map(tpl => (
-                <label key={tpl.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="tplPick"
-                    onChange={() => {
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 左侧：模板列表 */}
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="text-sm font-medium text-gray-700 mb-3">已有模板</div>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {customTemplates.map(tpl => (
+                  <div
+                    key={tpl.id}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                      editingTemplate?.id === tpl.id
+                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100'
+                        : 'border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                    onClick={() => {
                       setEditingTemplate(tpl);
                       setTemplateForm({
                         name: tpl.name,
                         description: tpl.description || '',
                         permission_ids: tpl.permission_ids || []
                       });
+                      clearTemplateSearch(); // 编辑模板时清空搜索框
                     }}
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
-                    <div className="text-xs text-gray-500">{tpl.description || ''}</div>
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{tpl.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">{tpl.description || '无描述'}</div>
+                      </div>
+                      <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 ml-2">
+                        {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项权限
+                      </span>
+                    </div>
                   </div>
-                  <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
-                    {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
-                  </span>
-                </label>
-              ))}
-              {customTemplates.length === 0 && (
-                <div className="text-sm text-gray-400 col-span-2 text-center py-4">暂无模板</div>
-              )}
+                ))}
+                {customTemplates.length === 0 && (
+                  <div className="text-sm text-gray-400 text-center py-8">暂无自定义模板</div>
+                )}
+              </div>
+            </div>
+
+            {/* 右侧：模板编辑表单 */}
+            <div className="border rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-700 mb-3">
+                {editingTemplate ? '编辑模板' : '新建模板'}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">模板名称</label>
+                  <Input
+                    value={templateForm.name}
+                    onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                    placeholder="请输入模板名称"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">模板描述</label>
+                  <Input
+                    value={templateForm.description}
+                    onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                    placeholder="请输入模板描述"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">权限配置</label>
+                    <div className="text-xs text-gray-500">已选择 {templateForm.permission_ids.length} 项</div>
+                  </div>
+                  {/* 添加搜索框 */}
+                  <div className="mb-3">
+                    <Input
+                      placeholder="搜索权限模块或具体权限..."
+                      value={templateSearchText}
+                      onChange={(e) => setTemplateSearchText(e.target.value)}
+                      allowClear
+                    />
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-3 border rounded p-3 bg-white">
+                    {filteredModules.map(([key, name]) => {
+                      const modulePerms = getFilteredPermissions(key, permissions);
+                      // 如果搜索时没有匹配的权限项，则不显示该模块
+                      if (templateSearchText && modulePerms.length === 0) return null;
+
+                      return (
+                        <Card key={key} size="small" title={
+                          <div className="flex justify-between items-center">
+                            <span>{name}</span>
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => {
+                                // 获取当前模块的所有权限ID
+                                const modulePermIds = modulePerms.map(p => p.id);
+                                // 检查是否所有权限都被选中
+                                const allSelected = modulePermIds.every(id => templateForm.permission_ids.includes(id));
+
+                                if (allSelected) {
+                                  // 如果全部选中，则取消选择所有权限
+                                  setTemplateForm({
+                                    ...templateForm,
+                                    permission_ids: templateForm.permission_ids.filter(id => !modulePermIds.includes(id))
+                                  });
+                                } else {
+                                  // 如果没有全部选中，则选择所有权限
+                                  const newPermIds = [...new Set([...templateForm.permission_ids, ...modulePermIds])];
+                                  setTemplateForm({
+                                    ...templateForm,
+                                    permission_ids: newPermIds
+                                  });
+                                }
+                              }}
+                            >
+                              {modulePerms.every(p => templateForm.permission_ids.includes(p.id)) ? '取消全选' : '全选'}
+                            </Button>
+                          </div>
+                        } className="mb-2">
+                          <div className="grid grid-cols-1 gap-2">
+                            {modulePerms.map(perm => {
+                              const checked = templateForm.permission_ids.includes(perm.id);
+                              return (
+                                <label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      setTemplateForm({
+                                        ...templateForm,
+                                        permission_ids: e.target.checked
+                                          ? [...templateForm.permission_ids, perm.id]
+                                          : templateForm.permission_ids.filter(id => id !== perm.id)
+                                      });
+                                    }}
+                                  />
+                                  <span>{perm.description}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </Card>
+                      );
+                    })}
+                    {/* 当搜索没有结果时显示提示 */}
+                    {templateSearchText && filteredModules.length === 0 && (
+                      <div className="text-center text-gray-500 py-4">
+                        未找到匹配的权限模块或权限项
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-between pt-2">
+                  <div>
+                    {editingTemplate && (
+                      <Button
+                        danger
+                        onClick={async () => {
+                          try {
+                            await apiDelete(`/api/permission-templates/${editingTemplate.id}`);
+                            await fetchPermissionTemplates();
+                            setEditingTemplate(null);
+                            setTemplateForm({ name: '', description: '', permission_ids: [] });
+                            message.success('模板已删除');
+                          } catch {
+                            message.error('删除失败');
+                          }
+                        }}
+                      >
+                        删除模板
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setEditingTemplate(null);
+                        setTemplateForm({ name: '', description: '', permission_ids: [] });
+                        clearTemplateSearch(); // 取消编辑时清空搜索框
+                      }}
+                    >
+                      取消
+                    </Button>
+                    <Button
+                      type="primary"
+                      onClick={async () => {
+                        if (!templateForm.name.trim()) {
+                          message.error('请输入模板名称');
+                          return;
+                        }
+                        try {
+                          if (editingTemplate) {
+                            await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
+                          } else {
+                            await apiPost('/api/permission-templates', templateForm);
+                          }
+                          await fetchPermissionTemplates();
+                          message.success(editingTemplate ? '模板已更新' : '模板已创建');
+                        } catch {
+                          message.error('保存失败');
+                        }
+                      }}
+                    >
+                      保存模板
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1024,7 +1267,9 @@ const RoleManagement = () => {
                 <div>
                   <div className="text-sm font-medium text-gray-900">{tpl.name}</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {tpl.modules.map(m => moduleNames[m] || m).join('、')}
+                    {tpl.modules
+                      ? tpl.modules.map(m => moduleNames[m] || m).join('、')
+                      : (tpl.permissions ? `${tpl.permissions.length} 项权限` : '')}
                   </div>
                 </div>
               </label>

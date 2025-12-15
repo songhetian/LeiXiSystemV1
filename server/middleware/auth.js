@@ -24,10 +24,22 @@ function requirePermission(permissionCode) {
       const pool = request.server.mysql
 
       // 1. 检查是否为超级管理员 (拥有所有权限)
-      // 虽然我们在数据库中给超级管理员分配了所有权限，但为了保险起见，
-      // 也可以保留这个快速通道，或者完全依赖数据库查询。
-      // 为了符合 RBAC 设计，我们优先查询数据库。
+      const [userRoles] = await pool.query(
+        `SELECT r.name
+         FROM roles r
+         JOIN user_roles ur ON r.id = ur.role_id
+         WHERE ur.user_id = ?`,
+        [userId]
+      )
 
+      const isAdmin = userRoles.some(r => r.name === '超级管理员');
+
+      // 如果是超级管理员，跳过权限检查
+      if (isAdmin) {
+        return // 超级管理员拥有所有权限，直接通过
+      }
+
+      // 2. 查询用户权限
       const [permissions] = await pool.query(`
         SELECT p.code
         FROM permissions p

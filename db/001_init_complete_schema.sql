@@ -268,21 +268,21 @@ INSERT IGNORE INTO `roles` (`name`, `description`, `level`, `is_system`) VALUES
 ('普通员工', '普通员工权限', 3, 0);
 
 -- 插入默认管理员用户 (密码: admin123)
-INSERT IGNORE INTO `users` (`username`, `password_hash`, `real_name`, `email`, `status`, `is_department_manager`, `department_id`) 
+INSERT IGNORE INTO `users` (`username`, `password_hash`, `real_name`, `email`, `status`, `is_department_manager`, `department_id`)
 SELECT 'admin', '$2b$10$kjCCNMqQEWZ13vV76MXKK.OktCVrxp0OFePS8fZmTx4MMVH4v16aW', '系统管理员', 'admin@example.com', 'active', 1, d.id
-FROM departments d 
+FROM departments d
 WHERE d.name = '管理部';
 
 -- 为管理员用户分配超级管理员角色
-INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`) 
-SELECT u.id, r.id 
-FROM users u, roles r 
+INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`)
+SELECT u.id, r.id
+FROM users u, roles r
 WHERE u.username = 'admin' AND r.name = '超级管理员';
 
 -- 为普通员工角色分配默认可查看部门
-INSERT IGNORE INTO `role_departments` (`role_id`, `department_id`) 
-SELECT r.id, d.id 
-FROM roles r, departments d 
+INSERT IGNORE INTO `role_departments` (`role_id`, `department_id`)
+SELECT r.id, d.id
+FROM roles r, departments d
 WHERE r.name = '普通员工' AND d.name IN ('管理部', '客服部');
 
 -- ============================================================

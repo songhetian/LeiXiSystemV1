@@ -24,6 +24,7 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('员工审核', 'user:audit:manage', 'audit', 'manage', 'user', '审核新注册员工'),
 ('重置密码', 'user:security:reset_password', 'security', 'reset_password', 'user', '重置员工密码'),
 ('部门备忘', 'user:memo:manage', 'memo', 'manage', 'user', '管理部门备忘录'),
+('更新个人资料', 'user:profile:update', 'profile', 'update', 'user', '更新个人资料'),
 
 -- ============================================================
 -- 组织架构 (Organization)

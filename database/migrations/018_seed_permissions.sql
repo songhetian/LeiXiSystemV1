@@ -24,6 +24,7 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('员工审核', 'user:audit:manage', 'audit', 'manage', 'user', '审核新注册员工'),
 ('重置密码', 'user:security:reset_password', 'security', 'reset_password', 'user', '重置员工密码'),
 ('部门备忘', 'user:memo:manage', 'memo', 'manage', 'user', '管理部门备忘录'),
+('更新个人资料', 'user:profile:update', 'profile', 'update', 'user', '更新个人资料'),
 
 -- ============================================================
 -- 组织架构 (Organization)
@@ -99,9 +100,29 @@ JOIN permissions p ON p.code IN (
     'attendance:record:view',
     'vacation:record:view',
     'knowledge:article:view',
-    'assessment:plan:view'
+    'assessment:plan:view',
+    'user:profile:update'
 )
 WHERE r.name = '普通员工';
+
+-- 6. 创建默认员工权限模板
+INSERT INTO permission_templates (name, description, permission_ids)
+SELECT
+    '员工基础权限',
+    '包含所有员工都需要的基本功能权限',
+    JSON_ARRAY(
+        (SELECT id FROM permissions WHERE code = 'messaging:broadcast:view'),
+        (SELECT id FROM permissions WHERE code = 'attendance:record:view'),
+        (SELECT id FROM permissions WHERE code = 'vacation:record:view'),
+        (SELECT id FROM permissions WHERE code = 'attendance:approval:manage'),
+        (SELECT id FROM permissions WHERE code = 'vacation:approval:manage'),
+        (SELECT id FROM permissions WHERE code = 'knowledge:article:view'),
+        (SELECT id FROM permissions WHERE code = 'assessment:plan:view'),
+        (SELECT id FROM permissions WHERE code = 'assessment:result:view'),
+        (SELECT id FROM permissions WHERE code = 'user:profile:update'),
+        (SELECT id FROM permissions WHERE code = 'user:memo:manage')
+    )
+WHERE NOT EXISTS (SELECT 1 FROM permission_templates WHERE name = '员工基础权限');
 
 SET FOREIGN_KEY_CHECKS = 1;
 

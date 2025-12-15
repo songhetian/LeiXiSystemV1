@@ -43,9 +43,7 @@ fastify.register(require('./routes/quality-inspection-import-new'))
 fastify.register(require('./routes/notification-settings'))
 // 注册用户管理路由
 fastify.register(require('./routes/user-management'))
-
-// 注册文件上传
-// 注意：multipart 只处理 multipart/form-data，不影响 application/json
+// 注册文件上传// 注意：multipart 只处理 multipart/form-data，不影响 application/json
 fastify.register(multipart, {
   limits: {
     fileSize: 100 * 1024 * 1024 // 100MB

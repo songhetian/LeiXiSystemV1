@@ -495,27 +495,162 @@ const BroadcastPage = () => {
           </div>
         </div>
 
+        {/* 添加一个测试按钮来验证我们的修改是否生效 */}
+        <div style={{ padding: '10px', backgroundColor: '#f0f0f0' }}>
+          <button
+            onClick={() => {
+              // 创建一个测试消息来验证样式
+              const testMsg = {
+                id: 'test-' + Date.now(),
+                title: '测试消息',
+                content: '这是一个测试消息，用来验证样式修改是否生效。',
+                timestamp: new Date().toLocaleTimeString('zh-CN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+                recipients: '测试用户',
+                readCount: 1,
+                totalCount: 5,
+                avatar: '测'
+              };
+              setMessages(prev => [...prev, testMsg]);
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#1890ff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            添加测试消息
+          </button>
+        </div>
+
         {/* Messages Area - Broadcast History */}
-        <div className="wechat-messages">
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '16px',
+          backgroundColor: '#f0f2f5',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
           {messages.map((msg) => (
-            <div key={msg.id} className={`message-wrapper ${msg.type}`} style={{ justifyContent: 'flex-end' }}>
-              <div
-                className={`message-bubble ${msg.type}`}
-                style={{ backgroundColor: '#95ec69', color: '#000', cursor: 'pointer' }}
-                onClick={() => showReadByList(msg.readBy, msg.title)}
-              >
-                <div style={{ fontWeight: '500', marginBottom: '4px' }}>{msg.title}</div>
-                <div className="message-content" style={{ marginBottom: '8px' }}>{msg.content}</div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  发送给: {msg.recipients} |
-                  已读: {msg.readCount}/{msg.totalCount} |
-                  时间: {msg.timestamp}
+            <div
+              key={msg.id}
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                border: '1px solid #e0e0e0',
+                padding: '12px',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden',
+                maxWidth: '80%',
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#1890ff';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e0e0e0';
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+              }}
+              onClick={() => showReadByList(msg.readBy, msg.title)}
+            >
+              {/* 图标 */}
+              <div style={{
+                flexShrink: 0,
+                marginTop: '2px',
+                padding: '6px',
+                borderRadius: '6px',
+                backgroundColor: '#e6f7ff',
+                color: '#1890ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '20px', height: '20px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                </svg>
+              </div>
+
+              {/* 文本内容 */}
+              <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      fontSize: '12px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontWeight: 500,
+                      backgroundColor: '#e6f7ff',
+                      color: '#1890ff',
+                      opacity: 0.8
+                    }}>
+                      系统通知
+                    </span>
+                    <h3 style={{
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      color: '#333',
+                      margin: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {msg.title}
+                    </h3>
+                  </div>
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#999',
+                    flexShrink: 0
+                  }}>
+                    {msg.timestamp}
+                  </span>
                 </div>
-                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px', textDecoration: 'underline' }}>
-                  点击查看详情
+
+                <p style={{
+                  fontSize: '12px',
+                  color: '#666',
+                  margin: 0,
+                  lineHeight: 1.4,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                  {msg.content}
+                </p>
+
+                <div style={{
+                  fontSize: '12px',
+                  color: '#999',
+                  marginTop: '4px'
+                }}>
+                  发送给: {msg.recipients} | 已读: {msg.readCount}/{msg.totalCount}
                 </div>
               </div>
-              <div className="message-avatar sent">{msg.avatar}</div>
+
+              <svg xmlns="http://www.w3.org/2000/svg" style={{
+                width: '16px',
+                height: '16px',
+                color: '#ccc',
+                alignSelf: 'center',
+                flexShrink: 0
+              }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           ))}
           <div ref={messagesEndRef} />
