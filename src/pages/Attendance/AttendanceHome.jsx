@@ -396,8 +396,8 @@ export default function AttendanceHome({ onNavigate }) {
         {/* 左侧：打卡主要操作区 (占2/3) */}
         <div className="lg:col-span-2 space-y-3">
           {/* 今日打卡状态 */}
-          <div className="bg-white rounded-lg shadow-sm p-3">
-            <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
               <h2 className="text-sm font-semibold text-gray-700">今日状态</h2>
               {/* 排班信息或选择班次按钮 */}
               {todaySchedule && todaySchedule.shift_id ? (
@@ -419,69 +419,69 @@ export default function AttendanceHome({ onNavigate }) {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               {/* 上班打卡 */}
-              <div className="bg-gray-50 rounded p-2 text-center">
+              <div className="bg-gray-50 rounded p-3 text-center">
                 <div className="text-xs text-gray-400 mb-1">上班</div>
                 <div className={`font-semibold ${todayRecord?.clock_in_time ? 'text-gray-800' : 'text-gray-400'}`}>
                   {formatDateTime(todayRecord?.clock_in_time)}
                 </div>
                  {todayRecord?.status && ['late', 'leave'].includes(todayRecord.status) && (
-                    <div className="mt-1">{getStatusBadge(todayRecord.status)}</div>
+                    <div className="mt-2">{getStatusBadge(todayRecord.status)}</div>
                  )}
               </div>
 
               {/* 下班打卡 */}
-              <div className="bg-gray-50 rounded p-2 text-center">
+              <div className="bg-gray-50 rounded p-3 text-center">
                 <div className="text-xs text-gray-400 mb-1">下班</div>
                 <div className={`font-semibold ${todayRecord?.clock_out_time ? 'text-gray-800' : 'text-gray-400'}`}>
                   {formatDateTime(todayRecord?.clock_out_time)}
                 </div>
                 {todayRecord?.status && ['early_leave', 'leave'].includes(todayRecord.status) && (
-                    <div className="mt-1">{getStatusBadge(todayRecord.status)}</div>
+                    <div className="mt-2">{getStatusBadge(todayRecord.status)}</div>
                  )}
               </div>
 
               {/* 工作时长 */}
-              <div className="bg-gray-50 rounded p-2 text-center">
+              <div className="bg-gray-50 rounded p-3 text-center">
                 <div className="text-xs text-gray-400 mb-1">工时</div>
                 <div className="font-semibold text-gray-800">
                   {todayRecord?.work_hours ? `${todayRecord.work_hours}h` : '--'}
                 </div>
                  {todayRecord?.status && todayRecord.status === 'normal' && (
-                    <div className="mt-1">{getStatusBadge(todayRecord.status)}</div>
+                    <div className="mt-2">{getStatusBadge(todayRecord.status)}</div>
                  )}
               </div>
             </div>
 
             {/* 没有排班提示 */}
             {!todaySchedule && (
-              <div className="bg-yellow-50 border border-yellow-100 rounded p-2 flex items-center gap-2 text-xs text-yellow-700 mb-3">
+              <div className="bg-yellow-50 border border-yellow-100 rounded p-3 flex items-center gap-2 text-xs text-yellow-700 mb-4">
                   <span>⚠️ 暂无排班，请先排班</span>
               </div>
             )}
 
             {/* 休息日提示 */}
             {isRestDay && (
-              <div className="bg-green-50 border border-green-100 rounded p-2 flex items-center gap-2 text-xs text-green-700 mb-3">
+              <div className="bg-green-50 border border-green-100 rounded p-3 flex items-center gap-2 text-xs text-green-700 mb-4">
                 <span>🛌 休息日，无需打卡</span>
               </div>
             )}
 
             {/* 打卡按钮区域 - 更紧凑 */}
             {!isRestDay && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {/* 上班打卡按钮 */}
               <div>
                 {todayRecord?.clock_in_time ? (
-                  <button disabled className="w-full py-2 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
+                  <button disabled className="w-full py-3 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
                     已打上班卡
                   </button>
                 ) : (
                   <button
                     onClick={handleClockIn}
                     disabled={loading || !clockInCheck.allowed}
-                    className={`w-full py-2 rounded text-sm font-medium transition-colors shadow-sm ${
+                    className={`w-full py-3 rounded text-sm font-medium transition-colors shadow-sm ${
                       loading
                         ? 'bg-gray-100 text-gray-400'
                         : clockInCheck.allowed
@@ -493,7 +493,7 @@ export default function AttendanceHome({ onNavigate }) {
                   </button>
                 )}
                  {!todayRecord?.clock_in_time && (
-                    <div className="mt-1 text-center text-xs h-4">
+                    <div className="mt-2 text-center text-xs min-h-[20px]">
                       {clockInCheck.message ? (
                         <span className={clockInCheck.allowed ? "text-green-600" : "text-gray-400"}>{clockInCheck.message}</span>
                       ) : (todaySchedule && <span className="text-green-600">可打卡 ({todaySchedule.start_time})</span>)}
@@ -504,18 +504,18 @@ export default function AttendanceHome({ onNavigate }) {
               {/* 下班打卡按钮 */}
               <div>
                 {todayRecord?.clock_out_time ? (
-                  <button disabled className="w-full py-2 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
+                  <button disabled className="w-full py-3 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
                     已打下班卡
                   </button>
                 ) : !todayRecord?.clock_in_time ? (
-                  <button disabled className="w-full py-2 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
+                  <button disabled className="w-full py-3 rounded bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed border border-gray-200">
                     请先上班打卡
                   </button>
                 ) : (
                   <button
                     onClick={handleClockOut}
                     disabled={loading || !clockOutCheck.allowed}
-                    className={`w-full py-2 rounded text-sm font-medium transition-colors shadow-sm ${
+                    className={`w-full py-3 rounded text-sm font-medium transition-colors shadow-sm ${
                       loading
                         ? 'bg-gray-100 text-gray-400'
                         : clockOutCheck.allowed
@@ -527,7 +527,7 @@ export default function AttendanceHome({ onNavigate }) {
                   </button>
                 )}
                  {(!todayRecord?.clock_out_time && todayRecord?.clock_in_time) && (
-                    <div className="mt-1 text-center text-xs h-4">
+                    <div className="mt-2 text-center text-xs min-h-[20px]">
                       {clockOutCheck.message ? (
                         <span className={clockOutCheck.allowed ? "text-blue-600" : "text-gray-400"}>{clockOutCheck.message}</span>
                       ) : (todaySchedule && <span className="text-blue-600">可打卡 ({todaySchedule.end_time})</span>)}
@@ -542,22 +542,22 @@ export default function AttendanceHome({ onNavigate }) {
         {/* 右侧：快捷入口 (占1/3) */}
         <div className="space-y-3">
            {/* 快捷菜单 */}
-           <div className="bg-white rounded-lg shadow-sm p-3">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3 pb-2 border-b border-gray-100">快捷功能</h2>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => navigate('attendance-records')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+           <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100">快捷功能</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => navigate('attendance-records')} className="p-3 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
                   <div className="text-lg mb-1">📋</div>
                   <div className="text-xs text-gray-600">打卡记录</div>
                 </button>
-                <button onClick={() => navigate('attendance-leave-apply')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                <button onClick={() => navigate('attendance-leave-apply')} className="p-3 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
                   <div className="text-lg mb-1">🏖️</div>
                   <div className="text-xs text-gray-600">请假</div>
                 </button>
-                <button onClick={() => navigate('attendance-overtime-apply')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                <button onClick={() => navigate('attendance-overtime-apply')} className="p-3 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
                   <div className="text-lg mb-1">⏰</div>
                   <div className="text-xs text-gray-600">加班</div>
                 </button>
-                 <button onClick={() => navigate('attendance-stats')} className="p-2 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
+                 <button onClick={() => navigate('attendance-stats')} className="p-3 border border-gray-100 rounded hover:bg-gray-50 text-center transition-colors">
                   <div className="text-lg mb-1">📊</div>
                   <div className="text-xs text-gray-600">统计</div>
                 </button>
@@ -566,7 +566,7 @@ export default function AttendanceHome({ onNavigate }) {
 
            {/* 提示信息 */}
            {todayRecord?.status && ['late', 'early_leave'].includes(todayRecord.status) && (
-              <div className={`rounded p-2 text-xs flex items-center gap-2 ${todayRecord.status === 'late' ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'}`}>
+              <div className={`rounded p-3 text-xs flex items-center gap-2 ${todayRecord.status === 'late' ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'}`}>
                  <span>⚠️</span>
                  <span>{todayRecord.status === 'late' ? '您今天迟到了' : '您今天早退了'}</span>
               </div>
