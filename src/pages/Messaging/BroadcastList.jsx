@@ -346,58 +346,68 @@ export default function BroadcastList() {
               <p className="text-sm font-medium text-gray-500">暂无广播消息</p>
             </div>
           ) : (
-            <div className="max-w-5xl mx-auto space-y-2">
-               {broadcasts.map(broadcast => (
-                 <div
-                   key={broadcast.id}
-                   onClick={() => handleBroadcastClick(broadcast)}
-                   className={`group bg-white rounded-lg border border-gray-200 p-3 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer relative overflow-hidden ${
-                      broadcast.is_read ? 'opacity-80' : 'bg-white'
-                   }`}
-                 >
-                    {/* 未读指示条 */}
-                    {!broadcast.is_read && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
-                    )}
-
-                    <div className="flex items-start gap-3 pl-2">
-                       {/* 图标 */}
-                       <div className={`shrink-0 mt-0.5 p-1.5 rounded-md ${getColorClass(broadcast.type)}`}>
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标题</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">优先级</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">目标</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">接收/已读</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发送时间</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {broadcasts.map((broadcast) => (
+                    <tr
+                      key={broadcast.id}
+                      onClick={() => handleBroadcastClick(broadcast)}
+                      className="hover:bg-gray-50 cursor-pointer"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {!broadcast.is_read && (
+                            <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
+                          )}
+                          <div className="text-sm font-medium text-gray-900">{broadcast.title}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getColorClass(broadcast.type, 'all')}`}>
                           {getIcon(broadcast.type)}
-                       </div>
-
-                       {/* 文本内容 */}
-                       <div className="flex-1 min-w-0 grid gap-1">
-                          <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-2">
-                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${getColorClass(broadcast.type)} bg-opacity-20`}>
-                                   {getTypeName(broadcast.type)}
-                                </span>
-                                <h3 className={`text-sm truncate ${broadcast.is_read ? 'font-medium text-gray-700' : 'font-bold text-gray-900'}`}>
-                                   {broadcast.title}
-                                </h3>
-                                {!broadcast.is_read && (
-                                   <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                )}
-                             </div>
-                             <span className="text-xs text-gray-400 shrink-0">
-                                {new Date(broadcast.created_at).toLocaleString('zh-CN', {
-                                   month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
-                                })}
-                             </span>
-                          </div>
-
-                          <p className="text-xs text-gray-500 line-clamp-1 pr-4">
-                             {broadcast.content}
-                          </p>
-                       </div>
-
-                       <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-blue-400 self-center" />
-                    </div>
-                 </div>
-               ))}
+                          <span className="ml-1">{getTypeName(broadcast.type)}</span>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className="inline-flex items-center px-3 py-1 rounded text-sm">
+                          {broadcast.priority === 'urgent' ? '紧急' :
+                           broadcast.priority === 'high' ? '高' :
+                           broadcast.priority === 'normal' ? '普通' :
+                           broadcast.priority === 'low' ? '低' :
+                           broadcast.priority || '普通'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        全体成员
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className={broadcast.is_read ? "text-green-600" : "text-red-600"}>
+                          {broadcast.is_read ? '已读' : '未读'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(broadcast.created_at).toLocaleString('zh-CN', {
+                          year: 'numeric', month: '2-digit', day: '2-digit',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-         )}
+          )}
       </div>
 
       {/* 分页 */}

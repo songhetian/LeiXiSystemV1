@@ -528,7 +528,7 @@ const BroadcastPage = () => {
           </button>
         </div>
 
-        {/* Messages Area - Broadcast History */}
+        {/* Messages Area - Broadcast History - 改为列表样式 */}
         <div style={{
           flex: 1,
           overflowY: 'auto',
@@ -543,34 +543,29 @@ const BroadcastPage = () => {
               key={msg.id}
               style={{
                 backgroundColor: '#ffffff',
-                borderRadius: '8px',
                 border: '1px solid #e0e0e0',
-                padding: '12px',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                padding: '12px 16px',
                 transition: 'all 0.2s ease',
                 cursor: 'pointer',
                 position: 'relative',
                 overflow: 'hidden',
-                maxWidth: '80%',
-                marginLeft: 'auto',
                 display: 'flex',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 gap: '12px'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#1890ff';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.boxShadow = '0 1px 4px rgba(0, 0, 0, 0.05)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e0e0e0';
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
               onClick={() => showReadByList(msg.readBy, msg.title)}
             >
               {/* 图标 */}
               <div style={{
                 flexShrink: 0,
-                marginTop: '2px',
                 padding: '6px',
                 borderRadius: '6px',
                 backgroundColor: '#e6f7ff',
@@ -585,7 +580,7 @@ const BroadcastPage = () => {
               </div>
 
               {/* 文本内容 */}
-              <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: '4px' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: '2px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{
@@ -626,7 +621,7 @@ const BroadcastPage = () => {
                   margin: 0,
                   lineHeight: 1.4,
                   display: '-webkit-box',
-                  WebkitLineClamp: 2,
+                  WebkitLineClamp: 1,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden'
                 }}>
@@ -634,9 +629,9 @@ const BroadcastPage = () => {
                 </p>
 
                 <div style={{
-                  fontSize: '12px',
+                  fontSize: '11px',
                   color: '#999',
-                  marginTop: '4px'
+                  marginTop: '2px'
                 }}>
                   发送给: {msg.recipients} | 已读: {msg.readCount}/{msg.totalCount}
                 </div>

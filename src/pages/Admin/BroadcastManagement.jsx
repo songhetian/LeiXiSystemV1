@@ -282,7 +282,6 @@ const BroadcastManagement = () => {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <Breadcrumb items={['首页', '办公协作', '信息发布', '发布广播']} />
       </div>
 
       <div className="mb-4 bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-4">
@@ -317,12 +316,6 @@ const BroadcastManagement = () => {
           />
       </div>
       <Card
-        title={
-          <Space>
-            <SoundOutlined />
-            <span>系统广播管理</span>
-          </Space>
-        }
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
             发送广播
