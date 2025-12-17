@@ -271,7 +271,11 @@ const Login = ({ onLoginSuccess }) => {
 
         if (isLogin) {
           // 登录错误
-          if (status === 401) {
+          if (message) {
+            // 优先使用后端返回的具体错误信息
+            errorMsg = message
+            toast.error(`❌ ${message}`)
+          } else if (status === 401) {
             errorMsg = '用户名或密码错误，请检查后重试'
             toast.error('❌ ' + errorMsg, {
               autoClose: 5000,
@@ -282,9 +286,6 @@ const Login = ({ onLoginSuccess }) => {
             toast.error('❌ ' + errorMsg, {
               autoClose: 5000
             })
-          } else if (message) {
-            errorMsg = message
-            toast.error(`❌ ${message}`)
           } else {
             errorMsg = '登录失败，请稍后重试'
             toast.error('❌ ' + errorMsg)

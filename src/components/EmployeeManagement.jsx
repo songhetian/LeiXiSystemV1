@@ -5,6 +5,7 @@ import EmployeeDetail from './EmployeeDetail'
 import EmployeeBatchOperations from './EmployeeBatchOperations'
 import UserDepartmentModal from './UserDepartmentModal'  // 添加这一行
 import { getApiUrl } from '../utils/apiConfig'
+import verifyUserStatus from '../utils/userStatusValidator';
 
 function EmployeeManagement() {
   const [employees, setEmployees] = useState([])
@@ -16,11 +17,9 @@ function EmployeeManagement() {
   const [searchFilteredPositions, setSearchFilteredPositions] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
   const [editingEmp, setEditingEmp] = useState(null)
   const [viewingEmp, setViewingEmp] = useState(null)
-  const [deletingEmp, setDeletingEmp] = useState(null)
   const [statusChangingEmp, setStatusChangingEmp] = useState(null)
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false)
   const [managerChangingEmp, setManagerChangingEmp] = useState(null)
@@ -76,10 +75,15 @@ function EmployeeManagement() {
   const [avatarPreview, setAvatarPreview] = useState('')
 
   useEffect(() => {
-    fetchEmployees()
-    fetchDepartments()
-    fetchPositions()
-    fetchRoles()
+    // 在组件加载时验证用户状态
+    verifyUserStatus().then(isValid => {
+      if (isValid) {
+        fetchEmployees()
+        fetchDepartments()
+        fetchPositions()
+        fetchRoles()
+      }
+    })
   }, [])
 
   const fetchEmployees = async () => {
@@ -437,31 +441,6 @@ function EmployeeManagement() {
     }
   }
 
-  const handleDeleteClick = (emp) => {
-    setDeletingEmp(emp)
-    setIsDeleteModalOpen(true)
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingEmp) return
-
-    try {
-      const response = await fetch(getApiUrl(`/api/employees/${deletingEmp.id}`), {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        toast.success('员工删除成功')
-        setIsDeleteModalOpen(false)
-        setDeletingEmp(null)
-        fetchEmployees()
-      } else {
-        toast.error('删除失败')
-      }
-    } catch (error) {
-      toast.error('删除失败')
-    }
-  }
-
   const handleStatusClick = (emp) => {
     setStatusChangingEmp(emp)
     setStatusChangeData({
@@ -804,6 +783,7 @@ function EmployeeManagement() {
             <thead className="bg-primary-50 border-b border-primary-100">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">员工</th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">登录名</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</th>
@@ -842,6 +822,9 @@ function EmployeeManagement() {
                           <div className="text-xs text-gray-500 truncate">{emp.employee_no}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <div className="text-sm text-gray-600 truncate">{emp.username || '-'}</div>
                     </td>
                     <td className="px-3 py-2 text-center">
                       <div className="text-sm text-gray-600 truncate">{emp.department_name || '-'}</div>
@@ -904,13 +887,6 @@ function EmployeeManagement() {
                           title="编辑"
                         >
                           编辑
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(emp)}
-                          className="px-2 py-1 text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-sm"
-                          title="删除"
-                        >
-                          删除
                         </button>
                       </div>
                     </td>
@@ -1269,56 +1245,6 @@ function EmployeeManagement() {
         }}
         departments={departments}
       />
-
-      {/* 删除确认模态框 */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false)
-          setDeletingEmp(null)
-        }}
-        title="确认删除"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-2xl">
-              ⚠
-            </div>
-            <div className="flex-1">
-              <p className="text-gray-800 font-medium">确定要删除以下员工吗？</p>
-              {deletingEmp && (
-                <div className="mt-2 text-sm text-gray-600">
-                  <p>姓名：{deletingEmp.real_name}</p>
-                  <p>工号：{deletingEmp.employee_no}</p>
-                  <p>部门：{departments.find(d => d.id === deletingEmp.department_id)?.name || '-'}</p>
-                </div>
-              )}
-            </div>
-          </div>
-          <p className="text-sm text-gray-600">
-            此操作将永久删除该员工的所有信息，包括关联的用户账号，且无法恢复。
-          </p>
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => {
-                setIsDeleteModalOpen(false)
-                setDeletingEmp(null)
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteConfirm}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-            >
-              确认删除
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* 状态修改模态框 */}
       <Modal

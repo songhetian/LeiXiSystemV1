@@ -130,21 +130,30 @@ async function userManagementRoutes(fastify, options) {
     } = request.body
 
     try {
-      // 执行更新
+      // 更新users表中的字段
       await pool.query(
         `UPDATE users SET
           real_name = ?,
           email = ?,
-          phone = ?,
-          emergency_contact = ?,
-          emergency_phone = ?,
-          address = ?,
-          education = ?
+          phone = ?
         WHERE id = ?`,
         [
           real_name || null,
           email || null,
           phone || null,
+          userId
+        ]
+      )
+
+      // 更新employees表中的字段
+      await pool.query(
+        `UPDATE employees SET
+          emergency_contact = ?,
+          emergency_phone = ?,
+          address = ?,
+          education = ?
+        WHERE user_id = ?`,
+        [
           emergency_contact || null,
           emergency_phone || null,
           address || null,

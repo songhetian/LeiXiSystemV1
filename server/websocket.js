@@ -6,13 +6,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 // 存储用户连接 userId -> Set of socket ids
 const userConnections = new Map()
 
+// 存储io实例
+let io;
+
 /**
  * 设置WebSocket服务器
  * @param {http.Server} server - HTTP服务器实例
  * @returns {SocketIO.Server} Socket.IO服务器实例
  */
 function setupWebSocket(server) {
-  const io = socketIO(server, {
+  io = socketIO(server, {
     cors: {
       origin: true, // 允许所有来源
       credentials: true,
@@ -180,6 +183,25 @@ function getOnlineUserIds() {
   return Array.from(userConnections.keys())
 }
 
+/**
+ * 断开指定用户的WebSocket连接
+ * @param {number} userId - 用户ID
+ */
+function disconnectUser(userId) {
+  if (userConnections.has(userId) && io) {
+    const socketIds = userConnections.get(userId);
+    socketIds.forEach(socketId => {
+      // 获取socket实例并断开连接
+      const socket = io.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.disconnect(true);
+      }
+    });
+    userConnections.delete(userId);
+    console.log(`🔌 [WebSocket] 用户 ${userId} 的连接已被强制断开`);
+  }
+}
+
 module.exports = {
   setupWebSocket,
   sendNotificationToUser,
@@ -188,5 +210,8 @@ module.exports = {
   sendBroadcast,
   getOnlineUserCount,
   isUserOnline,
-  getOnlineUserIds
+  getOnlineUserIds,
+  disconnectUser,
+  io,
+  userConnections
 }

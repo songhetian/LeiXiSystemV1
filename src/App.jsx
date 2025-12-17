@@ -330,7 +330,7 @@ function App() {
   const handleLogout = React.useCallback(async () => {
     // 调用后端API清除session
     try {
-      await apiPost('/api/auth/logout')
+      await apiPost('/api/auth/logout', {})
     } catch (error) {
       console.error('退出登录API调用失败:', error)
       // 即使API调用失败，也继续清除本地存储
@@ -355,13 +355,28 @@ function App() {
     setIsLoggedIn(false)
     setUser(null)
     toast.info('已退出登录')
+
+    // 确保跳转到登录页面
+    setTimeout(() => {
+      window.location.href = '/login'
+    }, 1000)
   }, [])
 
   // 使用token验证hook，实现单设备登录
   useTokenVerification(handleLogout, user?.id)
 
-  const handleSetActiveTab = (tabName, params = {}) => {
+  const handleSetActiveTab = async (tabName, params = {}) => {
     console.trace('Trace for handleSetActiveTab');
+
+    // 在切换路由前验证用户状态
+    // 导入并使用通用的用户状态验证函数
+    const verifyUserStatus = (await import('./utils/userStatusValidator')).default;
+    const isValid = await verifyUserStatus();
+    if (!isValid) {
+      // 如果用户状态无效，验证函数会自动跳转到登录页面，这里直接返回
+      return;
+    }
+
     const newTab = { name: tabName, params };
     setActiveTab(newTab);
     localStorage.setItem('activeTab', JSON.stringify(newTab));

@@ -84,8 +84,8 @@ export const useTokenVerification = (onLogout) => {
     // 立即执行一次验证
     verifyToken()
 
-    // 每30秒检查一次token有效性
-    intervalRef.current = setInterval(verifyToken, 30000)
+    // 每10秒检查一次token有效性
+    intervalRef.current = setInterval(verifyToken, 10000)
 
     // 清理函数
     return () => {

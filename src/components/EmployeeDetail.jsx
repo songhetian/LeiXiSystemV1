@@ -183,6 +183,10 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
                   <span className="font-medium text-slate-800">{employee.employee_no}</span>
                 </div>
                 <div className="flex items-center gap-1">
+                  <span className="text-slate-500">登录名</span>
+                  <span className="font-medium text-slate-800">{employee.username || '-'}</span>
+                </div>
+                <div className="flex items-center gap-1">
                   <span className="text-slate-500">评级</span>
                   <span className="font-medium text-slate-800">{renderRating(employee.rating || 3)}</span>
                 </div>

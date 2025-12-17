@@ -3,6 +3,7 @@ import { formatDateOnly } from '../../utils/dateUtils'
 import axios from 'axios'
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
+import verifyUserStatus from '../../utils/userStatusValidator';
 
 
 export default function LeaveRecords({ onNavigate }) {
@@ -126,7 +127,13 @@ export default function LeaveRecords({ onNavigate }) {
           <p className="text-gray-600 mt-1">查看您的请假申请历史</p>
         </div>
         <button
-          onClick={() => onNavigate && onNavigate('attendance-leave-apply')}
+          onClick={async () => {
+            // 在导航前验证用户状态
+            const isValid = await verifyUserStatus();
+            if (isValid && onNavigate) {
+              await onNavigate('attendance-leave-apply');
+            }
+          }}
           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
         >
           + 新建请假

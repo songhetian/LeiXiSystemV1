@@ -1,19 +1,20 @@
-# 数据库配置
+# Database Configuration
 DB_HOST=192.168.2.31
 DB_USER=tian
 DB_PASSWORD=root
 DB_NAME=leixin_customer_service
 DB_PORT=3306
 
-# 服务器配置
+# Server Configuration
 PORT=3001
 HOST=0.0.0.0
 
-# 前端URL配置
+# Frontend URL Configuration
 FRONTEND_URL=http://192.168.2.31:5173
 
-# API配置（前端使用）
+# API Configuration (Frontend Use)
 VITE_API_BASE_URL=http://192.168.2.31:3001/api
 
-# JWT配置
+# JWT Configuration
 JWT_SECRET=TZafsqtgW5t5EHRLJ49ca46rzoEfk37Lmx2hwxQR5m9KoQDYUmM5KhRyPKtxRccQ
+JWT_REFRESH_SECRET=V8p3nGxQwE2sR9tY7uI1oP4aL6mK0jH5dF8cB3nM7sX9vZ2qW4eY6rT1uI3oP5aL

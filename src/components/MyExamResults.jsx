@@ -3,6 +3,7 @@ import { Input, Select, Button, message, Card, Modal, Table, Segmented, Tag, Too
 import { SearchOutlined, EyeOutlined, AppstoreOutlined, BarsOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { getApiUrl } from '../utils/apiConfig';
 import './MyExamResults.css';
+import verifyUserStatus from '../utils/userStatusValidator';
 
 const { Option } = Select;
 
@@ -333,7 +334,13 @@ const MyExamResults = ({ onNavigate }) => {
               <div className="detail-actions">
                 <button
                   className="view-detail-btn"
-                  onClick={() => onNavigate('exam-result', { resultId: result.id })}
+                  onClick={async () => {
+                    // 在导航前验证用户状态
+                    const isValid = await verifyUserStatus();
+                    if (isValid && onNavigate) {
+                      await onNavigate('exam-result', { resultId: result.id });
+                    }
+                  }}
                 >
                   <EyeOutlined />
                   查看详情

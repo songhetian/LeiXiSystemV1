@@ -1,6 +1,6 @@
 const fastify = require('fastify')({
   logger: true,
-  bodyLimit: 10485760 // 10MB
+  bodyLimit: 1048576 // 1MB
 })
 const cors = require('@fastify/cors')
 const multipart = require('@fastify/multipart')
@@ -36,6 +36,8 @@ fastify.addHook('onSend', async (request, reply, payload) => {
 
 // 引入权限中间件
 const { extractUserPermissions, applyDepartmentFilter } = require('./middleware/checkPermission')
+// 引入用户状态验证中间件
+const { checkUserStatus } = require('./middleware/userStatus')
 
 // 注册质检导入路由
 fastify.register(require('./routes/quality-inspection-import-new'))
@@ -58,6 +60,55 @@ fastify.addHook('onRequest', async (request, reply) => {
 
 fastify.addHook('preHandler', async (request, reply) => {
   if (request.url.includes('/api/knowledge/articles') && (request.method === 'PUT' || request.method === 'POST')) {
+  }
+})
+
+// 添加用户状态验证中间件（排除登录和注册路由）
+fastify.addHook('preHandler', async (request, reply) => {
+  // 排除不需要认证的路由
+  const excludePaths = [
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/check-username',
+    '/api/health',
+    '/',
+    '/api'
+  ];
+
+  // 检查是否需要排除
+  const shouldExclude = excludePaths.some(path => request.url.startsWith(path));
+
+  // 如果不在排除列表中且需要认证，则检查用户状态
+  if (!shouldExclude && request.url.startsWith('/api/')) {
+    // 检查是否为需要认证的API路由
+    const authRequiredPaths = [
+      '/api/employees',
+      '/api/departments',
+      '/api/users',
+      '/api/positions',
+      '/api/notifications',
+      '/api/settings',
+      '/api/knowledge',
+      '/api/quality',
+      '/api/schedules',
+      '/api/attendance',
+      '/api/vacation',
+      '/api/exams',
+      '/api/learning',
+      '/api/case',
+      '/api/broadcasts',
+      '/api/memos',
+      '/api/stats'
+    ];
+
+    const requiresAuth = authRequiredPaths.some(path => request.url.startsWith(path));
+
+    if (requiresAuth) {
+      // 执行用户状态检查
+      await checkUserStatus(request, reply);
+      // 如果回复已经被发送，则直接返回
+      if (reply.sent) return;
+    }
   }
 })
 
@@ -429,9 +480,9 @@ fastify.post('/api/auth/check-session', async (request, reply) => {
 
   try {
     console.log('查询用户会话信息:', username);
-    // 查询用户的session_token
+    // 查询用户的session_token和状态
     const [users] = await pool.query(
-      'SELECT id, session_token, session_created_at FROM users WHERE username = ?',
+      'SELECT id, session_token, session_created_at, status FROM users WHERE username = ?',
       [username]
     )
 
@@ -443,6 +494,42 @@ fastify.post('/api/auth/check-session', async (request, reply) => {
     }
 
     const user = users[0]
+
+    // 先检查用户状态
+    if (user.status === 'pending') {
+      return {
+        hasActiveSession: false,
+        message: '该用户账号正在审核中，暂时无法登录'
+      };
+    }
+
+    if (user.status === 'inactive') {
+      return {
+        hasActiveSession: false,
+        message: '该用户已被停用，无法登录系统'
+      };
+    }
+
+    if (user.status === 'resigned') {
+      return {
+        hasActiveSession: false,
+        message: '该用户已离职，无法登录系统'
+      };
+    }
+
+    if (user.status === 'rejected') {
+      return {
+        hasActiveSession: false,
+        message: '该用户账号审核未通过，无法登录系统'
+      };
+    }
+
+    if (user.status !== 'active') {
+      return {
+        hasActiveSession: false,
+        message: '该用户无法登录系统'
+      };
+    }
 
     // 如果有session_token，说明有活跃会话
     if (user.session_token) {
@@ -492,11 +579,28 @@ fastify.post('/api/auth/login', async (request, reply) => {
 
     // 账号状态检查
     if (user.status === 'pending') {
-      return reply.code(403).send({ success: false, message: '账号待审核，请联系管理员' })
+      // 对于待审核账号，提示账号正在审核中
+      return reply.code(401).send({ success: false, message: '该用户账号正在审核中，暂时无法登录' });
+    }
+
+    if (user.status === 'inactive') {
+      // 对于停用状态账号，提示账号已被停用
+      return reply.code(401).send({ success: false, message: '该用户已被停用，无法登录系统' });
+    }
+
+    if (user.status === 'resigned') {
+      // 对于离职状态账号，提示账号已离职
+      return reply.code(401).send({ success: false, message: '该用户已离职，无法登录系统' });
+    }
+
+    if (user.status === 'rejected') {
+      // 对于审核未通过账号，提示账号审核未通过
+      return reply.code(401).send({ success: false, message: '该用户账号审核未通过，无法登录系统' });
     }
 
     if (user.status !== 'active') {
-      return reply.code(403).send({ success: false, message: '账号已禁用' })
+      // 对于其他非活跃状态账号，提示无法登录
+      return reply.code(401).send({ success: false, message: '该用户无法登录系统' });
     }
 
     // 验证密码
@@ -557,25 +661,72 @@ fastify.post('/api/auth/login', async (request, reply) => {
 // 用户退出登录
 fastify.post('/api/auth/logout', async (request, reply) => {
   try {
+    console.log('=== 开始处理退出登录请求 ===');
+    console.log('请求URL:', request.url);
+    console.log('请求方法:', request.method);
+    console.log('请求头Authorization:', request.headers.authorization);
+
     const token = request.headers.authorization?.replace('Bearer ', '')
+    console.log('提取的token:', token ? `${token.substring(0, 20)}...` : '无');
+
     if (!token) {
+      console.log('未提供token，返回401错误');
       return reply.code(401).send({ success: false, message: '未登录' })
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET)
+    let userId;
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET)
+      userId = decoded.id;
+      console.log('Token验证成功，用户ID:', userId);
+    } catch (tokenError) {
+      console.warn('Token验证失败:', tokenError.message);
+    }
 
-    // 清除数据库中的session_token
-    await pool.query(
-      'UPDATE users SET session_token = NULL, session_created_at = NULL WHERE id = ?',
-      [decoded.id]
-    )
+    // 如果无法从token解析userId，则尝试从数据库查询
+    if (!userId) {
+      try {
+        console.log('尝试通过数据库查询用户ID');
+        const [users] = await pool.query(
+          'SELECT id FROM users WHERE session_token = ?',
+          [token]
+        )
 
+        if (users.length > 0) {
+          userId = users[0].id;
+          console.log('通过数据库查询获取到用户ID:', userId);
+        } else {
+          console.log('数据库中未找到匹配的用户');
+        }
+      } catch (dbError) {
+        console.warn('数据库查询用户ID失败:', dbError.message);
+      }
+    }
+
+    // 如果能获取到userId，清除数据库中的session_token
+    if (userId) {
+      console.log('开始清除用户session_token，用户ID:', userId);
+      const [result] = await pool.query(
+        'UPDATE users SET session_token = NULL, session_created_at = NULL WHERE id = ?',
+        [userId]
+      )
+
+      console.log(`用户 ${userId} 退出登录，影响行数: ${result.affectedRows}`);
+
+      if (result.affectedRows === 0) {
+        console.warn(`警告：未更新任何行，用户ID ${userId} 可能不存在`);
+      }
+    } else {
+      console.warn('无法确定用户ID，未执行session清理');
+    }
+
+    console.log('退出登录处理完成，返回成功响应');
     return {
       success: true,
       message: '退出登录成功'
     }
   } catch (error) {
-    console.error('退出登录失败:', error)
+    console.error('退出登录失败:', error);
     // 即使出错也返回成功，因为前端会清除本地token
     return {
       success: true,
@@ -602,8 +753,30 @@ fastify.post('/api/auth/refresh', async (request, reply) => {
       [decoded.id]
     )
 
-    if (users.length === 0 || users[0].status !== 'active') {
-      return reply.code(401).send({ error: 'User not found or inactive' })
+    if (users.length === 0) {
+      return reply.code(401).send({ error: '账号不存在或者无法登录' })
+    }
+
+    const userStatus = users[0].status;
+
+    if (userStatus === 'pending') {
+      return reply.code(401).send({ error: '该用户账号正在审核中，暂时无法登录' });
+    }
+
+    if (userStatus === 'inactive') {
+      return reply.code(401).send({ error: '该用户已被停用，无法登录系统' });
+    }
+
+    if (userStatus === 'resigned') {
+      return reply.code(401).send({ error: '该用户已离职，无法登录系统' });
+    }
+
+    if (userStatus === 'rejected') {
+      return reply.code(401).send({ error: '该用户账号审核未通过，无法登录系统' });
+    }
+
+    if (userStatus !== 'active') {
+      return reply.code(401).send({ error: '该用户无法登录系统' });
     }
 
     const user = users[0]
@@ -709,17 +882,40 @@ fastify.get('/api/auth/verify-token', async (request, reply) => {
       return reply.code(401).send({ success: false, message: 'Token无效或已过期', valid: false })
     }
 
-    // 检查数据库中的session_token是否匹配
+    // 检查数据库中的用户状态和session_token
     const [users] = await pool.query(
-      'SELECT session_token FROM users WHERE id = ?',
+      'SELECT session_token, status FROM users WHERE id = ?',
       [decoded.id]
     )
 
     if (users.length === 0) {
-      return reply.code(401).send({ success: false, message: '用户不存在', valid: false })
+      return reply.code(401).send({ success: false, message: '账号不存在或者无法登录', valid: false })
     }
 
     const user = users[0]
+
+    // 检查用户状态
+    if (user.status !== 'active') {
+      let message = '该用户无法登录系统';
+
+      // 根据具体状态提供更详细的提示
+      switch (user.status) {
+        case 'inactive':
+          message = '该用户已被停用，无法登录系统';
+          break;
+        case 'resigned':
+          message = '该用户已离职，无法登录系统';
+          break;
+        case 'pending':
+          message = '该用户账号正在审核中，暂时无法登录';
+          break;
+        case 'rejected':
+          message = '该用户账号审核未通过，无法登录系统';
+          break;
+      }
+
+      return reply.code(401).send({ success: false, message, valid: false });
+    }
 
     // 如果数据库中的token与当前token不匹配，说明用户在其他设备登录了
     if (user.session_token !== token) {
@@ -768,8 +964,19 @@ fastify.get('/api/auth/permissions', async (request, reply) => {
       WHERE ur.user_id = ?
     `, [decoded.id])
 
-    // 获取用户基本信息
-    const [user] = await pool.query('SELECT username, department_id FROM users WHERE id = ?', [decoded.id])
+    // 获取用户基本信息和状态
+    const [userRows] = await pool.query('SELECT username, department_id, status FROM users WHERE id = ?', [decoded.id])
+
+    // 检查用户状态
+    if (userRows.length === 0) {
+      return reply.code(401).send({ success: false, message: '账号不存在或者无法登录' })
+    }
+
+    if (userRows[0].status !== 'active') {
+      return reply.code(401).send({ success: false, message: '账号不存在或者无法登录' })
+    }
+
+    const user = userRows[0]
 
     return {
       success: true,
@@ -810,7 +1017,7 @@ fastify.get('/api/employees/by-user/:userId', async (request, reply) => {
 
   try {
     const [employees] = await pool.query(
-      `SELECT e.*, u.real_name, u.username, u.department_id, d.name as department_name
+      `SELECT e.*, u.real_name, u.username, u.department_id, u.status, d.name as department_name
        FROM employees e
        LEFT JOIN users u ON e.user_id = u.id
        LEFT JOIN departments d ON u.department_id = d.id
@@ -825,6 +1032,14 @@ fastify.get('/api/employees/by-user/:userId', async (request, reply) => {
       })
     }
 
+    // 检查用户状态
+    if (employees[0].status !== 'active') {
+      return reply.code(401).send({
+        success: false,
+        message: '账号不存在或者无法登录'
+      })
+    }
+
     return {
       success: true,
       data: employees[0]
@@ -833,7 +1048,7 @@ fastify.get('/api/employees/by-user/:userId', async (request, reply) => {
     console.error('获取员工信息失败:', error)
     return reply.code(500).send({ success: false, message: '获取员工信息失败' })
   }
-})
+});
 
 // ==================== 客服管理 API ====================
 
@@ -1102,6 +1317,28 @@ fastify.put('/api/departments/:id', async (request, reply) => {
           SET status = ?
           WHERE id IN (${employees.map(() => '?').join(',')})
         `, [employeeStatus, ...employees.map(e => e.id)]);
+
+        // 同步更新所有用户状态
+        const userStatus = status === 'active' ? 'active' : 'inactive';
+        const userIds = employees.map(e => e.user_id);
+        if (userIds.length > 0) {
+          // 使用参数化查询防止SQL注入
+          const placeholders = userIds.map(() => '?').join(',');
+          await pool.query(`
+            UPDATE users
+            SET status = ?
+            WHERE id IN (${placeholders})
+          `, [userStatus, ...userIds]);
+
+          // 如果部门状态变为非活跃状态，则清除该部门下所有员工的session_token
+          if (status !== 'active') {
+            await pool.query(`
+              UPDATE users
+              SET session_token = NULL, session_created_at = NULL
+              WHERE id IN (${placeholders})
+            `, userIds);
+          }
+        }
       }
     }
 
@@ -1127,6 +1364,14 @@ fastify.delete('/api/departments/:id', async (request, reply) => {
     // 将部门状态设置为 deleted
     await pool.query('UPDATE departments SET status = ? WHERE id = ?', ['deleted', id]);
 
+    // 获取该部门下的所有员工user_id
+    const [employees] = await pool.query(`
+      SELECT e.user_id
+      FROM employees e
+      LEFT JOIN users u ON e.user_id = u.id
+      WHERE u.department_id = ?
+    `, [id]);
+
     // 同时将该部门下的所有员工状态设置为 deleted
     await pool.query(`
       UPDATE employees e
@@ -1134,6 +1379,24 @@ fastify.delete('/api/departments/:id', async (request, reply) => {
       SET e.status = 'deleted'
       WHERE u.department_id = ?
     `, [id]);
+
+    // 同时将该部门下的所有用户状态设置为 inactive
+    if (employees.length > 0) {
+      const userIds = employees.map(e => e.user_id);
+      const placeholders = userIds.map(() => '?').join(',');
+      await pool.query(`
+        UPDATE users
+        SET status = 'inactive'
+        WHERE id IN (${placeholders})
+      `, userIds);
+
+      // 清除该部门下所有员工的session_token
+      await pool.query(`
+        UPDATE users
+        SET session_token = NULL, session_created_at = NULL
+        WHERE id IN (${placeholders})
+      `, userIds);
+    }
 
     return { success: true, message: '部门删除成功' };
   } catch (error) {
@@ -1155,6 +1418,14 @@ fastify.post('/api/departments/:id/restore', async (request, reply) => {
       LEFT JOIN users u ON e.user_id = u.id
       SET e.status = 'active'
       WHERE u.department_id = ? AND e.status = 'deleted'
+    `, [id]);
+
+    // 同时恢复该部门下的所有用户状态为 active
+    await pool.query(`
+      UPDATE users u
+      LEFT JOIN employees e ON e.user_id = u.id
+      SET u.status = 'active'
+      WHERE u.department_id = ? AND e.status = 'active'
     `, [id]);
 
     return { success: true, message: '部门恢复成功' };
@@ -1344,6 +1615,10 @@ fastify.put('/api/employees/:id', async (request, reply) => {
       [real_name, email || null, phone || null, department_id || null, avatar || null, userId]
     );
 
+    // 检查员工状态是否变为非活跃状态(inactive/resigned)
+    const [oldEmployee] = await pool.query('SELECT status FROM employees WHERE id = ?', [id]);
+    const oldStatus = oldEmployee[0]?.status;
+
     // 更新员工信息
     await pool.query(
       `UPDATE employees SET
@@ -1375,6 +1650,32 @@ fastify.put('/api/employees/:id', async (request, reply) => {
       ]
     );
 
+    // 如果员工状态发生变化，同步更新users表中的状态
+    if (oldStatus !== status) {
+      let userStatus = status;
+      // 如果员工状态是resigned(离职)，则将用户状态设为inactive
+      if (status === 'resigned') {
+        userStatus = 'inactive';
+      }
+
+      await pool.query(
+        'UPDATE users SET status = ? WHERE id = ?',
+        [userStatus, userId]
+      );
+
+      // 如果员工状态从活跃变为非活跃(inactive/resigned)，则清除用户的session_token
+      if (oldStatus === 'active' && (status === 'inactive' || status === 'resigned')) {
+        await pool.query(
+          'UPDATE users SET session_token = NULL, session_created_at = NULL WHERE id = ?',
+          [userId]
+        );
+
+        // 断开该用户的WebSocket连接
+        const { disconnectUser } = require('./websocket');
+        disconnectUser(userId);
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error(error);
@@ -1386,8 +1687,29 @@ fastify.put('/api/employees/:id', async (request, reply) => {
 fastify.delete('/api/employees/:id', async (request, reply) => {
   const { id } = request.params;
   try {
+    // 获取员工的user_id
+    const [empRows] = await pool.query('SELECT user_id FROM employees WHERE id = ?', [id]);
+    if (empRows.length === 0) {
+      return reply.code(404).send({ error: '员工不存在' });
+    }
+    const userId = empRows[0].user_id;
+
     // 将员工状态设置为 deleted
     await pool.query('UPDATE employees SET status = ? WHERE id = ?', ['deleted', id]);
+
+    // 将用户状态设置为 inactive
+    await pool.query('UPDATE users SET status = ? WHERE id = ?', ['inactive', userId]);
+
+    // 清除用户的session_token
+    await pool.query(
+      'UPDATE users SET session_token = NULL, session_created_at = NULL WHERE id = ?',
+      [userId]
+    );
+
+    // 断开该用户的WebSocket连接
+    const { disconnectUser } = require('./websocket');
+    disconnectUser(userId);
+
     return { success: true, message: '员工删除成功' };
   } catch (error) {
     console.error(error);
@@ -1399,9 +1721,22 @@ fastify.delete('/api/employees/:id', async (request, reply) => {
 fastify.post('/api/employees/:id/restore', async (request, reply) => {
   const { id } = request.params;
   try {
+    // 获取员工的user_id
+    const [empRows] = await pool.query('SELECT user_id FROM employees WHERE id = ?', [id]);
+    if (empRows.length === 0) {
+      return reply.code(404).send({ error: '员工不存在' });
+    }
+    const userId = empRows[0].user_id;
+
     // 恢复员工状态为 active
     await pool.query('UPDATE employees SET status = ? WHERE id = ?', ['active', id]);
+
+    // 恢复用户状态为 active
+    await pool.query('UPDATE users SET status = ? WHERE id = ?', ['active', userId]);
+
     return { success: true, message: '员工恢复成功' };
+
+    // 注意：恢复员工时不需要断开连接，因为用户可能正在其他地方等待登录
   } catch (error) {
     console.error(error);
     reply.code(500).send({ error: '恢复员工失败' });
@@ -1701,7 +2036,7 @@ fastify.post('/api/users/:id/reject', async (request, reply) => {
 
   try {
     await pool.query(
-      'UPDATE users SET status = ?, approval_note = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE users SET status = ?, approval_note = ?, session_token = NULL, session_created_at = NULL, updated_at = NOW() WHERE id = ?',
       ['rejected', note || null, id]
     );
 

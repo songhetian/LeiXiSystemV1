@@ -3,6 +3,7 @@ import { formatDate, getBeijingDate, formatBeijingDate } from '../../utils/date'
 import axios from 'axios'
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
+import verifyUserStatus from '../../utils/userStatusValidator';
 
 export default function AttendanceHome({ onNavigate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -85,9 +86,11 @@ export default function AttendanceHome({ onNavigate }) {
   };
 
   // 导航函数
-  const navigate = (tab) => {
-    if (onNavigate) {
-      onNavigate(tab)
+  const navigate = async (tab) => {
+    // 在导航前验证用户状态
+    const isValid = await verifyUserStatus();
+    if (isValid && onNavigate) {
+      await onNavigate(tab)
     }
   }
 

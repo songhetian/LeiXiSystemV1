@@ -3,6 +3,7 @@ import { Table, Select, Modal, Tag } from 'antd';
 import { toast } from 'sonner';
 import api from '../api';
 import './ExamResultsManagement.css';
+import verifyUserStatus from '../utils/userStatusValidator';
 
 const { Option } = Select;
 
@@ -114,11 +115,13 @@ const ExamResultsManagement = ({ onNavigate }) => {
     return `${minutes}分${remainingSeconds}秒`;
   };
 
-  const handleViewAnswers = (resultId) => {
+  const handleViewAnswers = async (resultId) => {
     closeModal();
     // Navigate to exam result detail page
-    if (onNavigate) {
-      onNavigate('exam-result', { resultId });
+    // 在导航前验证用户状态
+    const isValid = await verifyUserStatus();
+    if (isValid && onNavigate) {
+      await onNavigate('exam-result', { resultId });
     }
   };
 

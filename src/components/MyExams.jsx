@@ -4,6 +4,7 @@ import { Table, Button, Segmented, Tag, Tooltip, Space } from 'antd';
 import { AppstoreOutlined, BarsOutlined, PlayCircleOutlined, CheckCircleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import api from '../api';
 import './MyExams.css';
+import verifyUserStatus from '../utils/userStatusValidator';
 
 const MyExams = ({ onNavigate }) => {
   // Generate a random ID for this instance to track mounts
@@ -122,7 +123,11 @@ const MyExams = ({ onNavigate }) => {
       if (response.ok && data.success) {
         const resultId = data.data.result_id;
         console.log(`[MyExams] Exam started, navigating to resultId: ${resultId}`);
-        onNavigate('exam-taking', { resultId, sourceType });
+        // 在导航前验证用户状态
+        const isValid = await verifyUserStatus();
+        if (isValid && onNavigate) {
+          await onNavigate('exam-taking', { resultId, sourceType });
+        }
       } else {
         toast.error(data.message || '开始考试失败');
       }
@@ -141,9 +146,13 @@ const MyExams = ({ onNavigate }) => {
     if (exam.has_in_progress) {
       return (
         <button
-          onClick={(e) => {
+          onClick={async (e) => {
             console.log('[MyExams] Continue button clicked', e);
-            onNavigate('exam-taking', { resultId: exam.in_progress_result_id, sourceType: exam.source_type });
+            // 在导航前验证用户状态
+            const isValid = await verifyUserStatus();
+            if (isValid && onNavigate) {
+              await onNavigate('exam-taking', { resultId: exam.in_progress_result_id, sourceType: exam.source_type });
+            }
           }}
           className="btn-primary"
         >
@@ -157,9 +166,9 @@ const MyExams = ({ onNavigate }) => {
     if (exam.has_not_started || (exam.remaining_attempts > 0 && exam.exam_status === 'ongoing')) {
       return (
         <button
-          onClick={(e) => {
+          onClick={async (e) => {
             console.log('[MyExams] Start button clicked', e);
-            handleStartExam(exam.plan_id, exam.source_type);
+            await handleStartExam(exam.plan_id, exam.source_type);
           }}
           className="btn-primary"
         >
@@ -174,7 +183,13 @@ const MyExams = ({ onNavigate }) => {
       const resultIdToView = exam.all_attempts.find(r => r.status === 'submitted' || r.status === 'graded' || r.status === 'completed')?.result_id;
       if (resultIdToView) {
         return (
-          <button onClick={() => onNavigate('exam-result', { resultId: resultIdToView, sourceType: exam.source_type })} className="btn-secondary">
+          <button onClick={async () => {
+            // 在导航前验证用户状态
+            const isValid = await verifyUserStatus();
+            if (isValid && onNavigate) {
+              await onNavigate('exam-result', { resultId: resultIdToView, sourceType: exam.source_type });
+            }
+          }} className="btn-secondary">
             <span>📊</span>
             查看成绩
           </button>

@@ -179,7 +179,15 @@ const Sidebar = ({
   // 处理菜单项点击 - 直接使用从父组件传入的setActiveTab
   const handleMenuClick = (tabId, params = {}) => {
     if (setActiveTab) {
-      setActiveTab(tabId, params);
+      // 在切换路由前验证用户状态
+      import('../utils/userStatusValidator').then(module => {
+        const verifyUserStatus = module.default;
+        verifyUserStatus().then(isValid => {
+          if (isValid) {
+            setActiveTab(tabId, params);
+          }
+        });
+      });
     }
   };
 
@@ -364,7 +372,15 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
       toggleMenu(item.id);
     } else {
       // 使用从父组件传入的setActiveTab函数
-      setActiveTab(item.id);
+      // 在切换路由前验证用户状态
+      import('../utils/userStatusValidator').then(module => {
+        const verifyUserStatus = module.default;
+        verifyUserStatus().then(isValid => {
+          if (isValid) {
+            setActiveTab(item.id);
+          }
+        });
+      });
     }
   };
 
