@@ -59,6 +59,18 @@
   width: 100%;
 }
 
+/* 修复缩放下拉框定位问题 */
+.ant-select-dropdown {
+  transform-origin: top left !important;
+  will-change: transform !important;
+}
+
+/* 确保下拉框在缩放时正确定位 */
+.ant-select-dropdown-placement-bottomLeft,
+.ant-select-dropdown-placement-topLeft {
+  transform: scale(1) !important;
+}
+
 /* 表格容器 */
 .table-container {
   padding: 24px;

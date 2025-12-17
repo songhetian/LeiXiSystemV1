@@ -25,6 +25,19 @@ const ExamResultsManagement = ({ onNavigate }) => {
     fetchResults();
   }, []);
 
+  // 监听页面缩放变化，强制重新渲染Select组件
+  useEffect(() => {
+    const handleResize = () => {
+      // 触发重新渲染
+      setFilterExam(prev => prev);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const fetchResults = async () => {
     setLoading(true);
     try {
@@ -222,6 +235,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
               value={filterExam || undefined}
               onChange={setFilterExam}
               className="filter-select-full"
+              getPopupContainer={trigger => trigger.parentNode}
               filterOption={(input, option) =>
                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }
@@ -241,6 +255,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
               value={filterDepartment || undefined}
               onChange={setFilterDepartment}
               className="filter-select-full"
+              getPopupContainer={trigger => trigger.parentNode}
               filterOption={(input, option) =>
                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }
@@ -260,6 +275,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
               value={filterEmployee || undefined}
               onChange={setFilterEmployee}
               className="filter-select-full"
+              getPopupContainer={trigger => trigger.parentNode}
               filterOption={(input, option) =>
                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }
@@ -278,6 +294,7 @@ const ExamResultsManagement = ({ onNavigate }) => {
               value={filterStatus || undefined}
               onChange={setFilterStatus}
               className="filter-select-full"
+              getPopupContainer={trigger => trigger.parentNode}
             >
               <Option value="passed">合格</Option>
               <Option value="failed">不合格</Option>

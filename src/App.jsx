@@ -330,7 +330,7 @@ function App() {
   const handleLogout = React.useCallback(async () => {
     // 调用后端API清除session
     try {
-      await apiPost('/api/auth/logout')
+      await apiPost('/api/auth/logout', {})
     } catch (error) {
       console.error('退出登录API调用失败:', error)
       // 即使API调用失败，也继续清除本地存储

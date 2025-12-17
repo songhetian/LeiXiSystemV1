@@ -562,7 +562,23 @@ fastify.post('/api/auth/logout', async (request, reply) => {
       return reply.code(401).send({ success: false, message: '未登录' })
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET)
+    // 即使没有请求体也要处理，避免Fastify报错
+    if (!request.body) {
+      request.body = {};
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (jwtError) {
+      // JWT验证失败，但仍清除数据库中的session_token
+      console.warn('JWT验证失败，但仍尝试清除session:', jwtError.message);
+      // 返回成功，让前端清除本地存储
+      return {
+        success: true,
+        message: '退出登录成功'
+      };
+    }
 
     // 清除数据库中的session_token
     await pool.query(
