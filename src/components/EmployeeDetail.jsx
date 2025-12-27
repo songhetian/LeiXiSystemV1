@@ -3,31 +3,66 @@ import { formatDate } from '../utils/date'
 import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
 
+// 辅助函数：将相对路径转换为完整URL
+const getImageUrl = (url) => {
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  const baseUrl = getApiUrl('').replace('/api', '').replace(/\/$/, '')
+  const path = url.startsWith('/') ? url : `/${url}`
+  return `${baseUrl}${path}`
+}
+
 function EmployeeDetail({ employee, isOpen, onClose, departments }) {
   const [employeeChanges, setEmployeeChanges] = useState([])
+  const [detailedEmployee, setDetailedEmployee] = useState(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (employee && isOpen) {
+      setDetailedEmployee(employee)
       fetchEmployeeChanges()
+      fetchFullProfile()
+    } else {
+      setDetailedEmployee(null)
     }
   }, [employee, isOpen])
 
-  const fetchEmployeeChanges = async () => {
-    if (!employee?.id) return
-
+  const fetchFullProfile = async () => {
     try {
-      setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(`/api/employee-changes/${employee.id}`), {
+      const response = await fetch(getApiUrl(`/api/users/${employee.user_id}/profile`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-
       if (response.ok) {
-        const data = await response.json()
-        setEmployeeChanges(data)
+        const result = await response.json()
+        if (result.success) {
+          setDetailedEmployee(prev => ({ ...prev, ...result.data }))
+        }
+      }
+    } catch (error) {
+      console.error('获取员工详细信息失败:', error)
+    }
+  }
+
+  const fetchEmployeeChanges = async () => {
+    if (!employee?.id) return
+    try {
+      setLoading(true)
+      const token = localStorage.getItem('token')
+      const response = await fetch(getApiUrl(`/api/employees/${employee.id}/changes`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          setEmployeeChanges(result.data)
+        }
       }
     } catch (error) {
       console.error('获取员工变动记录失败:', error)
@@ -37,78 +72,34 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
   }
 
   const calculateTenureFromChanges = () => {
-    if (!employeeChanges || employeeChanges.length === 0) {
-      return calculateTenure(employee.hire_date)
-    }
-
-    const hireRecord = employeeChanges.find(c => c.change_type === 'hire')
-    if (!hireRecord) {
-      return calculateTenure(employee.hire_date)
-    }
-
-    const hireDate = new Date(hireRecord.change_date)
-    const resignRecord = employeeChanges.find(c => ['resign', 'terminate'].includes(c.change_type))
-    const endDate = resignRecord ? new Date(resignRecord.change_date) : new Date()
-
-    const diffTime = Math.abs(endDate - hireDate)
+    if (!detailedEmployee?.hire_date) return '-'
+    const hireDate = new Date(detailedEmployee.hire_date)
+    const now = new Date()
+    const diffTime = Math.abs(now - hireDate)
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     const years = Math.floor(diffDays / 365)
     const months = Math.floor((diffDays % 365) / 30)
     const days = diffDays % 30
-
-    if (years > 0) {
-      return `${years}年${months}个月`
-    } else if (months > 0) {
-      return `${months}个月${days}天`
-    } else {
-      return `${days}天`
-    }
-  }
-
-  const calculateTenure = (hireDate) => {
-    if (!hireDate) return '-'
-    const hire = new Date(hireDate)
-    const now = new Date()
-    const diffTime = Math.abs(now - hire)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    const years = Math.floor(diffDays / 365)
-    const months = Math.floor((diffDays % 365) / 30)
-    return `${years}年${months}个月`
+    if (years > 0) return `${years}年${months}个月`
+    if (months > 0) return `${months}个月${days}天`
+    return `${days}天`
   }
 
   const getHistoricalDepartments = () => {
-    if (!employeeChanges || employeeChanges.length === 0) return []
-
+    if (!employeeChanges.length) return []
+    const sortedChanges = [...employeeChanges].sort((a, b) => new Date(a.change_date) - new Date(b.change_date))
     const deptHistory = []
-    const seenDepts = new Set()
-
-    const sortedChanges = [...employeeChanges].sort((a, b) =>
-      new Date(a.change_date) - new Date(b.change_date)
-    )
-
     sortedChanges.forEach((change, index) => {
-      if (change.new_department_name && !seenDepts.has(change.new_department_name)) {
-        seenDepts.add(change.new_department_name)
-
+      if (change.new_department_id) {
+        const nextChange = sortedChanges[index + 1]
+        const endDate = nextChange ? new Date(nextChange.change_date) : new Date()
         const startDate = new Date(change.change_date)
-        let endDate = new Date()
-
-        const nextChange = sortedChanges.slice(index + 1).find(c =>
-          (c.new_department_name && c.new_department_name !== change.new_department_name) ||
-          ['resign', 'terminate'].includes(c.change_type)
-        )
-
-        if (nextChange) {
-          endDate = new Date(nextChange.change_date)
-        }
-
         const diffTime = Math.abs(endDate - startDate)
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
         const years = Math.floor(diffDays / 365)
         const months = Math.floor((diffDays % 365) / 30)
         const days = diffDays % 30
-
-        let tenure = ''
+        let tenure = '-'
         if (years > 0) {
           tenure = `${years}年${months}个月`
         } else if (months > 0) {
@@ -116,7 +107,6 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
         } else {
           tenure = `${days}天`
         }
-
         deptHistory.push({
           name: change.new_department_name,
           date: change.change_date,
@@ -126,345 +116,249 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
         })
       }
     })
-
     return deptHistory
   }
 
-  const renderRating = (rating) => {
-    return `${rating}星`
-  }
+  const renderRating = (rating) => `${rating}星`
 
   if (!employee) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="large">
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 2px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e0;
-          border-radius: 1px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #a0aec0;
-        }
-      `}</style>
-
-      <div>
-        {/* 头部 - 莫兰迪色系(加深) */}
-        <div className="bg-gradient-to-r from-sky-200/80 to-indigo-200/80 -mx-6 -mt-4 px-5 py-3 mb-4 border-b border-sky-300/70">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-lg bg-white/95 shadow-sm flex items-center justify-center text-lg font-semibold text-indigo-700 overflow-hidden flex-shrink-0 border border-indigo-300/60">
-              {employee.avatar ? (
-                <img src={employee.avatar} alt={employee.real_name} className="w-full h-full object-cover" />
-              ) : (
-                employee.real_name?.charAt(0) || '员'
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="text-base font-semibold text-slate-800">{employee.real_name}</h3>
-                <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${
-                  employee.status === 'active' ? 'bg-emerald-200/90 text-emerald-800 border border-emerald-400/70' :
-                  employee.status === 'resigned' ? 'bg-rose-200/90 text-rose-800 border border-rose-400/70' :
-                  'bg-slate-200/90 text-slate-700 border border-slate-400/70'
-                }`}>
-                  {employee.status === 'active' ? '在职' : employee.status === 'resigned' ? '离职' : '停用'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mb-1.5">{employee.position || '未设置职位'}</p>
-              <div className="flex items-center gap-3 text-xs text-slate-600">
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500">工号</span>
-                  <span className="font-medium text-slate-800">{employee.employee_no}</span>
+    <Modal isOpen={isOpen} onClose={onClose} title="" size="large" noPadding={true}>
+      <div className="flex flex-col bg-white">
+        {detailedEmployee && (
+          <div className="flex flex-col">
+            {/* 头部 - 优雅 Slate 配色 */}
+            <div className="bg-slate-100 border-b border-slate-200 px-6 py-5">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-white shadow-sm flex items-center justify-center text-xl font-bold text-slate-700 overflow-hidden flex-shrink-0 border border-slate-200">
+                  {detailedEmployee.avatar ? (
+                    <img src={getImageUrl(detailedEmployee.avatar)} alt={detailedEmployee.real_name} className="w-full h-full object-cover" />
+                  ) : (
+                    detailedEmployee.real_name?.charAt(0) || '员'
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500">评级</span>
-                  <span className="font-medium text-slate-800">{renderRating(employee.rating || 3)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500">在职</span>
-                  <span className="font-medium text-slate-800">{calculateTenureFromChanges()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3 pb-1.5 border-b border-gray-200">基本信息</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">所属部门</span>
-              <span className="text-xs text-gray-800 font-medium">
-                {departments.find(d => d.id === employee.department_id)?.name || '-'}
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">入职日期</span>
-              <span className="text-xs text-gray-800 font-medium">
-                {employee.hire_date ? formatDate(employee.hire_date) : '-'}
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">学历</span>
-              <span className="text-xs text-gray-800 font-medium">{employee.education || '-'}</span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">手机号</span>
-              <span className="text-xs text-gray-800 font-medium">{employee.phone || '-'}</span>
-            </div>
-            <div className="flex items-center col-span-2">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">邮箱</span>
-              <span className="text-xs text-gray-800 font-medium">{employee.email || '-'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3 pb-1.5 border-b border-gray-200">联系信息</h4>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">紧急联系人</span>
-              <span className="text-xs text-gray-800 font-medium">{employee.emergency_contact || '-'}</span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">紧急电话</span>
-              <span className="text-xs text-gray-800 font-medium">{employee.emergency_phone || '-'}</span>
-            </div>
-            <div className="flex items-center col-span-2">
-              <span className="text-xs text-gray-500 w-20 flex-shrink-0">家庭住址</span>
-              <span className="text-xs text-gray-800 font-medium">{employee.address || '-'}</span>
-            </div>
-          </div>
-        </div>
-
-        {employee.skills && (
-          <div className="mb-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 pb-1.5 border-b border-gray-200">技能特长</h4>
-            <p className="text-xs text-gray-700 leading-relaxed">{employee.skills}</p>
-          </div>
-        )}
-
-        {getHistoricalDepartments().length > 0 && (
-          <div className="mb-6">
-            <h4 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-500">工作经历</h4>
-            <div className="space-y-4">
-              {getHistoricalDepartments().map((dept, index) => (
-                <div key={index} className="relative pl-8 pb-4 border-l-2 border-gray-300 last:border-l-0 last:pb-0">
-                  <div className="absolute left-0 top-0 w-4 h-4 -ml-[9px] rounded-full bg-primary-500 border-2 border-white"></div>
-                  <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h5 className="font-bold text-gray-900 text-lg">{dept.name}</h5>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {formatDate(dept.date)}
-                          {dept.type === 'hire' && ' · 入职'}
-                          {dept.type === 'transfer' && ' · 调动'}
-                          {dept.isCurrent && (
-                            <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                              当前部门
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-sm font-semibold rounded-full">
-                          {dept.tenure}
-                        </span>
-                      </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <h3 className="text-lg font-bold text-zinc-800">{detailedEmployee.real_name}</h3>
+                    <span className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-md border ${
+                      detailedEmployee.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                      detailedEmployee.status === 'resigned' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                      'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}>
+                      {detailedEmployee.status === 'active' ? '在职' : detailedEmployee.status === 'resigned' ? '离职' : '已禁用'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium mb-2">{detailedEmployee.position || '岗位待定'}</p>
+                  <div className="flex items-center gap-4 text-[11px]">
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <span className="text-slate-400 font-normal">工号:</span>
+                      <span className="font-bold tabular-nums">{detailedEmployee.employee_no}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <span className="text-slate-400 font-normal">评级:</span>
+                      <span className="font-bold">{renderRating(detailedEmployee.rating || 3)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <span className="text-slate-400 font-normal">司龄:</span>
+                      <span className="font-bold">{calculateTenureFromChanges()}</span>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {employeeChanges.length > 0 && (() => {
-          // 将变动记录按工作周期分组
-          const sortedChanges = [...employeeChanges].sort((a, b) => new Date(a.change_date) - new Date(b.change_date))
-          const workPeriods = []
-          let currentPeriod = []
-
-          sortedChanges.forEach((change, index) => {
-            currentPeriod.push(change)
-
-            // 如果是离职记录，或者是最后一条记录，结束当前周期
-            if (['resign', 'terminate'].includes(change.change_type) || index === sortedChanges.length - 1) {
-              workPeriods.push([...currentPeriod])
-              currentPeriod = []
-            }
-          })
-
-          return (
-            <div className="mb-6">
-              <h4 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-500">工作周期</h4>
-              <div className="space-y-4">
-                {workPeriods.map((period, periodIndex) => {
-                  const startChange = period[0]
-                  const endChange = period[period.length - 1]
-                  const isResigned = ['resign', 'terminate'].includes(endChange.change_type)
-
-                  // 计算整个周期的时长
-                  const startDate = new Date(startChange.change_date)
-                  const endDate = isResigned ? new Date(endChange.change_date) : new Date()
-                  const diffTime = Math.abs(endDate - startDate)
-                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                  const years = Math.floor(diffDays / 365)
-                  const months = Math.floor((diffDays % 365) / 30)
-                  const days = diffDays % 30
-
-                  let totalTenure = ''
-                  if (years > 0) {
-                    totalTenure = `${years}年${months}个月`
-                  } else if (months > 0) {
-                    totalTenure = `${months}个月${days}天`
-                  } else {
-                    totalTenure = `${days}天`
-                  }
-
-                  return (
-                    <div key={periodIndex} className="border-2 border-gray-300 rounded-lg p-5 bg-white hover:shadow-md transition-shadow">
-                      {/* 周期头部 */}
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg font-bold text-gray-900">
-                            第 {periodIndex + 1} 个工作周期
-                          </span>
-                          {!isResigned && (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                              当前在职
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500 mb-1">总时长</div>
-                          <span className="inline-block px-3 py-1 bg-primary-500 text-white text-sm font-bold rounded-full">
-                            {totalTenure}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* 周期内的所有变动 */}
-                      <div className="space-y-3">
-                        {period.map((change, changeIndex) => {
-                          // 计算每段的时长
-                          const segmentStart = new Date(change.change_date)
-                          let segmentEnd = new Date()
-
-                          if (changeIndex < period.length - 1) {
-                            segmentEnd = new Date(period[changeIndex + 1].change_date)
-                          } else if (!isResigned) {
-                            segmentEnd = new Date()
-                          } else {
-                            segmentEnd = new Date(change.change_date)
-                          }
-
-                          const segmentDiffTime = Math.abs(segmentEnd - segmentStart)
-                          const segmentDays = Math.ceil(segmentDiffTime / (1000 * 60 * 60 * 24))
-                          const segmentYears = Math.floor(segmentDays / 365)
-                          const segmentMonths = Math.floor((segmentDays % 365) / 30)
-                          const segmentDaysRem = segmentDays % 30
-
-                          let segmentTenure = ''
-                          if (!['resign', 'terminate'].includes(change.change_type)) {
-                            if (segmentYears > 0) {
-                              segmentTenure = `${segmentYears}年${segmentMonths}个月`
-                            } else if (segmentMonths > 0) {
-                              segmentTenure = `${segmentMonths}个月${segmentDaysRem}天`
-                            } else {
-                              segmentTenure = `${segmentDaysRem}天`
-                            }
-                          }
-
-                          return (
-                            <div key={change.id} className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
-                              <div className="flex-shrink-0 pt-1">
-                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
-                                  change.change_type === 'hire' ? 'bg-green-500 text-white' :
-                                  change.change_type === 'transfer' ? 'bg-blue-500 text-white' :
-                                  change.change_type === 'promotion' ? 'bg-purple-500 text-white' :
-                                  change.change_type === 'resign' ? 'bg-orange-500 text-white' :
-                                  'bg-red-500 text-white'
-                                }`}>
-                                  {change.change_type === 'hire' ? '入职' :
-                                   change.change_type === 'transfer' ? '调动' :
-                                   change.change_type === 'promotion' ? '晋升' :
-                                   change.change_type === 'resign' ? '辞职' : '离职'}
-                                </span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="text-sm font-bold text-gray-900">
-                                    {formatDate(change.change_date)}
-                                  </div>
-                                  {segmentTenure && (
-                                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">
-                                      {segmentTenure}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-sm text-gray-700">
-                                  {change.change_type === 'hire' && (
-                                    <span>入职 <span className="font-semibold">{change.new_department_name}</span> - {change.new_position || '未指定职位'}</span>
-                                  )}
-                                  {change.change_type === 'transfer' && (
-                                    <span><span className="font-semibold">{change.old_department_name}</span> → <span className="font-semibold">{change.new_department_name}</span></span>
-                                  )}
-                                  {change.change_type === 'promotion' && (
-                                    <span><span className="font-semibold">{change.old_position}</span> → <span className="font-semibold">{change.new_position}</span></span>
-                                  )}
-                                  {['resign', 'terminate'].includes(change.change_type) && (
-                                    <span>离开 <span className="font-semibold">{change.old_department_name}</span></span>
-                                  )}
-                                </div>
-                                {change.reason && (
-                                  <div className="text-xs text-gray-600 mt-2 italic bg-white px-2 py-1 rounded">
-                                    {change.reason}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
               </div>
             </div>
-          )
-        })()}
 
-        {employee.remark && (
-          <div className="mb-6">
-            <h4 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary-500">备注</h4>
-            <p className="text-gray-900 leading-relaxed bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              {employee.remark}
-            </p>
+            <div className="px-8 py-8 space-y-10">
+              {/* 基本档案 */}
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-1 h-3.5 bg-slate-800 rounded-full"></span>
+                  <h4 className="text-sm font-bold text-slate-800 tracking-tight">基本档案</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-x-12 gap-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">登录账号</span>
+                    <span className="text-[13px] text-slate-700 font-bold font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-100 italic">
+                      {detailedEmployee.username || '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">所属部门</span>
+                    <span className="text-[13px] text-slate-700 font-semibold">
+                      {departments.find(d => d.id === detailedEmployee.department_id)?.name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">入职日期</span>
+                    <span className="text-[13px] text-zinc-600 font-medium">
+                      {detailedEmployee.hire_date ? formatDate(detailedEmployee.hire_date) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">学历情况</span>
+                    <span className="text-[13px] text-zinc-600 font-medium">{detailedEmployee.education || '-'}</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* 联系方式 */}
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-1 h-3.5 bg-slate-800 rounded-full"></span>
+                  <h4 className="text-sm font-bold text-slate-800 tracking-tight">联系方式</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-x-12 gap-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">手机号码</span>
+                    <span className="text-[13px] text-slate-700 font-bold tabular-nums">{detailedEmployee.phone || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">电子邮箱</span>
+                    <span className="text-[13px] text-slate-700 font-medium">{detailedEmployee.email || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">紧急联系人</span>
+                    <span className="text-[13px] text-slate-700 font-medium">{detailedEmployee.emergency_contact || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs text-slate-400 font-medium">紧急电话</span>
+                    <span className="text-[13px] text-slate-700 font-medium tabular-nums">{detailedEmployee.emergency_phone || '-'}</span>
+                  </div>
+                  <div className="col-span-2 flex items-start gap-4 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+                    <span className="text-xs text-slate-400 font-medium mt-0.5">居住地址</span>
+                    <span className="text-[13px] text-slate-600 leading-relaxed">{detailedEmployee.address || '-'}</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* 技能与附件 */}
+              { (detailedEmployee.skills || detailedEmployee.remark) && (
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="w-1 h-3.5 bg-slate-800 rounded-full"></span>
+                    <h4 className="text-sm font-bold text-slate-800 tracking-tight">技能与备注</h4>
+                  </div>
+                  <div className="space-y-4">
+                    {detailedEmployee.skills && (
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div className="text-[11px] text-slate-400 font-bold uppercase mb-2">技能特长</div>
+                        <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-wrap">{detailedEmployee.skills}</p>
+                      </div>
+                    )}
+                    {detailedEmployee.remark && (
+                      <div className="bg-amber-50/30 p-4 rounded-xl border border-amber-100/50">
+                        <div className="text-[11px] text-amber-600/70 font-bold uppercase mb-2">备注信息</div>
+                        <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-wrap">{detailedEmployee.remark}</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* 证件附件 */}
+              <section className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="w-1 h-3.5 bg-slate-800 rounded-full"></span>
+                  <h4 className="text-sm font-bold text-slate-800 tracking-tight">证件附件</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="group space-y-3">
+                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">正面 (身份证)</div>
+                    <div className="aspect-[1.586/1] rounded-2xl overflow-hidden bg-white border-2 border-slate-200 hover:border-slate-400 transition-all shadow-sm relative overflow-hidden">
+                      {detailedEmployee.id_card_front_url ? (
+                        <>
+                          <img src={getImageUrl(detailedEmployee.id_card_front_url)} alt="Front" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                          <div
+                            className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-[2px]"
+                            onClick={() => window.open(getImageUrl(detailedEmployee.id_card_front_url), '_blank')}
+                          >
+                            <span className="px-5 py-2 bg-white text-slate-900 text-xs font-bold rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">查看大图</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50/50 italic">
+                          <span className="text-[11px] font-bold tracking-tighter">暂未上传</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="group space-y-3">
+                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">反面 (身份证)</div>
+                    <div className="aspect-[1.586/1] rounded-2xl overflow-hidden bg-white border-2 border-slate-200 hover:border-slate-400 transition-all shadow-sm relative overflow-hidden">
+                      {detailedEmployee.id_card_back_url ? (
+                        <>
+                          <img src={getImageUrl(detailedEmployee.id_card_back_url)} alt="Back" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                          <div
+                            className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-[2px]"
+                            onClick={() => window.open(getImageUrl(detailedEmployee.id_card_back_url), '_blank')}
+                          >
+                            <span className="px-5 py-2 bg-white text-slate-900 text-xs font-bold rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">查看大图</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50/50 italic">
+                          <span className="text-[11px] font-bold tracking-tighter">暂未上传</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* 工作经历 */}
+              {getHistoricalDepartments().length > 0 && (
+                <section>
+                  <div className="flex items-center gap-2 mb-6">
+                    <span className="w-1 h-3.5 bg-slate-800 rounded-full"></span>
+                    <h4 className="text-sm font-bold text-slate-800 tracking-tight">工作履历</h4>
+                  </div>
+                  <div className="space-y-6">
+                    {getHistoricalDepartments().map((dept, index) => (
+                      <div key={index} className="flex gap-4 group">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-2.5 h-2.5 rounded-full border-2 ${dept.isCurrent ? 'bg-slate-800 border-slate-800 scale-125' : 'bg-white border-slate-300'} z-10`}></div>
+                          <div className="flex-1 w-[2px] bg-slate-100 group-last:hidden"></div>
+                        </div>
+                        <div className="flex-1 pb-6">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="text-[13px] font-bold text-slate-800 mb-0.5">{dept.name}</div>
+                              <div className="text-[11px] text-slate-400 font-medium">
+                                {formatDate(dept.date)} · {dept.type === 'hire' ? '入职' : '调动'}
+                              </div>
+                            </div>
+                            {dept.isCurrent && (
+                              <span className="px-2 py-0.5 bg-slate-800 text-white text-[10px] font-bold rounded">当前</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+
+            {/* 底部操作页脚 */}
+            <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-900 transition-all shadow-sm active:scale-95"
+              >
+                关闭详情
+              </button>
+            </div>
           </div>
         )}
 
         {loading && (
-          <div className="text-center py-8 text-gray-500">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p className="mt-2">加载变动记录中...</p>
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-[3px] border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">正在获取数据...</span>
+            </div>
           </div>
         )}
-      </div>
-
-      <div className="flex justify-end pt-4 mt-4 border-t border-sky-300/70 -mx-6 px-6 -mb-6 pb-6 bg-sky-100/80">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium shadow-sm"
-        >
-          关闭
-        </button>
       </div>
     </Modal>
   )

@@ -232,16 +232,8 @@ fastify.post('/api/upload', async (request, reply) => {
     // 保存文件
     await pump(data.file, fs.createWriteStream(filepath))
 
-    // 返回文件URL - 使用配置的publicUrl或动态生成
-    let baseUrl;
-    if (dbConfigJson.upload && dbConfigJson.upload.publicUrl) {
-      baseUrl = dbConfigJson.upload.publicUrl;
-    } else {
-      const protocol = request.protocol;
-      const host = request.headers.host || request.hostname;
-      baseUrl = `${protocol}://${host}`;
-    }
-    const fileUrl = `${baseUrl}/uploads/${filename}`;
+    // 返回相对路径,由前端动态组合完整URL
+    const fileUrl = `/uploads/${filename}`;
 
     return {
       success: true,
@@ -273,19 +265,9 @@ fastify.post('/api/upload/multiple', async (request, reply) => {
         // 保存文件
         await pump(part.file, fs.createWriteStream(filepath))
 
-        // 生成文件URL
-        let baseUrl;
-        if (dbConfigJson.upload && dbConfigJson.upload.publicUrl) {
-          baseUrl = dbConfigJson.upload.publicUrl;
-        } else {
-          const protocol = request.protocol;
-          const host = request.headers.host || request.hostname;
-          baseUrl = `${protocol}://${host}`;
-        }
-
         // 收集结果
         uploadedFiles.push({
-          url: `${baseUrl}/uploads/${filename}`,
+          url: `/uploads/${filename}`,
           filename: part.filename,
           size: fs.statSync(filepath).size
         })
@@ -1215,6 +1197,8 @@ fastify.get('/api/employees', async (request, reply) => {
         u.phone,
         u.avatar,
         u.department_id,
+        u.id_card_front_url,
+        u.id_card_back_url,
         u.is_department_manager,
         d.name as department_name
       FROM employees e

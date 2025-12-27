@@ -165,7 +165,14 @@ const Login = ({ onLoginSuccess }) => {
         if (response.data.refresh_token) {
           tokenManager.setRefreshToken(response.data.refresh_token)
         }
-        localStorage.setItem('user', JSON.stringify(response.data.user))
+        // 存储token
+        localStorage.setItem('token', response.data.token)
+
+        // 存储用户信息,但不包含图片URL(避免缓存问题)
+        const userDataForStorage = { ...response.data.user }
+        delete userDataForStorage.id_card_front_url
+        delete userDataForStorage.id_card_back_url
+        localStorage.setItem('user', JSON.stringify(userDataForStorage))
 
         // 处理记住密码
         if (rememberPassword) {

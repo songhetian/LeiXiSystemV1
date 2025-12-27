@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 
-const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zIndex = 1000, variant = 'default' }) => {
+const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zIndex = 1000, variant = 'default', noPadding = false }) => {
   if (!isOpen) return null
 
   const sizeClasses = {
@@ -56,7 +56,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
             <h2 className="text-xl font-semibold text-white">{title}</h2>
           </div>
         )}
-        <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar">
+        <div className={`${noPadding ? '' : 'px-6 py-4'} overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar`}>
           {children}
         </div>
         {footer && (

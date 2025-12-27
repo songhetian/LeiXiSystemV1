@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner';
-import { getApiBaseUrl } from '../utils/apiConfig'
+import { getApiBaseUrl, getApiUrl } from '../utils/apiConfig'
 import Modal from './Modal'
+
+// 辅助函数:将相对路径转换为完整URL并添加缓存破坏参数
+const getImageUrl = (url) => {
+  if (!url) return null
+  // 如果已经是完整URL,添加时间戳参数破坏缓存
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return `${url}?t=${Date.now()}`
+  }
+  // 如果是相对路径,使用后端地址组合并添加时间戳
+  const baseUrl = getApiUrl('').replace('/api', '').replace(/\/$/, '') // 移除末尾斜杠
+  const path = url.startsWith('/') ? url : `/${url}`
+  return `${baseUrl}${path}?t=${Date.now()}`
+}
 import {
   UserIcon,
   EnvelopeIcon,
@@ -44,6 +57,7 @@ const PersonalInfo = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [showThemeModal, setShowThemeModal] = useState(false)
+  const [imageModal, setImageModal] = useState({ isOpen: false, url: '', title: '' })
 
   // 主题设置
   const [theme, setTheme] = useState({
@@ -81,7 +95,9 @@ const PersonalInfo = () => {
     emergency_contact: '',
     emergency_phone: '',
     address: '',
-    education: ''
+    education: '',
+    id_card_front_url: '',
+    id_card_back_url: ''
   })
 
   // 密码修改状态
@@ -98,7 +114,55 @@ const PersonalInfo = () => {
 
   const loadUserInfo = async () => {
     try {
+      const token = localStorage.getItem('token')
       const savedUser = localStorage.getItem('user')
+
+      if (!token) {
+        console.error('未找到登录token')
+        return
+      }
+
+      // 优先从服务器获取最新数据
+      try {
+        const userId = savedUser ? JSON.parse(savedUser).id : null
+        if (userId) {
+          const API_BASE_URL = getApiBaseUrl()
+          const response = await fetch(`${API_BASE_URL}/users/${userId}/profile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            const userData = data.success ? data.data : data
+
+            // 更新localStorage,但不包含图片URL(避免缓存问题)
+            const userDataForStorage = { ...userData }
+            delete userDataForStorage.id_card_front_url
+            delete userDataForStorage.id_card_back_url
+            localStorage.setItem('user', JSON.stringify(userDataForStorage))
+
+            setUser(userData)
+            setFormData({
+              real_name: userData.real_name || '',
+              email: userData.email || '',
+              phone: userData.phone || '',
+              emergency_contact: userData.emergency_contact || '',
+              emergency_phone: userData.emergency_phone || '',
+              address: userData.address || '',
+              education: userData.education || '',
+              id_card_front_url: userData.id_card_front_url || '',
+              id_card_back_url: userData.id_card_back_url || ''
+            })
+            return
+          }
+        }
+      } catch (serverError) {
+        console.warn('从服务器获取用户信息失败,使用本地缓存:', serverError)
+      }
+
+      // 如果服务器获取失败,使用localStorage数据
       if (savedUser) {
         const userData = JSON.parse(savedUser)
         setUser(userData)
@@ -109,7 +173,9 @@ const PersonalInfo = () => {
           emergency_contact: userData.emergency_contact || '',
           emergency_phone: userData.emergency_phone || '',
           address: userData.address || '',
-          education: userData.education || ''
+          education: userData.education || '',
+          id_card_front_url: userData.id_card_front_url || '',
+          id_card_back_url: userData.id_card_back_url || ''
         })
       }
     } catch (error) {
@@ -134,9 +200,8 @@ const PersonalInfo = () => {
       })
 
       if (response.ok) {
-        const updatedUser = { ...user, ...formData }
-        localStorage.setItem('user', JSON.stringify(updatedUser))
-        setUser(updatedUser)
+        // 保存成功后重新从服务器获取最新数据
+        await loadUserInfo()
         setEditing(false)
         toast.success('个人信息更新成功')
       } else {
@@ -299,6 +364,99 @@ const PersonalInfo = () => {
     );
   };
 
+  // 身份证上传组件
+  const ImageUpload = ({ label, name, value, editing, icon }) => {
+    const [uploading, setUploading] = useState(false)
+
+    const handleFileChange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      try {
+        setUploading(true)
+        const API_BASE_URL = getApiBaseUrl()
+        const token = localStorage.getItem('token')
+
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch(`${API_BASE_URL}/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        })
+
+        const data = await response.json()
+        if (data.success) {
+          setFormData(prev => ({ ...prev, [name]: data.url }))
+          toast.success(`${label}上传成功`)
+        } else {
+          toast.error(data.error || '上传失败')
+        }
+      } catch (error) {
+        console.error('上传出错:', error)
+        toast.error('网络错误,请稍后重试')
+      } finally {
+        setUploading(false)
+      }
+    }
+
+    return (
+      <div className="space-y-3">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-500">
+          <span className="text-blue-500">{icon}</span>
+          {label}
+        </label>
+
+        <div className="relative group aspect-[1.6/1] rounded-2xl overflow-hidden bg-gray-50 border-2 border-dashed border-gray-200 transition-all hover:border-blue-400">
+          {value ? (
+            <>
+              <img
+                src={getImageUrl(value)}
+                alt={label}
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={() => setImageModal({ isOpen: true, url: getImageUrl(value), title: label })}
+              />
+              {editing && (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <label className="cursor-pointer px-4 py-2 bg-white/90 text-gray-800 rounded-xl font-medium text-sm hover:bg-white transition-colors">
+                    更换图片
+                    <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                  </label>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                <InformationCircleIcon className="w-6 h-6 text-blue-500" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-600">暂未上传{label}</p>
+                {editing && <p className="text-xs text-gray-400 mt-1">点击上传或拖拽文件</p>}
+              </div>
+              {editing && (
+                <input
+                  type="file"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              )}
+            </div>
+          )}
+
+          {uploading && (
+            <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center gap-2">
+              <div className="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+              <span className="text-xs font-medium text-gray-500">上传中...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="min-h-full p-6 md:p-8 transition-colors duration-500"
@@ -456,7 +614,30 @@ const PersonalInfo = () => {
                     editing={editing}
                  />
                </div>
-             </div>
+
+                <div className="md:col-span-2 mt-4">
+                  <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <IdentificationIcon className="w-5 h-5 text-blue-500" />
+                    证件信息
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <ImageUpload
+                      label="身份证正面"
+                      name="id_card_front_url"
+                      value={formData.id_card_front_url}
+                      editing={editing}
+                      icon={<InformationCircleIcon className="w-4 h-4" />}
+                    />
+                    <ImageUpload
+                      label="身份证反面"
+                      name="id_card_back_url"
+                      value={formData.id_card_back_url}
+                      editing={editing}
+                      icon={<InformationCircleIcon className="w-4 h-4" />}
+                    />
+                  </div>
+                </div>
+              </div>
 
           </div>
         </div>
@@ -633,6 +814,32 @@ const PersonalInfo = () => {
             </div>
          </div>
       </Modal>
+
+      {/* 图片查看模态框 */}
+      {imageModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
+          onClick={() => setImageModal({ isOpen: false, url: '', title: '' })}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button
+              onClick={() => setImageModal({ isOpen: false, url: '', title: '' })}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="text-white text-center mb-2 font-medium">{imageModal.title}</div>
+            <img
+              src={imageModal.url}
+              alt={imageModal.title}
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

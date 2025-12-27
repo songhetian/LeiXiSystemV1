@@ -80,6 +80,65 @@ async function userManagementRoutes(fastify, options) {
     }
   })
 
+  // 获取用户个人资料
+  fastify.get('/api/users/:userId/profile', {
+    preHandler: requirePermission('user:profile:view')
+  }, async (request, reply) => {
+    const token = request.headers.authorization?.replace('Bearer ', '')
+    if (!token) {
+      return reply.code(401).send({ success: false, message: '未登录' })
+    }
+
+    // 验证token
+    let decoded
+    try {
+      decoded = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
+      return reply.code(401).send({ success: false, message: '令牌无效' })
+    }
+
+    const { userId } = request.params
+    // 检查用户是否在查看自己的资料
+    if (decoded.id != userId) {
+      // 如果不是查看自己的资料，需要检查权限
+      const pool = fastify.mysql
+      const [userRoles] = await pool.query(
+        `SELECT r.name
+         FROM roles r
+         JOIN user_roles ur ON r.id = ur.role_id
+         WHERE ur.user_id = ?`,
+        [decoded.id]
+      )
+      const isAdmin = userRoles.some(r => r.name === '超级管理员');
+      if (!isAdmin) {
+        return reply.code(403).send({ success: false, message: '权限不足' })
+      }
+    }
+
+    try {
+      // 联表查询 users 和 employees 表
+      const [rows] = await pool.query(
+        `SELECT
+          u.id, u.username, u.real_name, u.email, u.phone, u.avatar, u.department_id,
+          u.id_card_front_url, u.id_card_back_url,
+          e.emergency_contact, e.emergency_phone, e.address, e.education
+         FROM users u
+         LEFT JOIN employees e ON u.id = e.user_id
+         WHERE u.id = ?`,
+        [userId]
+      )
+
+      if (rows.length === 0) {
+        return reply.code(404).send({ success: false, message: '用户不存在' })
+      }
+
+      return { success: true, data: rows[0] }
+    } catch (error) {
+      console.error('获取个人资料失败:', error)
+      return reply.code(500).send({ success: false, message: '获取失败' })
+    }
+  })
+
   // 更新用户个人资料（新增路由）
   fastify.put('/api/users/:userId/profile', {
     preHandler: requirePermission('user:profile:update')
@@ -123,6 +182,8 @@ async function userManagementRoutes(fastify, options) {
       real_name,
       email,
       phone,
+      id_card_front_url,
+      id_card_back_url,
       emergency_contact,
       emergency_phone,
       address,
@@ -130,21 +191,34 @@ async function userManagementRoutes(fastify, options) {
     } = request.body
 
     try {
-      // 执行更新
+      // 更新 users 表（只更新 users 表中存在的字段）
       await pool.query(
         `UPDATE users SET
           real_name = ?,
           email = ?,
           phone = ?,
-          emergency_contact = ?,
-          emergency_phone = ?,
-          address = ?,
-          education = ?
+          id_card_front_url = ?,
+          id_card_back_url = ?
         WHERE id = ?`,
         [
           real_name || null,
           email || null,
           phone || null,
+          id_card_front_url || null,
+          id_card_back_url || null,
+          userId
+        ]
+      )
+
+      // 更新 employees 表（更新 emergency_contact, emergency_phone, address, education）
+      await pool.query(
+        `UPDATE employees SET
+          emergency_contact = ?,
+          emergency_phone = ?,
+          address = ?,
+          education = ?
+        WHERE user_id = ?`,
+        [
           emergency_contact || null,
           emergency_phone || null,
           address || null,

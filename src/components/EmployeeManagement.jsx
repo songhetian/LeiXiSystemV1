@@ -60,7 +60,7 @@ function EmployeeManagement() {
     phone: '',
     department_id: '',
     position: '',
-    hire_date: '',
+    hire_date: new Date().toISOString().split('T')[0],
     rating: 3,
     status: 'active',
     avatar: '',
@@ -71,8 +71,9 @@ function EmployeeManagement() {
     skills: '',
     remark: '',
     role_id: '', // 修改为单个角色ID
-    is_department_manager: false // 新增部门主管标识
+    is_department_manager: false
   })
+  const [validationErrors, setValidationErrors] = useState({})
   const [avatarPreview, setAvatarPreview] = useState('')
 
   useEffect(() => {
@@ -341,6 +342,21 @@ function EmployeeManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // 表单校验
+    const errors = {}
+    if (!formData.real_name) errors.real_name = true
+    if (!formData.phone) errors.phone = true
+    if (!formData.department_id) errors.department_id = true
+    if (!formData.position) errors.position = true
+
+    setValidationErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      toast.error('请填写必填项')
+      return
+    }
+
     try {
       const url = editingEmp
         ? getApiUrl(`/api/employees/${editingEmp.id}`)
@@ -628,6 +644,7 @@ function EmployeeManagement() {
       role_id: '',
       is_department_manager: false
     })
+    setValidationErrors({})
     setAvatarPreview('')
   }
 
@@ -804,6 +821,7 @@ function EmployeeManagement() {
             <thead className="bg-primary-50 border-b border-primary-100">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-primary-700 uppercase tracking-wider rounded-tl-lg">员工</th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">登录账号</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">职位</th>
                 <th className="px-3 py-2 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</th>
@@ -817,7 +835,7 @@ function EmployeeManagement() {
             <tbody>
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan="10" className="px-3 py-8 text-center text-gray-500">
                     {employees.length === 0 ? '暂无数据' : '没有符合条件的员工'}
                   </td>
                 </tr>
@@ -842,6 +860,9 @@ function EmployeeManagement() {
                           <div className="text-xs text-gray-500 truncate">{emp.employee_no}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <div className="text-sm text-gray-600 truncate">{emp.username || '-'}</div>
                     </td>
                     <td className="px-3 py-2 text-center">
                       <div className="text-sm text-gray-600 truncate">{emp.department_name || '-'}</div>
@@ -1019,8 +1040,13 @@ function EmployeeManagement() {
           setIsModalOpen(false)
           resetForm()
         }}
-        title={editingEmp ? '编辑员工' : '新增员工'}
+        title={editingEmp ? '编辑员工' : '创建员工'}
       >
+        <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+          <p className="text-xs text-red-600 flex items-center gap-1">
+            <span className="font-bold">*</span> 标记为必填项, 请务必填写完整。
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 头像上传区域 */}
           <div className="flex flex-col items-center pb-4 border-b">
@@ -1070,16 +1096,24 @@ function EmployeeManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                姓名 <span className="text-red-500">*</span>
+              <label className={`block text-sm font-medium mb-1 ${validationErrors.real_name ? 'text-red-500' : 'text-gray-700'}`}>
+                姓名 <span className="text-red-500">* (必填)</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.real_name}
-                onChange={(e) => setFormData({ ...formData, real_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                onChange={(e) => {
+                  setFormData({ ...formData, real_name: e.target.value });
+                  if (validationErrors.real_name) setValidationErrors(prev => ({ ...prev, real_name: false }));
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.real_name ? 'border-red-500 focus:ring-red-500/20 bg-red-50/30' : 'border-gray-300'}`}
+                placeholder="请输入员工真实姓名"
               />
+              {validationErrors.real_name && <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                请填写该必填项
+              </p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1093,35 +1127,57 @@ function EmployeeManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+              <label className={`block text-sm font-medium mb-1 ${validationErrors.phone ? 'text-red-500' : 'text-gray-700'}`}>
+                手机号 <span className="text-red-500">* (必填)</span>
+              </label>
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value });
+                  if (validationErrors.phone) setValidationErrors(prev => ({ ...prev, phone: false }));
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.phone ? 'border-red-500 focus:ring-red-500/20 bg-red-50/30' : 'border-gray-300'}`}
+                placeholder="请输入联系电话"
               />
+              {validationErrors.phone && <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                请填写该必填项
+              </p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">所属部门</label>
+              <label className={`block text-sm font-medium mb-1 ${validationErrors.department_id ? 'text-red-500' : 'text-gray-700'}`}>
+                所属部门 <span className="text-red-500">* (必填)</span>
+              </label>
               <select
                 value={formData.department_id}
-                onChange={(e) => handleDepartmentChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                onChange={(e) => {
+                  handleDepartmentChange(e.target.value);
+                  if (validationErrors.department_id) setValidationErrors(prev => ({ ...prev, department_id: false }));
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.department_id ? 'border-red-500 focus:ring-red-500/20 bg-red-50/30' : 'border-gray-300'}`}
               >
                 <option value="">请选择部门</option>
                 {departments.map(dept => (
                   <option key={dept.id} value={dept.id}>{dept.name}</option>
                 ))}
               </select>
+              {validationErrors.department_id && <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                请选择所属部门
+              </p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">职位</label>
               <select
                 value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                onChange={(e) => {
+                  setFormData({ ...formData, position: e.target.value });
+                  if (validationErrors.position) setValidationErrors(prev => ({ ...prev, position: false }));
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.position ? 'border-red-500 focus:ring-red-500/20' : 'border-gray-300'}`}
                 disabled={!formData.department_id}
               >
                 <option value="">请选择职位</option>
@@ -1129,6 +1185,7 @@ function EmployeeManagement() {
                   <option key={pos.id} value={pos.name}>{pos.name}</option>
                 ))}
               </select>
+              {validationErrors.position && <p className="text-red-500 text-xs mt-1">请选择职位</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

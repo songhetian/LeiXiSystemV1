@@ -2127,6 +2127,8 @@ CREATE TABLE `users` (
   `email` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮箱地址',
   `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '手机号码',
   `avatar` text COLLATE utf8mb4_unicode_ci COMMENT '头像(Base64或URL)',
+  `id_card_front_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '身份证正面URL',
+  `id_card_back_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '身份证反面URL',
   `department_id` int DEFAULT NULL COMMENT '所属部门ID',
   `status` enum('active','inactive','pending','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '用户状态',
   `approval_note` text COLLATE utf8mb4_unicode_ci COMMENT '审批备注',
@@ -2391,9 +2393,9 @@ INSERT INTO `positions` (`name`, `department_id`, `description`, `requirements`,
 
 -- Migration 002: 添加软删除字段到案例表
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'quality_cases' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'quality_cases'
                       AND COLUMN_NAME = 'deleted_at');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE quality_cases ADD COLUMN deleted_at DATETIME DEFAULT NULL COMMENT '删除时间（软删除）'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
@@ -2430,9 +2432,9 @@ ON DUPLICATE KEY UPDATE description = VALUES(description), sort_order = VALUES(s
 -- Migration 003: 添加审批备注字段到用户表
 -- 用于存储员工审核的拒绝原因
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'users' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'users'
                       AND COLUMN_NAME = 'approval_note');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE users ADD COLUMN approval_note TEXT NULL COMMENT '审批备注（拒绝原因）'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
@@ -2479,9 +2481,9 @@ CREATE TABLE `conversion_usage_records` (
 
 -- 为请假记录增加转换假期使用字段
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'leave_records' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'leave_records'
                       AND COLUMN_NAME = 'used_conversion_days');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE leave_records ADD COLUMN used_conversion_days DECIMAL(10,2) DEFAULT 0 COMMENT '使用的转换假期天数'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
@@ -2490,18 +2492,18 @@ DEALLOCATE PREPARE stmt;
 
 -- 先移除转换规则表中不必要的字段
 -- 检查字段是否存在再删除
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'source_type');
 SET @sql := IF(@column_exists > 0, 'ALTER TABLE conversion_rules DROP COLUMN source_type', 'SELECT ''Column does not exist''');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'target_type');
 SET @sql := IF(@column_exists > 0, 'ALTER TABLE conversion_rules DROP COLUMN target_type', 'SELECT ''Column does not exist''');
 PREPARE stmt FROM @sql;
@@ -2510,27 +2512,27 @@ DEALLOCATE PREPARE stmt;
 
 -- 为转换规则表增加缺失字段
 -- 检查字段是否存在，避免重复添加
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'name');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN name VARCHAR(100) DEFAULT '转换规则' COMMENT '规则名称' AFTER id", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'description');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN description TEXT NULL COMMENT '规则描述'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                      WHERE TABLE_SCHEMA = DATABASE() 
-                      AND TABLE_NAME = 'conversion_rules' 
+SET @column_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'conversion_rules'
                       AND COLUMN_NAME = 'ratio');
 SET @sql := IF(@column_exists = 0, "ALTER TABLE conversion_rules ADD COLUMN ratio DECIMAL(10,4) DEFAULT 0.125 COMMENT '转换比例'", 'SELECT ''Column already exists''');
 PREPARE stmt FROM @sql;
