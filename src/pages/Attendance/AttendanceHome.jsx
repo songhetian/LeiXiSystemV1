@@ -409,15 +409,15 @@ export default function AttendanceHome({ onNavigate }) {
     const endDateTime = new Date();
     endDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-    // 获取考勤设置中的下班打卡提前分钟数
-    const earlyClockOutMinutes = attendanceRules?.clock_out_delay || 120;
-    const earlyClockOutTime = new Date(endDateTime.getTime() - earlyClockOutMinutes * 60000);
+    // 获取考勤设置中的早退阈值（分钟）
+    // 下班打卡应在 (下班时间 - 早退阈值) 之后才开启
+    const earlyLeaveThreshold = attendanceRules?.early_threshold || 30;
+    const allowedClockOutTime = new Date(endDateTime.getTime() - earlyLeaveThreshold * 60000);
 
-    if (now < earlyClockOutTime) {
-      const timeDiff = Math.ceil((earlyClockOutTime - now) / 60000);
+    if (now < allowedClockOutTime) {
       return {
         allowed: false,
-        message: `还未到下班打卡时间，需在下班前${earlyClockOutMinutes}分钟内(${endDateTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}前${earlyClockOutMinutes}分钟)才能打卡`
+        message: `还未到下班打卡时间，需在下班前${earlyLeaveThreshold}分钟内(${allowedClockOutTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}之后)才能打卡`
       };
     }
 

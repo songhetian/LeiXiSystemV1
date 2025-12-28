@@ -11,7 +11,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
     ultra: 'max-w-[1100px]',
     mega: 'max-w-[1300px]',
     full: 'max-w-7xl',
-    wide: 'max-w-[85vw]'
+    wide: 'max-w-[85vw]',
+    xwide: 'max-w-[95vw]'
   }
 
   // Simple color variants
@@ -45,7 +46,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
         onClick={onClose}
       ></div>
       <div
-        className={`relative z-10 bg-white rounded-2xl shadow-2xl ${sizeClasses[size]} w-full mx-4 max-h-[92vh] overflow-hidden animate-slideUp`}
+        className={`relative z-10 bg-white rounded-2xl shadow-2xl ${sizeClasses[size]} w-full mx-4 max-h-[96vh] overflow-hidden animate-slideUp`}
       >
         {title && (
           <div
@@ -58,7 +59,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
             <h2 className="text-xl font-semibold text-white">{title}</h2>
           </div>
         )}
-        <div className={`${noPadding ? '' : 'px-8 py-6'} overflow-y-auto max-h-[calc(92vh-160px)] custom-scrollbar`}>
+        <div className={`${noPadding ? '' : 'px-8 py-6'} overflow-y-auto max-h-[calc(96vh-160px)] custom-scrollbar`}>
           {children}
         </div>
         {footer && (

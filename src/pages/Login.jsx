@@ -333,23 +333,23 @@ const Login = ({ onLoginSuccess }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="bg-white border border-gray-300 rounded-xl shadow-lg w-full max-w-md p-8">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-primary-100 rounded-full mb-4">
+          <div className="mb-4">
             <img src="./icons/logo.ico" alt="雷犀客服管理系统" className="w-16 h-16" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">雷犀客服管理系统</h1>
-          <p className="text-gray-500 mt-2">企业级客服管理平台</p>
+          <h1 className="text-2xl font-bold text-gray-800">雷犀客服管理系统</h1>
+          <p className="text-gray-600 mt-2">企业级客服管理平台</p>
         </div>
 
         {/* 切换登录/注册 */}
-        <div className="flex mb-6 bg-primary-50 rounded-lg p-1">
+        <div className="flex mb-6 border border-gray-300 rounded-lg overflow-hidden">
           <button
             onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
+            className={`flex-1 py-2 rounded-l-lg transition-colors ${
+              isLogin ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >
             登录
@@ -362,8 +362,8 @@ const Login = ({ onLoginSuccess }) => {
               setUsernameAvailable(null)
               setUsernameSuggestions([])
             }}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              !isLogin ? 'bg-primary-600 text-white shadow-md' : 'text-gray-600'
+            className={`flex-1 py-2 rounded-r-lg transition-colors ${
+              !isLogin ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >
             注册
@@ -372,16 +372,13 @@ const Login = ({ onLoginSuccess }) => {
 
         {/* 错误提示框 */}
         {errorMessage && (
-          <div className="mb-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg animate-shake">
+          <div className="mb-4 p-4 bg-red-50 border border-red-300">
             <div className="flex items-start gap-3">
-              <span className="text-red-600 text-2xl flex-shrink-0">❌</span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-red-900 mb-1">登录失败</p>
-                <p className="text-sm text-red-800">{errorMessage}</p>
-              </div>
+              <span className="text-red-600 text-xl">❌</span>
+              <p className="text-sm text-red-800">{errorMessage}</p>
               <button
                 onClick={() => setErrorMessage('')}
-                className="text-red-400 hover:text-red-600 transition-colors"
+                className="ml-auto text-red-400 hover:text-red-600"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -403,7 +400,7 @@ const Login = ({ onLoginSuccess }) => {
                   setFormData({...formData, real_name: e.target.value})
                   setFieldErrors({...fieldErrors, real_name: ''})
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                className={`w-full px-4 py-2 border rounded-lg ${
                   fieldErrors.real_name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="请输入真实姓名"
@@ -427,7 +424,7 @@ const Login = ({ onLoginSuccess }) => {
                     checkUsername(e.target.value, formData.real_name)
                   }
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                className={`w-full px-4 py-2 border rounded-lg ${
                   fieldErrors.username ? 'border-red-500' :
                   !isLogin && usernameAvailable === false ? 'border-red-500' :
                   !isLogin && usernameAvailable === true ? 'border-green-500' :
@@ -438,7 +435,7 @@ const Login = ({ onLoginSuccess }) => {
               {!isLogin && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   {isCheckingUsername && (
-                    <div className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                    <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                   )}
                   {!isCheckingUsername && usernameAvailable === true && (
                     <span className="text-green-500 text-xl">✓</span>
@@ -454,7 +451,7 @@ const Login = ({ onLoginSuccess }) => {
             )}
             {/* 用户名建议 */}
             {!isLogin && usernameSuggestions.length > 0 && (
-              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200">
                 <p className="text-sm text-yellow-800 mb-2">该用户名已被使用，以下是建议：</p>
                 <div className="flex flex-wrap gap-2">
                   {usernameSuggestions.map((suggestion, index) => (
@@ -465,7 +462,7 @@ const Login = ({ onLoginSuccess }) => {
                         setFormData({...formData, username: suggestion})
                         checkUsername(suggestion, formData.real_name)
                       }}
-                      className="px-3 py-1 bg-white border border-yellow-300 rounded-md text-sm text-gray-700 hover:bg-yellow-100 transition-colors"
+                      className="px-3 py-1 bg-white border border-yellow-300 rounded-lg text-sm text-gray-700 shadow-sm hover:shadow-md transition-shadow"
                     >
                       {suggestion}
                     </button>
@@ -485,7 +482,7 @@ const Login = ({ onLoginSuccess }) => {
                     setFormData({...formData, department_id: e.target.value})
                     setFieldErrors({...fieldErrors, department_id: ''})
                   }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg ${
                     fieldErrors.department_id ? 'border-red-500' : 'border-gray-300'
                   }`}
                 >
@@ -510,7 +507,7 @@ const Login = ({ onLoginSuccess }) => {
                 setFormData({...formData, password: e.target.value})
                 setFieldErrors({...fieldErrors, password: ''})
               }}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              className={`w-full px-4 py-2 border rounded-lg ${
                 fieldErrors.password ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="请输入密码"
@@ -523,14 +520,14 @@ const Login = ({ onLoginSuccess }) => {
           {/* 记住密码选项 */}
           {isLogin && (
             <div className="flex items-center">
-              <label className="flex items-center cursor-pointer group">
+              <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={rememberPassword}
                   onChange={(e) => setRememberPassword(e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
+                  className="w-4 h-4 text-blue-600 border-gray-300"
                 />
-                <span className="ml-2 text-sm text-gray-700 group-hover:text-primary-600 transition-colors">
+                <span className="ml-2 text-sm text-gray-700">
                   记住密码
                 </span>
               </label>
@@ -540,7 +537,7 @@ const Login = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full py-3 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded-lg shadow-md hover:shadow-lg transition-shadow"
           >
             {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
           </button>
@@ -550,21 +547,21 @@ const Login = ({ onLoginSuccess }) => {
       {/* 确认登录对话框 */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 m-4 animate-fadeIn">
+          <div className="bg-white border border-gray-300 w-full max-w-md p-8 m-4">
             {/* 图标 */}
             <div className="text-center mb-6">
-              <div className="inline-block p-4 bg-yellow-100 rounded-full mb-4">
-                <span className="text-5xl">⚠️</span>
+              <div className="mb-4">
+                <span className="text-4xl">⚠️</span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">检测到活跃会话</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">检测到活跃会话</h2>
               <p className="text-gray-600">该账号已在其他设备登录</p>
             </div>
 
             {/* 会话信息 */}
             {sessionInfo && sessionInfo.sessionCreatedAt && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200">
                 <div className="flex items-start gap-3">
-                  <span className="text-blue-600 text-xl">ℹ️</span>
+                  <span className="text-blue-600 text-lg">ℹ️</span>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-blue-900 mb-1">会话信息</p>
                     <p className="text-sm text-blue-800">
@@ -576,12 +573,12 @@ const Login = ({ onLoginSuccess }) => {
             )}
 
             {/* 提示信息 */}
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200">
               <div className="flex items-start gap-3">
-                <span className="text-red-600 text-xl">🚨</span>
+                <span className="text-red-600 text-lg">🚨</span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-red-900 mb-2">重要提示</p>
-                  <p className="text-sm text-red-800 leading-relaxed">
+                  <p className="text-sm text-red-800">
                     如果继续登录，之前登录的设备将被强制退出。
                     <br />
                     请确认这是您本人的操作。
@@ -597,7 +594,7 @@ const Login = ({ onLoginSuccess }) => {
                   setShowConfirmModal(false)
                   setLoading(false)
                 }}
-                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium rounded-lg shadow-sm hover:shadow-md transition-shadow"
               >
                 取消
               </button>
@@ -633,7 +630,7 @@ const Login = ({ onLoginSuccess }) => {
                   }
                 }}
                 disabled={loading}
-                className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 px-4 bg-blue-600 text-white hover:bg-blue-700 font-medium rounded-lg shadow-md hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '登录中...' : '确认登录'}
               </button>
@@ -645,22 +642,22 @@ const Login = ({ onLoginSuccess }) => {
       {/* 注册成功模态框 */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in">
+          <div className="bg-white border border-gray-300 max-w-md w-full p-8">
             <div className="text-center">
               {/* 成功图标 */}
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 bg-green-100 mb-4">
                 <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
 
               {/* 标题 */}
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">注册成功！</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">注册成功！</h3>
 
               {/* 说明文字 */}
               <div className="mb-6 space-y-2">
                 <p className="text-gray-600">您的账号已成功提交注册申请</p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <div className="bg-blue-50 border border-blue-200 p-4 text-left">
                   <p className="text-sm text-blue-800 mb-2">
                     <span className="font-semibold">📋 下一步：</span>
                   </p>
@@ -678,7 +675,7 @@ const Login = ({ onLoginSuccess }) => {
                   setShowSuccessModal(false)
                   setIsLogin(true)
                 }}
-                className="w-full py-3 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-md hover:shadow-lg"
+                className="w-full py-3 px-4 bg-blue-600 text-white hover:bg-blue-700 font-medium rounded-lg shadow-md hover:shadow-lg transition-shadow"
               >
                 好的，我知道了
               </button>

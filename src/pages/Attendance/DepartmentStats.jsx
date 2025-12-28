@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth'
 import { getApiUrl } from '../../utils/apiConfig'
 import { formatDate, formatDateTime } from '../../utils/date'
+import { Table, Button, Input, Select, DatePicker, Space, Modal } from 'antd'
+import { SearchOutlined, ExportOutlined } from '@ant-design/icons'
 
 
 export default function DepartmentStats() {
@@ -213,435 +215,411 @@ export default function DepartmentStats() {
     return selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth() + 1
   }
 
-  return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      {/* 头部 */}
-      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">部门考勤统计</h1>
-          <p className="text-gray-600 mt-1">查看部门员工的考勤数据</p>
-        </div>
-        <button
-          onClick={handleExport}
-          disabled={!stats}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm shadow-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          导出报表
-        </button>
-      </div>
+  const columns = [
+    {
+      title: '工号',
+      dataIndex: 'employee_no',
+      key: 'employee_no',
+      align: 'center',
+      width: 120
+    },
+    {
+      title: '姓名',
+      dataIndex: 'real_name',
+      key: 'real_name',
+      align: 'center',
+      width: 120
+    },
+    {
+      title: '出勤天数',
+      dataIndex: 'attendance_days',
+      key: 'attendance_days',
+      align: 'center',
+      width: 100
+    },
+    {
+      title: '出勤率',
+      dataIndex: 'attendance_rate',
+      key: 'attendance_rate',
+      align: 'center',
+      width: 100,
+      render: (value) => (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+          value >= 95 ? 'bg-green-50 text-green-700 border border-green-200' :
+          value >= 85 ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+          'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {value}%
+        </span>
+      )
+    },
+    {
+      title: '迟到',
+      dataIndex: 'late_count',
+      key: 'late_count',
+      align: 'center',
+      width: 80,
+      render: (value) => value > 0 ? value : '-'
+    },
+    {
+      title: '早退',
+      dataIndex: 'early_count',
+      key: 'early_count',
+      align: 'center',
+      width: 80,
+      render: (value) => value > 0 ? value : '-'
+    },
+    {
+      title: '缺勤',
+      dataIndex: 'absent_count',
+      key: 'absent_count',
+      align: 'center',
+      width: 80,
+      render: (value) => value > 0 ? value : '-'
+    },
+    {
+      title: '请假',
+      dataIndex: 'leave_days',
+      key: 'leave_days',
+      align: 'center',
+      width: 80,
+      render: (value) => value > 0 ? value : '-'
+    },
+    {
+      title: '工作时长',
+      dataIndex: 'total_work_hours',
+      key: 'total_work_hours',
+      align: 'center',
+      width: 100,
+      render: (value) => `${value}h`
+    }
+  ]
 
-      {/* 筛选器 */}
-      <div className="bg-white rounded-lg shadow p-5 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 部门选择 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              选择部门
-            </label>
-            <select
+  return (
+    <div className="p-4 md:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+        {/* 头部 */}
+        <div className="mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">部门考勤统计</h1>
+        </div>
+
+        {/* 筛选器 */}
+        <div className="border-b border-gray-100 pb-6 mb-6">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 部门选择 */}
+            <Select
               value={selectedDepartment}
-              onChange={(e) => {
-                setSelectedDepartment(e.target.value)
+              onChange={(value) => {
+                setSelectedDepartment(value)
                 setPagination(prev => ({ ...prev, page: 1 }))
               }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm transition-colors"
+              style={{ width: 180 }}
+              placeholder="选择部门"
             >
               {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
+                <Select.Option key={dept.id} value={dept.id}>
                   {dept.name}
-                </option>
+                </Select.Option>
               ))}
-            </select>
-          </div>
+            </Select>
 
-          {/* 统计模式选择 */}
-          <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">
-              统计模式
-            </label>
+            {/* 统计模式选择 */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setDateMode('month')}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-                  dateMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  dateMode === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 按月统计
               </button>
               <button
                 onClick={() => setDateMode('custom')}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-                  dateMode === 'custom' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  dateMode === 'custom' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 自定义日期
               </button>
             </div>
-          </div>
 
-          {/* 日期选择 */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {dateMode === 'month' ? '选择月份' : '选择日期范围'}
-            </label>
-
+            {/* 日期选择 */}
             {dateMode === 'month' ? (
-              <div className="flex items-stretch gap-2">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handlePrevMonth}
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
-                  title="上个月"
+                  className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-
-                <div className="flex-1 flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm">
-                  <div className="flex items-center gap-2 flex-1 justify-center">
-                    <select
-                      value={selectedMonth.year}
-                      onChange={(e) => handleMonthChange(parseInt(e.target.value), selectedMonth.month)}
-                      className="bg-transparent border-none font-medium text-gray-800 focus:ring-0 cursor-pointer text-sm"
-                    >
-                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                        <option key={year} value={year}>{year}年</option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={selectedMonth.month}
-                      onChange={(e) => handleMonthChange(selectedMonth.year, parseInt(e.target.value))}
-                      className="bg-transparent border-none font-medium text-gray-800 focus:ring-0 cursor-pointer text-sm"
-                    >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                        <option key={month} value={month}>{month}月</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
+                <DatePicker.MonthPicker
+                  placeholder={`${selectedMonth.year}年${selectedMonth.month}月`}
+                  onChange={(date) => {
+                    if (date) {
+                      handleMonthChange(date.year(), date.month() + 1)
+                    }
+                  }}
+                  format="YYYY年MM月"
+                  style={{ width: 140 }}
+                />
                 <button
                   onClick={handleNextMonth}
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
-                  title="下个月"
+                  className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-
                 <button
                   onClick={handleThisMonth}
                   disabled={isCurrentMonth()}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 shadow-sm transition-colors"
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
                 >
                   本月
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={customDateRange.start}
-                  onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
-                />
-                <span className="text-gray-500 text-sm">至</span>
-                <input
-                  type="date"
-                  value={customDateRange.end}
-                  onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
-                />
-              </div>
+              <DatePicker.RangePicker
+                placeholder={customDateRange.start && customDateRange.end ? [customDateRange.start, customDateRange.end] : ['开始日期', '结束日期']}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setCustomDateRange({
+                      start: dates[0].format('YYYY-MM-DD'),
+                      end: dates[1].format('YYYY-MM-DD')
+                    })
+                  }
+                }}
+                format="YYYY-MM-DD"
+              />
             )}
-          </div>
 
-          {/* 搜索框 */}
-          <div className="md:col-span-4">
-             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="搜索姓名或工号..."
-                  className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm shadow-sm"
-                />
-             </div>
+            {/* 搜索框 */}
+            <Input
+              placeholder="搜索姓名或工号..."
+              prefix={<SearchOutlined />}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              allowClear
+              style={{ width: 200 }}
+            />
+
+            {/* 导出按钮 */}
+            <Button
+              type="primary"
+              icon={<ExportOutlined />}
+              onClick={handleExport}
+              disabled={!stats}
+              className="bg-green-600 hover:bg-green-700 border-none"
+            >
+              导出报表
+            </Button>
           </div>
         </div>
-      </div>
-
       {loading ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
           加载中...
         </div>
       ) : !stats ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
           请选择部门查看统计数据
         </div>
       ) : (
         <>
-          {/* 部门概览 - 参考权限管理页面样式 */}
+          {/* 部门概览 - 优化样式 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200 shadow-sm">
-              <div className="text-blue-800 font-medium text-sm">总人数</div>
-              <div className="text-2xl font-bold text-blue-900 mt-1">
-                {stats.summary.total_employees}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-blue-600 font-medium mb-1">总人数</div>
+                  <div className="text-3xl font-bold text-blue-900">
+                    {stats.summary.total_employees}
+                  </div>
+                  <div className="text-xs text-blue-600 mt-1">人</div>
+                </div>
+                <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
               </div>
-              <div className="text-xs text-blue-700 mt-1">人</div>
             </div>
 
-            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200 shadow-sm">
-              <div className="text-green-800 font-medium text-sm">出勤率</div>
-              <div className="text-2xl font-bold text-green-900 mt-1">
-                {stats.summary.attendance_rate}%
-              </div>
-              <div className="text-xs text-green-700 mt-1">
-                工作日 {stats.summary.work_days} 天
+            <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-green-600 font-medium mb-1">出勤率</div>
+                  <div className="text-3xl font-bold text-green-900">
+                    {stats.summary.attendance_rate}%
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    工作日 {stats.summary.work_days} 天
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-4 border border-red-200 shadow-sm">
-              <div className="text-red-800 font-medium text-sm">迟到次数</div>
-              <div className="text-2xl font-bold text-red-900 mt-1">
-                {stats.summary.total_late_count}
+            <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-red-600 font-medium mb-1">迟到次数</div>
+                  <div className="text-3xl font-bold text-red-900">
+                    {stats.summary.total_late_count}
+                  </div>
+                  <div className="text-xs text-red-600 mt-1">次</div>
+                </div>
+                <div className="w-14 h-14 bg-red-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
               </div>
-              <div className="text-xs text-red-700 mt-1">次</div>
             </div>
 
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200 shadow-sm">
-              <div className="text-orange-800 font-medium text-sm">早退次数</div>
-              <div className="text-2xl font-bold text-orange-900 mt-1">
-                {stats.summary.total_early_count}
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-orange-600 font-medium mb-1">早退次数</div>
+                  <div className="text-3xl font-bold text-orange-900">
+                    {stats.summary.total_early_count}
+                  </div>
+                  <div className="text-xs text-orange-600 mt-1">次</div>
+                </div>
+                <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
               </div>
-              <div className="text-xs text-orange-700 mt-1">次</div>
             </div>
           </div>
 
           {/* 员工考勤列表 */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="px-5 py-3 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <h2 className="text-base font-semibold text-gray-800">员工考勤明细</h2>
-              <span className="text-xs text-gray-500">
-                {dateMode === 'month'
-                  ? `${selectedMonth.year}年${selectedMonth.month}月`
-                  : `${customDateRange.start} 至 ${customDateRange.end}`}
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      工号
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      姓名
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      出勤天数
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      出勤率
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      迟到
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      早退
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      缺勤
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      请假
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      工作时长
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {stats.employees && stats.employees.map((employee) => (
-                    <tr key={employee.user_id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => fetchEmployeeDetails(employee)}>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-medium">
-                        {employee.employee_no}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900">
-                        {employee.real_name}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
-                        {employee.attendance_days}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          employee.attendance_rate >= 95 ? 'bg-green-100 text-green-800' :
-                          employee.attendance_rate >= 85 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {employee.attendance_rate}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-red-600 font-medium">
-                        {employee.late_count > 0 ? employee.late_count : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-orange-600 font-medium">
-                        {employee.early_count > 0 ? employee.early_count : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
-                        {employee.absent_count > 0 ? employee.absent_count : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-blue-600 font-medium">
-                        {employee.leave_days > 0 ? employee.leave_days : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
-                        {employee.total_work_hours}h
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {(!stats.employees || stats.employees.length === 0) && (
-              <div className="p-8 text-center">
-                 <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                 </svg>
-                 <h3 className="mt-2 text-sm font-medium text-gray-900">暂无数据</h3>
-                 <p className="mt-1 text-xs text-gray-500">该部门在此时间段内没有考勤记录。</p>
-              </div>
-            )}
-
-            {/* 分页 */}
-            {pagination.total > 0 && (
-              <div className="px-5 py-3 border-t bg-gray-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="text-xs text-gray-700">
-                    共 <span className="font-medium">{pagination.total}</span> 名员工
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <label className="text-xs text-gray-600">每页</label>
-                    <select
-                      value={pagination.limit}
-                      onChange={(e) => setPagination({ ...pagination, limit: parseInt(e.target.value), page: 1 })}
-                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-                    >
-                      <option value="10">10</option>
-                      <option value="20">20</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                    </select>
-                    <span className="text-xs text-gray-600">条</span>
-                  </div>
+          <Table
+            columns={columns}
+            dataSource={stats?.employees || []}
+            rowKey="user_id"
+            loading={loading}
+            onRow={(record) => ({
+              onClick: () => fetchEmployeeDetails(record),
+              className: 'cursor-pointer hover:bg-gray-50/50'
+            })}
+            pagination={{
+              current: pagination.page,
+              pageSize: pagination.limit,
+              total: pagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条记录`,
+              onChange: (page, pageSize) => {
+                setPagination({ page, limit: pageSize })
+              }
+            }}
+            scroll={{ x: 'max-content' }}
+            locale={{
+              emptyText: (
+                <div className="py-12 text-center text-gray-400">
+                  <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">暂无数据</h3>
+                  <p className="mt-1 text-xs text-gray-500">该部门在此时间段内没有考勤记录。</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-600 mr-1">
-                    第 {pagination.page} / {Math.ceil(pagination.total / pagination.limit)} 页
-                  </span>
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
-                    className="px-2.5 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium text-gray-700 shadow-sm transition-colors"
-                  >
-                    上一页
-                  </button>
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-                    className="px-2.5 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium text-gray-700 shadow-sm transition-colors"
-                  >
-                    下一页
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+              )
+            }}
+          />
         </>
       )}
 
       {/* Details Modal */}
-      {showDetailsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-5 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-bold text-gray-800">
-                {selectedEmployeeForDetails?.real_name} - 考勤明细
-              </h2>
-              <button onClick={() => setShowDetailsModal(false)} className="text-gray-500 hover:text-gray-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {detailsLoading ? (
-              <div className="text-center py-6 text-gray-500">加载中...</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">日期</th>
-                      <th className="px-3 py-2 text-left">班次</th>
-                      <th className="px-3 py-2 text-left">签到</th>
-                      <th className="px-3 py-2 text-left">签退</th>
-                      <th className="px-3 py-2 text-left">状态</th>
-                      <th className="px-3 py-2 text-left">工时</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {employeeDetails.map((record, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-3 py-2">
-                          {formatDate(record.record_date)}
-                        </td>
-                        <td className="px-3 py-2">{record.shift_name}</td>
-                        <td className="px-3 py-2">{record.clock_in_time ? formatDateTime(record.clock_in_time).split(' ')[1] : '-'}</td>
-                        <td className="px-3 py-2">{record.clock_out_time ? formatDateTime(record.clock_out_time).split(' ')[1] : '-'}</td>
-                        <td className="px-3 py-2">
-                          <span className={`px-1.5 py-0.5 rounded text-xs ${
-                            record.status === 'normal' ? 'bg-green-100 text-green-800' :
-                            record.status === 'late' ? 'bg-red-100 text-red-800' :
-                            record.status === 'early' || record.status === 'early_leave' ? 'bg-orange-100 text-orange-800' :
-                            record.status === 'absent' ? 'bg-gray-100 text-gray-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {
-                              record.status === 'normal' ? '正常' :
-                              record.status === 'late' ? '迟到' :
-                              record.status === 'early' || record.status === 'early_leave' ? '早退' :
-                              record.status === 'absent' ? '缺勤' :
-                              record.status
-                            }
-                          </span>
-                        </td>
-                        <td className="px-3 py-2">{record.work_hours}h</td>
-                      </tr>
-                    ))}
-                    {employeeDetails.length === 0 && (
-                      <tr>
-                        <td colSpan="6" className="text-center py-4 text-gray-500">暂无记录</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <Modal
+        title={`${selectedEmployeeForDetails?.real_name} - 考勤明细`}
+        open={showDetailsModal}
+        onCancel={() => setShowDetailsModal(false)}
+        footer={null}
+        width={700}
+        centered
+      >
+        {detailsLoading ? (
+          <div className="text-center py-12 text-gray-500">加载中...</div>
+        ) : (
+          <Table
+            columns={[
+              {
+                title: '日期',
+                dataIndex: 'record_date',
+                key: 'record_date',
+                align: 'center',
+                render: (value) => formatDate(value)
+              },
+              {
+                title: '班次',
+                dataIndex: 'shift_name',
+                key: 'shift_name',
+                align: 'center'
+              },
+              {
+                title: '上班打卡',
+                dataIndex: 'clock_in_time',
+                key: 'clock_in_time',
+                align: 'center',
+                render: (value) => value ? formatDateTime(value).split(' ')[1] : '-'
+              },
+              {
+                title: '下班打卡',
+                dataIndex: 'clock_out_time',
+                key: 'clock_out_time',
+                align: 'center',
+                render: (value) => value ? formatDateTime(value).split(' ')[1] : '-'
+              },
+              {
+                title: '状态',
+                dataIndex: 'status',
+                key: 'status',
+                align: 'center',
+                render: (value) => (
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                    value === 'normal' ? 'bg-green-50 text-green-700 border border-green-200' :
+                    value === 'late' ? 'bg-red-50 text-red-700 border border-red-200' :
+                    value === 'early' || value === 'early_leave' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                    value === 'leave' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+                    value === 'rest' || value === 'off' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                    'bg-gray-50 text-gray-700 border border-gray-200'
+                  }`}>
+                    {
+                      value === 'normal' ? '正常' :
+                      value === 'late' ? '迟到' :
+                      value === 'early' || value === 'early_leave' ? '早退' :
+                      value === 'leave' ? '请假' :
+                      value === 'rest' || value === 'off' ? '休息' :
+                      value === 'absent' ? '缺勤' :
+                      value
+                    }
+                  </span>
+                )
+              }
+            ]}
+            dataSource={employeeDetails}
+            rowKey={(record, idx) => idx}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+              size: 'small'
+            }}
+            size="small"
+            tableLayout="fixed"
+            scroll={{ y: 400 }}
+          />
+        )}
+      </Modal>
+      </div>
     </div>
   )
 }

@@ -159,18 +159,23 @@ module.exports = async function (fastify, opts) {
 
       const clockInTime = new Date()
 
-      // 获取班次信息判断是否迟到
-      const [shifts] = await pool.query(
-        'SELECT * FROM work_shifts WHERE is_active = 1 LIMIT 1'
+      // 获取该员工今天的排班信息判断是否迟到
+      const [schedules] = await pool.query(
+        `SELECT ss.*, s.start_time, s.end_time, s.late_threshold, s.early_threshold
+         FROM shift_schedules ss
+         JOIN work_shifts s ON ss.shift_id = s.id
+         WHERE ss.employee_id = ? AND ss.schedule_date = ? AND ss.is_rest_day = 0`,
+        [employee_id, today]
       )
 
       let status = 'normal'
-      if (shifts.length > 0) {
-        const shift = shifts[0]
-        const shiftStartTime = new Date(`${today} ${shift.start_time}`)
-        const lateThreshold = shift.late_threshold * 60 * 1000 // 转换为毫秒
+      if (schedules.length > 0) {
+        const schedule = schedules[0]
+        const shiftStartTime = new Date(`${today} ${schedule.start_time}`)
+        const lateThresholdMinutes = schedule.late_threshold || 0
+        const lateThresholdMs = lateThresholdMinutes * 60 * 1000
 
-        if (clockInTime - shiftStartTime > lateThreshold) {
+        if (clockInTime - shiftStartTime > lateThresholdMs) {
           status = 'late'
         }
       }
@@ -273,17 +278,22 @@ module.exports = async function (fastify, opts) {
       const clockOutTime = new Date()
       let status = 'normal'
 
-      // 获取班次信息判断是否早退
-      const [shifts] = await pool.query(
-        'SELECT * FROM work_shifts WHERE is_active = 1 LIMIT 1'
+      // 获取该员工今天的排班信息判断是否早退
+      const [schedules] = await pool.query(
+        `SELECT ss.*, s.start_time, s.end_time, s.late_threshold, s.early_threshold
+         FROM shift_schedules ss
+         JOIN work_shifts s ON ss.shift_id = s.id
+         WHERE ss.employee_id = ? AND ss.schedule_date = ? AND ss.is_rest_day = 0`,
+        [employee_id, today]
       )
 
-      if (shifts.length > 0) {
-        const shift = shifts[0]
-        const shiftEndTime = new Date(`${today} ${shift.end_time}`)
-        const earlyThreshold = shift.early_threshold * 60 * 1000 // 转换为毫秒
+      if (schedules.length > 0) {
+        const schedule = schedules[0]
+        const shiftEndTime = new Date(`${today} ${schedule.end_time}`)
+        const earlyThresholdMinutes = schedule.early_threshold || 0
+        const earlyThresholdMs = earlyThresholdMinutes * 60 * 1000
 
-        if (shiftEndTime - clockOutTime > earlyThreshold) {
+        if (shiftEndTime - clockOutTime > earlyThresholdMs) {
           status = 'early_leave'
         }
       }

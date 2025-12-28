@@ -91,13 +91,22 @@ export const getBeijingDate = (dateInput) => {
 
 // 格式化日期为 YYYY-MM-DD 格式（避免时区问题）
 export const formatBeijingDate = (dateInput) => {
+  // 如果没有输入，默认使用当前时间
+  if (!dateInput) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // 如果是纯日期字符串，直接返回
   if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
     return dateInput;
   }
 
   let date;
-  
+
   // 如果是 ISO 日期时间字符串（如 "2025-12-26T00:00:00.000Z"）
   if (typeof dateInput === 'string') {
     // 提取日期部分作为 UTC 日期
@@ -125,7 +134,7 @@ export const formatBeijingDate = (dateInput) => {
   // 其他情况，转换为 Date 后处理
   date = new Date(dateInput);
   if (Number.isNaN(date.getTime())) return '-';
-  
+
   // 转换为北京时间（+8小时）
   const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
   const year = beijingTime.getFullYear();

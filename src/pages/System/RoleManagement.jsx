@@ -307,49 +307,57 @@ const RoleManagement = () => {
       title: '角色名称',
       dataIndex: 'name',
       key: 'name',
+      align: 'center',
       render: (text, record) => (
-        <Space>
-          <span className="font-medium text-gray-900">{text}</span>
-          {record.is_system && <Tag color="blue">系统</Tag>}
-        </Space>
+        <div className="flex items-center justify-center gap-2">
+          <span className="font-semibold text-gray-900">{text}</span>
+          {record.is_system && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+              系统
+            </span>
+          )}
+        </div>
       )
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
+      align: 'center',
       render: (text) => (
-        <span className="text-gray-600">{text || '-'}</span>
+        <span className="text-sm text-gray-500">{text || '-'}</span>
       )
     },
     {
       title: '可查看部门',
       key: 'departments',
+      align: 'center',
       render: (_, record) => {
         if (!record.departments || record.departments.length === 0) {
-          return <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-            <EyeOutlined className="mr-1 text-xs" />
-            未设置
-          </span>;
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg">
+              <EyeOutlined className="text-xs" />
+              未设置
+            </span>
+          );
         }
 
-        // 优化部门显示，最多显示2个完整部门名称，其余以数字显示
         const displayDeps = record.departments.slice(0, 2);
         const remainingCount = record.departments.length - 2;
 
         return (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5 justify-center">
             {displayDeps.map(dept => (
               <span
                 key={dept.id}
-                className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-purple-700 bg-purple-50 rounded-lg"
               >
-                <EyeOutlined className="mr-1 text-xs" />
+                <EyeOutlined className="text-xs" />
                 {dept.name}
               </span>
             ))}
             {remainingCount > 0 && (
-              <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+              <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-purple-700 bg-purple-50 rounded-lg">
                 +{remainingCount}
               </span>
             )}
@@ -360,11 +368,12 @@ const RoleManagement = () => {
     {
       title: '权限数量',
       key: 'permissions',
+      align: 'center',
       render: (_, record) => {
         const count = record.permissions ? record.permissions.length : 0;
         return (
-          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-            <LockOutlined className="mr-1 text-xs" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg">
+            <LockOutlined className="text-xs" />
             {count}
           </span>
         );
@@ -373,33 +382,38 @@ const RoleManagement = () => {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 140,
+      align: 'center',
       render: (_, record) => (
-        <div className="flex flex-col gap-1">
+        <Space size="small">
           <Button
+            type="link"
             size="small"
-            type="primary"
             onClick={() => handleAssignUsers(record)}
+            className="text-blue-600 hover:text-blue-700"
           >
             分配用户
           </Button>
           <Button
+            type="link"
             size="small"
-            style={{ backgroundColor: '#93c5fd', borderColor: '#93c5fd', color: '#1e3a8a' }}
             onClick={() => handleManageDepartments(record)}
+            className="text-purple-600 hover:text-purple-700"
           >
             部门权限
           </Button>
           <Button
+            type="link"
             size="small"
-            style={{ backgroundColor: '#a7f3d0', borderColor: '#a7f3d0', color: '#065f46' }}
             onClick={() => handleEdit(record)}
             disabled={record.name === '超级管理员'}
+            className="text-green-600 hover:text-green-700"
           >
             编辑
           </Button>
           {!record.is_system ? (
             <Button
+              type="link"
               size="small"
               danger
               onClick={() => {
@@ -417,15 +431,15 @@ const RoleManagement = () => {
             </Button>
           ) : (
             <Button
+              type="link"
               size="small"
-              danger
               disabled
               title="系统角色不能删除"
             >
               删除
             </Button>
           )}
-        </div>
+        </Space>
       ),
     },
   ];
@@ -733,40 +747,46 @@ const RoleManagement = () => {
           </div>
         </div>
 
-        {/* 搜索框 */}
-        <div className="mb-4 flex flex-col sm:flex-row gap-2">
-          <div className="flex-grow">
-            <input
-              type="text"
-              placeholder="搜索角色名称或描述..."
-              className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
-          {searchText && (
-            <button
-              onClick={clearSearch}
-              className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 rounded hover:border-gray-300 hover:bg-white transition-all"
-            >
-              清空
-            </button>
-          )}
-        </div>
-
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-            <div className="text-blue-800 font-medium">总角色数</div>
-            <div className="text-2xl font-bold text-blue-900 mt-1">{roles.length}</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-500 mb-1">总角色数</div>
+                <div className="text-3xl font-bold text-gray-900">{roles.length}</div>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-            <div className="text-purple-800 font-medium">系统角色</div>
-            <div className="text-2xl font-bold text-purple-900 mt-1">{roles.filter(r => r.is_system).length}</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-500 mb-1">系统角色</div>
+                <div className="text-3xl font-bold text-gray-900">{roles.filter(r => r.is_system).length}</div>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-            <div className="text-green-800 font-medium">自定义角色</div>
-            <div className="text-2xl font-bold text-green-900 mt-1">{roles.filter(r => !r.is_system).length}</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-500 mb-1">自定义角色</div>
+                <div className="text-3xl font-bold text-gray-900">{roles.filter(r => !r.is_system).length}</div>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -824,7 +844,7 @@ const RoleManagement = () => {
 
         <Table
           columns={columns}
-          dataSource={filteredRoles}
+          dataSource={roles}
           rowKey="id"
           loading={loading}
           pagination={{
@@ -848,7 +868,7 @@ const RoleManagement = () => {
         open={modalVisible}
         onOk={handleSave}
         onCancel={() => setModalVisible(false)}
-        width={600}
+        width={900}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -868,7 +888,7 @@ const RoleManagement = () => {
           {/* 模板选择 */}
           {!editingRole && (
             <Form.Item label="权限模板">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
                 {customTemplates.map(tpl => (
                   <label
                     key={`custom-${tpl.id}`}
@@ -1000,12 +1020,11 @@ const RoleManagement = () => {
           clearTemplateSearch(); // 关闭时清空搜索框
         }}
         footer={null}
-        width={1200}
-        style={{ top: 20 }}
+        width={1000}
       >
-        <div className="space-y-6">
+        <div className="py-2">
           {/* 操作按钮区域 */}
-          <div className="flex flex-wrap gap-3 pb-4 border-b">
+          <div className="flex flex-wrap gap-2 mb-6">
             <Button
               type="primary"
               onClick={() => {
@@ -1042,16 +1061,16 @@ const RoleManagement = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 左侧：模板列表 */}
-            <div className="border rounded-lg p-4 bg-gray-50">
+            <div>
               <div className="text-sm font-medium text-gray-700 mb-3">已有模板</div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
                 {customTemplates.map(tpl => (
                   <div
                     key={tpl.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                    className={`px-3 py-2.5 rounded cursor-pointer transition-all ${
                       editingTemplate?.id === tpl.id
-                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100'
-                        : 'border-gray-200 bg-white hover:bg-gray-50'
+                        ? 'bg-blue-50 text-blue-900'
+                        : 'hover:bg-gray-50'
                     }`}
                     onClick={() => {
                       setEditingTemplate(tpl);
@@ -1063,13 +1082,10 @@ const RoleManagement = () => {
                       clearTemplateSearch(); // 编辑模板时清空搜索框
                     }}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{tpl.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{tpl.description || '无描述'}</div>
-                      </div>
-                      <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 ml-2">
-                        {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项权限
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{tpl.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {Array.isArray(tpl.permission_ids) ? tpl.permission_ids.length : 0} 项
                       </span>
                     </div>
                   </div>
@@ -1081,13 +1097,13 @@ const RoleManagement = () => {
             </div>
 
             {/* 右侧：模板编辑表单 */}
-            <div className="border rounded-lg p-4">
+            <div>
               <div className="text-sm font-medium text-gray-700 mb-3">
                 {editingTemplate ? '编辑模板' : '新建模板'}
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">模板名称</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">模板名称</label>
                   <Input
                     value={templateForm.name}
                     onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
@@ -1095,7 +1111,7 @@ const RoleManagement = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">模板描述</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">模板描述</label>
                   <Input
                     value={templateForm.description}
                     onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
@@ -1105,44 +1121,55 @@ const RoleManagement = () => {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-medium text-gray-700">权限配置</label>
-                    <div className="text-xs text-gray-500">已选择 {templateForm.permission_ids.length} 项</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-gray-500">已选择 {templateForm.permission_ids.length} 项</div>
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={() => {
+                          const allPermIds = permissions.map(p => p.id);
+                          const allSelected = allPermIds.every(id => templateForm.permission_ids.includes(id));
+                          if (allSelected) {
+                            setTemplateForm({ ...templateForm, permission_ids: [] });
+                          } else {
+                            setTemplateForm({ ...templateForm, permission_ids: allPermIds });
+                          }
+                        }}
+                      >
+                        {permissions.every(p => templateForm.permission_ids.includes(p.id)) ? '取消全选' : '全选所有'}
+                      </Button>
+                    </div>
                   </div>
-                  {/* 添加搜索框 */}
                   <div className="mb-3">
                     <Input
-                      placeholder="搜索权限模块或具体权限..."
+                      placeholder="搜索权限..."
                       value={templateSearchText}
                       onChange={(e) => setTemplateSearchText(e.target.value)}
                       allowClear
                     />
                   </div>
-                  <div className="max-h-64 overflow-y-auto space-y-3 border rounded p-3 bg-white">
+                  <div className="max-h-96 overflow-y-auto space-y-2">
                     {filteredModules.map(([key, name]) => {
                       const modulePerms = getFilteredPermissions(key, permissions);
-                      // 如果搜索时没有匹配的权限项，则不显示该模块
                       if (templateSearchText && modulePerms.length === 0) return null;
 
+                      const modulePermIds = modulePerms.map(p => p.id);
+                      const allSelected = modulePermIds.every(id => templateForm.permission_ids.includes(id));
+
                       return (
-                        <Card key={key} size="small" title={
-                          <div className="flex justify-between items-center">
-                            <span>{name}</span>
+                        <div key={key} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-gray-900">{name}</span>
                             <Button
                               type="link"
                               size="small"
                               onClick={() => {
-                                // 获取当前模块的所有权限ID
-                                const modulePermIds = modulePerms.map(p => p.id);
-                                // 检查是否所有权限都被选中
-                                const allSelected = modulePermIds.every(id => templateForm.permission_ids.includes(id));
-
                                 if (allSelected) {
-                                  // 如果全部选中，则取消选择所有权限
                                   setTemplateForm({
                                     ...templateForm,
                                     permission_ids: templateForm.permission_ids.filter(id => !modulePermIds.includes(id))
                                   });
                                 } else {
-                                  // 如果没有全部选中，则选择所有权限
                                   const newPermIds = [...new Set([...templateForm.permission_ids, ...modulePermIds])];
                                   setTemplateForm({
                                     ...templateForm,
@@ -1151,15 +1178,14 @@ const RoleManagement = () => {
                                 }
                               }}
                             >
-                              {modulePerms.every(p => templateForm.permission_ids.includes(p.id)) ? '取消全选' : '全选'}
+                              {allSelected ? '取消' : '全选'}
                             </Button>
                           </div>
-                        } className="mb-2">
-                          <div className="grid grid-cols-1 gap-2">
+                          <div className="grid grid-cols-1 gap-1.5">
                             {modulePerms.map(perm => {
                               const checked = templateForm.permission_ids.includes(perm.id);
                               return (
-                                <label key={perm.id} className="flex items-center gap-2 text-sm p-2 hover:bg-gray-50 rounded">
+                                <label key={perm.id} className="flex items-center gap-2 text-sm p-1.5 hover:bg-gray-50 rounded cursor-pointer">
                                   <input
                                     type="checkbox"
                                     checked={checked}
@@ -1172,18 +1198,17 @@ const RoleManagement = () => {
                                       });
                                     }}
                                   />
-                                  <span>{perm.description}</span>
+                                  <span className="text-gray-700">{perm.description}</span>
                                 </label>
                               );
                             })}
                           </div>
-                        </Card>
+                        </div>
                       );
                     })}
-                    {/* 当搜索没有结果时显示提示 */}
                     {templateSearchText && filteredModules.length === 0 && (
-                      <div className="text-center text-gray-500 py-4">
-                        未找到匹配的权限模块或权限项
+                      <div className="text-center text-gray-500 py-4 text-sm">
+                        未找到匹配的权限
                       </div>
                     )}
                   </div>
@@ -1214,7 +1239,7 @@ const RoleManagement = () => {
                       onClick={() => {
                         setEditingTemplate(null);
                         setTemplateForm({ name: '', description: '', permission_ids: [] });
-                        clearTemplateSearch(); // 取消编辑时清空搜索框
+                        clearTemplateSearch();
                       }}
                     >
                       取消
@@ -1227,17 +1252,14 @@ const RoleManagement = () => {
                           return;
                         }
                         try {
-                          console.log('保存模板数据:', templateForm);
                           if (editingTemplate) {
                             await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
                           } else {
-                            const result = await apiPost('/api/permission-templates', templateForm);
-                            console.log('新建模板结果:', result);
+                            await apiPost('/api/permission-templates', templateForm);
                           }
                           await fetchPermissionTemplates();
                           toast.success(editingTemplate ? '模板已更新' : '模板已创建');
                         } catch (error) {
-                          console.error('保存模板失败:', error);
                           const errorMessage = error.response?.data?.message || '保存失败';
                           toast.error(errorMessage);
                         }

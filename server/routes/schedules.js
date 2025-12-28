@@ -88,9 +88,9 @@ module.exports = async function (fastify, opts) {
     const { employee_id, user_id, schedule_date, shift_id } = request.body
 
     try {
-      // 验证必填字段
-      if (!employee_id || !user_id || !schedule_date || !shift_id) {
-        return reply.code(400).send({ success: false, message: '请填写完整信息' })
+      // 验证必填字段和日期有效性
+      if (!employee_id || !user_id || !schedule_date || !shift_id || schedule_date === '-') {
+        return reply.code(400).send({ success: false, message: '请提供有效的日期和排班信息' })
       }
 
       // 检查是否已有排班（包括带时间戳的旧数据）
@@ -149,9 +149,9 @@ module.exports = async function (fastify, opts) {
     }
 
     try {
-      // 验证必填字段
-      if (!employee_id || !schedule_date) {
-        return reply.code(400).send({ success: false, message: '请填写完整信息' })
+      // 验证必填字段和日期有效性
+      if (!employee_id || !schedule_date || schedule_date === '-') {
+        return reply.code(400).send({ success: false, message: '请提供有效的日期信息' })
       }
 
       // 检查是否已有排班（包括带时间戳的旧数据）

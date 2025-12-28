@@ -293,7 +293,7 @@ const MyMemos = () => {
 
                 <div className="memo-card-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {memo.content.substring(0, 100) + (memo.content.length > 100 ? '...' : '')}
+                    {memo.content.substring(0, 150) + (memo.content.length > 150 ? '...' : '')}
                   </ReactMarkdown>
                 </div>
 
@@ -303,7 +303,7 @@ const MyMemos = () => {
                     {memo.type === 'personal' ? '个人' : '部门'}
                   </span>
                   <span className="memo-date">
-                    {new Date(memo.created_at).toLocaleDateString()}
+                    {new Date(memo.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
@@ -408,7 +408,10 @@ const MyMemos = () => {
                 {currentMemo.type === 'department' && currentMemo.creator_name && (
                   <span>创建者：{currentMemo.creator_name}</span>
                 )}
-                <span>创建时间：{new Date(currentMemo.created_at).toLocaleString()}</span>
+                <span>创建时间：{new Date(currentMemo.created_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                {currentMemo.updated_at && currentMemo.updated_at !== currentMemo.created_at && (
+                  <span>更新时间：{new Date(currentMemo.updated_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                )}
               </div>
 
               <div className="memo-detail-content">

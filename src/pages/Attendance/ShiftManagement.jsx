@@ -795,6 +795,7 @@ const TimePicker = ({ value, onChange, placeholder }) => {
     const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     onChange(time);
     setInputValue(time);
+    setIsOpen(false);
   };
 
   const handleMinuteSelect = (m) => {
@@ -802,6 +803,7 @@ const TimePicker = ({ value, onChange, placeholder }) => {
     const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     onChange(time);
     setInputValue(time);
+    setIsOpen(false);
   };
 
   const handleNow = () => {

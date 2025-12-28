@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getApiUrl } from '../../utils/apiConfig';
 import { getCurrentUser, isSystemAdmin } from '../../utils/auth';
-import './SmartSchedule.css';
 
 const SmartSchedule = () => {
   const [departments, setDepartments] = useState([]);
@@ -63,6 +62,15 @@ const SmartSchedule = () => {
         return { year: prev.year + 1, month: 1 };
       }
       return { ...prev, month: prev.month + 1 };
+    });
+  };
+
+  const setQuickMonth = (offset = 0) => {
+    const today = new Date();
+    const targetDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    setSelectedMonth({
+      year: targetDate.getFullYear(),
+      month: targetDate.getMonth() + 1
     });
   };
 
@@ -319,206 +327,240 @@ const SmartSchedule = () => {
   };
 
   return (
-    <div className="smart-schedule-container">
-      <h2>🤖 智能排班</h2>
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* 头部 */}
+      <div className="mx-auto max-w-6xl mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">智能排班</h1>
+            <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Automation Scheduler</p>
+          </div>
+        </div>
+        <div className="h-0.5 bg-gradient-to-r from-blue-600/20 to-transparent w-full"></div>
+      </div>
 
       {/* 模态框 */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => !loading && setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-body">
-              <p style={{ whiteSpace: 'pre-line' }}>{modalMessage}</p>
-            </div>
-            {!loading && (
-              <div className="modal-footer">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="btn-close-modal"
-                >
-                  关闭
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={() => !loading && setShowModal(false)}>
+          <div className="w-full max-w-md transform rounded-xl bg-white p-8 shadow-2xl border border-gray-100 transition-all text-center" onClick={(e) => e.stopPropagation()}>
+            {loading ? (
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="w-12 h-12 border-4 border-gray-100 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="text-sm text-gray-600 font-medium">正在生成排班方案...</p>
               </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <p className="whitespace-pre-line text-gray-700 font-medium leading-relaxed">{modalMessage}</p>
+                </div>
+                <div className="flex justify-center border-t border-gray-50 pt-5">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="px-12 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+                  >
+                    确认
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
       )}
 
-      <div className="schedule-form">
-        <div className="form-section">
-          <h3>基本设置</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label>部门</label>
-              <select
-                className="department-selector"
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-              >
-                {departments.length === 0 ? (
-                  <option value="">加载中...</option>
-                ) : (
-                  departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>排班月份</label>
-              <div className="month-selector">
-                <button
-                  type="button"
-                  onClick={handlePrevMonth}
-                  className="btn-month-nav"
-                >
-                  ◀
-                </button>
-                <div className="month-display">
-                  {selectedMonth.year}年 {selectedMonth.month}月
-                </div>
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  className="btn-month-nav"
-                >
-                  ▶
-                </button>
+      <div className="mx-auto max-w-6xl space-y-6 pb-12">
+        {/* 主要表单区域 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 左侧：基本设置 */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm sticky top-6">
+              <div className="flex items-center gap-2 mb-6 pb-3 border-b border-gray-50">
+                <span className="text-lg">⚙️</span>
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">设置参数</h3>
               </div>
-              <div className="date-range-hint">
-                {startDate} 至 {endDate}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="form-section">
-          <div className="rules-header">
-            <h3>排班规则</h3>
-            <button onClick={addRule} className="btn-add-rule">
-              ➕ 添加规则
-            </button>
-          </div>
-
-          <div className="rules-list">
-            {scheduleRules.map((rule, index) => (
-              <div key={rule.id} className="rule-item">
-                <div className="rule-number">{index + 1}</div>
-
-                <div className="rule-fields">
-                  <div className="form-group">
-                    <label>客服</label>
-                    <select
-                      value={rule.employee_id}
-                      onChange={(e) => updateRule(rule.id, 'employee_id', e.target.value)}
-                    >
-                      <option value="">请选择客服</option>
-                      {employees.map(emp => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.real_name} ({emp.employee_no})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>开始日期</label>
-                    <select
-                      value={rule.start_day}
-                      onChange={(e) => updateRule(rule.id, 'start_day', e.target.value)}
-                    >
-                      <option value="">请选择</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                        <option key={day} value={day}>{day}号</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>结束日期</label>
-                    <select
-                      value={rule.end_day}
-                      onChange={(e) => updateRule(rule.id, 'end_day', e.target.value)}
-                      disabled={!rule.start_day}
-                    >
-                      <option value="">请选择</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1)
-                        .filter(day => !rule.start_day || day >= parseInt(rule.start_day))
-                        .map(day => (
-                          <option key={day} value={day}>{day}号</option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>班次</label>
-                    <select
-                      value={rule.shift_id}
-                      onChange={(e) => updateRule(rule.id, 'shift_id', e.target.value)}
-                    >
-                      <option value="">请选择班次</option>
-                      {shifts.map(shift => (
-                        <option key={shift.id} value={shift.id}>
-                          {shift.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {scheduleRules.length > 1 && (
-                  <button
-                    onClick={() => removeRule(rule.id)}
-                    className="btn-remove-rule"
-                    title="删除此规则"
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">选择部门</label>
+                  <select
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:bg-white focus:border-gray-900 focus:ring-0 transition-all cursor-pointer"
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
                   >
-                    ❌
+                    {departments.length === 0 ? (
+                      <option value="">加载中...</option>
+                    ) : (
+                      departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">排班周期</label>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => setQuickMonth(0)}
+                        className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                      >
+                        本月
+                      </button>
+                      <button
+                        onClick={() => setQuickMonth(1)}
+                        className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                      >
+                        下月
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden flex items-center shadow-inner">
+                    <button onClick={handlePrevMonth} className="p-3 text-gray-400 hover:text-blue-600 hover:bg-white transition-all">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="flex-1 text-center py-2.5 border-x border-gray-100">
+                      <span className="text-sm font-black text-gray-900 tracking-tight">{selectedMonth.year}年 {selectedMonth.month}月</span>
+                    </div>
+                    <button onClick={handleNextMonth} className="p-3 text-gray-400 hover:text-blue-600 hover:bg-white transition-all">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+                  <div className="mt-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100/30 text-center">
+                    <span className="text-[10px] font-bold text-blue-600 tracking-tight flex items-center justify-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      {startDate} → {endDate}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    onClick={generateSchedule}
+                    disabled={loading}
+                    className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    )}
+                    <span>生成排班方案</span>
                   </button>
-                )}
+                </div>
               </div>
-            ))}
+            </div>
           </div>
 
-          <div className="text-xs text-gray-600 mt-4">
-            <p>💡 提示：</p>
-            <ul className="list-disc list-inside ml-2">
-              <li>先选择开始日期，结束日期会自动过滤，只显示大于等于开始日期的选项</li>
-              <li>例如：开始日期选1号，结束日期选10号，表示1号到10号</li>
-              <li>选择"休息"表示该时间段休息</li>
-              <li>没有设置规则的员工和日期将在Excel中留空，可手动填写</li>
-            </ul>
-          </div>
-        </div>
+          {/* 右侧：规则列表 */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm min-h-[500px]">
+              <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-50">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📋</span>
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">规则定义</h3>
+                </div>
+                <button
+                  onClick={addRule}
+                  className="bg-blue-600 text-white px-5 py-2 text-xs font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  添加新规则
+                </button>
+              </div>
 
-        <div className="form-actions">
-          <button
-            onClick={generateSchedule}
-            disabled={loading}
-            className="btn-generate"
-          >
-            {loading ? '生成中...' : '📥 生成并下载Excel排班方案'}
-          </button>
-        </div>
-      </div>
+              <div className="space-y-4">
+                {scheduleRules.map((rule, index) => (
+                  <div key={rule.id} className="group relative flex items-center gap-4 bg-gray-50/50 border border-gray-100 rounded-xl p-5 hover:bg-white hover:border-gray-200 hover:shadow-md transition-all">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-xs font-black text-gray-400">
+                      {index + 1}
+                    </div>
 
+                    <div className="grid flex-1 grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">客服人员</label>
+                        <select
+                          className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:border-gray-900 focus:ring-0 transition-all"
+                          value={rule.employee_id}
+                          onChange={(e) => updateRule(rule.id, 'employee_id', e.target.value)}
+                        >
+                          <option value="">请选择</option>
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.id}>{emp.real_name} ({emp.employee_no})</option>
+                          ))}
+                        </select>
+                      </div>
 
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">开始日期</label>
+                        <select
+                          className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:border-gray-900 focus:ring-0"
+                          value={rule.start_day}
+                          onChange={(e) => updateRule(rule.id, 'start_day', e.target.value)}
+                        >
+                          <option value="">请选择</option>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                            <option key={day} value={day}>{day}号</option>
+                          ))}
+                        </select>
+                      </div>
 
-      <div className="help-section">
-        <h3>💡 使用说明</h3>
-        <ul>
-          <li><strong>添加规则：</strong>点击"添加规则"按钮可以添加多个排班规则</li>
-          <li><strong>设置排班：</strong>为每个客服选择日期范围和班次</li>
-          <li><strong>生成Excel：</strong>点击生成按钮会下载Excel文件，不会直接写入数据库</li>
-          <li><strong>导入排班：</strong>确认Excel内容无误后，在"排班管理"页面使用"导入Excel"功能</li>
-          <li><strong>灵活调整：</strong>可以在Excel中手动调整排班后再导入</li>
-        </ul>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">结束日期</label>
+                        <select
+                          className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:border-gray-900 focus:ring-0 disabled:opacity-40"
+                          value={rule.end_day}
+                          onChange={(e) => updateRule(rule.id, 'end_day', e.target.value)}
+                          disabled={!rule.start_day}
+                        >
+                          <option value="">请选择</option>
+                          {Array.from({ length: 31 }, (_, i) => i + 1)
+                            .filter(day => !rule.start_day || day >= parseInt(rule.start_day))
+                            .map(day => (
+                              <option key={day} value={day}>{day}号</option>
+                            ))}
+                        </select>
+                      </div>
 
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-semibold text-blue-900 mb-2">📝 排班规则示例</h4>
-          <div className="text-sm text-gray-700">
-            <p>• 张三：1-10 休息</p>
-            <p>• 李四：1-5 早班</p>
-            <p>• 王五：6-10 晚班</p>
-            <p>• 赵六：11-15 中班</p>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">排班班次</label>
+                        <select
+                          className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:border-gray-900 focus:ring-0"
+                          value={rule.shift_id}
+                          onChange={(e) => updateRule(rule.id, 'shift_id', e.target.value)}
+                        >
+                          <option value="">请选择</option>
+                          {shifts.map(shift => (
+                            <option key={shift.id} value={shift.id}>{shift.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {scheduleRules.length > 1 && (
+                      <button
+                        onClick={() => removeRule(rule.id)}
+                        className="w-8 h-8 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                        title="删除规则"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {scheduleRules.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+                  <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <p className="text-sm font-medium">暂未添加排班规则</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

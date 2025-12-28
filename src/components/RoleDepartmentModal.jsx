@@ -8,6 +8,8 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
   const [selectedDepartments, setSelectedDepartments] = useState([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [searchText, setSearchText] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
 
   useEffect(() => {
     if (isOpen && role) {
@@ -66,12 +68,43 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
   }
 
   const handleSelectAll = () => {
-    if (selectedDepartments.length === departments.length) {
-      setSelectedDepartments([])
+    const filteredDepts = getFilteredDepartments()
+    const filteredIds = filteredDepts.map(d => d.id)
+    const allSelected = filteredIds.every(id => selectedDepartments.includes(id))
+
+    if (allSelected) {
+      // 取消选择所有过滤后的部门
+      setSelectedDepartments(selectedDepartments.filter(id => !filteredIds.includes(id)))
     } else {
-      setSelectedDepartments(departments.map(d => d.id))
+      // 选择所有过滤后的部门
+      setSelectedDepartments([...new Set([...selectedDepartments, ...filteredIds])])
     }
   }
+
+  // 获取过滤后的部门列表
+  const getFilteredDepartments = () => {
+    return departments.filter(dept => {
+      // 状态筛选
+      if (filterStatus !== 'all' && dept.status !== filterStatus) {
+        return false
+      }
+
+      // 搜索筛选
+      if (searchText) {
+        const searchLower = searchText.toLowerCase()
+        return (
+          dept.name?.toLowerCase().includes(searchLower) ||
+          dept.description?.toLowerCase().includes(searchLower)
+        )
+      }
+
+      return true
+    })
+  }
+
+  const filteredDepartments = getFilteredDepartments()
+  const allFilteredSelected = filteredDepartments.length > 0 &&
+    filteredDepartments.every(d => selectedDepartments.includes(d.id))
 
   const handleSave = async () => {
     setSaving(true)
@@ -162,8 +195,30 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
             onClick={handleSelectAll}
             className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
           >
-            {selectedDepartments.length === departments.length ? '取消全选' : '全选'}
+            {allFilteredSelected ? '取消全选' : '全选'}
           </button>
+        </div>
+
+        {/* 搜索和筛选 */}
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="搜索部门名称或描述..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 text-sm rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-200 text-sm rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all bg-white"
+          >
+            <option value="all">全部状态</option>
+            <option value="active">启用</option>
+            <option value="inactive">禁用</option>
+          </select>
         </div>
 
         {/* 部门列表 */}
@@ -178,43 +233,40 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
             </svg>
             <p>暂无可用部门</p>
           </div>
+        ) : filteredDepartments.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <p>没有匹配的部门</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
-            {departments.map(dept => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-80 overflow-y-auto p-1">
+            {filteredDepartments.map(dept => (
               <div
                 key={dept.id}
                 onClick={() => handleToggleDepartment(dept.id)}
-                className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-all duration-200 ${
                   selectedDepartments.includes(dept.id)
-                    ? 'border-blue-500 bg-blue-50 shadow-sm'
-                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                 }`}
               >
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
+                <div className={`flex items-center justify-center w-5 h-5 rounded border transition-colors ${
                   selectedDepartments.includes(dept.id)
                     ? 'border-blue-500 bg-blue-500'
                     : 'border-gray-300'
                 }`}>
                   {selectedDepartments.includes(dept.id) && (
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">{dept.name}</div>
-                  {dept.description && (
-                    <div className="text-xs text-gray-500 mt-0.5 truncate">{dept.description}</div>
-                  )}
-                  <div className="flex items-center mt-1">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      dept.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {dept.status === 'active' ? '启用' : '禁用'}
+                  <div className="text-sm font-medium text-gray-900 truncate">{dept.name}</div>
+                  {dept.status === 'inactive' && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium text-red-600">
+                      禁用
                     </span>
-                  </div>
+                  )}
                 </div>
               </div>
             ))}

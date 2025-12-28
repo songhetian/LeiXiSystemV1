@@ -1170,19 +1170,19 @@ function EmployeeManagement() {
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => handleManageUserDepartments(emp)}
-                          className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded transition-colors"
                         >
                           部门权限
                         </button>
                         <button
                           onClick={() => handleEdit(emp)}
-                          className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded transition-colors"
                         >
                           编辑
                         </button>
                         <button
                           onClick={() => handleDeleteClick(emp)}
-                          className="px-3 py-1.5 text-xs font-medium text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded transition-colors"
                         >
                           删除
                         </button>

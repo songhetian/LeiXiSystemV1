@@ -120,9 +120,9 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
         {detailedEmployee && (
           <div className="flex flex-col">
             {/* 头部 - 紧凑布局，突出关键信息 */}
-            <div className="bg-blue-600 border-b border-blue-700 px-6 py-4">
+            <div className="bg-gray-100 border-b border-gray-200 px-6 py-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-lg bg-white flex items-center justify-center text-xl font-bold text-blue-600 overflow-hidden flex-shrink-0">
+                <div className="w-14 h-14 rounded-lg bg-white flex items-center justify-center text-xl font-bold text-gray-600 overflow-hidden flex-shrink-0">
                   {detailedEmployee.avatar ? (
                     <img src={getImageUrl(detailedEmployee.avatar, { bustCache: true })} alt={detailedEmployee.real_name} className="w-full h-full object-cover" />
                   ) : (
@@ -131,7 +131,7 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-xl font-bold text-white">{detailedEmployee.real_name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900">{detailedEmployee.real_name}</h3>
                     <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                       detailedEmployee.status === 'active' ? 'bg-green-500 text-white' :
                       detailedEmployee.status === 'resigned' ? 'bg-red-500 text-white' :
@@ -140,11 +140,11 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
                       {detailedEmployee.status === 'active' ? '在职' : detailedEmployee.status === 'resigned' ? '离职' : '已禁用'}
                     </span>
                   </div>
-                  <p className="text-sm text-blue-100">{detailedEmployee.position || '岗位待定'}</p>
+                  <p className="text-sm text-gray-600">{detailedEmployee.position || '岗位待定'}</p>
                 </div>
-                <div className="text-right text-sm text-blue-100 space-y-1">
-                  <div>工号: <span className="font-medium text-white">{detailedEmployee.employee_no}</span></div>
-                  <div>司龄: <span className="font-medium text-white">{calculateTenureFromChanges()}</span></div>
+                <div className="text-right text-sm text-gray-600 space-y-1">
+                  <div>工号: <span className="font-medium text-gray-900">{detailedEmployee.employee_no}</span></div>
+                  <div>司龄: <span className="font-medium text-gray-900">{calculateTenureFromChanges()}</span></div>
                 </div>
               </div>
             </div>

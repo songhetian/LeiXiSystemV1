@@ -149,12 +149,26 @@ const Sidebar = ({
   }, [searchQuery, menuItems]);
 
   // Handler to toggle the expanded/collapsed state of a menu
-  const toggleMenu = (menuId) => {
-    setExpandedMenus(prev =>
-      prev.includes(menuId)
-        ? prev.filter(id => id !== menuId)
-        : [...prev, menuId]
-    );
+  const toggleMenu = (menuId, level = 1) => {
+    setExpandedMenus(prev => {
+      if (prev.includes(menuId)) {
+        // 如果当前菜单已展开，则关闭它
+        return prev.filter(id => id !== menuId);
+      } else {
+        // 如果当前菜单未展开
+        if (level === 1) {
+          // 只有一级导航时才关闭其他一级菜单
+          // 获取所有一级菜单的ID
+          const topLevelMenuIds = allMenuItems.map(item => item.id);
+          // 关闭其他一级菜单，保留当前菜单
+          const newExpanded = prev.filter(id => !topLevelMenuIds.includes(id));
+          return [...newExpanded, menuId];
+        } else {
+          // 二级或三级导航直接展开，不影响其他一级菜单
+          return [...prev, menuId];
+        }
+      }
+    });
   };
 
   // Clear search
@@ -185,7 +199,7 @@ const Sidebar = ({
 
   return (
     <aside
-      className="w-80 border-r border-gray-200 shadow-sm flex flex-col"
+      className="w-80 border-r border-gray-200 flex flex-col"
       style={{ backgroundColor: theme.background }}
     >
       {/* Scrollable Main Area */}
@@ -208,7 +222,6 @@ const Sidebar = ({
       </div>
 
       {/* Fixed Footer */}
-      {/* Fixed Footer */}
       <SidebarFooter user={user} onLogout={onLogout} />
     </aside>
   );
@@ -217,16 +230,10 @@ const Sidebar = ({
 // --- Sub-components for Clarity ---
 
 const SidebarHeader = () => (
-  <div className="mb-4 pb-4 border-b border-gray-100 flex items-center gap-3 px-2">
-    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
-      <ThunderboltFilled className="text-xl" />
-    </div>
+  <div className="mb-4 pb-4 border-b border-gray-200 flex items-center gap-3 px-2">
+    <img src="./icons/logo.ico" alt="雷犀客服管理系统" className="w-10 h-10 rounded-lg" />
     <div>
-      <h1 className="text-lg font-bold text-gray-800 tracking-tight leading-tight">雷犀客服管理系统</h1>
-      <div className="flex items-center gap-1.5 mt-0.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Enterprise</span>
-      </div>
+      <h1 className="text-lg font-bold text-gray-800">雷犀客服管理系统</h1>
     </div>
   </div>
 );
@@ -240,12 +247,12 @@ const SearchBox = ({ searchQuery, setSearchQuery, clearSearch }) => (
         placeholder="搜索功能..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
+        className="w-full pl-9 pr-8 py-2 border border-gray-300 text-sm rounded-lg"
       />
       {searchQuery && (
         <button
           onClick={clearSearch}
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400"
         >
           <CloseCircleOutlined className="text-sm" />
         </button>
@@ -255,13 +262,10 @@ const SearchBox = ({ searchQuery, setSearchQuery, clearSearch }) => (
 );
 
 const UserInfo = ({ user, onNavigate }) => (
-  <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-100">
+  <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
     <div className="flex items-center gap-3">
-      <div className="relative">
-        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-lg text-white font-semibold">
-          {user?.real_name?.charAt(0) || '用户'}
-        </div>
-
+      <div className="w-10 h-10 bg-blue-500 flex items-center justify-center text-lg text-white font-semibold rounded-full">
+        {user?.real_name?.charAt(0) || '用户'}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate text-gray-800">{user?.real_name || '用户'}</p>
@@ -300,7 +304,7 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
       case 1:
         return {
           container: 'mb-1',
-          button: `px-4 py-2.5 text-gray-800 hover:bg-gray-100 font-semibold rounded-lg transition-colors ${
+          button: `px-4 py-2 text-gray-800 hover:bg-gray-100 font-semibold rounded-lg ${
             isActive ? 'bg-blue-50 text-blue-600' : ''
           }`,
           icon: 'text-base',
@@ -309,7 +313,7 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
       case 2:
         return {
           container: 'ml-4 border-l-2 border-gray-200',
-          button: `pl-4 pr-4 py-2 rounded-lg transition-colors ${
+          button: `pl-4 pr-4 py-2 rounded-lg ${
             isActive
               ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-500 font-medium'
               : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
@@ -320,7 +324,7 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
       case 3:
         return {
           container: 'ml-8 border-l-2 border-gray-200',
-          button: `pl-4 pr-4 py-1.5 rounded-md transition-colors ${
+          button: `pl-4 pr-4 py-1.5 rounded-lg ${
             isActive
               ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-400 font-medium'
               : 'text-gray-600 hover:bg-gray-50 hover:text-blue-500'
@@ -361,7 +365,7 @@ const MenuItem = ({ item, level, activeTab, setActiveTab, expandedMenus, toggleM
   // 处理菜单项点击事件
   const handleMenuClick = () => {
     if (hasChildren) {
-      toggleMenu(item.id);
+      toggleMenu(item.id, level);
     } else {
       // 使用从父组件传入的setActiveTab函数
       setActiveTab(item.id);
@@ -424,9 +428,9 @@ const SidebarFooter = ({ user, onLogout }) => {
   };
 
   return (
-    <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+    <div className="p-4 border-t border-gray-200 bg-gray-50">
       <div className="flex items-center gap-3 mb-3">
-         <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-500 border-2 border-white shadow-sm">
+         <div className="w-9 h-9 bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 rounded-full">
             {user?.real_name?.charAt(0) || <UserOutlined />}
          </div>
          <div className="flex-1 min-w-0">
@@ -436,7 +440,7 @@ const SidebarFooter = ({ user, onLogout }) => {
       </div>
       <button
         onClick={handleLogoutClick} // 修改为新的处理函数
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-100 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 text-sm font-medium rounded-lg"
       >
         <LogoutOutlined />
         <span>退出登录</span>
