@@ -142,11 +142,13 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
       title: '规则名称',
       dataIndex: 'name',
       key: 'name',
+      align: 'center',
     },
     {
       title: '转换比例',
       dataIndex: 'ratio',
       key: 'ratio',
+      align: 'center',
       render: (ratio) => {
         const hoursPerDay = Math.round(1 / ratio);
         return `1 天 = ${hoursPerDay} 小时`;
@@ -156,11 +158,13 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
       title: '说明',
       dataIndex: 'description',
       key: 'description',
+      align: 'center',
     },
     {
       title: '状态',
       dataIndex: 'enabled',
       key: 'enabled',
+      align: 'center',
       render: (enabled) => (
         <span className={enabled ? 'text-green-600' : 'text-gray-400'}>
           {enabled ? '✓ 启用' : '✗ 禁用'}
@@ -170,6 +174,7 @@ const ConversionRulesSettings = ({ visible, onClose, standalone = false }) => {
     {
       title: '操作',
       key: 'action',
+      align: 'center',
       render: (_, record) => (
         <div className="space-x-2">
           <Button

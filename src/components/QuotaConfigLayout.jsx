@@ -6,7 +6,7 @@ import SystemConfigPage from './SystemConfigPage';
 import VacationQuotaSettings from './VacationQuotaSettings';
 
 const QuotaConfigLayout = () => {
-  const [activeTab, setActiveTab] = useState('quota');
+  const [activeTab, setActiveTab] = useState('holiday');
 
   return (
     <div className="quota-config-layout">
@@ -16,16 +16,6 @@ const QuotaConfigLayout = () => {
         type="card"
         size="large"
         items={[
-          {
-            key: 'quota',
-            label: (
-              <span>
-                <CalendarOutlined />
-                员工额度
-              </span>
-            ),
-            children: <VacationQuotaSettings />,
-          },
           {
             key: 'holiday',
             label: (

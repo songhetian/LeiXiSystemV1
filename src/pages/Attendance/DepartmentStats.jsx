@@ -147,7 +147,7 @@ export default function DepartmentStats() {
 
       const response = await axios.get(getApiUrl('/api/attendance/records'), {
         params: {
-          employee_id: employee.user_id, // Using user_id from stats as employee_id for records API
+          employee_id: employee.employee_id, // Use employee_id from stats
           start_date: startDate,
           end_date: endDate
         },
@@ -217,13 +217,6 @@ export default function DepartmentStats() {
 
   const columns = [
     {
-      title: '工号',
-      dataIndex: 'employee_no',
-      key: 'employee_no',
-      align: 'center',
-      width: 120
-    },
-    {
       title: '姓名',
       dataIndex: 'real_name',
       key: 'real_name',
@@ -259,7 +252,10 @@ export default function DepartmentStats() {
       key: 'late_count',
       align: 'center',
       width: 80,
-      render: (value) => value > 0 ? value : '-'
+      render: (value) => {
+        const count = Number(value) || 0
+        return count > 0 ? count : '-'
+      }
     },
     {
       title: '早退',
@@ -267,7 +263,10 @@ export default function DepartmentStats() {
       key: 'early_count',
       align: 'center',
       width: 80,
-      render: (value) => value > 0 ? value : '-'
+      render: (value) => {
+        const count = Number(value) || 0
+        return count > 0 ? count : '-'
+      }
     },
     {
       title: '缺勤',
@@ -275,7 +274,10 @@ export default function DepartmentStats() {
       key: 'absent_count',
       align: 'center',
       width: 80,
-      render: (value) => value > 0 ? value : '-'
+      render: (value) => {
+        const count = Number(value) || 0
+        return count > 0 ? count : '-'
+      }
     },
     {
       title: '请假',
@@ -470,7 +472,7 @@ export default function DepartmentStats() {
                 <div>
                   <div className="text-xs text-red-600 font-medium mb-1">迟到次数</div>
                   <div className="text-3xl font-bold text-red-900">
-                    {stats.summary.total_late_count}
+                    {Number(stats.summary.total_late_count) || 0}
                   </div>
                   <div className="text-xs text-red-600 mt-1">次</div>
                 </div>
@@ -487,7 +489,7 @@ export default function DepartmentStats() {
                 <div>
                   <div className="text-xs text-orange-600 font-medium mb-1">早退次数</div>
                   <div className="text-3xl font-bold text-orange-900">
-                    {stats.summary.total_early_count}
+                    {Number(stats.summary.total_early_count) || 0}
                   </div>
                   <div className="text-xs text-orange-600 mt-1">次</div>
                 </div>
@@ -537,87 +539,186 @@ export default function DepartmentStats() {
         </>
       )}
 
-      {/* Details Modal */}
+      {/* Details Modal - Simplified Design */}
       <Modal
-        title={`${selectedEmployeeForDetails?.real_name} - 考勤明细`}
         open={showDetailsModal}
         onCancel={() => setShowDetailsModal(false)}
         footer={null}
-        width={700}
+        width={1200}
         centered
+        title={null}
+        className="attendance-details-modal"
       >
-        {detailsLoading ? (
-          <div className="text-center py-12 text-gray-500">加载中...</div>
-        ) : (
-          <Table
-            columns={[
-              {
-                title: '日期',
-                dataIndex: 'record_date',
-                key: 'record_date',
-                align: 'center',
-                render: (value) => formatDate(value)
-              },
-              {
-                title: '班次',
-                dataIndex: 'shift_name',
-                key: 'shift_name',
-                align: 'center'
-              },
-              {
-                title: '上班打卡',
-                dataIndex: 'clock_in_time',
-                key: 'clock_in_time',
-                align: 'center',
-                render: (value) => value ? formatDateTime(value).split(' ')[1] : '-'
-              },
-              {
-                title: '下班打卡',
-                dataIndex: 'clock_out_time',
-                key: 'clock_out_time',
-                align: 'center',
-                render: (value) => value ? formatDateTime(value).split(' ')[1] : '-'
-              },
-              {
-                title: '状态',
-                dataIndex: 'status',
-                key: 'status',
-                align: 'center',
-                render: (value) => (
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                    value === 'normal' ? 'bg-green-50 text-green-700 border border-green-200' :
-                    value === 'late' ? 'bg-red-50 text-red-700 border border-red-200' :
-                    value === 'early' || value === 'early_leave' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
-                    value === 'leave' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                    value === 'rest' || value === 'off' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                    'bg-gray-50 text-gray-700 border border-gray-200'
-                  }`}>
+        <div className="bg-white">
+          {/* Modal Header - Simplified */}
+          <div className="border-b border-gray-200 pb-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedEmployeeForDetails?.real_name}</h2>
+                <p className="text-sm text-gray-500 mt-1">考勤明细记录</p>
+              </div>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Summary Cards - Simplified */}
+          {selectedEmployeeForDetails && (
+            <div className="mb-6">
+              <div className="grid grid-cols-4 gap-6">
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <div className="text-sm text-gray-500 mb-2">出勤天数</div>
+                  <div className="text-3xl font-bold text-gray-900">{selectedEmployeeForDetails.attendance_days}</div>
+                  <div className="text-xs text-gray-400 mt-1">天</div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <div className="text-sm text-gray-500 mb-2">出勤率</div>
+                  <div className="text-3xl font-bold text-green-600">{selectedEmployeeForDetails.attendance_rate}%</div>
+                  <div className="text-xs text-gray-400 mt-1">百分比</div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <div className="text-sm text-gray-500 mb-2">迟到次数</div>
+                  <div className="text-3xl font-bold text-red-600">{Number(selectedEmployeeForDetails.late_count) || 0}</div>
+                  <div className="text-xs text-gray-400 mt-1">次</div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <div className="text-sm text-gray-500 mb-2">工作时长</div>
+                  <div className="text-3xl font-bold text-blue-600">{selectedEmployeeForDetails.total_work_hours}h</div>
+                  <div className="text-xs text-gray-400 mt-1">小时</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Details Table */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">详细记录</h3>
+            {detailsLoading ? (
+              <div className="bg-gray-50 rounded-lg p-16 text-center">
+                <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                <div className="text-gray-500">加载中...</div>
+              </div>
+            ) : (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <Table
+                  columns={[
                     {
-                      value === 'normal' ? '正常' :
-                      value === 'late' ? '迟到' :
-                      value === 'early' || value === 'early_leave' ? '早退' :
-                      value === 'leave' ? '请假' :
-                      value === 'rest' || value === 'off' ? '休息' :
-                      value === 'absent' ? '缺勤' :
-                      value
+                      title: '日期',
+                      dataIndex: 'record_date',
+                      key: 'record_date',
+                      align: 'center',
+                      width: 130,
+                      render: (value) => (
+                        <span className="font-medium text-gray-900">{formatDate(value)}</span>
+                      )
+                    },
+                    {
+                      title: '班次',
+                      dataIndex: 'shift_name',
+                      key: 'shift_name',
+                      align: 'center',
+                      width: 120,
+                      render: (value) => (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          {value || '-'}
+                        </span>
+                      )
+                    },
+                    {
+                      title: '上班打卡',
+                      dataIndex: 'clock_in_time',
+                      key: 'clock_in_time',
+                      align: 'center',
+                      width: 120,
+                      render: (value) => (
+                        <span className="text-gray-700 font-medium">
+                          {value ? formatDateTime(value).split(' ')[1] : '-'}
+                        </span>
+                      )
+                    },
+                    {
+                      title: '下班打卡',
+                      dataIndex: 'clock_out_time',
+                      key: 'clock_out_time',
+                      align: 'center',
+                      width: 120,
+                      render: (value) => (
+                        <span className="text-gray-700 font-medium">
+                          {value ? formatDateTime(value).split(' ')[1] : '-'}
+                        </span>
+                      )
+                    },
+                    {
+                      title: '工作时长',
+                      dataIndex: 'work_hours',
+                      key: 'work_hours',
+                      align: 'center',
+                      width: 110,
+                      render: (value) => (
+                        <span className="text-gray-900 font-semibold">
+                          {value ? `${value}h` : '-'}
+                        </span>
+                      )
+                    },
+                    {
+                      title: '状态',
+                      dataIndex: 'status',
+                      key: 'status',
+                      align: 'center',
+                      width: 110,
+                      render: (value) => {
+                        const statusConfig = {
+                          normal: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', label: '正常' },
+                          late: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: '迟到' },
+                          early: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: '早退' },
+                          early_leave: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: '早退' },
+                          leave: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: '请假' },
+                          rest: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: '休息' },
+                          off: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: '休息' },
+                          absent: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300', label: '缺勤' }
+                        }
+                        const config = statusConfig[value] || { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', label: value }
+                        return (
+                          <span className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium ${config.bg} ${config.text} border ${config.border}`}>
+                            {config.label}
+                          </span>
+                        )
+                      }
                     }
-                  </span>
-                )
-              }
-            ]}
-            dataSource={employeeDetails}
-            rowKey={(record, idx) => idx}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `共 ${total} 条`,
-              size: 'small'
-            }}
-            size="small"
-            tableLayout="fixed"
-            scroll={{ y: 400 }}
-          />
-        )}
+                  ]}
+                  dataSource={employeeDetails}
+                  rowKey={(record, idx) => idx}
+                  pagination={{
+                    pageSize: 15,
+                    showSizeChanger: true,
+                    showTotal: (total) => `共 ${total} 条记录`,
+                    size: 'default',
+                    pageSizeOptions: ['10', '15', '20', '30']
+                  }}
+                  size="middle"
+                  scroll={{ y: 500 }}
+                  locale={{
+                    emptyText: (
+                      <div className="py-16 text-center">
+                        <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 className="mt-4 text-base font-medium text-gray-900">暂无考勤记录</h3>
+                        <p className="mt-2 text-sm text-gray-500">该员工在此时间段内没有考勤数据</p>
+                      </div>
+                    )
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </Modal>
       </div>
     </div>

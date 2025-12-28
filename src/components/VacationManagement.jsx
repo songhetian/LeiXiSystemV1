@@ -311,17 +311,20 @@ const VacationManagement = () => {
           >
             转换
           </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<SettingOutlined />}
-            onClick={() => {
-              setSelectedEmployee(record);
-              setQuotaModalVisible(true);
-            }}
-          >
-            额度
-          </Button>
+{/* 隐藏额度按钮 */}
+{/*
+<Button
+  type="link"
+  size="small"
+  icon={<SettingOutlined />}
+  onClick={() => {
+    setSelectedEmployee(record);
+    setQuotaModalVisible(true);
+  }}
+>
+  额度
+</Button>
+*/}
         </Space>
       )
     }
@@ -384,16 +387,18 @@ const VacationManagement = () => {
               >
                 导出选中 ({selectedRowKeys.length})
               </Button>
-              <Button
-                icon={<SettingOutlined />}
-                onClick={() => setBatchQuotaModalVisible(true)}
-              >
-                批量额度
-              </Button>
+{/*
+<Button
+  icon={<SettingOutlined />}
+  onClick={() => setBatchQuotaModalVisible(true)}
+>
+  批量额度
+</Button>
+*/}
             </Button.Group>
           )}
 
-          <Button icon={<SettingOutlined />} onClick={() => setWizardVisible(true)}>假期配置向导</Button>
+          {/* <Button icon={<SettingOutlined />} onClick={() => setWizardVisible(true)}>假期配置向导</Button> */}
           <Button icon={<SettingOutlined />} onClick={() => setTypesModalVisible(true)}>假期类型</Button>
           <Button icon={<ExportOutlined />} onClick={handleExport}>导出全部</Button>
         </Space>

@@ -21,6 +21,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
   const [editingType, setEditingType] = useState(null);
   const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
   const [selectedQuickTypes, setSelectedQuickTypes] = useState(COMMON_VACATION_TYPES.map(t => t.code));
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [form] = Form.useForm();
 
   // 中文名称到英文的映射
@@ -38,7 +39,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
   // 生成唯一的假期类型编码
   const generateVacationCode = (name, existingCodes = []) => {
     if (!name) return '';
-    
+
     // 1. 检查是否有直接映射
     if (chineseToEnglishMap[name]) {
       let code = chineseToEnglishMap[name];
@@ -51,13 +52,13 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       }
       return uniqueCode;
     }
-    
+
     // 2. 处理其他名称
     let code = name.toLowerCase()
       .replace(/[^a-z0-9\s]/g, '') // 移除特殊字符
       .replace(/\s+/g, '_') // 替换空格为下划线
       .replace(/^_|_$/g, ''); // 移除首尾下划线
-    
+
     // 3. 确保唯一性
     let counter = 1;
     let uniqueCode = code;
@@ -65,7 +66,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       uniqueCode = `${code}_${counter}`;
       counter++;
     }
-    
+
     return uniqueCode;
   };
 
@@ -94,14 +95,8 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       });
       const data = await response.json();
       if (data.success) {
-        // 按照置顶和排序顺序排列
-        const sortedTypes = data.data.sort((a, b) => {
-          if (a.is_pinned !== b.is_pinned) {
-            return b.is_pinned - a.is_pinned; // 置顶的在前
-          }
-          return (a.sort_order || 999) - (b.sort_order || 999);
-        });
-        setTypes(sortedTypes);
+        // 后端已经按照 is_pinned DESC, sort_order ASC 排序
+        setTypes(data.data);
       } else {
         message.error(data.message || '加载假期类型失败');
       }
@@ -146,7 +141,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
   const handleDelete = async (id) => {
     Modal.confirm({
       title: '确认删除',
-      content: '确定要删除这个假期类型吗？',
+      content: '确定要删除这个假期类型吗？此操作不可逆。',
       onOk: async () => {
         try {
           const token = localStorage.getItem('token');
@@ -157,12 +152,45 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           const data = await response.json();
           if (data.success) {
             message.success('删除成功');
+            setSelectedRowKeys(prev => prev.filter(key => key !== id));
             loadTypes();
           } else {
             message.error(data.message || '删除失败');
           }
         } catch (error) {
           message.error('删除失败');
+        }
+      }
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个假期类型吗？此操作不可逆。`,
+      onOk: async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${getApiBaseUrl()}/vacation-types/batch-delete`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ids: selectedRowKeys })
+          });
+          const data = await response.json();
+          if (data.success) {
+            message.success('批量删除成功');
+            setSelectedRowKeys([]);
+            loadTypes();
+          } else {
+            message.error(data.message || '批量删除失败');
+          }
+        } catch (error) {
+          message.error('批量删除失败');
         }
       }
     });
@@ -241,6 +269,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       title: '置顶',
       key: 'pin',
       width: 80,
+      align: 'center',
       render: (_, record) => (
         <Button
           type="text"
@@ -253,16 +282,19 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
+      align: 'center',
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
+      align: 'center',
     },
     {
       title: '计入总额',
       dataIndex: 'included_in_total',
       key: 'included_in_total',
+      align: 'center',
       render: (included) => (
         <span className={included ? 'text-blue-600' : 'text-gray-400'}>
           {included ? '是' : '否'}
@@ -273,6 +305,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       title: '状态',
       dataIndex: 'enabled',
       key: 'enabled',
+      align: 'center',
       render: (enabled) => (
         <span className={enabled ? 'text-green-600' : 'text-gray-400'}>
           {enabled ? '启用' : '禁用'}
@@ -282,6 +315,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
     {
       title: '操作',
       key: 'action',
+      align: 'center',
       render: (_, record) => (
         <div className="space-x-2">
           <Button
@@ -312,6 +346,15 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           <p className="text-gray-600 text-sm mt-1">管理系统中的假期类型配置</p>
         </div>
         <div className="space-x-2">
+          {selectedRowKeys.length > 0 && (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleBatchDelete}
+            >
+              批量删除 ({selectedRowKeys.length})
+            </Button>
+          )}
           <Button
             icon={<PlusOutlined />}
             onClick={() => setQuickAddModalVisible(true)}
@@ -324,7 +367,7 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
             onClick={() => {
               setEditingType(null);
               form.resetFields();
-              form.setFieldsValue({ enabled: true, included_in_total: true, base_days: 0 });
+              form.setFieldsValue({ enabled: true, included_in_total: true, base_days: 0, sort_order: (types.length > 0 ? Math.max(...types.map(t => t.sort_order || 0)) + 1 : 1) });
               setModalVisible(true);
             }}
           >
@@ -334,11 +377,20 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
       </div>
 
       <Table
+        rowSelection={{
+          selectedRowKeys,
+          onChange: setSelectedRowKeys,
+        }}
         columns={columns}
         dataSource={types}
         rowKey="id"
         loading={loading}
-        pagination={false}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showTotal: (total) => `共 ${total} 条`,
+          style: { marginTop: 16 }
+        }}
       />
 
       <Modal
@@ -355,11 +407,11 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           <Form.Item
             name="code"
             label="类型代码 (唯一标识)"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: '请输入类型代码' }]}
           >
-            <Input 
-              disabled={!!editingType} 
-              placeholder="例如: annual_leave" 
+            <Input
+              disabled={!!editingType}
+              placeholder="例如: annual_leave"
               readOnly={!!editingType}
             />
           </Form.Item>
@@ -367,30 +419,42 @@ const VacationTypeManagement = ({ visible, onClose, standalone = false }) => {
           <Form.Item
             name="name"
             label="类型名称"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: '请输入类型名称' }]}
           >
-            <Input 
-              placeholder="例如: 年假" 
+            <Input
+              placeholder="例如: 年假"
               onChange={handleNameChange}
             />
           </Form.Item>
 
-          <Form.Item
-            name="base_days"
-            label="基准天数 (默认额度)"
-            rules={[{ required: true }]}
-          >
-            <Space.Compact style={{ width: '100%' }}>
-              <InputNumber min={0} precision={1} className="w-full" />
-              <Input defaultValue="天" readOnly={true} disabled={true} />
-            </Space.Compact>
-          </Form.Item>
+{/* 隐藏基准天数，因为用户反馈没有使用 */}
+{/*
+<Form.Item
+  name="base_days"
+  label="基准天数 (默认额度)"
+  rules={[{ required: true }]}
+>
+  <Space.Compact style={{ width: '100%' }}>
+    <InputNumber min={0} precision={1} className="w-full" />
+    <Input defaultValue="天" readOnly={true} disabled={true} />
+  </Space.Compact>
+</Form.Item>
+*/}
 
           <Form.Item
+            description="备注，用于区分不同类型的假期"
             name="description"
             label="描述"
           >
             <Input.TextArea rows={2} />
+          </Form.Item>
+
+          <Form.Item
+            name="sort_order"
+            label="排序号"
+            tooltip="数字越小越靠前"
+          >
+            <InputNumber min={0} className="w-full" placeholder="例如: 1" />
           </Form.Item>
 
           <div className="flex space-x-8">

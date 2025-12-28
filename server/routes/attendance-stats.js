@@ -107,13 +107,14 @@ module.exports = async function (fastify, opts) {
     // Fetch employee stats for the department
     const [allStats] = await pool.query(
       `SELECT
+        e.id AS employee_id,
         u.id AS user_id,
         u.real_name,
         e.employee_no,
         COUNT(DISTINCT ar.record_date) AS attendance_days,
-        SUM(CASE WHEN ar.status = 'late' THEN 1 ELSE 0 END) AS late_count,
-        SUM(CASE WHEN ar.status = 'early' THEN 1 ELSE 0 END) AS early_count,
-        SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) AS absent_count,
+        CAST(SUM(CASE WHEN ar.status = 'late' THEN 1 ELSE 0 END) AS UNSIGNED) AS late_count,
+        CAST(SUM(CASE WHEN ar.status = 'early' THEN 1 ELSE 0 END) AS UNSIGNED) AS early_count,
+        CAST(SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) AS UNSIGNED) AS absent_count,
         COALESCE(SUM(ar.work_hours), 0) AS total_work_hours,
         (SELECT COALESCE(SUM(days), 0) FROM leave_records lr
          WHERE lr.employee_id = e.id AND lr.status = 'approved'
@@ -132,21 +133,65 @@ module.exports = async function (fastify, opts) {
     // Aggregate department summary
     const totalEmployees = allStats.length;
     const totalAttendanceDays = allStats.reduce((sum, item) => sum + item.attendance_days, 0);
-    const totalLateCount = allStats.reduce((sum, item) => sum + item.late_count, 0);
-    const totalEarlyCount = allStats.reduce((sum, item) => sum + item.early_count, 0);
-    const totalAbsentCount = allStats.reduce((sum, item) => sum + item.absent_count, 0);
+    const totalLateCount = allStats.reduce((sum, item) => sum + Number(item.late_count || 0), 0);
+    const totalEarlyCount = allStats.reduce((sum, item) => sum + Number(item.early_count || 0), 0);
+    const totalAbsentCount = allStats.reduce((sum, item) => sum + Number(item.absent_count || 0), 0);
 
-    // Estimate work days in the period
-    let workDays = 22;
-    if (start_date && end_date) {
+    // Calculate work days based on month days minus configured holidays
+    let workDays = 22; // Default fallback
+
+    if (year && month) {
+      // For monthly stats: total days in month - holiday days configured for that month
+      // Get total days in the month
+      const totalDaysInMonth = new Date(year, month, 0).getDate();
+
+      // Query holidays configured for this month
+      const [holidayResult] = await pool.query(
+        'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month = ?',
+        [year, month]
+      );
+
+      const holidayDays = parseInt(holidayResult[0]?.holiday_days) || 0;
+      workDays = totalDaysInMonth - holidayDays;
+
+    } else if (start_date && end_date) {
+      // For custom date range: calculate actual days in range
       const start = new Date(startDate);
       const end = new Date(endDate);
-      let weekdays = 0;
+      let totalDays = 0;
+
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const day = d.getDay();
-        if (day !== 0 && day !== 6) weekdays++;
+        totalDays++;
       }
-      workDays = weekdays;
+
+      // Query holidays that fall within this date range
+      const startYear = start.getFullYear();
+      const endYear = end.getFullYear();
+      const startMonth = start.getMonth() + 1;
+      const endMonth = end.getMonth() + 1;
+
+      let holidayDays = 0;
+      if (startYear === endYear) {
+        // Same year
+        const [holidayResult] = await pool.query(
+          'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month >= ? AND month <= ?',
+          [startYear, startMonth, endMonth]
+        );
+        holidayDays = parseInt(holidayResult[0]?.holiday_days) || 0;
+      } else {
+        // Cross year
+        const [result1] = await pool.query(
+          'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month >= ?',
+          [startYear, startMonth]
+        );
+        const [result2] = await pool.query(
+          'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month <= ?',
+          [endYear, endMonth]
+        );
+        holidayDays = (parseInt(result1[0]?.holiday_days) || 0) + (parseInt(result2[0]?.holiday_days) || 0);
+      }
+
+      workDays = totalDays - holidayDays;
     }
 
     // Pagination
@@ -167,6 +212,9 @@ module.exports = async function (fastify, opts) {
         },
         employees: paginatedStats.map(item => ({
           ...item,
+          late_count: Number(item.late_count) || 0,
+          early_count: Number(item.early_count) || 0,
+          absent_count: Number(item.absent_count) || 0,
           total_work_hours: parseFloat(item.total_work_hours),
           leave_days: parseFloat(item.leave_days),
           attendance_rate: workDays > 0 ? ((item.attendance_days / workDays) * 100).toFixed(2) : 0,

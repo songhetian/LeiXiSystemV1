@@ -254,16 +254,20 @@ module.exports = async function (fastify, opts) {
     const { employee_id, start_date, end_date, page = 1, limit = 20 } = request.query
 
     try {
-      // 1. 获取考勤记录
+      // 1. 获取考勤记录（包含班次信息）
       let attendanceQuery = `
         SELECT
-          id, user_id, employee_id,
-          DATE_FORMAT(record_date, '%Y-%m-%d') as record_date,
-          clock_in_time, clock_out_time,
-          work_hours, status, remark,
-          clock_in_location, clock_out_location
-        FROM attendance_records
-        WHERE employee_id = ?
+          ar.id, ar.user_id, ar.employee_id,
+          DATE_FORMAT(ar.record_date, '%Y-%m-%d') as record_date,
+          ar.clock_in_time, ar.clock_out_time,
+          ar.work_hours, ar.status, ar.remark,
+          ar.clock_in_location, ar.clock_out_location,
+          ws.name as shift_name
+        FROM attendance_records ar
+        LEFT JOIN shift_schedules ss ON ar.employee_id = ss.employee_id
+          AND DATE(ar.record_date) = DATE(ss.schedule_date)
+        LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
+        WHERE ar.employee_id = ?
       `
       const attendanceParams = [employee_id]
 

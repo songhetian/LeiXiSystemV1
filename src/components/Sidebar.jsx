@@ -155,16 +155,28 @@ const Sidebar = ({
         // 如果当前菜单已展开，则关闭它
         return prev.filter(id => id !== menuId);
       } else {
-        // 如果当前菜单未展开
-        if (level === 1) {
-          // 只有一级导航时才关闭其他一级菜单
-          // 获取所有一级菜单的ID
-          const topLevelMenuIds = allMenuItems.map(item => item.id);
-          // 关闭其他一级菜单，保留当前菜单
-          const newExpanded = prev.filter(id => !topLevelMenuIds.includes(id));
-          return [...newExpanded, menuId];
+        // 如果当前菜单未展开，查找该项的同级 ID
+        const findSiblings = (items) => {
+          if (items.some(item => item.id === menuId)) {
+            return items.map(item => item.id);
+          }
+          for (const item of items) {
+            if (item.children) {
+              const siblings = findSiblings(item.children);
+              if (siblings) return siblings;
+            }
+          }
+          return null;
+        };
+
+        const siblingIds = findSiblings(allMenuItems);
+
+        if (siblingIds) {
+          // 关闭所有同级已打开的菜单，并打开当前菜单
+          const filtered = prev.filter(id => !siblingIds.includes(id));
+          return [...filtered, menuId];
         } else {
-          // 二级或三级导航直接展开，不影响其他一级菜单
+          // 备退方案：直接展开
           return [...prev, menuId];
         }
       }
