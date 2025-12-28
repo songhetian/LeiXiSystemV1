@@ -143,7 +143,11 @@ module.exports = async function (fastify, opts) {
       const clockOutTime = new Date()
       const clockInTime = new Date(records[0].clock_in_time)
 
-      // 获取员工的排班信息（shift_schedules表使用employee_id）
+      // 计算实际工作时长 (毫秒 -> 小时)
+      // 保留一位小数
+      const workHours = Math.max(0, (clockOutTime - clockInTime) / (1000 * 60 * 60)).toFixed(1)
+
+      // 获取该员工今天的排班信息判断是否早退
       const [schedules] = await pool.query(
         `SELECT ss.*, ws.start_time, ws.end_time, ws.work_hours,
                 ws.late_threshold, ws.early_threshold, ws.use_global_threshold
@@ -157,12 +161,6 @@ module.exports = async function (fastify, opts) {
       const [settings] = await pool.query(
         'SELECT * FROM attendance_settings WHERE id = 1'
       )
-
-      // 使用班次的标准工作时长
-      let workHours = 0
-      if (schedules.length > 0 && schedules[0].work_hours) {
-        workHours = schedules[0].work_hours
-      }
 
       let status = records[0].status
 

@@ -1237,7 +1237,7 @@ fastify.get('/api/employees', async (request, reply) => {
 
 // 创建员工
 fastify.post('/api/employees', async (request, reply) => {
-  const { employee_no, real_name, email, phone, department_id, position, hire_date, rating, status } = request.body;
+  const { employee_no, real_name, email, phone, department_id, position, hire_date, rating, status, username: providedUsername } = request.body;
   try {
     const passwordHash = '$2b$12$KIXxLQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYqNqYq'; // 默认密码: 123456
 
@@ -1257,10 +1257,22 @@ fastify.post('/api/employees', async (request, reply) => {
         finalEmployeeNo = 'EMP0001';
       }
       console.log(`自动生成工号: ${finalEmployeeNo}`);
+    } else {
+      // 如果提供了工号，检查是否已存在
+      const [existingEmp] = await pool.query('SELECT id FROM employees WHERE employee_no = ?', [finalEmployeeNo]);
+      if (existingEmp.length > 0) {
+        return reply.code(400).send({ error: `工号 ${finalEmployeeNo} 已存在` });
+      }
     }
 
-    // 确保员工编号作为用户名使用
-    const username = finalEmployeeNo;
+    // 确定登录用户名：用户填写优先，否则使用姓名，姓名也为空则退回到工号
+    const username = providedUsername || real_name || finalEmployeeNo;
+
+    // 检查用户名冲突
+    const [existingUser] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
+    if (existingUser.length > 0) {
+      return reply.code(400).send({ error: `登录账号 ${username} 已被占用` });
+    }
 
     // 处理日期格式：确保只保存日期部分（YYYY-MM-DD）
     let formattedHireDate = null;
@@ -1425,109 +1437,108 @@ fastify.post('/api/employees/batch-import', async (request, reply) => {
 
   for (const emp of employees) {
     try {
-      // 验证必填字段
-      if (!emp.employee_no || !emp.real_name || !emp.username || !emp.password || !emp.department_id || !emp.hire_date) {
-        errors.push(`${emp.employee_no || '未知'}: 缺少必填字段`);
+      // 验证必填字段 (针对简化后的模板)
+      if (!emp.real_name || !emp.department_name || !emp.hire_date) {
+        errors.push(`${emp.real_name || '未知'}: 缺少必填字段`);
         failCount++;
         continue;
       }
 
-      // 检查工号是否已存在
-      const [existingEmp] = await pool.query(
-        'SELECT id FROM employees WHERE employee_no = ?',
-        [emp.employee_no]
-      );
-
-      if (existingEmp.length > 0) {
-        errors.push(`${emp.employee_no}: 工号已存在`);
+      // 1. 根据部门名称获取部门ID
+      const [depts] = await pool.query('SELECT id FROM departments WHERE name = ? AND status != "deleted"', [emp.department_name]);
+      if (depts.length === 0) {
+        errors.push(`${emp.real_name}: 部门 "${emp.department_name}" 不存在`);
         failCount++;
         continue;
       }
+      const departmentId = depts[0].id;
 
-      // 检查用户名是否已存在
-      const [existingUser] = await pool.query(
-        'SELECT id FROM users WHERE username = ?',
-        [emp.username]
-      );
+      // 2. 自动生成工号
+      let finalEmployeeNo = null;
+      const [maxEmpRows] = await pool.query('SELECT employee_no FROM employees WHERE employee_no REGEXP "^EMP[0-9]+$" ORDER BY LENGTH(employee_no) DESC, employee_no DESC LIMIT 1');
+      if (maxEmpRows.length > 0) {
+        const currentMax = maxEmpRows[0].employee_no;
+        const numPart = parseInt(currentMax.replace(/\D/g, ''));
+        finalEmployeeNo = `EMP${String(numPart + 1).padStart(4, '0')}`;
+      } else {
+        finalEmployeeNo = 'EMP0001';
+      }
 
+      // 3. 确定登录用户名：使用姓名作为初始用户名，如果冲突则追加后缀
+      let username = emp.real_name;
+      const [existingUser] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
       if (existingUser.length > 0) {
-        errors.push(`${emp.username}: 用户名已存在`);
-        failCount++;
-        continue;
+        username = `${emp.real_name}_${finalEmployeeNo}`;
       }
 
-      // 加密密码
-      const hashedPassword = await bcrypt.hash(emp.password, 10);
+      // 再次检查用户名冲突 (极端情况)
+      const [finalCheck] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
+      if (finalCheck.length > 0) {
+        username = `${username}_${Date.now().toString().slice(-4)}`;
+      }
 
-      // 处理日期格式：确保只保存日期部分（YYYY-MM-DD）
+      // 4. 加密密码 (如果没有提供密码，默认使用 123456)
+      const passwordToHash = emp.password || '123456';
+      const hashedPassword = await bcrypt.hash(passwordToHash, 10);
+
+      // 5. 处理日期格式
       const formattedHireDate = emp.hire_date.split('T')[0];
 
-      // 创建用户
+      // 6. 创建用户
       const [userResult] = await pool.query(
-        `INSERT INTO users (username, password_hash, real_name, email, phone, department_id, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (username, password_hash, real_name, phone, department_id, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          emp.username,
+          username,
           hashedPassword,
           emp.real_name,
-          emp.email,
-          emp.phone,
-          emp.department_id,
-          emp.status || 'active'
+          emp.phone || null,
+          departmentId,
+          'active'
         ]
       );
 
       const userId = userResult.insertId;
 
-      // 创建员工记录
+      // 7. 创建员工记录
       const [employeeResult] = await pool.query(
         `INSERT INTO employees
-         (user_id, employee_no, position, hire_date, rating, status,
-          emergency_contact, emergency_phone, address, education, skills, remark)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, employee_no, position, hire_date, rating, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           userId,
-          emp.employee_no,
-          emp.position,
+          finalEmployeeNo,
+          emp.position || null,
           formattedHireDate,
-          emp.rating || 3,
-          emp.status || 'active',
-          emp.emergency_contact,
-          emp.emergency_phone,
-          emp.address,
-          emp.education,
-          emp.skills,
-          emp.remark
+          3, // 默认3星
+          'active'
         ]
       );
 
-      // 自动创建员工变动记录（入职记录）
+      // 8. 自动创建员工变动记录（入职记录）
       try {
         await pool.query(
           `INSERT INTO employee_changes
-          (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position, new_position, reason)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (employee_id, user_id, change_type, change_date, new_department_id, new_position, reason)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             employeeResult.insertId,
             userId,
             'hire',
             formattedHireDate,
-            null,
-            emp.department_id || null,
-            null,
+            departmentId,
             emp.position || null,
             '批量导入入职'
           ]
         );
       } catch (changeError) {
-        console.error(`⚠️ 创建员工变动记录失败 (${emp.employee_no}):`, changeError);
-        // 不影响员工创建，只记录错误
+        console.error(`⚠️ 创建员工变动记录失败 (${finalEmployeeNo}):`, changeError);
       }
 
       successCount++;
     } catch (error) {
-      console.error(`导入员工失败 (${emp.employee_no}):`, error);
-      errors.push(`${emp.employee_no}: ${error.message}`);
+      console.error(`导入员工失败 (${emp.real_name}):`, error);
+      errors.push(`${emp.real_name}: ${error.message}`);
       failCount++;
     }
   }

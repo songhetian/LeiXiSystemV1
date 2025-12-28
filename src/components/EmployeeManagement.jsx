@@ -78,7 +78,8 @@ function EmployeeManagement() {
     skills: '',
     remark: '',
     role_id: '', // 修改为单个角色ID
-    is_department_manager: false
+    is_department_manager: false,
+    username: ''
   })
   const [validationErrors, setValidationErrors] = useState({})
   const [avatarPreview, setAvatarPreview] = useState('')
@@ -450,7 +451,8 @@ function EmployeeManagement() {
         skills: emp.skills || '',
         remark: emp.remark || '',
         role_id: userRoles.length > 0 ? userRoles[0].id : '',
-        is_department_manager: emp.is_department_manager === 1 || emp.is_department_manager === true
+        is_department_manager: emp.is_department_manager === 1 || emp.is_department_manager === true,
+        username: emp.username || ''
       })
       setAvatarPreview(emp.avatar || '')
       setIsModalOpen(true)
@@ -701,7 +703,7 @@ function EmployeeManagement() {
       phone: '',
       department_id: '',
       position: '',
-      hire_date: '',
+      hire_date: new Date().toISOString().split('T')[0],
       rating: 3,
       status: 'active',
       avatar: '',
@@ -712,7 +714,8 @@ function EmployeeManagement() {
       skills: '',
       remark: '',
       role_id: '',
-      is_department_manager: false
+      is_department_manager: false,
+      username: ''
     })
     setValidationErrors({})
     setAvatarPreview('')
@@ -785,7 +788,11 @@ function EmployeeManagement() {
           <div className="flex items-center gap-3">
             <EmployeeBatchOperations onImportSuccess={fetchEmployees} />
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                resetForm();
+                setEditingEmp(null);
+                setIsModalOpen(true);
+              }}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gray-900 to-gray-800 text-white text-sm font-medium rounded-lg hover:from-gray-800 hover:to-gray-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             >
               <span className="text-lg">+</span>
@@ -1327,24 +1334,10 @@ function EmployeeManagement() {
               <p className="text-xs text-gray-400 mt-2">支持 JPG、PNG，不超过 2MB</p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">
-                工号
-              </label>
-              <input
-                type="text"
-                value={formData.employee_no}
-                onChange={(e) => setFormData({ ...formData, employee_no: e.target.value })}
-                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all ${editingEmp ? 'bg-gray-50' : ''}`}
-                placeholder={editingEmp ? '' : "自动生成"}
-                readOnly={!!editingEmp}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">
-                姓名 <span className="text-red-500">*</span>
+              <label className={`block text-xs font-medium mb-1.5 tracking-wide uppercase ${validationErrors.real_name ? 'text-red-500' : 'text-gray-700'}`}>
+                姓名 <span className="text-red-500 ml-1">*(必填)</span>
               </label>
               <input
                 type="text"
@@ -1354,23 +1347,32 @@ function EmployeeManagement() {
                   setFormData({ ...formData, real_name: e.target.value });
                   if (validationErrors.real_name) setValidationErrors(prev => ({ ...prev, real_name: false }));
                 }}
-                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all ${validationErrors.real_name ? 'border-red-500' : ''}`}
+                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all ${validationErrors.real_name ? 'border-red-500 bg-red-50/30' : ''}`}
+                placeholder="请输入员工姓名"
+              />
+            </div>
+            <div>
+              <label className={`block text-xs font-medium mb-1.5 tracking-wide uppercase ${validationErrors.username ? 'text-red-500' : 'text-gray-700'}`}>
+                登录账号 {!editingEmp && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => {
+                  setFormData({ ...formData, username: e.target.value });
+                  if (validationErrors.username) setValidationErrors(prev => ({ ...prev, username: false }));
+                }}
+                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all ${validationErrors.username ? 'border-red-500 bg-red-50/30' : ''} ${editingEmp ? 'bg-gray-100 text-gray-500' : ''}`}
+                placeholder={editingEmp ? "" : "留空则使用姓名"}
+                readOnly={!!editingEmp}
               />
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">邮箱</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">
-                手机号 <span className="text-red-500">*</span>
+              <label className={`block text-xs font-medium mb-1.5 tracking-wide uppercase ${validationErrors.phone ? 'text-red-500' : 'text-gray-700'}`}>
+                手机号 <span className="text-red-500 ml-1">*(必填)</span>
               </label>
               <input
                 type="tel"
@@ -1379,14 +1381,26 @@ function EmployeeManagement() {
                   setFormData({ ...formData, phone: e.target.value });
                   if (validationErrors.phone) setValidationErrors(prev => ({ ...prev, phone: false }));
                 }}
-                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all ${validationErrors.phone ? 'border-red-500' : ''}`}
+                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all ${validationErrors.phone ? 'border-red-500 bg-red-50/30' : ''}`}
+                placeholder="请输入手机号"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">邮箱</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
+                placeholder="请输入邮箱"
               />
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">
-                所属部门 <span className="text-red-500">*</span>
+              <label className={`block text-xs font-medium mb-1.5 tracking-wide uppercase ${validationErrors.department_id ? 'text-red-500' : 'text-gray-700'}`}>
+                所属部门 <span className="text-red-500 ml-1">*(必填)</span>
               </label>
               <select
                 value={formData.department_id}
@@ -1394,7 +1408,7 @@ function EmployeeManagement() {
                   handleDepartmentChange(e.target.value);
                   if (validationErrors.department_id) setValidationErrors(prev => ({ ...prev, department_id: false }));
                 }}
-                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all bg-white ${validationErrors.department_id ? 'border-red-500' : ''}`}
+                className={`w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all bg-white ${validationErrors.department_id ? 'border-red-500 bg-red-50/30' : ''}`}
               >
                 <option value="">请选择</option>
                 {departments.map(dept => (

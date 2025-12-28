@@ -501,7 +501,7 @@ export default function AttendanceHome({ onNavigate }) {
 
                 {/* 工作时长 */}
                 <div className="bg-purple-50 rounded p-4 text-center border border-purple-100 shadow-sm">
-                  <div className="text-sm text-purple-600 font-medium mb-2">工时</div>
+                  <div className="text-sm text-purple-600 font-medium mb-2">工作时长</div>
                   <div className="text-xl font-bold text-gray-800">
                     {todayRecord?.work_hours ? `${todayRecord.work_hours}h` : '--'}
                   </div>

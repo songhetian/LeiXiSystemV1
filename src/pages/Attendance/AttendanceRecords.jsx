@@ -343,7 +343,7 @@ export default function AttendanceRecordsOptimized() {
       <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm opacity-90">工时</div>
+            <div className="text-sm opacity-90">工作时长</div>
             <div className="text-2xl font-bold mt-1">{stats.avg_work_hours}</div>
           </div>
           <ClockIcon className="w-8 h-8 opacity-50" />
@@ -601,7 +601,7 @@ export default function AttendanceRecordsOptimized() {
                     时间/详情
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    时长
+                    工作时长
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     状态
