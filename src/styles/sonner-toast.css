@@ -44,8 +44,8 @@
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
   top: 8px !important;
-  left: 8px !important;
-  right: auto !important;
+  right: 8px !important;
+  left: auto !important;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
   color: #64748b;
@@ -59,7 +59,7 @@
   z-index: 99 !important;
   pointer-events: auto !important;
   transform: translate(0, 0) !important;
-  transform-origin: top left !important;
+  transform-origin: top right !important;
   transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 

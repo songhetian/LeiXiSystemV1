@@ -91,9 +91,66 @@ export const getBeijingDate = (dateInput) => {
 
 // 格式化日期为 YYYY-MM-DD 格式（避免时区问题）
 export const formatBeijingDate = (dateInput) => {
-  const beijingDate = getBeijingDate(dateInput);
-  const year = beijingDate.getFullYear();
-  const month = String(beijingDate.getMonth() + 1).padStart(2, '0');
-  const day = String(beijingDate.getDate()).padStart(2, '0');
+  // 如果是纯日期字符串，直接返回
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    return dateInput;
+  }
+
+  let date;
+  
+  // 如果是 ISO 日期时间字符串（如 "2025-12-26T00:00:00.000Z"）
+  if (typeof dateInput === 'string') {
+    // 提取日期部分作为 UTC 日期
+    const match = dateInput.match(/^(\d{4}-\d{2}-\d{2})(?:T|$)/);
+    if (match) {
+      // 将 UTC 日期字符串转换为北京时间（+8小时）
+      const utcDate = new Date(dateInput);
+      const beijingTime = new Date(utcDate.getTime() + 8 * 60 * 60 * 1000);
+      const year = beijingTime.getFullYear();
+      const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+      const day = String(beijingTime.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // 对于 Date 对象，转换为北京时间
+  if (dateInput instanceof Date) {
+    const beijingTime = new Date(dateInput.getTime() + 8 * 60 * 60 * 1000);
+    const year = beijingTime.getFullYear();
+    const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+    const day = String(beijingTime.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // 其他情况，转换为 Date 后处理
+  date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return '-';
+  
+  // 转换为北京时间（+8小时）
+  const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  const year = beijingTime.getFullYear();
+  const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+  const day = String(beijingTime.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 获取本地日期字符串（YYYY-MM-DD 格式）
+export const getLocalDateString = (dateInput) => {
+  const date = dateInput ? new Date(dateInput) : new Date();
+  // 使用本地时区的年月日
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 获取北京时间日期字符串（YYYY-MM-DD 格式）
+export const getBeijingDateString = (dateInput) => {
+  const date = dateInput ? new Date(dateInput) : new Date();
+  // 直接使用本地时间（在中国系统上就是北京时间）
+  // 不需要再额外加8小时，因为本地时区已经是UTC+8
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }

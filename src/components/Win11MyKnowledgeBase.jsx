@@ -3,6 +3,7 @@ import { formatDate } from '../utils/date'
 import { toast } from 'sonner';
 
 import { getApiUrl } from '../utils/apiConfig';
+import { getAttachmentUrl } from '../utils/fileUtils';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/apiClient';
 import Win11ContextMenu from './Win11ContextMenu';
 import useReadingTracker from '../hooks/useReadingTracker';
@@ -99,11 +100,8 @@ const Win11MyKnowledgeBase = () => {
   };
 
   const isPersonal = (item) => {
-    if (item?.is_public === 0) return true;
     const t = (item?.type || '').toLowerCase();
     if (t && ['personal', 'private'].includes(t)) return true;
-    const v = (item?.visibility || '').toLowerCase();
-    if (v === 'private') return true;
     return false;
   };
 
@@ -143,10 +141,11 @@ const Win11MyKnowledgeBase = () => {
       }
 
       const uid = getCurrentUserId();
-      // 逻辑: 我的知识库 用户id匹配且未删除 (放宽类型检查，因为有些旧数据可能没有type)
+      // 逻辑: 我的知识库 类型是个人(private/personal)且用户id匹配且未删除
       const filtered = (categoriesData || []).filter(c => {
         const isMine = c.owner_id && String(c.owner_id) === String(uid);
-        return isMine && isNotDeleted(c);
+        const isPersonalItem = isPersonal(c);
+        return isMine && isPersonalItem && isNotDeleted(c);
       });
       setCategories(filtered);
       // 使用过滤后的数据长度计算分页
@@ -253,10 +252,11 @@ const Win11MyKnowledgeBase = () => {
       }
 
       const uid = getCurrentUserId();
-      // 逻辑: 我的知识库 未删除 (不区分类型)
+      // 逻辑: 我的知识库 类型是个人(private/personal)且用户id匹配且未删除
       const filtered = (articlesData || []).filter(a => {
-        const isMine = a.owner_id && String(a.owner_id) === String(uid); // 或者是 created_by
-        return isMine && isNotDeleted(a);
+        const isMine = a.owner_id && String(a.owner_id) === String(uid);
+        const isPersonalItem = isPersonal(a);
+        return isMine && isPersonalItem && isNotDeleted(a);
       });
       setArticles(filtered);
       // 使用过滤后的数据长度计算分页
@@ -374,22 +374,6 @@ const Win11MyKnowledgeBase = () => {
   };
 
 
-  // 确保附件 URL 格式正确
-  const getAttachmentUrl = (url) => {
-    if (!url) return '';
-    // 如果已经是完整 URL，直接返回
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    // 如果是相对路径，补全为完整 URL
-    if (url.startsWith('/')) {
-      const host = getApiUrl('').replace('/api', '');
-      return `${host}${url}`;
-    }
-    // 其他情况，假设是文件名，补全完整路径
-    const host = getApiUrl('').replace('/api', '');
-    return `${host}/uploads/${url}`;
-  };
 
   // 打开文件夹
   const handleOpenFolder = (category) => {

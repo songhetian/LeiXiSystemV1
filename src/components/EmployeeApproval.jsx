@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner';
 import Modal from './Modal'
 import { getApiUrl } from '../utils/apiConfig'
+import { formatBeijingDate, getBeijingDateString, getLocalDateString } from '../utils/date'
 
 function EmployeeApproval() {
   const [pendingUsers, setPendingUsers] = useState([])
@@ -113,14 +114,14 @@ function EmployeeApproval() {
     // 日期筛选
     if (searchFilters.dateFrom) {
       filtered = filtered.filter(user => {
-        const userDate = new Date(user.created_at).toISOString().split('T')[0]
+        const userDate = formatBeijingDate(user.created_at)
         return userDate >= searchFilters.dateFrom
       })
     }
 
     if (searchFilters.dateTo) {
       filtered = filtered.filter(user => {
-        const userDate = new Date(user.created_at).toISOString().split('T')[0]
+        const userDate = formatBeijingDate(user.created_at)
         return userDate <= searchFilters.dateTo
       })
     }
@@ -204,146 +205,269 @@ function EmployeeApproval() {
 
   return (
     <div className="p-8">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        {/* 头部 */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">员工审核</h1>
-
-        {/* 状态切换 Tabs */}
-        <div className="flex space-x-2">
-          <button
-            onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              statusFilter === 'pending'
-                ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-200'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            待审核
-          </button>
-          <button
-            onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              statusFilter === 'active'
-                ? 'bg-green-100 text-green-800 border-2 border-green-200'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            已通过
-          </button>
-          <button
-            onClick={() => { setStatusFilter('rejected'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              statusFilter === 'rejected'
-                ? 'bg-red-100 text-red-800 border-2 border-red-200'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            已拒绝
-          </button>
-        </div>
-      </div>
-
-      {/* 筛选区域 */}
-      {statusFilter === 'pending' && (
-        <p className="text-gray-500 text-sm mt-1">
-              共 {filteredUsers.length} 个待审核用户
-            </p>
-        )}
-        {/* 搜索筛选区域 */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="搜索姓名、用户名、邮箱、手机号..."
-            value={searchFilters.keyword}
-            onChange={(e) => setSearchFilters({ ...searchFilters, keyword: e.target.value })}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-
-          <select
-            value={searchFilters.department}
-            onChange={(e) => setSearchFilters({ ...searchFilters, department: e.target.value })}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="">全部部门</option>
-            {departments.map(dept => (
-              <option key={dept.id} value={dept.id}>{dept.name}</option>
-            ))}
-          </select>
-
-          <input
-            type="date"
-            value={searchFilters.dateFrom}
-            onChange={(e) => setSearchFilters({ ...searchFilters, dateFrom: e.target.value })}
-            placeholder="开始日期"
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent cursor-pointer"
-            onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-          />
-
-          <input
-            type="date"
-            value={searchFilters.dateTo}
-            onChange={(e) => setSearchFilters({ ...searchFilters, dateTo: e.target.value })}
-            placeholder="结束日期"
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent cursor-pointer"
-            onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-          />
-        </div>
-
-        {/* 清除筛选按钮 */}
-        {(searchFilters.keyword || searchFilters.department || searchFilters.dateFrom || searchFilters.dateTo) && (
-          <div className="mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        {/* 页面标题 */}
+        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">员工审核</h1>
+            <p className="text-sm text-gray-500 mt-1">管理员工注册申请，审核通过或拒绝</p>
+          </div>
+          {/* 状态切换 Tabs */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+              onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                statusFilter === 'pending'
+                  ? 'bg-amber-100 text-amber-800 border-2 border-amber-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+              }`}
             >
-              清除筛选
+              待审核
+            </button>
+            <button
+              onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                statusFilter === 'active'
+                  ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+              }`}
+            >
+              已通过
+            </button>
+            <button
+              onClick={() => { setStatusFilter('rejected'); setCurrentPage(1); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                statusFilter === 'rejected'
+                  ? 'bg-rose-100 text-rose-800 border-2 border-rose-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+              }`}
+            >
+              已拒绝
             </button>
           </div>
-        )}
+        </div>
+
+      {/* 筛选区域 */}
+        <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-medium text-gray-600 mb-1.5 tracking-wide uppercase">搜索</label>
+              <input
+                type="text"
+                placeholder="姓名 / 用户名 / 邮箱 / 手机号"
+                value={searchFilters.keyword}
+                onChange={(e) => setSearchFilters({ ...searchFilters, keyword: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
+              />
+            </div>
+            <div className="w-36">
+              <label className="block text-xs font-medium text-gray-600 mb-1.5 tracking-wide uppercase">部门</label>
+              <select
+                value={searchFilters.department}
+                onChange={(e) => setSearchFilters({ ...searchFilters, department: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all bg-white"
+              >
+                <option value="">全部</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-32">
+              <label className="block text-xs font-medium text-gray-600 mb-1.5 tracking-wide uppercase">注册开始</label>
+              <input
+                type="date"
+                value={searchFilters.dateFrom}
+                onChange={(e) => setSearchFilters({ ...searchFilters, dateFrom: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
+              />
+            </div>
+            <div className="w-32">
+              <label className="block text-xs font-medium text-gray-600 mb-1.5 tracking-wide uppercase">注册结束</label>
+              <input
+                type="date"
+                value={searchFilters.dateTo}
+                onChange={(e) => setSearchFilters({ ...searchFilters, dateTo: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
+              />
+            </div>
+            {(searchFilters.keyword || searchFilters.department || searchFilters.dateFrom || searchFilters.dateTo) && (
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 rounded hover:border-gray-300 hover:bg-white transition-all"
+              >
+                清空筛选
+              </button>
+            )}
+          </div>
+
+          {/* 快捷时间选择按钮 */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-500 font-medium">快捷选择：</span>
+            <button
+              onClick={() => {
+                const today = getBeijingDateString()
+                setSearchFilters({ ...searchFilters, dateFrom: today, dateTo: today })
+              }}
+              className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                searchFilters.dateFrom === searchFilters.dateTo && searchFilters.dateFrom === getBeijingDateString()
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              今天
+            </button>
+            <button
+              onClick={() => {
+                const yesterday = new Date()
+                yesterday.setDate(yesterday.getDate() - 1)
+                const dateStr = getBeijingDateString(yesterday)
+                setSearchFilters({ ...searchFilters, dateFrom: dateStr, dateTo: dateStr })
+              }}
+              className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                (() => {
+                  const yesterday = new Date()
+                  yesterday.setDate(yesterday.getDate() - 1)
+                  const dateStr = getBeijingDateString(yesterday)
+                  return searchFilters.dateFrom === searchFilters.dateTo && searchFilters.dateFrom === dateStr
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                })()
+              }`}
+            >
+              昨天
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date()
+                const threeDaysAgo = new Date(now)
+                threeDaysAgo.setDate(threeDaysAgo.getDate() - 2)
+                setSearchFilters({
+                  ...searchFilters,
+                  dateFrom: getBeijingDateString(threeDaysAgo),
+                  dateTo: getBeijingDateString(now)
+                })
+              }}
+              className="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              近3天
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date()
+                const sevenDaysAgo = new Date(now)
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+                setSearchFilters({
+                  ...searchFilters,
+                  dateFrom: getBeijingDateString(sevenDaysAgo),
+                  dateTo: getBeijingDateString(now)
+                })
+              }}
+              className="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              近7天
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date()
+                const thirtyDaysAgo = new Date(now)
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
+                setSearchFilters({
+                  ...searchFilters,
+                  dateFrom: getBeijingDateString(thirtyDaysAgo),
+                  dateTo: getBeijingDateString(now)
+                })
+              }}
+              className="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              近30天
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date()
+                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+                setSearchFilters({
+                  ...searchFilters,
+                  dateFrom: getBeijingDateString(firstDayOfMonth),
+                  dateTo: getBeijingDateString(now)
+                })
+              }}
+              className="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              本月
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date()
+                const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+                const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+                setSearchFilters({
+                  ...searchFilters,
+                  dateFrom: getBeijingDateString(firstDayLastMonth),
+                  dateTo: getBeijingDateString(lastDayLastMonth)
+                })
+              }}
+              className="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              上月
+            </button>
+          </div>
+        </div>
 
         {/* 用户列表 */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-primary-50 border-b border-primary-100">
-              <tr>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">用户信息</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">部门</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">联系方式</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">注册时间</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-primary-700 uppercase tracking-wider">操作</th>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide uppercase">用户信息</th>
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">部门</th>
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">联系方式</th>
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">注册时间</th>
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">状态</th>
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user, index) => (
-                  <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-primary-50/30'} hover:bg-primary-100/50 transition-colors`}>
-                    <td className="px-6 py-4 text-center">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{user.real_name}</div>
-                        <div className="text-xs text-gray-500">{user.username}</div>
+                  <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 flex-shrink-0">
+                          {user.real_name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 truncate">{user.real_name}</div>
+                          <div className="text-xs text-gray-400 truncate mt-0.5">{user.username}</div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-600">
+                    <td className="px-5 py-4 text-center text-sm text-gray-600">
                       {user.department_name || '-'}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-5 py-4 text-center">
                       <div className="text-sm text-gray-600">
                         <div>{user.email || '-'}</div>
-                        <div className="text-xs">{user.phone || '-'}</div>
+                        <div className="text-xs text-gray-400">{user.phone || '-'}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleString('zh-CN')}
+                    <td className="px-5 py-4 text-center text-sm text-gray-600">
+                      {formatBeijingDate(user.created_at)}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-5 py-4 text-center">
+                      <span className={`px-2 py-1 text-xs font-medium rounded ${
+                        user.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                        user.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
+                        'bg-rose-100 text-rose-800'
+                      }`}>
+                        {user.status === 'pending' ? '待审核' :
+                         user.status === 'active' ? '已通过' : '已拒绝'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-center">
                       <button
                         onClick={() => handleViewDetail(user)}
-                        className={`px-4 py-1.5 rounded-lg transition-colors text-sm text-white ${
-                          statusFilter === 'pending' ? 'bg-primary-500 hover:bg-primary-600' :
-                          statusFilter === 'active' ? 'bg-green-500 hover:bg-green-600' :
-                          'bg-red-500 hover:bg-red-600'
-                        }`}
+                        className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
                       >
                         {statusFilter === 'pending' ? '审核' : '查看'}
                       </button>
@@ -352,9 +476,11 @@ function EmployeeApproval() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                    {statusFilter === 'pending' ? '暂无待审核用户' :
-                     statusFilter === 'active' ? '暂无已通过用户' : '暂无已拒绝用户'}
+                  <td colSpan="6" className="px-5 py-16 text-center">
+                    <p className="text-gray-400 text-sm">
+                      {statusFilter === 'pending' ? '暂无待审核用户' :
+                       statusFilter === 'active' ? '暂无已通过用户' : '暂无已拒绝用户'}
+                    </p>
                   </td>
                 </tr>
               )}
@@ -364,68 +490,77 @@ function EmployeeApproval() {
 
         {/* 分页 */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">每页显示</span>
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>每页</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(parseInt(e.target.value))}
-                className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="px-2.5 py-1.5 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all bg-white"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
+                <option value={100}>100</option>
               </select>
-              <span className="text-sm text-gray-600">条</span>
+              <span>条，共 {totalUsers} 条</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className={`px-3 py-1 rounded ${
-                  currentPage === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white border border-gray-300 hover:bg-gray-50'
-                }`}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded disabled:text-gray-300 disabled:border-gray-100 disabled:cursor-not-allowed hover:bg-white hover:border-gray-300 transition-all"
               >
                 首页
               </button>
               <button
                 onClick={() => setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`px-3 py-1 rounded ${
-                  currentPage === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white border border-gray-300 hover:bg-gray-50'
-                }`}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded disabled:text-gray-300 disabled:border-gray-100 disabled:cursor-not-allowed hover:bg-white hover:border-gray-300 transition-all"
               >
                 上一页
               </button>
 
-              <span className="px-4 py-1 text-sm text-gray-600">
-                第 {currentPage} / {totalPages} 页
-              </span>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  let pageNum
+                  if (totalPages <= 7) {
+                    pageNum = i + 1
+                  } else if (currentPage <= 4) {
+                    pageNum = i + 1
+                  } else if (currentPage >= totalPages - 3) {
+                    pageNum = totalPages - 6 + i
+                  } else {
+                    pageNum = currentPage - 3 + i
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1.5 text-sm border rounded transition-all ${currentPage === pageNum
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'border-gray-200 hover:bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+              </div>
 
               <button
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded ${
-                  currentPage === totalPages
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white border border-gray-300 hover:bg-gray-50'
-                }`}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded disabled:text-gray-300 disabled:border-gray-100 disabled:cursor-not-allowed hover:bg-white hover:border-gray-300 transition-all"
               >
                 下一页
               </button>
               <button
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded ${
-                  currentPage === totalPages
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white border border-gray-300 hover:bg-gray-50'
-                }`}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded disabled:text-gray-300 disabled:border-gray-100 disabled:cursor-not-allowed hover:bg-white hover:border-gray-300 transition-all"
               >
                 末页
               </button>
@@ -504,7 +639,7 @@ function EmployeeApproval() {
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-5 py-2 border border-gray-200 text-sm text-gray-700 hover:text-gray-900 rounded-lg hover:border-gray-300 hover:bg-white transition-all"
               >
                 {statusFilter === 'active' || statusFilter === 'rejected' ? '关闭' : '取消'}
               </button>
@@ -513,13 +648,13 @@ function EmployeeApproval() {
                 <>
                   <button
                     onClick={handleReject}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                    className="px-5 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-colors"
                   >
                     拒绝
                   </button>
                   <button
                     onClick={handleApprove}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                    className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                   >
                     通过
                   </button>

@@ -5,6 +5,7 @@ import api from '../api'
 import axios from 'axios'
 import AdvancedSearch from './AdvancedSearch'
 import { getApiUrl, getApiBaseUrl } from '../utils/apiConfig'
+import { getAttachmentUrl } from '../utils/fileUtils'
 import FilePreviewModal from './FilePreviewModal'
 import Win11ContextMenu from './Win11ContextMenu'
 
@@ -450,22 +451,6 @@ const KnowledgeBase = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  // 确保附件 URL 格式正确
-  const getAttachmentUrl = (url) => {
-    if (!url) return ''
-    // 如果已经是完整 URL，直接返回
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
-    }
-    // 如果是相对路径，补全为完整 URL
-    if (url.startsWith('/')) {
-      const host = getApiBaseUrl().replace('/api', '')
-      return `${host}${url}`
-    }
-    // 其他情况，假设是文件名，补全完整路径
-    const host = getApiBaseUrl().replace('/api', '')
-    return `${host}/uploads/${url}`
-  }
 
   // 打开文件夹模态框
   const handleOpenFolder = (category) => {

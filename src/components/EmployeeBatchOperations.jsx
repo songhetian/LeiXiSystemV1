@@ -227,16 +227,14 @@ export default function EmployeeBatchOperations({ onImportSuccess }) {
       {/* 下载模板 */}
       <button
         onClick={handleDownloadTemplate}
-        className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+        className="px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-all"
       >
-        <span>📄</span>
-        <span>下载模板</span>
+        下载模板
       </button>
 
       {/* 批量导入 */}
-      <label className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center gap-2">
-        <span>📥</span>
-        <span>{importing ? '导入中...' : '批量导入'}</span>
+      <label className="px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-all cursor-pointer">
+        {importing ? '导入中...' : '批量导入'}
         <input
           type="file"
           accept=".csv"
@@ -249,10 +247,9 @@ export default function EmployeeBatchOperations({ onImportSuccess }) {
       {/* 批量导出 */}
       <button
         onClick={handleBatchExport}
-        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+        className="px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-all"
       >
-        <span>📤</span>
-        <span>批量导出</span>
+        批量导出
       </button>
     </div>
   )

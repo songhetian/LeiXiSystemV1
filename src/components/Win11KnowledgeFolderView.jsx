@@ -3,6 +3,7 @@ import { formatDate } from '../utils/date'
 import { toast } from 'sonner';
 import axios from 'axios';
 import { getApiUrl } from '../utils/apiConfig';
+import { getAttachmentUrl } from '../utils/fileUtils';
 import Win11ContextMenu from './Win11ContextMenu';
 
 const Win11KnowledgeFolderView = () => {
@@ -376,22 +377,6 @@ const Win11KnowledgeFolderView = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // 确保附件 URL 格式正确
-  const getAttachmentUrl = (url) => {
-    if (!url) return '';
-    // 如果已经是完整 URL，直接返回
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    // 如果是相对路径，补全为完整 URL
-    if (url.startsWith('/')) {
-      const host = getApiUrl('').replace('/api', '');
-      return `${host}${url}`;
-    }
-    // 其他情况，假设是文件名，补全完整路径
-    const host = getApiUrl('').replace('/api', '');
-    return `${host}/uploads/${url}`;
-  };
 
   const inferFileType = (file) => {
     if (!file) return '';

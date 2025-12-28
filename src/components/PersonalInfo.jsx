@@ -1,20 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner';
 import { getApiBaseUrl, getApiUrl } from '../utils/apiConfig'
+import { getImageUrl } from '../utils/fileUtils'
 import Modal from './Modal'
-
-// 辅助函数:将相对路径转换为完整URL并添加缓存破坏参数
-const getImageUrl = (url) => {
-  if (!url) return null
-  // 如果已经是完整URL,添加时间戳参数破坏缓存
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return `${url}?t=${Date.now()}`
-  }
-  // 如果是相对路径,使用后端地址组合并添加时间戳
-  const baseUrl = getApiUrl('').replace('/api', '').replace(/\/$/, '') // 移除末尾斜杠
-  const path = url.startsWith('/') ? url : `/${url}`
-  return `${baseUrl}${path}?t=${Date.now()}`
-}
 import {
   UserIcon,
   EnvelopeIcon,
@@ -412,10 +400,10 @@ const PersonalInfo = () => {
           {value ? (
             <>
               <img
-                src={getImageUrl(value)}
+                src={getImageUrl(value, { bustCache: true })}
                 alt={label}
                 className="w-full h-full object-cover cursor-pointer"
-                onClick={() => setImageModal({ isOpen: true, url: getImageUrl(value), title: label })}
+                onClick={() => setImageModal({ isOpen: true, url: getImageUrl(value, { bustCache: true }), title: label })}
               />
               {editing && (
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

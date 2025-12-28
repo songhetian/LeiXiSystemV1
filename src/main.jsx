@@ -7,6 +7,7 @@ import 'dayjs/locale/zh-cn'
 import App from './App'
 import './index.css'
 import './styles/business-theme.css'
+import './styles/antd-custom.css'
 
 dayjs.locale('zh-cn')
 

@@ -2510,6 +2510,7 @@ fastify.get('/api/my-knowledge/categories', async (request, reply) => {
     const [rows] = await pool.query(`
       SELECT * FROM knowledge_categories
       WHERE owner_id = ? AND is_deleted = 0 AND deleted_at IS NULL
+        AND type IN ('personal', 'private')
       ORDER BY created_at DESC
     `, [userId]);
 
@@ -2551,6 +2552,7 @@ fastify.get('/api/my-knowledge/articles', async (request, reply) => {
     let query = `
       SELECT * FROM knowledge_articles
       WHERE owner_id = ? AND is_deleted = 0 AND deleted_at IS NULL AND status != 'deleted'
+        AND type IN ('personal', 'private')
     `;
     const params = [userId];
 

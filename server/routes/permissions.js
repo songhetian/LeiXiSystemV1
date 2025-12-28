@@ -753,7 +753,10 @@ const permissionRoutes = async (fastify, options) => {
     const connection = await fastify.mysql.getConnection();
     try {
       const [rows] = await connection.query('SELECT id, name, description, permission_ids, created_at, updated_at FROM permission_templates ORDER BY id DESC');
-      return { success: true, data: rows.map(r => ({ ...r, permission_ids: JSON.parse(r.permission_ids) })) };
+      return { success: true, data: rows.map(r => {
+        const permissionIds = Array.isArray(r.permission_ids) ? r.permission_ids : (r.permission_ids ? JSON.parse(r.permission_ids) : []);
+        return { ...r, permission_ids: permissionIds };
+      }) };
     } finally {
       connection.release();
     }
@@ -768,7 +771,8 @@ const permissionRoutes = async (fastify, options) => {
       const [rows] = await connection.query('SELECT id, name, description, permission_ids, created_at, updated_at FROM permission_templates WHERE id = ?', [id]);
       if (rows.length === 0) return reply.code(404).send({ success: false, message: 'Not found' });
       const r = rows[0];
-      return { success: true, data: { ...r, permission_ids: JSON.parse(r.permission_ids) } };
+      const permissionIds = Array.isArray(r.permission_ids) ? r.permission_ids : (r.permission_ids ? JSON.parse(r.permission_ids) : []);
+      return { success: true, data: { ...r, permission_ids: permissionIds } };
     } finally {
       connection.release();
     }
@@ -782,6 +786,11 @@ const permissionRoutes = async (fastify, options) => {
     try {
       const [result] = await connection.query('INSERT INTO permission_templates (name, description, permission_ids) VALUES (?, ?, ?)', [name, description || null, JSON.stringify(permission_ids || [])]);
       return { success: true, id: result.insertId };
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return reply.code(400).send({ success: false, message: '模板名称已存在，请使用其他名称' });
+      }
+      throw err;
     } finally {
       connection.release();
     }

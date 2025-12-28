@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Modal, Form, Input, Tree, message, Card, Tag, Space, Drawer, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, LockOutlined, EyeOutlined, ReloadOutlined, CopyOutlined, FileAddOutlined, PlusCircleOutlined } from '@ant-design/icons';
-import { getApiUrl } from '../../utils/apiConfig';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
+import { toast } from 'sonner';
 import RoleDepartmentModal from '../../components/RoleDepartmentModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { getApiUrl } from '../../utils/apiConfig';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
+import '../../styles/antd-custom.css';
+import { Table, Button, Form, Input, Tree, Drawer, Select, Space, Tag, Card, Modal as AntdModal } from 'antd';
+import { EyeOutlined, LockOutlined, UserOutlined, PlusOutlined, CopyOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -38,12 +40,12 @@ const RoleManagement = () => {
   const [cloneSuffix, setCloneSuffix] = useState('副本');
   const [cloneCopyDepartments, setCloneCopyDepartments] = useState(false);
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
-    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-    const [confirmDialogConfig, setConfirmDialogConfig] = useState({
-      title: '',
-      message: '',
-      onConfirm: null
-    });
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   // 部门权限状态
   const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
@@ -75,7 +77,7 @@ const RoleManagement = () => {
         setRoles(rolesWithDepartments);
       }
     } catch (error) {
-      message.error('获取角色列表失败');
+      toast.error('获取角色列表失败');
     } finally {
       setLoading(false);
     }
@@ -88,16 +90,19 @@ const RoleManagement = () => {
         setPermissions(response.data);
       }
     } catch (error) {
-      message.error('获取权限列表失败');
+      toast.error('获取权限列表失败');
     }
   };
 
   const fetchPermissionTemplates = async () => {
     try {
       const res = await apiGet('/api/permission-templates');
+      console.log('获取权限模板结果:', res);
       const data = res.success && Array.isArray(res.data) ? res.data : [];
+      console.log('解析后的模板数据:', data);
       setCustomTemplates(data);
-    } catch {
+    } catch (error) {
+      console.error('获取权限模板失败:', error);
       setCustomTemplates([]);
     }
   };
@@ -124,7 +129,7 @@ const RoleManagement = () => {
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
-      message.error('获取用户列表失败');
+      toast.error('获取用户列表失败');
     }
   };
 
@@ -166,19 +171,13 @@ const RoleManagement = () => {
     return Object.values(modules);
   }, [permissions]);
 
+  const [activeTemplateKey, setActiveTemplateKey] = useState('');
+
   const handleAdd = () => {
     setEditingRole(null);
     form.resetFields();
     setCheckedKeys([]);
-    // 清除模板选择的单选按钮
-    const templateRadios = document.querySelectorAll('input[name="template"]');
-    templateRadios.forEach(radio => {
-      if (radio.value === '') {
-        radio.checked = true;
-      } else {
-        radio.checked = false;
-      }
-    });
+    setActiveTemplateKey('');
     setModalVisible(true);
   };
 
@@ -195,11 +194,11 @@ const RoleManagement = () => {
     try {
       const response = await apiDelete(`/api/roles/${id}`);
       if (response.success) {
-        message.success('删除成功');
+        toast.success('删除成功');
         fetchRoles();
       }
     } catch (error) {
-      message.error('删除失败');
+      toast.error('删除失败');
     }
   };
 
@@ -214,6 +213,7 @@ const RoleManagement = () => {
   };
 
   // 清理模板搜索框
+  const [templateSearchText, setTemplateSearchText] = useState('');
   const clearTemplateSearch = () => {
     setTemplateSearchText('');
   };
@@ -222,6 +222,7 @@ const RoleManagement = () => {
   const handleAssignUsers = async (role) => {
     setSelectedRole(role);
     setDrawerVisible(true);
+    fetchUsers();
 
     // 获取当前已分配给该角色的用户
     try {
@@ -233,7 +234,7 @@ const RoleManagement = () => {
       }
     } catch (error) {
       console.error('获取角色用户失败:', error);
-      message.error('获取角色用户失败');
+      toast.error('获取角色用户失败');
     }
   };
 
@@ -247,11 +248,11 @@ const RoleManagement = () => {
         userIds: values.users
       });
 
-      message.success('用户分配成功');
+      toast.success('用户分配成功');
       setDrawerVisible(false);
       fetchRoles(); // 刷新角色列表
     } catch (error) {
-      message.error('分配失败: ' + (error.message || '未知错误'));
+      toast.error('分配失败: ' + (error.message || '未知错误'));
     }
   };
 
@@ -264,13 +265,13 @@ const RoleManagement = () => {
         const roleName = values.name.trim();
         const existingRole = roles.find(role => role.name === roleName);
         if (existingRole) {
-          message.error('已存在同名角色，请使用其他名称');
+          toast.error('已存在同名角色，请使用其他名称');
           return;
         }
 
         // 特殊检查：不能创建名为"超级管理员"的角色
         if (roleName === '超级管理员') {
-          message.error('不能创建名称为超级管理员的角色');
+          toast.error('不能创建名称为超级管理员的角色');
           return;
         }
       }
@@ -285,15 +286,15 @@ const RoleManagement = () => {
 
       if (editingRole) {
         await apiPut(`/api/roles/${editingRole.id}`, payload);
-        message.success('更新成功');
+        toast.success('更新成功');
       } else {
         await apiPost('/api/roles', payload);
-        message.success('创建成功');
+        toast.success('创建成功');
       }
       setModalVisible(false);
       fetchRoles(); // 刷新角色列表，包括部门权限信息
     } catch (error) {
-      message.error('保存失败');
+      toast.error('保存失败');
     }
   };
 
@@ -495,11 +496,11 @@ const RoleManagement = () => {
         await withRetry(() => apiDelete(`/api/roles/${roleId}`));
         setBatchProgress(prev => ({ ...prev, done: prev.done + 1 }));
       }
-      message.success('批量删除完成');
+      toast.success('批量删除完成');
       setSelectedRoleIds([]);
       fetchRoles();
     } catch {
-      message.error('批量删除失败');
+      toast.error('批量删除失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -522,9 +523,9 @@ const RoleManagement = () => {
       setIsBatchDeptOpen(false);
       setSelectedRoleIds([]);
       fetchRoles();
-      message.success('批量设置部门权限完成');
+      toast.success('批量设置部门权限完成');
     } catch {
-      message.error('批量设置失败');
+      toast.error('批量设置失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -533,11 +534,11 @@ const RoleManagement = () => {
 
   const handleApplyTemplateToSelectedRoles = async () => {
     if (!selectedTemplateKey) {
-      message.error('请选择权限模板');
+      toast.error('请选择权限模板');
       return;
     }
     if (selectedRoleIds.length === 0) {
-      message.error('请选择至少一个角色');
+      toast.error('请选择至少一个角色');
       return;
     }
 
@@ -581,9 +582,9 @@ const RoleManagement = () => {
       setSelectedRoleIds([]);
       setSelectedTemplateKey('');
       fetchRoles();
-      message.success('模板应用完成');
+      toast.success('模板应用完成');
     } catch {
-      message.error('应用模板失败');
+      toast.error('应用模板失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -591,7 +592,6 @@ const RoleManagement = () => {
   };
 
   const [searchText, setSearchText] = useState('');
-  const [templateSearchText, setTemplateSearchText] = useState('');
 
   // 克隆角色功能
   const handleCloneSelectedRoles = async () => {
@@ -636,10 +636,10 @@ const RoleManagement = () => {
       setCloneSuffix('副本');
       setCloneCopyDepartments(false);
       setSelectedRoleIds([]);
-      message.success('克隆完成');
+      toast.success('克隆完成');
     } catch (error) {
       console.error('克隆失败:', error);
-      message.error('克隆失败');
+      toast.error('克隆失败');
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress({ done: 0, total: 0 });
@@ -704,25 +704,31 @@ const RoleManagement = () => {
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleAdd}
+              size="large"
+              className="bg-gray-900 border-none hover:bg-gray-800 h-10 px-6 rounded-lg shadow-sm"
             >
-              <span className="hidden sm:inline">新增角色</span>
+              新增角色
             </Button>
             <Button
               icon={<CopyOutlined />}
               onClick={() => setIsCloneModalOpen(true)}
+              className="h-10 px-4 rounded-lg flex items-center"
             >
-              <span className="hidden sm:inline">复制角色</span>
+              复制角色
             </Button>
             <Button
               icon={<ReloadOutlined />}
               onClick={fetchRoles}
+              className="h-10 px-4 rounded-lg flex items-center"
             >
-              <span className="hidden sm:inline">刷新</span>
+              刷新
             </Button>
             <Button
+              icon={<SettingOutlined />}
               onClick={() => setIsTemplateManageOpen(true)}
+              className="h-10 px-4 rounded-lg flex items-center"
             >
-              <span className="hidden sm:inline">模板管理</span>
+              模板管理
             </Button>
           </div>
         </div>
@@ -733,15 +739,18 @@ const RoleManagement = () => {
             <input
               type="text"
               placeholder="搜索角色名称或描述..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
           {searchText && (
-            <Button onClick={clearSearch}>
+            <button
+              onClick={clearSearch}
+              className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 rounded hover:border-gray-300 hover:bg-white transition-all"
+            >
               清空
-            </Button>
+            </button>
           )}
         </div>
 
@@ -761,7 +770,7 @@ const RoleManagement = () => {
           </div>
         </div>
 
-        {/* 批量操作栏 */}
+        {/* 批量操作条 */}
         {selectedRoleIds.length > 0 && (
           <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="text-sm text-blue-800">
@@ -834,7 +843,7 @@ const RoleManagement = () => {
         />
       </div>
 
-      <Modal
+      <AntdModal
         title={editingRole ? '编辑角色' : '新增角色'}
         open={modalVisible}
         onOk={handleSave}
@@ -869,8 +878,10 @@ const RoleManagement = () => {
                       type="radio"
                       name="template"
                       value={`custom:${tpl.id}`}
+                      checked={activeTemplateKey === `custom:${tpl.id}`}
                       onChange={(e) => {
                         if (e.target.checked) {
+                          setActiveTemplateKey(`custom:${tpl.id}`);
                           const templatePermissionIds = getTemplatePermissionIds(`custom:${tpl.id}`);
                           setCheckedKeys(templatePermissionIds.map(id => id.toString()));
                         }
@@ -884,8 +895,11 @@ const RoleManagement = () => {
                     type="radio"
                     name="template"
                     value=""
-                    defaultChecked
-                    onChange={() => setCheckedKeys([])}
+                    checked={activeTemplateKey === ''}
+                    onChange={() => {
+                      setActiveTemplateKey('');
+                      setCheckedKeys([]);
+                    }}
                   />
                   <span className="text-sm">无模板</span>
                 </label>
@@ -906,7 +920,7 @@ const RoleManagement = () => {
             </div>
           </Form.Item>
         </Form>
-      </Modal>
+      </AntdModal>
 
       {/* 用户分配抽屉 */}
       <Drawer
@@ -928,7 +942,7 @@ const RoleManagement = () => {
               optionLabelProp="label"
               showSearch
               filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }
             >
               {users.map(user => (
@@ -978,7 +992,7 @@ const RoleManagement = () => {
       />
 
       {/* 模板管理模态框 */}
-      <Modal
+      <AntdModal
         title="权限模板管理"
         open={isTemplateManageOpen}
         onCancel={() => {
@@ -988,7 +1002,8 @@ const RoleManagement = () => {
         footer={null}
         width={1200}
         style={{ top: 20 }}
-      >        <div className="space-y-6">
+      >
+        <div className="space-y-6">
           {/* 操作按钮区域 */}
           <div className="flex flex-wrap gap-3 pb-4 border-b">
             <Button
@@ -1006,13 +1021,13 @@ const RoleManagement = () => {
                 try {
                   const res = await apiPost('/api/permission-templates/create-default', {});
                   if (res.success) {
-                    message.success(res.message);
+                    toast.success(res.message);
                     fetchPermissionTemplates(); // 刷新模板列表
                   } else {
-                    message.warning(res.message);
+                    toast.warning(res.message);
                   }
                 } catch (error) {
-                  message.error('创建默认模板失败');
+                  toast.error('创建默认模板失败');
                 }
               }}
             >
@@ -1184,9 +1199,9 @@ const RoleManagement = () => {
                             await fetchPermissionTemplates();
                             setEditingTemplate(null);
                             setTemplateForm({ name: '', description: '', permission_ids: [] });
-                            message.success('模板已删除');
+                            toast.success('模板已删除');
                           } catch {
-                            message.error('删除失败');
+                            toast.error('删除失败');
                           }
                         }}
                       >
@@ -1208,19 +1223,23 @@ const RoleManagement = () => {
                       type="primary"
                       onClick={async () => {
                         if (!templateForm.name.trim()) {
-                          message.error('请输入模板名称');
+                          toast.error('请输入模板名称');
                           return;
                         }
                         try {
+                          console.log('保存模板数据:', templateForm);
                           if (editingTemplate) {
                             await apiPut(`/api/permission-templates/${editingTemplate.id}`, templateForm);
                           } else {
-                            await apiPost('/api/permission-templates', templateForm);
+                            const result = await apiPost('/api/permission-templates', templateForm);
+                            console.log('新建模板结果:', result);
                           }
                           await fetchPermissionTemplates();
-                          message.success(editingTemplate ? '模板已更新' : '模板已创建');
-                        } catch {
-                          message.error('保存失败');
+                          toast.success(editingTemplate ? '模板已更新' : '模板已创建');
+                        } catch (error) {
+                          console.error('保存模板失败:', error);
+                          const errorMessage = error.response?.data?.message || '保存失败';
+                          toast.error(errorMessage);
                         }
                       }}
                     >
@@ -1232,9 +1251,9 @@ const RoleManagement = () => {
             </div>
           </div>
         </div>
-      </Modal>
+      </AntdModal>
 
-      <Modal
+      <AntdModal
         title={"应用权限模板到选中角色"}
         open={isTemplateModalOpen}
         onCancel={() => setIsTemplateModalOpen(false)}
@@ -1360,9 +1379,9 @@ const RoleManagement = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+      </AntdModal>
 
-      <Modal
+      <AntdModal
         title={"批量设置角色部门权限"}
         open={isBatchDeptOpen}
         onCancel={() => setIsBatchDeptOpen(false)}
@@ -1438,9 +1457,9 @@ const RoleManagement = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+      </AntdModal>
 
-      <Modal
+      <AntdModal
         title={"批量克隆选中角色"}
         open={isCloneModalOpen}
         onCancel={() => setIsCloneModalOpen(false)}
@@ -1492,7 +1511,7 @@ const RoleManagement = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+      </AntdModal>
 
       <ConfirmDialog
         isOpen={isConfirmDialogOpen}

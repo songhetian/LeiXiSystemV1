@@ -181,9 +181,8 @@ export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden transform transition-all scale-100">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div>
+      <div className="bg-white rounded shadow-xl max-w-lg w-full overflow-hidden transform transition-all scale-100">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50">          <div>
             <h2 className="text-xl font-bold text-gray-800">申请调休</h2>
             <p className="text-xs text-gray-500 mt-0.5">调整工作安排</p>
           </div>
@@ -203,7 +202,7 @@ export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
                    type="date"
                    value={formData.original_date}
                    onChange={e => setFormData({...formData, original_date: e.target.value})}
-                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                    required
                  />
                  <CalendarIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -243,7 +242,7 @@ export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
                        type="date"
                        value={formData.new_date}
                        onChange={e => setFormData({...formData, new_date: e.target.value})}
-                       className="w-full pl-10 pr-2 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
+                       className="w-full pl-10 pr-2 py-2.5 bg-gray-50 border border-gray-200 rounded focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
                        required
                      />
                      <CalendarIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -258,7 +257,7 @@ export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
                      <select
                        value={formData.new_shift_id}
                        onChange={e => setFormData({...formData, new_shift_id: e.target.value})}
-                       className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none text-sm truncate"
+                       className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none text-sm truncate"
                        required
                        disabled={loadingShifts}
                      >
@@ -286,7 +285,7 @@ export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
                  value={formData.reason}
                  onChange={e => setFormData({...formData, reason: e.target.value})}
                  rows={3}
-                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none text-sm"
+                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none text-sm"
                  placeholder="请详细说明调休原因..."
                  required
               />
@@ -296,14 +295,14 @@ export default function CompensatoryLeaveModal({ isOpen, onClose, onSuccess }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors font-medium text-sm"
+                className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded transition-colors font-medium text-sm"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all font-medium text-sm shadow-lg shadow-blue-500/20 disabled:opacity-70 flex items-center gap-2"
+                className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded transition-all font-medium text-sm shadow-lg disabled:opacity-70 flex items-center gap-2"
               >
                 {submitting ? '提交中...' : '提交申请'}
               </button>

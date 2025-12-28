@@ -227,8 +227,7 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
             type="button"
             onClick={onClose}
             disabled={saving}
-            style={{ backgroundColor: '#d1d5db', borderColor: '#d1d5db', color: '#1f2937' }}
-            className="px-4 py-2 rounded-lg disabled:opacity-50"
+            className="px-5 py-2 border border-gray-200 text-sm text-gray-700 hover:text-gray-900 rounded-lg hover:border-gray-300 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             取消
           </button>
@@ -236,8 +235,7 @@ function RoleDepartmentModal({ isOpen, onClose, role, onSuccess }) {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            style={{ backgroundColor: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}
-            className="px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {saving && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

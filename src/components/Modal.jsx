@@ -8,6 +8,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
     medium: 'max-w-2xl',
     large: 'max-w-4xl',
     xlarge: 'max-w-6xl',
+    ultra: 'max-w-[1100px]',
+    mega: 'max-w-[1300px]',
     full: 'max-w-7xl',
     wide: 'max-w-[85vw]'
   }
@@ -39,15 +41,15 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
   return (
     <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex }}>
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fadeIn"
         onClick={onClose}
       ></div>
       <div
-        className={`relative z-10 bg-white rounded-lg shadow-xl ${sizeClasses[size]} w-full mx-4 max-h-[90vh] overflow-hidden`}
+        className={`relative z-10 bg-white rounded-2xl shadow-2xl ${sizeClasses[size]} w-full mx-4 max-h-[92vh] overflow-hidden animate-slideUp`}
       >
         {title && (
           <div
-            className="px-6 py-4 border-b"
+            className="px-8 py-5 border-b"
             style={{
               backgroundColor: headerColor,
               borderBottomColor: headerColor
@@ -56,11 +58,11 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium', footer, zInd
             <h2 className="text-xl font-semibold text-white">{title}</h2>
           </div>
         )}
-        <div className={`${noPadding ? '' : 'px-6 py-4'} overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar`}>
+        <div className={`${noPadding ? '' : 'px-8 py-6'} overflow-y-auto max-h-[calc(92vh-160px)] custom-scrollbar`}>
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="px-8 py-5 border-t border-gray-200 bg-gray-50">
             {footer}
           </div>
         )}
