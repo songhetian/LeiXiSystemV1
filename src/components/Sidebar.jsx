@@ -243,7 +243,7 @@ const Sidebar = ({
 
 const SidebarHeader = () => (
   <div className="mb-4 pb-4 border-b border-gray-200 flex items-center gap-3 px-2">
-    <img src="./icons/logo.ico" alt="雷犀客服管理系统" className="w-10 h-10 rounded-lg" />
+    <img src="/icons/logo.ico" alt="雷犀客服管理系统" className="w-10 h-10 rounded-lg" />
     <div>
       <h1 className="text-lg font-bold text-gray-800">雷犀客服管理系统</h1>
     </div>
