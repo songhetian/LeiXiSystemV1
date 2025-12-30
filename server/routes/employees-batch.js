@@ -1,5 +1,5 @@
 // 员工批量操作 API
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcryptjs')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql

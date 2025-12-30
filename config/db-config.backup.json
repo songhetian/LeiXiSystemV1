@@ -1,5 +1,13 @@
 {
-  "encrypted": "775ad1e09c0c0a4f4afaf4479fa1751b304b2ac9ef41bb1684327ca05da1755f70b4fbe4ff1604b2e947c4a9c9a41999ba8b25ba8942652ba349fcc7dbbcfeaeac32dbf9cdca770577611297d672d93b996ee5eb519951a5d4dc06e49705f9b903214fb46e64a95be4bc01f9513bee9326357c3890417c562186b282b61b4b7d5a0fd5afaa4ae30307ef4884d219f5bf80e33f6f1dcdc05b0aefbe0d00d3af0c28239d832f2334f60c8330d74f580e9fe113a287b273782a7b69ebaf0edc4422e8afd2255fcee12650988a85c44f737933f37d2a87",
-  "iv": "3d7f76384d2f6caa6d8fa3fcf916bfec",
-  "authTag": "12a711367cacfe7b8ca1d3fe45c8889f"
+	"database": {
+		"host": "192.168.2.31",
+		"port": 3306,
+		"user": "tian",
+		"password": "root",
+		"database": "leixin_customer_service"
+	},
+	"upload": {
+		"sharedDirectory": "F:\\code\\System\\uploads",
+		"publicUrl": "http://192.168.2.31:3001/api"
+	}
 }
