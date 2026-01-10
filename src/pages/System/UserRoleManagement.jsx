@@ -207,7 +207,7 @@ const UserRoleManagement = () => {
     return result;
   }, [users, searchText, searchDepartment, searchRole]);
 
-  
+
 
   const columns = [
     {
@@ -242,16 +242,16 @@ const UserRoleManagement = () => {
       render: (_, record) => (
         <div>
           {record.roles && record.roles.length > 0 ? (
-            <Tag 
-              color="blue" 
+            <Tag
+              color="blue"
               className="cursor-pointer"
               onClick={() => handleManageRoles(record)}
             >
               {record.roles[0].name}
             </Tag>
           ) : (
-            <Button 
-              type="link" 
+            <Button
+              type="link"
               size="small"
               onClick={() => handleManageRoles(record)}
               className="text-blue-600 hover:text-blue-700 p-0"
@@ -566,9 +566,9 @@ const UserRoleManagement = () => {
           <Button key="cancel" onClick={() => setIsBatchAssignOpen(false)}>
             取消
           </Button>,
-          <Button 
-            key="save" 
-            type="primary" 
+          <Button
+            key="save"
+            type="primary"
             onClick={handleBatchAssignRoles}
             disabled={isProcessingBatch || !batchAssignRoleId}
           >
@@ -604,9 +604,9 @@ const UserRoleManagement = () => {
           <Button key="cancel" onClick={() => setIsBatchRemoveOpen(false)}>
             取消
           </Button>,
-          <Button 
-            key="remove" 
-            type="primary" 
+          <Button
+            key="remove"
+            type="primary"
             danger
             onClick={handleBatchRemoveRoles}
             disabled={isProcessingBatch}
