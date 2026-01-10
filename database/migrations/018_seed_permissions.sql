@@ -76,7 +76,15 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 -- ============================================================
 ('查看考核', 'assessment:plan:view', 'plan', 'view', 'assessment', '查看考核计划及试卷'),
 ('管理考核', 'assessment:plan:manage', 'plan', 'manage', 'assessment', '创建试卷、发布考核计划'),
-('查看成绩', 'assessment:result:view', 'result', 'view', 'assessment', '查看所有员工考试成绩');
+('查看成绩', 'assessment:result:view', 'result', 'view', 'assessment', '查看所有员工考试成绩'),
+
+-- ============================================================
+-- 工资管理 (Payroll)
+-- ============================================================
+('查看工资条', 'payroll:payslip:view', 'payslip', 'view', 'payroll', '查看自己的工资条'),
+('工资条管理', 'payroll:payslip:manage', 'payslip', 'manage', 'payroll', '管理所有工资条，包括新增、编辑、删除'),
+('工资条发放', 'payroll:payslip:distribute', 'payslip', 'distribute', 'payroll', '发放工资条给员工'),
+('二级密码管理', 'payroll:password:manage', 'password', 'manage', 'payroll', '管理员工工资条二级密码');
 
 -- 3. 确保基础角色存在
 INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
@@ -101,7 +109,8 @@ JOIN permissions p ON p.code IN (
     'vacation:record:view',
     'knowledge:article:view',
     'assessment:plan:view',
-    'user:profile:update'
+    'user:profile:update',
+    'payroll:payslip:view'
 )
 WHERE r.name = '普通员工';
 

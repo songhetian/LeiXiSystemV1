@@ -640,6 +640,30 @@ const allMenuItems = [
     ],
   },
   {
+    id: 'payroll',
+    label: '工资管理',
+    icon: <TeamOutlined />,
+    permission: 'payroll:payslip:view',
+    children: [
+      {
+        id: 'payslip-employee',
+        label: '我的工资条',
+        icon: <FileTextOutlined />,
+        children: [
+          { id: 'my-payslips', label: '工资条列表', icon: <FileTextOutlined />, permission: 'payroll:payslip:view' },
+        ]
+      },
+      {
+        id: 'payslip-admin',
+        label: '工资条管理',
+        icon: <SettingOutlined />,
+        children: [
+          { id: 'payslip-management', label: '工资条管理', icon: <FileTextOutlined />, permission: 'payroll:payslip:manage' },
+        ]
+      },
+    ],
+  },
+  {
     id: 'quality',
     label: '质检管理',
     icon: <SearchOutlined />,

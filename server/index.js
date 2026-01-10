@@ -3155,6 +3155,9 @@ fastify.register(require('./routes/schedules'));
 fastify.register(require('./routes/schedule-excel'));
 fastify.register(require('./routes/attendance-approval'));
 
+// ==================== 工资管理路由 ====================
+fastify.register(require('./routes/payslips'));
+
 // ==================== 增强功能路由 ====================
 fastify.register(require('./routes/export'));
 fastify.register(require('./routes/smart-schedule'));

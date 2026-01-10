@@ -90,6 +90,10 @@ const LeaveApply = lazy(() => import('./pages/Attendance').then(module => ({ def
 const PlatformShopManagement = lazy(() => import('./components/PlatformShopManagement'));
 const QualityTagManagement = lazy(() => import('./components/QualityTagManagement'));
 const BroadcastList = lazy(() => import('./pages/Messaging').then(module => ({ default: module.BroadcastList })));
+
+const MyPayslips = lazy(() => import('./pages/Payroll/MyPayslips'));
+const PayslipManagement = lazy(() => import('./pages/Payroll/PayslipManagement'));
+
 import DatabaseCheck from './components/DatabaseCheck';
 import TopNavbar from './components/TopNavbar';
 
@@ -442,6 +446,11 @@ function App() {
       case 'vacation-permissions':
         return <VacationPermissions />
 
+      // 工资管理
+      case 'my-payslips':
+        return <MyPayslips />
+      case 'payslip-management':
+        return <PayslipManagement />
 
       // 质检管理
       case 'quality-score':
