@@ -879,11 +879,25 @@ fastify.post('/api/customers', async (request, reply) => {
       [username, passwordHash, name, email, phone, departmentId, status]
     )
 
+    // 首先确保职位存在，如果不存在则创建
+    let positionId;
+    const [existingPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', ['客服专员']);
+    if (existingPositions.length > 0) {
+      positionId = existingPositions[0].id;
+    } else {
+      // 如果职位不存在，创建新职位
+      const [positionResult] = await pool.query(
+        'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+        ['客服专员', 'active']
+      );
+      positionId = positionResult.insertId;
+    }
+
     // 创建员工信息
     const employeeNo = `E${String(userResult.insertId).padStart(3, '0')}`
     await pool.query(
-      'INSERT INTO employees (user_id, employee_no, position, hire_date, rating, status) VALUES (?, ?, ?, NOW(), ?, ?)',
-      [userResult.insertId, employeeNo, '客服专员', rating, status]
+      'INSERT INTO employees (user_id, employee_no, position, position_id, hire_date, rating, status) VALUES (?, ?, ?, ?, NOW(), ?, ?)',
+      [userResult.insertId, employeeNo, '客服专员', positionId, rating, status]
     )
 
     return { success: true, id: userResult.insertId }
@@ -1170,7 +1184,7 @@ fastify.post('/api/departments/:id/restore', async (request, reply) => {
 // 获取员工列表
 fastify.get('/api/employees', async (request, reply) => {
   try {
-    const { includeDeleted, department_id } = request.query;
+    const { includeDeleted, department_id, keyword, position, status, rating, date_from, date_to } = request.query;
     const { extractUserPermissions, applyDepartmentFilter } = require('./middleware/checkPermission');
 
     // 获取用户权限
@@ -1180,7 +1194,7 @@ fastify.get('/api/employees', async (request, reply) => {
       SELECT
         e.id,
         e.employee_no,
-        e.position,
+        pos.name as position_name,
         e.hire_date,
         e.rating,
         e.status,
@@ -1204,6 +1218,7 @@ fastify.get('/api/employees', async (request, reply) => {
       FROM employees e
       LEFT JOIN users u ON e.user_id = u.id
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN positions pos ON e.position_id = pos.id
       WHERE 1=1
     `;
 
@@ -1220,8 +1235,45 @@ fastify.get('/api/employees', async (request, reply) => {
       params.push(department_id);
     }
 
+    // 搜索关键词过滤（支持姓名、用户名、工号、职位名称）
+    if (keyword) {
+      query += ' AND (';
+      query += 'u.real_name LIKE ? OR u.username LIKE ? OR e.employee_no LIKE ? OR pos.name LIKE ?';
+      query += ')';
+      const searchParam = `%${keyword}%`;
+      params.push(searchParam, searchParam, searchParam, searchParam);
+    }
+
+    // 按职位筛选
+    if (position) {
+      query += ' AND pos.name = ?';
+      params.push(position);
+    }
+
+    // 按状态筛选
+    if (status) {
+      query += ' AND e.status = ?';
+      params.push(status);
+    }
+
+    // 按评级筛选
+    if (rating) {
+      query += ' AND e.rating = ?';
+      params.push(rating);
+    }
+
+    // 按入职日期范围筛选
+    if (date_from) {
+      query += ' AND e.hire_date >= ?';
+      params.push(date_from);
+    }
+    if (date_to) {
+      query += ' AND e.hire_date <= ?';
+      params.push(date_to);
+    }
+
     // 应用部门权限过滤
-    const filtered = applyDepartmentFilter(permissions, query, params, 'u.department_id');
+    const filtered = applyDepartmentFilter(permissions, query, [...params], 'u.department_id');
     query = filtered.query;
     const finalParams = filtered.params;
 
@@ -1290,17 +1342,33 @@ fastify.post('/api/employees', async (request, reply) => {
       [username, passwordHash, real_name, email || null, phone || null, department_id || null, 'active']
     );
 
+    // 确保职位存在并获取position_id
+    let positionId = null;
+    if (position) {
+      const [existingPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', [position]);
+      if (existingPositions.length > 0) {
+        positionId = existingPositions[0].id;
+      } else {
+        // 如果职位不存在，创建新职位
+        const [positionResult] = await pool.query(
+          'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+          [position, 'active']
+        );
+        positionId = positionResult.insertId;
+      }
+    }
+
     // 创建员工信息
     const [employeeResult] = await pool.query(
-      'INSERT INTO employees (user_id, employee_no, position, hire_date, rating, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [userResult.insertId, finalEmployeeNo, position || null, formattedHireDate, rating || 3, status]
+      'INSERT INTO employees (user_id, employee_no, position_id, hire_date, rating, status) VALUES (?, ?, ?, ?, ?, ?)',
+      [userResult.insertId, finalEmployeeNo, positionId, formattedHireDate, rating || 3, status]
     );
 
     // 自动创建员工变动记录（入职记录）
     try {
       await pool.query(
         `INSERT INTO employee_changes
-        (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position, new_position, reason)
+        (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position_id, new_position_id, reason)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           employeeResult.insertId,
@@ -1310,7 +1378,7 @@ fastify.post('/api/employees', async (request, reply) => {
           null,
           department_id || null,
           null,
-          position || null,
+          positionId,
           '新员工入职'
         ]
       );
@@ -1356,11 +1424,27 @@ fastify.put('/api/employees/:id', async (request, reply) => {
       [real_name, email || null, phone || null, department_id || null, avatar || null, userId]
     );
 
+    // 确保职位存在并获取position_id
+    let positionId = null;
+    if (position) {
+      const [existingPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', [position]);
+      if (existingPositions.length > 0) {
+        positionId = existingPositions[0].id;
+      } else {
+        // 如果职位不存在，创建新职位
+        const [positionResult] = await pool.query(
+          'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+          [position, 'active']
+        );
+        positionId = positionResult.insertId;
+      }
+    }
+
     // 更新员工信息
     await pool.query(
       `UPDATE employees SET
         employee_no = ?,
-        position = ?,
+        position_id = ?,
         hire_date = ?,
         rating = ?,
         status = ?,
@@ -1373,7 +1457,7 @@ fastify.put('/api/employees/:id', async (request, reply) => {
       WHERE id = ?`,
       [
         employee_no,
-        position || null,
+        positionId,
         formattedHireDate,
         rating || 3,
         status,
@@ -1500,15 +1584,32 @@ fastify.post('/api/employees/batch-import', async (request, reply) => {
 
       const userId = userResult.insertId;
 
-      // 7. 创建员工记录
+      // 7. 确保职位存在并获取position_id
+      let positionId = null;
+      if (emp.position) {
+        const [existingPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', [emp.position]);
+        if (existingPositions.length > 0) {
+          positionId = existingPositions[0].id;
+        } else {
+          // 如果职位不存在，创建新职位
+          const [positionResult] = await pool.query(
+            'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+            [emp.position, 'active']
+          );
+          positionId = positionResult.insertId;
+        }
+      }
+
+      // 创建员工记录
       const [employeeResult] = await pool.query(
         `INSERT INTO employees
-         (user_id, employee_no, position, hire_date, rating, status)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+         (user_id, employee_no, position, position_id, hire_date, rating, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           finalEmployeeNo,
           emp.position || null,
+          positionId,
           formattedHireDate,
           3, // 默认3星
           'active'
@@ -1665,9 +1766,29 @@ fastify.post('/api/users/:id/approve', async (request, reply) => {
       const employeeNo = `E${String(id).padStart(3, '0')}`;
       const hireDate = new Date().toISOString().split('T')[0];
 
+      // 确保职位存在并获取position_id（如果用户有职位信息）
+      let positionId = null;
+      const [userWithPosition] = await pool.query(
+        'SELECT position FROM users WHERE id = ?',
+        [id]
+      );
+      if (userWithPosition.length > 0 && userWithPosition[0].position) {
+        const [existingPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', [userWithPosition[0].position]);
+        if (existingPositions.length > 0) {
+          positionId = existingPositions[0].id;
+        } else {
+          // 如果职位不存在，创建新职位
+          const [positionResult] = await pool.query(
+            'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+            [userWithPosition[0].position, 'active']
+          );
+          positionId = positionResult.insertId;
+        }
+      }
+
       const [employeeResult] = await pool.query(
-        'INSERT INTO employees (user_id, employee_no, hire_date, rating, status) VALUES (?, ?, ?, ?, ?)',
-        [id, employeeNo, hireDate, 3, 'active']
+        'INSERT INTO employees (user_id, employee_no, position, position_id, hire_date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [id, employeeNo, userWithPosition.length > 0 && userWithPosition[0].position ? userWithPosition[0].position : null, positionId, hireDate, 3, 'active']
       );
 
       // 自动创建员工变动记录（入职记录）
@@ -1746,12 +1867,16 @@ fastify.get('/api/employee-changes', async (request, reply) => {
         u.real_name as real_name,
         e.employee_no,
         d1.name as old_department_name,
-        d2.name as new_department_name
+        d2.name as new_department_name,
+        pos1.name as old_position_name,
+        pos2.name as new_position_name
       FROM employee_changes ec
       LEFT JOIN users u ON ec.user_id = u.id
       LEFT JOIN employees e ON ec.employee_id = e.id
       LEFT JOIN departments d1 ON ec.old_department_id = d1.id
       LEFT JOIN departments d2 ON ec.new_department_id = d2.id
+      LEFT JOIN positions pos1 ON ec.old_position_id = pos1.id
+      LEFT JOIN positions pos2 ON ec.new_position_id = pos2.id
       WHERE 1=1
     `;
 
@@ -1792,10 +1917,14 @@ fastify.get('/api/employee-changes/:employeeId', async (request, reply) => {
       SELECT
         ec.*,
         d1.name as old_department_name,
-        d2.name as new_department_name
+        d2.name as new_department_name,
+        pos1.name as old_position_name,
+        pos2.name as new_position_name
       FROM employee_changes ec
       LEFT JOIN departments d1 ON ec.old_department_id = d1.id
       LEFT JOIN departments d2 ON ec.new_department_id = d2.id
+      LEFT JOIN positions pos1 ON ec.old_position_id = pos1.id
+      LEFT JOIN positions pos2 ON ec.new_position_id = pos2.id
       WHERE ec.employee_id = ?
       ORDER BY ec.change_date DESC, ec.created_at DESC
     `, [employeeId]);
@@ -1838,10 +1967,39 @@ fastify.post('/api/employee-changes/create', async (request, reply) => {
     // 处理日期格式
     const formattedChangeDate = change_date.split('T')[0];
 
+    // 确保新旧职位存在并获取position_id
+    let oldPositionId = null, newPositionId = null;
+    if (old_position) {
+      const [existingOldPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', [old_position]);
+      if (existingOldPositions.length > 0) {
+        oldPositionId = existingOldPositions[0].id;
+      } else {
+        // 如果职位不存在，创建新职位
+        const [positionResult] = await pool.query(
+          'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+          [old_position, 'active']
+        );
+        oldPositionId = positionResult.insertId;
+      }
+    }
+    if (new_position) {
+      const [existingNewPositions] = await pool.query('SELECT id FROM positions WHERE name = ?', [new_position]);
+      if (existingNewPositions.length > 0) {
+        newPositionId = existingNewPositions[0].id;
+      } else {
+        // 如果职位不存在，创建新职位
+        const [positionResult] = await pool.query(
+          'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+          [new_position, 'active']
+        );
+        newPositionId = positionResult.insertId;
+      }
+    }
+
     const [result] = await pool.query(
       `INSERT INTO employee_changes
-      (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position, new_position, reason)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position, new_position, old_position_id, new_position_id, reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         employee_id,
         user_id,
@@ -1851,6 +2009,8 @@ fastify.post('/api/employee-changes/create', async (request, reply) => {
         new_department_id || null,
         old_position || null,
         new_position || null,
+        oldPositionId,
+        newPositionId,
         reason || null
       ]
     );
@@ -3230,7 +3390,7 @@ const start = async () => {
     await fastify.ready()
 
     // 启动服务器
-    fastify.listen({ port: 3001, host: '0.0.0.0' }, (err, address) => {
+    fastify.listen({ port: process.env.PORT || 3001, host: '0.0.0.0' }, (err, address) => {
       if (err) {
         console.error('❌ 服务器启动失败:', err);
         process.exit(1);

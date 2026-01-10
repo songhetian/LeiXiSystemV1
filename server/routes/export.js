@@ -300,7 +300,136 @@ module.exports = async function (fastify, opts) {
       reply.status(500).send({ error: '导出失败' });
     }
   });
-};
+
+  // 导出员工列表
+  fastify.get('/api/export/employees', async (request, reply) => {
+    try {
+      // 构建查询
+      let query = `
+        SELECT
+          e.id,
+          e.employee_no,
+          u.real_name as name,
+          u.username as login_username,
+          d.name as department_name,
+          pos.name as position_name,
+          u.phone,
+          u.email,
+          u.status,
+          e.hire_date,
+          e.rating,
+          e.emergency_contact,
+          e.emergency_phone,
+          e.address,
+          e.education,
+          e.skills,
+          e.remark,
+          u.is_department_manager
+        FROM employees e
+        LEFT JOIN users u ON e.user_id = u.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN positions pos ON e.position_id = pos.id
+        WHERE 1=1
+      `;
+
+      const queryParams = [];
+
+      // 根据查询参数添加过滤条件
+      if (request.query.status) {
+        query += ` AND u.status = ?`;
+        queryParams.push(request.query.status);
+      }
+
+      if (request.query.department_id) {
+        query += ` AND d.id = ?`;
+        queryParams.push(request.query.department_id);
+      }
+
+      if (request.query.position) {
+        query += ` AND pos.name LIKE ?`;
+        queryParams.push(`%${request.query.position}%`);
+      }
+
+      if (request.query.keyword) {
+        query += ` AND (u.real_name LIKE ? OR e.employee_no LIKE ? OR u.phone LIKE ?)`;
+        const keywordParam = `%${request.query.keyword}%`;
+        queryParams.push(keywordParam, keywordParam, keywordParam);
+      }
+
+      query += ` ORDER BY e.employee_no ASC`;
+
+      const [employees] = await fastify.mysql.query(query, queryParams);
+
+      // 创建工作簿
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('员工列表');
+
+      // 设置列
+      worksheet.columns = [
+        { header: '工号', key: 'employee_no', width: 15 },
+        { header: '姓名', key: 'name', width: 12 },
+        { header: '登录账号', key: 'login_username', width: 15 },
+        { header: '部门', key: 'department_name', width: 15 },
+        { header: '职位', key: 'position_name', width: 15 },
+        { header: '手机号', key: 'phone', width: 15 },
+        { header: '邮箱', key: 'email', width: 25 },
+        { header: '状态', key: 'status', width: 12 },
+        { header: '入职日期', key: 'hire_date', width: 15 },
+        { header: '评级', key: 'rating', width: 10 },
+        { header: '紧急联系人', key: 'emergency_contact', width: 15 },
+        { header: '紧急联系电话', key: 'emergency_phone', width: 15 },
+        { header: '地址', key: 'address', width: 30 },
+        { header: '学历', key: 'education', width: 15 },
+        { header: '技能', key: 'skills', width: 20 },
+        { header: '备注', key: 'remark', width: 30 },
+        { header: '部门主管', key: 'is_department_manager', width: 12 }
+      ];
+
+      // 添加数据
+      employees.forEach(emp => {
+        worksheet.addRow({
+          employee_no: emp.employee_no || '',
+          name: emp.name || '',
+          login_username: emp.login_username || '',
+          department_name: emp.department_name || '',
+          position_name: emp.position_name || '',
+          phone: emp.phone || '',
+          email: emp.email || '',
+          status: emp.status === 'active' ? '在职' : emp.status === 'resigned' ? '离职' : '停用',
+          hire_date: emp.hire_date || '',
+          rating: emp.rating || 0,
+          emergency_contact: emp.emergency_contact || '',
+          emergency_phone: emp.emergency_phone || '',
+          address: emp.address || '',
+          education: emp.education || '',
+          skills: emp.skills || '',
+          remark: emp.remark || '',
+          is_department_manager: emp.is_department_manager ? '是' : '否'
+        });
+      });
+
+      // 设置表头样式
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4A90E2' }
+      };
+      worksheet.getRow(1).font.color = { argb: 'FFFFFFFF' };
+
+      // 生成文件
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      reply
+        .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('Content-Disposition', `attachment; filename=employees_${new Date().toISOString().slice(0, 19)}.xlsx`)
+        .send(buffer);
+
+    } catch (error) {
+      console.error('导出员工列表失败:', error);
+      reply.status(500).send({ error: '导出失败' });
+    }
+  });
 
 // 辅助函数
 function getStatusText(status) {
@@ -333,4 +462,6 @@ function getApprovalStatusText(status) {
     'cancelled': '已取消'
   };
   return statusMap[status] || status;
+}
+
 }

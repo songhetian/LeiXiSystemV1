@@ -236,6 +236,13 @@ const { id } = request.params
         return reply.code(400).send({ success: false, message: '职位名称已存在' })
       }
 
+      // 获取更新前的职位信息，用于比较是否需要更新员工记录
+      const [existingPositions] = await pool.query('SELECT name FROM positions WHERE id = ?', [id]);
+      if (existingPositions.length === 0) {
+        return reply.code(404).send({ success: false, message: '职位不存在' });
+      }
+      const oldName = existingPositions[0].name;
+
       await pool.query(
         `UPDATE positions SET
           name = ?,
@@ -262,6 +269,16 @@ const { id } = request.params
         ]
       )
 
+      // 如果职位名称发生变化，同时更新所有关联的员工记录
+      if (oldName !== name) {
+        await pool.query(
+          `UPDATE employees
+           SET position = ?
+           WHERE position_id = ?`,
+          [name, id]
+        );
+      }
+
       return { success: true, message: '职位更新成功' }
     } catch (error) {
       console.error('更新职位失败:', error)
@@ -279,6 +296,14 @@ const { id } = request.params
       if (existing.length === 0) {
         return reply.code(404).send({ success: false, message: '职位不存在' })
       }
+
+      // 在删除职位前，将关联的员工的position_id设为NULL，但保留position名称
+      await pool.query(
+        `UPDATE employees
+         SET position_id = NULL
+         WHERE position_id = ?`,
+        [id]
+      )
 
       await pool.query('DELETE FROM positions WHERE id = ?', [id])
 

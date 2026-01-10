@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig';
 import {
@@ -42,13 +41,27 @@ export default function PayslipManagement() {
         ...filters
       };
 
-      const response = await axios.get(getApiUrl('/api/admin/payslips'), { params });
+      const queryString = new URLSearchParams(params).toString();
+      const url = queryString ? `/api/admin/payslips?${queryString}` : '/api/admin/payslips';
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(getApiUrl(url), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-      if (response.data.success) {
-        setPayslips(response.data.data);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setPayslips(data.data);
         setPagination(prev => ({
           ...prev,
-          total: response.data.total
+          total: data.total
         }));
       }
     } catch (error) {
@@ -61,9 +74,15 @@ export default function PayslipManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get(getApiUrl('/api/departments'));
-      if (response.data.success) {
-        setDepartments(response.data.data);
+      const token = localStorage.getItem('token');
+      const response = await fetch(getApiUrl('/api/departments/list'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        setDepartments(result.data);
       }
     } catch (error) {
       console.error('获取部门列表失败:', error);
@@ -72,9 +91,15 @@ export default function PayslipManagement() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get(getApiUrl('/api/employees'));
-      if (response.data.success) {
-        setEmployees(response.data.data);
+      const token = localStorage.getItem('token');
+      const response = await fetch(getApiUrl('/api/employees'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        setEmployees(result.data);
       }
     } catch (error) {
       console.error('获取员工列表失败:', error);
@@ -454,7 +479,7 @@ export default function PayslipManagement() {
                 placeholder="请选择员工"
                 optionFilterProp="children"
                 disabled={!!editingPayslip}
-                options={employees.map(e => ({ label: `${e.name} (${e.employee_no})`, value: e.id }))}
+                options={employees.map(e => ({ label: `${e.real_name}`, value: e.id }))}
               />
             </Form.Item>
 

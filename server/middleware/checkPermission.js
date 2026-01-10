@@ -105,13 +105,6 @@ async function extractUserPermissions(request, pool) {
  * @returns {Object} { query, params } - 修改后的查询和参数
  */
 function applyDepartmentFilter(permissions, query, params, departmentField = 'u.department_id', userField = 'u.id') {
-  // 如果没有权限信息（未登录或无角色），限制为看不到任何数据
-  if (!permissions) {
-    console.log('[applyDepartmentFilter] No permissions, blocking all data')
-    query += ` AND 1=0`
-    return { query, params }
-  }
-
   console.log('[applyDepartmentFilter] Permissions:', {
     userId: permissions.userId,
     departmentId: permissions.departmentId,
@@ -119,7 +112,19 @@ function applyDepartmentFilter(permissions, query, params, departmentField = 'u.
     viewableDepartmentIds: permissions.viewableDepartmentIds
   })
 
-  // 不再特殊处理超级管理员，所有用户都遵循相同的部门权限规则
+  // 超级管理员可以查看所有数据，直接返回无过滤
+  if (permissions && permissions.canViewAllDepartments) {
+    console.log('[applyDepartmentFilter] Super admin - no department filtering')
+    return { query, params }
+  }
+
+  // 如果没有权限信息（未登录或无角色），限制为看不到任何数据
+  if (!permissions) {
+    console.log('[applyDepartmentFilter] No permissions, blocking all data')
+    query += ` AND 1=0`
+    return { query, params }
+  }
+
   // 严格根据 viewableDepartmentIds 过滤
   if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
     console.log(`[applyDepartmentFilter] Filtering by viewableDepartmentIds: ${permissions.viewableDepartmentIds.join(',')}`)

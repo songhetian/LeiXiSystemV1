@@ -95,7 +95,21 @@ function EmployeeManagement() {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl('/api/employees'), {
+
+      // 构建查询参数
+      const params = new URLSearchParams();
+      if (searchFilters.keyword) params.append('keyword', searchFilters.keyword);
+      if (searchFilters.department) params.append('department_id', searchFilters.department);
+      if (searchFilters.position) params.append('position', searchFilters.position);
+      if (searchFilters.status) params.append('status', searchFilters.status);
+      if (searchFilters.rating) params.append('rating', searchFilters.rating);
+      if (searchFilters.dateFrom) params.append('date_from', searchFilters.dateFrom);
+      if (searchFilters.dateTo) params.append('date_to', searchFilters.dateTo);
+
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees?${queryString}` : '/api/employees';
+
+      const response = await fetch(getApiUrl(url), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -108,7 +122,7 @@ function EmployeeManagement() {
 
       const data = await response.json()
       setEmployees(data)
-      setFilteredEmployees(data)
+      setFilteredEmployees(data) // 使用后端返回的数据，不再需要前端过滤
       setDbError(false);
       setDbErrorMessage('');
     } catch (error) {
@@ -134,63 +148,11 @@ function EmployeeManagement() {
     }
   }
 
-  // 搜索过滤
+  // 搜索过滤 - 现在通过后端API处理
   useEffect(() => {
-    let filtered = [...employees]
-
-    // 关键词搜索（姓名、工号、邮箱、手机、职位）
-    if (searchFilters.keyword) {
-      const keyword = searchFilters.keyword.toLowerCase()
-      filtered = filtered.filter(emp =>
-        emp.real_name?.toLowerCase().includes(keyword) ||
-        emp.employee_no?.toLowerCase().includes(keyword) ||
-        emp.email?.toLowerCase().includes(keyword) ||
-        emp.phone?.includes(keyword) ||
-        emp.position?.toLowerCase().includes(keyword)
-      )
-    }
-
-    // 部门筛选
-    if (searchFilters.department) {
-      filtered = filtered.filter(emp => emp.department_id === parseInt(searchFilters.department))
-    }
-
-    // 职位筛选
-    if (searchFilters.position) {
-      filtered = filtered.filter(emp => emp.position === searchFilters.position)
-    }
-
-    // 状态筛选
-    if (searchFilters.status) {
-      filtered = filtered.filter(emp => emp.status === searchFilters.status)
-    }
-
-    // 评级筛选
-    if (searchFilters.rating) {
-      filtered = filtered.filter(emp => emp.rating === parseInt(searchFilters.rating))
-    }
-
-    // 日期筛选（按入职日期）
-    if (searchFilters.dateFrom) {
-      filtered = filtered.filter(emp => {
-        if (!emp.hire_date) return false
-        const empDate = formatBeijingDate(emp.hire_date)
-        return empDate >= searchFilters.dateFrom
-      })
-    }
-
-    if (searchFilters.dateTo) {
-      filtered = filtered.filter(emp => {
-        if (!emp.hire_date) return false
-        const empDate = formatBeijingDate(emp.hire_date)
-        return empDate <= searchFilters.dateTo
-      })
-    }
-
-    setFilteredEmployees(filtered)
-    setTotalPages(Math.ceil(filtered.length / pageSize))
-    setCurrentPage(1) // 筛选后重置到第一页
-  }, [searchFilters, employees, pageSize])
+    // 每次搜索条件变化时重新获取数据
+    fetchEmployees();
+  }, [searchFilters, pageSize])
 
   // 获取当前页的数据
   const getCurrentPageData = () => {
@@ -439,7 +401,7 @@ function EmployeeManagement() {
         email: emp.email || '',
         phone: emp.phone || '',
         department_id: emp.department_id || '',
-        position: emp.position || '',
+        position: emp.position_name || '',
         hire_date: emp.hire_date ? emp.hire_date.split('T')[0] : '',
         rating: emp.rating || 3,
         status: emp.status || 'active',
@@ -529,8 +491,8 @@ function EmployeeManagement() {
         change_date: statusChangeData.changeDate,
         old_department_id: statusChangingEmp.department_id,
         new_department_id: statusChangingEmp.department_id,
-        old_position: statusChangingEmp.position,
-        new_position: statusChangingEmp.position,
+        old_position: statusChangingEmp.position_name,
+        new_position: statusChangingEmp.position_name,
         reason: statusChangeData.reason
       }
 
@@ -596,8 +558,8 @@ function EmployeeManagement() {
           change_date: changeDate,
           old_department_id: emp.department_id,
           new_department_id: emp.department_id,
-          old_position: emp.position,
-          new_position: emp.position,
+          old_position: emp.position_name,
+          new_position: emp.position_name,
           reason: '批量操作'
         }
 
@@ -797,6 +759,28 @@ function EmployeeManagement() {
             >
               <span className="text-lg">+</span>
               <span>新增员工</span>
+            </button>
+            <button
+              onClick={() => {
+                // 构建查询参数
+                let exportUrl = `/api/export/employees`;
+                const params = new URLSearchParams();
+
+                if (searchFilters.status) params.append('status', searchFilters.status);
+                if (searchFilters.department) params.append('department_id', searchFilters.department);
+                if (searchFilters.position) params.append('position', searchFilters.position);
+                if (searchFilters.keyword) params.append('keyword', searchFilters.keyword);
+
+                if (params.toString()) {
+                  exportUrl += '?' + params.toString();
+                }
+
+                window.open(getApiUrl(exportUrl), '_blank');
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm font-medium rounded-lg hover:from-green-700 hover:to-green-800 hover:shadow-lg transition-all duration-200"
+            >
+              <span>📤</span>
+              <span>导出员工</span>
             </button>
           </div>
         </div>
@@ -1134,7 +1118,7 @@ function EmployeeManagement() {
                       {emp.department_name || '-'}
                     </td>
                     <td className="px-5 py-4 text-center text-sm text-gray-600">
-                      {emp.position || '-'}
+                      {emp.position_name || '-'}
                     </td>
                     <td className="px-5 py-4 text-center text-sm text-gray-600">
                       {emp.phone || emp.email || '-'}

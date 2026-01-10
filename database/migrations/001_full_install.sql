@@ -499,8 +499,8 @@ CREATE TABLE `employee_changes` (
   `change_date` date NOT NULL COMMENT '变动日期',
   `old_department_id` int DEFAULT NULL COMMENT '原部门ID',
   `new_department_id` int DEFAULT NULL COMMENT '新部门ID',
-  `old_position` varchar(50) DEFAULT NULL COMMENT '原职位',
-  `new_position` varchar(50) DEFAULT NULL COMMENT '新职位',
+  `old_position_id` int DEFAULT NULL COMMENT '原职位ID',
+  `new_position_id` int DEFAULT NULL COMMENT '新职位ID',
   `reason` text COMMENT '变动原因',
   `remarks` text COMMENT '备注',
   `created_by` int DEFAULT NULL COMMENT '创建人ID',
@@ -510,7 +510,11 @@ CREATE TABLE `employee_changes` (
   KEY `employee_id` (`employee_id`),
   KEY `user_id` (`user_id`),
   KEY `change_type` (`change_type`),
-  KEY `change_date` (`change_date`)
+  KEY `change_date` (`change_date`),
+  KEY `idx_old_position_id` (`old_position_id`),
+  KEY `idx_new_position_id` (`new_position_id`),
+  CONSTRAINT `fk_employee_changes_old_position` FOREIGN KEY (`old_position_id`) REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_employee_changes_new_position` FOREIGN KEY (`new_position_id`) REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='员工变动记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `employee_status_records`;
@@ -563,7 +567,7 @@ CREATE TABLE `employees` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '员工记录ID',
   `user_id` int NOT NULL COMMENT '关联用户ID',
   `employee_no` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '员工工号',
-  `position` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '职位名称',
+  `position_id` int DEFAULT NULL COMMENT '职位ID，关联positions表',
   `hire_date` date NOT NULL COMMENT '入职日期',
   `salary` decimal(10,2) DEFAULT NULL COMMENT '基本薪资',
   `status` enum('active','inactive','resigned') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT '员工状态',
@@ -579,10 +583,11 @@ CREATE TABLE `employees` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_id` (`user_id`),
   UNIQUE KEY `uk_employee_no` (`employee_no`),
-  KEY `idx_position` (`position`),
+  KEY `idx_position_id` (`position_id`),
   KEY `idx_hire_date` (`hire_date`),
   KEY `idx_status` (`status`),
-  CONSTRAINT `fk_employees_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_employees_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_employees_position` FOREIGN KEY (`position_id`) REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='员工信息表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `exam_categories`;

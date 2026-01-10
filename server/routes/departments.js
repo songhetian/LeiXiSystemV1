@@ -210,12 +210,13 @@ module.exports = async function (fastify, opts) {
           u.email,
           u.phone,
           u.department_id,
-          e.position,
+          pos.name as position,
           e.hire_date,
           e.status,
           e.rating
         FROM employees e
         INNER JOIN users u ON e.user_id = u.id
+        LEFT JOIN positions pos ON e.position_id = pos.id
         WHERE u.department_id = ? AND u.status = 'active' AND e.status = 'active'
         ORDER BY e.employee_no`,
         [departmentId]

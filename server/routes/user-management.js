@@ -59,9 +59,10 @@ async function userManagementRoutes(fastify, options) {
       // 这里需要引入 findApprover，或者如果不需要复杂逻辑，可以直接查询部门主管
       // 暂时简单实现：查找该部门的主管
       const [managers] = await pool.query(
-        `SELECT u.id, u.real_name, e.position
+        `SELECT u.id, u.real_name, pos.name as position
          FROM users u
          LEFT JOIN employees e ON u.id = e.user_id
+         LEFT JOIN positions pos ON e.position_id = pos.id
          WHERE u.department_id = ? AND u.is_department_manager = 1`,
         [user[0].department_id]
       )

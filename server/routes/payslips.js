@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const ExcelJS = require('exceljs');
+const { extractUserPermissions, applyDepartmentFilter } = require('../middleware/checkPermission');
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql;
@@ -100,8 +101,15 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/payslips/my-payslips', async (request, reply) => {
     try {
       const userId = request.user.id;
-      const { page = 1, limit = 10, year, month } = request.query;
-      const offset = (page - 1) * limit;
+      const { page = 1, limit = 10, year, month, sortBy = 'salary_month', sortOrder = 'DESC' } = request.query;
+
+      // 验证和限制参数
+      const pageNum = Math.max(1, parseInt(page));
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit))); // 限制每页最多100条
+      const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+      const validSortBy = ['salary_month', 'net_salary', 'employee_name', 'created_at'].includes(sortBy) ? sortBy : 'salary_month';
+
+      const offset = (pageNum - 1) * limitNum;
 
       let whereClause = 'WHERE p.user_id = ?';
       const params = [userId];
@@ -129,22 +137,52 @@ module.exports = async function (fastify, opts) {
           p.status,
           p.issued_at,
           p.viewed_at,
-          p.confirmed_at
+          p.confirmed_at,
+          u.real_name as employee_name,
+          e.employee_no,
+          d.name as department_name,
+          pos.name as position_name
         FROM payslips p
+        LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN positions pos ON e.position_id = pos.id
         ${whereClause}
-        ORDER BY p.salary_month DESC, p.created_at DESC
+        ORDER BY
+        CASE
+          WHEN ? = 'salary_month' AND ? = 'ASC' THEN p.salary_month
+          WHEN ? = 'salary_month' AND ? = 'DESC' THEN p.salary_month
+          WHEN ? = 'net_salary' AND ? = 'ASC' THEN p.net_salary
+          WHEN ? = 'net_salary' AND ? = 'DESC' THEN p.net_salary
+          WHEN ? = 'employee_name' AND ? = 'ASC' THEN u.real_name
+          WHEN ? = 'employee_name' AND ? = 'DESC' THEN u.real_name
+          WHEN ? = 'created_at' AND ? = 'ASC' THEN p.created_at
+          WHEN ? = 'created_at' AND ? = 'DESC' THEN p.created_at
+          ELSE p.salary_month
+        END,
+        p.created_at DESC
         LIMIT ? OFFSET ?`,
-        [...params, parseInt(limit), offset]
+        [...params, validSortBy, validSortOrder, limitNum, offset]
       );
+
+      const totalPages = Math.ceil(total[0].count / limitNum);
+      const currentPage = pageNum;
 
       return {
         success: true,
         data: payslips,
         total: total[0].count,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total_pages: Math.ceil(total[0].count / limit)
+          page: currentPage,
+          limit: limitNum,
+          total_pages: totalPages,
+          total_count: total[0].count,
+          has_prev: currentPage > 1,
+          has_next: currentPage < totalPages,
+          prev_page: currentPage > 1 ? currentPage - 1 : null,
+          next_page: currentPage < totalPages ? currentPage + 1 : null,
+          sort_by: validSortBy,
+          sort_order: validSortOrder
         }
       };
     } catch (error) {
@@ -165,11 +203,12 @@ module.exports = async function (fastify, opts) {
           u.real_name as employee_name,
           e.employee_no,
           d.name as department_name,
-          e.position as position_name
+          pos.name as position_name
         FROM payslips p
         LEFT JOIN employees e ON p.employee_id = e.id
         LEFT JOIN users u ON e.user_id = u.id
-        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN positions pos ON e.position_id = pos.id
         WHERE p.id = ? AND p.user_id = ?`,
         [id, userId]
       );
@@ -234,8 +273,18 @@ module.exports = async function (fastify, opts) {
   // 获取所有工资条（管理员）
   fastify.get('/api/admin/payslips', async (request, reply) => {
     try {
-      const { page = 1, limit = 20, month, department, status, keyword } = request.query;
-      const offset = (page - 1) * limit;
+      const { page = 1, limit = 20, month, department, status, keyword, sortBy = 'salary_month', sortOrder = 'DESC' } = request.query;
+
+      // 验证和限制参数
+      const pageNum = Math.max(1, parseInt(page));
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit))); // 限制每页最多100条
+      const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+      const validSortBy = ['salary_month', 'net_salary', 'employee_name', 'created_at'].includes(sortBy) ? sortBy : 'salary_month';
+
+      const offset = (pageNum - 1) * limitNum;
+      
+      // 获取用户权限
+      const permissions = await extractUserPermissions(request, pool);
 
       let whereClause = 'WHERE 1=1';
       const params = [];
@@ -245,56 +294,85 @@ module.exports = async function (fastify, opts) {
         params.push(month);
       }
 
+      // 如果指定了特定部门，则检查权限
       if (department) {
-        whereClause += ' AND e.department_id = ?';
+        whereClause += ' AND u.department_id = ?';
         params.push(department);
       }
 
+      // 应用部门权限限制 - 使用统一的部门过滤函数
+      console.log('[Payslips] 权限检查开始...');
+      console.log('Permissions:', {
+        canViewAllDepartments: permissions.canViewAllDepartments,
+        userId: permissions.userId,
+        viewableDepartmentIds: permissions.viewableDepartmentIds
+      });
+      
+      const filterResult = applyDepartmentFilter(
+        permissions, 
+        whereClause, 
+        [...params], // 传递参数副本
+        'u.department_id', 
+        'e.user_id'
+      );
+      
+      console.log('[Payslips] 过滤结果:');
+      console.log('- query:', filterResult.query);
+      console.log('- params:', filterResult.params);
+      
+      whereClause = filterResult.query;
+      let finalParams = filterResult.params;
+
       if (status) {
         whereClause += ' AND p.status = ?';
-        params.push(status);
+        finalParams.push(status);
       }
 
       if (keyword) {
         whereClause += ' AND (u.real_name LIKE ? OR e.employee_no LIKE ? OR p.payslip_no LIKE ?)';
         const searchTerm = `%${keyword}%`;
-        params.push(searchTerm, searchTerm, searchTerm);
+        finalParams.push(searchTerm, searchTerm, searchTerm);
       }
 
-      const [total] = await pool.query(
-        `SELECT COUNT(*) as count
-        FROM payslips p
-        LEFT JOIN employees e ON p.employee_id = e.id
-        ${whereClause}`,
-        params
-      );
-
+      console.log('[Payslips] 准备执行查询，参数数量:', finalParams.length);
+      
       const [payslips] = await pool.query(
         `SELECT
           p.*,
           u.real_name as employee_name,
           e.employee_no,
           d.name as department_name,
-          e.position as position_name,
+          pos.name as position_name,
           u.username as issued_by_name
         FROM payslips p
         LEFT JOIN employees e ON p.employee_id = e.id
         LEFT JOIN users u ON e.user_id = u.id
-        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN positions pos ON e.position_id = pos.id
         ${whereClause}
-        ORDER BY p.salary_month DESC, p.created_at DESC
+        ${orderClause}
         LIMIT ? OFFSET ?`,
-        [...params, parseInt(limit), offset]
+        finalParams, limitNum, offset
       );
+
+      const totalPages = Math.ceil(total[0].count / limitNum);
+      const currentPage = pageNum;
 
       return {
         success: true,
         data: payslips,
         total: total[0].count,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total_pages: Math.ceil(total[0].count / limit)
+          page: currentPage,
+          limit: limitNum,
+          total_pages: totalPages,
+          total_count: total[0].count,
+          has_prev: currentPage > 1,
+          has_next: currentPage < totalPages,
+          prev_page: currentPage > 1 ? currentPage - 1 : null,
+          next_page: currentPage < totalPages ? currentPage + 1 : null,
+          sort_by: validSortBy,
+          sort_order: validSortOrder
         }
       };
     } catch (error) {
@@ -308,14 +386,25 @@ module.exports = async function (fastify, opts) {
     try {
       const salaryData = request.body;
       const userId = request.user.id;
+      const permissions = request.user ? (request.user.permissions || {}) : {};
 
-      const [employees] = await pool.query(
-        'SELECT * FROM employees WHERE id = ?',
-        [salaryData.employee_id]
-      );
+      // 检查员工是否存在，并验证部门权限
+      let employeeQuery = `SELECT e.*, u.department_id FROM employees e
+                          LEFT JOIN users u ON e.user_id = u.id
+                          WHERE e.id = ?`;
+      let employeeParams = [salaryData.employee_id];
+
+      // 如果用户有部门权限限制，则应用这些限制
+      if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
+        const placeholders = permissions.viewableDepartmentIds.map(() => '?').join(',');
+        employeeQuery += ` AND u.department_id IN (${placeholders})`;
+        employeeParams = [salaryData.employee_id, ...permissions.viewableDepartmentIds];
+      }
+
+      const [employees] = await pool.query(employeeQuery, employeeParams);
 
       if (employees.length === 0) {
-        return reply.code(404).send({ success: false, message: '员工不存在' });
+        return reply.code(404).send({ success: false, message: '员工不存在或没有权限访问该员工' });
       }
 
       const employee = employees[0];
@@ -379,8 +468,21 @@ module.exports = async function (fastify, opts) {
         ]
       );
 
+      // 查询新创建的工资条，包含部门信息
       const [newPayslip] = await pool.query(
-        'SELECT * FROM payslips WHERE id = ?',
+        `SELECT
+          p.*,
+          u.real_name as employee_name,
+          e.employee_no,
+          d.name as department_name,
+          pos.name as position_name,
+          u.username as issued_by_name
+        FROM payslips p
+        LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN positions pos ON e.position_id = pos.id
+        WHERE p.id = ?`,
         [result.insertId]
       );
 
@@ -400,11 +502,26 @@ module.exports = async function (fastify, opts) {
     try {
       const { id } = request.params;
       const salaryData = request.body;
+      const permissions = request.user ? (request.user.permissions || {}) : {};
 
-      const [existing] = await pool.query('SELECT * FROM payslips WHERE id = ?', [id]);
+      // 检查工资条是否存在，并验证部门权限
+      let query = `SELECT p.* FROM payslips p
+                  LEFT JOIN employees e ON p.employee_id = e.id
+                  LEFT JOIN users u ON e.user_id = u.id
+                  WHERE p.id = ?`;
+      let params = [id];
+
+      // 如果用户有部门权限限制，则应用这些限制
+      if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
+        const placeholders = permissions.viewableDepartmentIds.map(() => '?').join(',');
+        query += ` AND u.department_id IN (${placeholders})`;
+        params = [id, ...permissions.viewableDepartmentIds];
+      }
+
+      const [existing] = await pool.query(query, params);
 
       if (existing.length === 0) {
-        return reply.code(404).send({ success: false, message: '工资条不存在' });
+        return reply.code(404).send({ success: false, message: '工资条不存在或没有权限访问' });
       }
 
       const netSalary = (
@@ -442,7 +559,8 @@ module.exports = async function (fastify, opts) {
         ]
       );
 
-      const [updated] = await pool.query('SELECT * FROM payslips WHERE id = ?', [id]);
+      // 查询更新后的数据
+      const [updated] = await pool.query(query, params);
 
       return {
         success: true,
@@ -459,11 +577,26 @@ module.exports = async function (fastify, opts) {
   fastify.delete('/api/admin/payslips/:id', async (request, reply) => {
     try {
       const { id } = request.params;
+      const permissions = request.user ? (request.user.permissions || {}) : {};
 
-      const [existing] = await pool.query('SELECT * FROM payslips WHERE id = ?', [id]);
+      // 检查工资条是否存在，并验证部门权限
+      let query = `SELECT p.* FROM payslips p
+                  LEFT JOIN employees e ON p.employee_id = e.id
+                  LEFT JOIN users u ON e.user_id = u.id
+                  WHERE p.id = ?`;
+      let params = [id];
+
+      // 如果用户有部门权限限制，则应用这些限制
+      if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
+        const placeholders = permissions.viewableDepartmentIds.map(() => '?').join(',');
+        query += ` AND u.department_id IN (${placeholders})`;
+        params = [id, ...permissions.viewableDepartmentIds];
+      }
+
+      const [existing] = await pool.query(query, params);
 
       if (existing.length === 0) {
-        return reply.code(404).send({ success: false, message: '工资条不存在' });
+        return reply.code(404).send({ success: false, message: '工资条不存在或没有权限访问' });
       }
 
       if (existing[0].status === 'confirmed') {
@@ -487,23 +620,47 @@ module.exports = async function (fastify, opts) {
     try {
       const { payslip_ids, notify_options = {} } = request.body;
       const userId = request.user.id;
+      const permissions = request.user ? (request.user.permissions || {}) : {};
 
       if (!payslip_ids || payslip_ids.length === 0) {
         return reply.code(400).send({ success: false, message: '请选择要发放的工资条' });
       }
 
+      // 首先验证用户是否有权限访问这些工资条
       const placeholders = payslip_ids.map(() => '?').join(',');
+      let baseQuery = `SELECT p.id FROM payslips p
+                      LEFT JOIN employees e ON p.employee_id = e.id
+                      LEFT JOIN users u ON e.user_id = u.id
+                      WHERE p.id IN (${placeholders})`;
+      let queryParams = [...payslip_ids];
 
+      // 如果用户有部门权限限制，则应用这些限制
+      if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
+        const deptPlaceholders = permissions.viewableDepartmentIds.map(() => '?').join(',');
+        baseQuery += ` AND u.department_id IN (${deptPlaceholders})`;
+        queryParams = [...payslip_ids, ...permissions.viewableDepartmentIds];
+      }
+
+      const [allowedPayslips] = await pool.query(baseQuery, queryParams);
+      const allowedIds = allowedPayslips.map(item => item.id);
+
+      if (allowedIds.length === 0) {
+        return reply.code(403).send({ success: false, message: '没有权限发放所选的工资条' });
+      }
+
+      // 发放有权限的工资条
+      const allowedPlaceholders = allowedIds.map(() => '?').join(',');
       await pool.query(
         `UPDATE payslips
         SET status = 'sent', issued_by = ?, issued_at = NOW()
-        WHERE id IN (${placeholders}) AND status = 'draft'`,
-        [userId, ...payslip_ids]
+        WHERE id IN (${allowedPlaceholders}) AND status = 'draft'`,
+        [userId, ...allowedIds]
       );
 
+      // 计算成功发放的数量
       const [updated] = await pool.query(
-        `SELECT COUNT(*) as count FROM payslips WHERE id IN (${placeholders}) AND status = 'sent'`,
-        payslip_ids
+        `SELECT COUNT(*) as count FROM payslips WHERE id IN (${allowedPlaceholders}) AND status = 'sent'`,
+        allowedIds
       );
 
       return {
@@ -586,6 +743,7 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/admin/payslips/import', async (request, reply) => {
     try {
       const data = await request.file();
+      const permissions = request.user ? (request.user.permissions || {}) : {};
 
       if (!data) {
         return reply.code(400).send({ success: false, message: '请上传文件' });
@@ -637,16 +795,26 @@ module.exports = async function (fastify, opts) {
 
       for (const rowData of rows) {
         try {
-          const [employees] = await pool.query(
-            'SELECT e.*, e.user_id FROM employees e WHERE e.employee_no = ?',
-            [rowData.employee_no]
-          );
+          // 检查员工是否存在，并验证部门权限
+          let employeeQuery = `SELECT e.*, u.department_id FROM employees e
+                              LEFT JOIN users u ON e.user_id = u.id
+                              WHERE e.employee_no = ?`;
+          let employeeParams = [rowData.employee_no];
+
+          // 如果用户有部门权限限制，则应用这些限制
+          if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
+            const placeholders = permissions.viewableDepartmentIds.map(() => '?').join(',');
+            employeeQuery += ` AND u.department_id IN (${placeholders})`;
+            employeeParams = [rowData.employee_no, ...permissions.viewableDepartmentIds];
+          }
+
+          const [employees] = await pool.query(employeeQuery, employeeParams);
 
           if (employees.length === 0) {
             results.failed++;
             results.errors.push({
               row: rowData.rowNumber,
-              message: `员工工号 ${rowData.employee_no} 不存在`
+              message: `员工工号 ${rowData.employee_no} 不存在或没有权限访问该员工`
             });
             continue;
           }
@@ -828,6 +996,7 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/admin/payslips/statistics', async (request, reply) => {
     try {
       const { year, month, department_id } = request.query;
+      const permissions = request.user ? (request.user.permissions || {}) : {};
 
       let whereClause = 'WHERE 1=1';
       const params = [];
@@ -838,8 +1007,15 @@ module.exports = async function (fastify, opts) {
       }
 
       if (department_id) {
-        whereClause += ' AND e.department_id = ?';
+        whereClause += ' AND u.department_id = ?';
         params.push(department_id);
+      }
+
+      // 应用部门权限限制
+      if (permissions.viewableDepartmentIds && permissions.viewableDepartmentIds.length > 0) {
+        const placeholders = permissions.viewableDepartmentIds.map(() => '?').join(',');
+        whereClause += ` AND u.department_id IN (${placeholders})`;
+        params.push(...permissions.viewableDepartmentIds);
       }
 
       const [stats] = await pool.query(
@@ -853,6 +1029,7 @@ module.exports = async function (fastify, opts) {
           AVG(p.net_salary) as avg_salary
         FROM payslips p
         LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
         ${whereClause}`,
         params
       );

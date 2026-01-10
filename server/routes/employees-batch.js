@@ -107,16 +107,36 @@ module.exports = async function (fastify, opts) {
 
         const userId = userResult.insertId
 
+        // 根据导入的职位名称查找或创建职位ID
+        let positionId = null;
+        if (emp.position) {
+          const [existingPos] = await pool.query(
+            'SELECT id FROM positions WHERE name = ?',
+            [emp.position]
+          );
+
+          if (existingPos.length > 0) {
+            positionId = existingPos[0].id;
+          } else {
+            // 创建新职位
+            const [newPosResult] = await pool.query(
+              'INSERT INTO positions (name, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+              [emp.position, 'active']
+            );
+            positionId = newPosResult.insertId;
+          }
+        }
+
         // 创建员工记录
         const [employeeResult] = await pool.query(
           `INSERT INTO employees
-           (user_id, employee_no, position, hire_date, rating, status,
+           (user_id, employee_no, position_id, hire_date, rating, status,
             emergency_contact, emergency_phone, address, education, skills, remark)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             finalEmployeeNo,
-            emp.position,
+            positionId,
             formattedHireDate,
             emp.rating || 3,
             emp.status || 'active',
@@ -133,7 +153,7 @@ module.exports = async function (fastify, opts) {
         try {
           await pool.query(
             `INSERT INTO employee_changes
-            (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position, new_position, reason)
+            (employee_id, user_id, change_type, change_date, old_department_id, new_department_id, old_position_id, new_position_id, reason)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               employeeResult.insertId,
@@ -143,7 +163,7 @@ module.exports = async function (fastify, opts) {
               null,
               department_id,
               null,
-              emp.position || null,
+              positionId,
               '批量导入入职'
             ]
           );

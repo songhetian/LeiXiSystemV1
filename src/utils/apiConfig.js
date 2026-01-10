@@ -37,7 +37,8 @@ export const getApiBaseUrl = () => {
   // 这样如果服务器IP变了，浏览器端会自动适应，不需要重新构建；
   if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
     const hostname = window.location.hostname;
-    return `http://${hostname}:3001/api`;
+    const port = import.meta.env?.VITE_API_PORT || '3001';
+    return `http://${hostname}:${port}/api`;
   }
 
   // 2. Electron环境 (File协议): 使用构建时的环境变量
@@ -51,8 +52,14 @@ export const getApiBaseUrl = () => {
     // 忽略错误
   }
 
-  // 3. 默认兜底
-  return 'http://192.168.2.31:3001/api';
+  // 3. 从环境变量获取
+  const apiUrl = import.meta.env?.VITE_API_BASE_URL;
+  if (apiUrl) {
+    return apiUrl.endsWith('/api') ? apiUrl : apiUrl + '/api';
+  }
+  
+  // 4. 默认兜底
+  return 'http://localhost:3001/api';
 }
 
 /**
@@ -83,7 +90,8 @@ export async function getApiBaseUrlAsync() {
   }
 
   // 4. 默认兜底
-  return 'http://192.168.110.83:3001/api';
+  const port = import.meta.env?.VITE_API_PORT || '3001';
+  return 'http://localhost:' + port + '/api';
 }
 
 /**

@@ -140,7 +140,7 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
                       {detailedEmployee.status === 'active' ? '在职' : detailedEmployee.status === 'resigned' ? '离职' : '已禁用'}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600">{detailedEmployee.position || '岗位待定'}</p>
+                  <p className="text-sm text-gray-600">{detailedEmployee.position_name || '岗位待定'}</p>
                 </div>
                 <div className="text-right text-sm text-gray-600 space-y-1">
                   <div>工号: <span className="font-medium text-gray-900">{detailedEmployee.employee_no}</span></div>

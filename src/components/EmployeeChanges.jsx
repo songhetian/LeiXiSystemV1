@@ -124,8 +124,8 @@ function EmployeeChanges() {
 
     if (searchFilters.position) {
       filtered = filtered.filter(change =>
-        change.new_position === searchFilters.position ||
-        change.old_position === searchFilters.position
+        change.new_position_name === searchFilters.position ||
+        change.old_position_name === searchFilters.position
       )
     }
 
@@ -151,22 +151,22 @@ function EmployeeChanges() {
     const currentYear = now.getFullYear()
 
     const stats = {
-      hire: filtered.filter(c => 
-        c.change_type === 'hire' && 
+      hire: filtered.filter(c =>
+        c.change_type === 'hire' &&
         getBeijingDate(c.change_date).getMonth() === currentMonth &&
         getBeijingDate(c.change_date).getFullYear() === currentYear
       ).length,
-      leave: filtered.filter(c => 
+      leave: filtered.filter(c =>
         ['resign', 'terminate'].includes(c.change_type) &&
         getBeijingDate(c.change_date).getMonth() === currentMonth &&
         getBeijingDate(c.change_date).getFullYear() === currentYear
       ).length,
-      transfer: filtered.filter(c => 
+      transfer: filtered.filter(c =>
         c.change_type === 'transfer' &&
         getBeijingDate(c.change_date).getMonth() === currentMonth &&
         getBeijingDate(c.change_date).getFullYear() === currentYear
       ).length,
-      promotion: filtered.filter(c => 
+      promotion: filtered.filter(c =>
         c.change_type === 'promotion' &&
         getBeijingDate(c.change_date).getMonth() === currentMonth &&
         getBeijingDate(c.change_date).getFullYear() === currentYear
@@ -506,7 +506,7 @@ function EmployeeChanges() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400">职位</span>
-                                <span className={`font-medium ${config.text}`}>{change.new_position || '-'}</span>
+                                <span className={`font-medium ${config.text}`}>{change.new_position_name || '-'}</span>
                               </div>
                             </div>
                           )}
@@ -519,9 +519,9 @@ function EmployeeChanges() {
                           )}
                           {change.change_type === 'promotion' && (
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-600">{change.old_position || '-'}</span>
+                              <span className="font-medium text-gray-600">{change.old_position_name || '-'}</span>
                               <span className="text-gray-400 mx-1">→</span>
-                              <span className={`font-medium ${config.text}`}>{change.new_position || '-'}</span>
+                              <span className={`font-medium ${config.text}`}>{change.new_position_name || '-'}</span>
                             </div>
                           )}
                           {['resign', 'terminate'].includes(change.change_type) && (
@@ -532,7 +532,7 @@ function EmployeeChanges() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400">职位</span>
-                                <span className={`font-medium ${config.text}`}>{change.old_position || '-'}</span>
+                                <span className={`font-medium ${config.text}`}>{change.old_position_name || '-'}</span>
                               </div>
                             </div>
                           )}
