@@ -22,9 +22,9 @@ module.exports = async function (fastify, opts) {
       );
 
       if (passwords.length === 0) {
-        return reply.code(404).send({ 
-          success: false, 
-          message: '未设置二级密码，请联系管理员' 
+        return reply.code(404).send({
+          success: false,
+          message: '未设置二级密码，请联系管理员'
         });
       }
 
@@ -120,8 +120,8 @@ module.exports = async function (fastify, opts) {
       );
 
       const [payslips] = await pool.query(
-        `SELECT 
-          p.id, 
+        `SELECT
+          p.id,
           p.payslip_no,
           p.salary_month,
           p.payment_date,
@@ -160,16 +160,16 @@ module.exports = async function (fastify, opts) {
       const userId = request.user.id;
 
       const [payslips] = await pool.query(
-        `SELECT 
+        `SELECT
           p.*,
-          e.name as employee_name,
+          u.real_name as employee_name,
           e.employee_no,
           d.name as department_name,
-          pos.name as position_name
+          e.position as position_name
         FROM payslips p
         LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
         LEFT JOIN departments d ON e.department_id = d.id
-        LEFT JOIN positions pos ON e.position_id = pos.id
         WHERE p.id = ? AND p.user_id = ?`,
         [id, userId]
       );
@@ -256,13 +256,13 @@ module.exports = async function (fastify, opts) {
       }
 
       if (keyword) {
-        whereClause += ' AND (e.name LIKE ? OR e.employee_no LIKE ? OR p.payslip_no LIKE ?)';
+        whereClause += ' AND (u.real_name LIKE ? OR e.employee_no LIKE ? OR p.payslip_no LIKE ?)';
         const searchTerm = `%${keyword}%`;
         params.push(searchTerm, searchTerm, searchTerm);
       }
 
       const [total] = await pool.query(
-        `SELECT COUNT(*) as count 
+        `SELECT COUNT(*) as count
         FROM payslips p
         LEFT JOIN employees e ON p.employee_id = e.id
         ${whereClause}`,
@@ -270,18 +270,17 @@ module.exports = async function (fastify, opts) {
       );
 
       const [payslips] = await pool.query(
-        `SELECT 
+        `SELECT
           p.*,
-          e.name as employee_name,
+          u.real_name as employee_name,
           e.employee_no,
           d.name as department_name,
-          pos.name as position_name,
+          e.position as position_name,
           u.username as issued_by_name
         FROM payslips p
         LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
         LEFT JOIN departments d ON e.department_id = d.id
-        LEFT JOIN positions pos ON e.position_id = pos.id
-        LEFT JOIN users u ON p.issued_by = u.id
         ${whereClause}
         ORDER BY p.salary_month DESC, p.created_at DESC
         LIMIT ? OFFSET ?`,
@@ -333,8 +332,8 @@ module.exports = async function (fastify, opts) {
       }
 
       const [lastPayslip] = await pool.query(
-        `SELECT payslip_no FROM payslips 
-        WHERE payslip_no LIKE ? 
+        `SELECT payslip_no FROM payslips
+        WHERE payslip_no LIKE ?
         ORDER BY payslip_no DESC LIMIT 1`,
         [`PS-${monthStr}-%`]
       );
@@ -494,10 +493,10 @@ module.exports = async function (fastify, opts) {
       }
 
       const placeholders = payslip_ids.map(() => '?').join(',');
-      
+
       await pool.query(
-        `UPDATE payslips 
-        SET status = 'sent', issued_by = ?, issued_at = NOW() 
+        `UPDATE payslips
+        SET status = 'sent', issued_by = ?, issued_at = NOW()
         WHERE id IN (${placeholders}) AND status = 'draft'`,
         [userId, ...payslip_ids]
       );
@@ -587,7 +586,7 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/admin/payslips/import', async (request, reply) => {
     try {
       const data = await request.file();
-      
+
       if (!data) {
         return reply.code(400).send({ success: false, message: '请上传文件' });
       }
@@ -671,8 +670,8 @@ module.exports = async function (fastify, opts) {
           const monthStr = `${salaryMonth.getFullYear()}${String(salaryMonth.getMonth() + 1).padStart(2, '0')}`;
 
           const [lastPayslip] = await pool.query(
-            `SELECT payslip_no FROM payslips 
-            WHERE payslip_no LIKE ? 
+            `SELECT payslip_no FROM payslips
+            WHERE payslip_no LIKE ?
             ORDER BY payslip_no DESC LIMIT 1`,
             [`PS-${monthStr}-%`]
           );
@@ -753,7 +752,7 @@ module.exports = async function (fastify, opts) {
       );
 
       const [history] = await pool.query(
-        `SELECT 
+        `SELECT
           h.*,
           u.username as imported_by_name
         FROM payslip_import_history h
@@ -844,7 +843,7 @@ module.exports = async function (fastify, opts) {
       }
 
       const [stats] = await pool.query(
-        `SELECT 
+        `SELECT
           COUNT(*) as total_count,
           SUM(CASE WHEN p.status = 'draft' THEN 1 ELSE 0 END) as draft_count,
           SUM(CASE WHEN p.status = 'sent' THEN 1 ELSE 0 END) as sent_count,
