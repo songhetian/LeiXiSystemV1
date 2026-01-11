@@ -724,9 +724,14 @@ function EmployeeManagement() {
   }
 
   // 处理员工部门权限管理
-  const handleManageUserDepartments = (user) => {
-    console.log('打开员工部门权限管理:', user);
-    setSelectedUserForDepartment(user);
+  const handleManageUserDepartments = (emp) => {
+    console.log('打开员工部门权限管理:', emp);
+    // 适配 UserDepartmentModal，它期望 id 是用户 ID
+    const userObj = {
+      ...emp,
+      id: emp.user_id
+    };
+    setSelectedUserForDepartment(userObj);
     setIsUserDepartmentModalOpen(true);
   };
 
@@ -1063,6 +1068,7 @@ function EmployeeManagement() {
                 <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">部门</th>
                 <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">职位</th>
                 <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">联系方式</th>
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">可查看部门</th>
                 <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">评级</th>
                 <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">部门主管</th>
                 <th className="px-5 py-3.5 text-center text-xs font-semibold text-gray-500 tracking-wide uppercase">状态</th>
@@ -1122,6 +1128,26 @@ function EmployeeManagement() {
                     </td>
                     <td className="px-5 py-4 text-center text-sm text-gray-600">
                       {emp.phone || emp.email || '-'}
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      {emp.departments && emp.departments.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {emp.departments.slice(0, 2).map(dept => (
+                            <span key={dept.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                              {dept.name}
+                            </span>
+                          ))}
+                          {emp.departments.length > 2 && (
+                            <span className="px-2 py-0.5 bg-gray-50 text-gray-600 rounded text-xs">
+                              +{emp.departments.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-xs">
+                          默认权限
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-center">
                       <div className="flex items-center justify-center gap-0.5">

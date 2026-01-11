@@ -76,7 +76,15 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 -- ============================================================
 ('查看考核', 'assessment:plan:view', 'plan', 'view', 'assessment', '查看考核计划及试卷'),
 ('管理考核', 'assessment:plan:manage', 'plan', 'manage', 'assessment', '创建试卷、发布考核计划'),
-('查看成绩', 'assessment:result:view', 'result', 'view', 'assessment', '查看所有员工考试成绩');
+('查看成绩', 'assessment:result:view', 'result', 'view', 'assessment', '查看所有员工考试成绩'),
+
+-- ============================================================
+-- 报销管理 (Reimbursement)
+-- ============================================================
+('提交报销', 'reimbursement:apply:submit', 'apply', 'submit', 'reimbursement', '提交报销申请'),
+('审批报销', 'reimbursement:apply:approve', 'apply', 'approve', 'reimbursement', '审批报销申请'),
+('查看报销', 'reimbursement:record:view', 'record', 'view', 'reimbursement', '查看报销记录'),
+('报销配置', 'reimbursement:config:manage', 'config', 'manage', 'reimbursement', '配置审批流程和审批人');
 
 -- 3. 确保基础角色存在
 INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
@@ -100,7 +108,9 @@ JOIN permissions p ON p.code IN (
     'attendance:record:view',
     'vacation:record:view',
     'knowledge:article:view',
-    'assessment:plan:view'
+    'assessment:plan:view',
+    'reimbursement:apply:submit',
+    'reimbursement:record:view'
 )
 WHERE r.name = '普通员工';
 

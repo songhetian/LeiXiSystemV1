@@ -8,16 +8,18 @@ import {
   TrashIcon,
   DocumentArrowUpIcon,
   DocumentArrowDownIcon,
-  PaperAirplaneIcon
+  PaperAirplaneIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { Table, Button, Modal, Form, Input, DatePicker, Select, Upload, Tag, InputNumber } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import Breadcrumb from '../../components/Breadcrumb';
 
 export default function PayslipManagement() {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [filters, setFilters] = useState({ month: null, department: null, status: null, keyword: '' });
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -385,6 +387,58 @@ export default function PayslipManagement() {
     });
   };
 
+  const handleExport = async () => {
+    try {
+      // 只传递非空的参数
+      const params = {};
+      if (filters.month) params.month = filters.month;
+      if (filters.department) params.department = filters.department;
+      if (filters.status) params.status = filters.status;
+      if (filters.keyword) params.keyword = filters.keyword;
+
+      const queryString = new URLSearchParams(params).toString();
+      const apiUrl = queryString ? `/api/admin/payslips/export?${queryString}` : '/api/admin/payslips/export';
+
+      console.log('=== 导出工资条 ===');
+      console.log('当前筛选条件:', filters);
+      console.log('导出参数:', params);
+      console.log('导出URL:', apiUrl);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(getApiUrl(apiUrl), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('响应状态:', response.status);
+      console.log('响应头:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('导出失败响应:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      console.log('Blob大小:', blob.size);
+      console.log('Blob类型:', blob.type);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `工资条导出_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success('导出成功');
+    } catch (error) {
+      console.error('导出失败:', error);
+      toast.error('导出失败');
+    }
+  };
+
   const handleDownloadTemplate = async () => {
     try {
       const response = await axios.get(getApiUrl('/api/admin/payslips/import-template'), {
@@ -597,6 +651,9 @@ export default function PayslipManagement() {
 
   return (
     <div className="p-6">
+      {/* 面包屑导航 */}
+      <Breadcrumb items={['首页', '工资条管理']} />
+      
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -621,6 +678,12 @@ export default function PayslipManagement() {
               导入工资条
             </Button>
           </Upload>
+          <Button
+            icon={<ArrowDownTrayIcon className="w-4 h-4" />}
+            onClick={handleExport}
+          >
+            导出Excel
+          </Button>
           <Button
             type="primary"
             icon={<PlusIcon className="w-4 h-4" />}

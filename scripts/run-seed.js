@@ -28,7 +28,8 @@ const dbConfig = {
     password: process.env.DB_PASSWORD || fileConfig.password || 'root',
     database: process.env.DB_NAME || fileConfig.database,
     port: process.env.DB_PORT || fileConfig.port || 3306,
-    multipleStatements: true
+    multipleStatements: true,
+    charset: 'utf8mb4'
 };
 
 if (!dbConfig.database) {

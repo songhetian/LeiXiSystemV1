@@ -1147,6 +1147,168 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  // 导出工资条到Excel
+  fastify.get('/api/admin/payslips/export', async (request, reply) => {
+    try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
+      const { month, department, status, keyword } = request.query;
+
+      // 构建查询条件
+      let whereConditions = ['1=1'];
+      let params = [];
+
+      if (month) {
+        whereConditions.push('DATE_FORMAT(p.salary_month, "%Y-%m") = ?');
+        params.push(month);
+      }
+
+      if (department) {
+        whereConditions.push('u.department_id = ?');
+        params.push(department);
+      }
+
+      if (status) {
+        whereConditions.push('p.status = ?');
+        params.push(status);
+      }
+
+      if (keyword) {
+        whereConditions.push('(u.real_name LIKE ? OR e.employee_no LIKE ?)');
+        params.push(`%${keyword}%`, `%${keyword}%`);
+      }
+
+      const whereClause = whereConditions.join(' AND ');
+
+      console.log('=== 导出工资条开始 ===');
+      console.log('查询条件:', whereClause);
+      console.log('查询参数:', params);
+
+      // 先检查payslips表是否有数据
+      const [countResult] = await pool.query('SELECT COUNT(*) as total FROM payslips');
+      console.log('payslips表总记录数:', countResult[0].total);
+
+      // 查询工资条数据
+      const [payslips] = await pool.query(
+        `SELECT 
+          p.payslip_no,
+          u.real_name as employee_name,
+          e.employee_no,
+          d.name as department,
+          DATE_FORMAT(p.salary_month, '%Y-%m') as salary_month,
+          p.payment_date,
+          p.attendance_days,
+          p.late_count,
+          p.early_leave_count,
+          p.leave_days,
+          p.overtime_hours,
+          p.absent_days,
+          p.basic_salary,
+          p.position_salary,
+          p.performance_bonus,
+          p.overtime_pay,
+          p.allowances,
+          p.deductions,
+          p.social_security,
+          p.housing_fund,
+          p.tax,
+          p.other_deductions,
+          p.net_salary,
+          CASE 
+            WHEN p.status = 'draft' THEN '待发送'
+            WHEN p.status = 'sent' THEN '已发放'
+            WHEN p.status = 'viewed' THEN '已查看'
+            WHEN p.status = 'confirmed' THEN '已确认'
+            ELSE p.status
+          END as status_text,
+          p.remark
+        FROM payslips p
+        LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        WHERE ${whereClause}
+        ORDER BY p.salary_month DESC, p.created_at DESC`,
+        params
+      );
+
+      console.log('查询结果数量:', payslips.length);
+      if (payslips.length > 0) {
+        console.log('查询结果第一条:', payslips[0]);
+      }
+
+      // 创建工作簿
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('工资条数据');
+
+      // 设置列
+      worksheet.columns = [
+        { header: '工资条编号', key: 'payslip_no', width: 18 },
+        { header: '员工姓名', key: 'employee_name', width: 12 },
+        { header: '工号', key: 'employee_no', width: 12 },
+        { header: '部门', key: 'department', width: 15 },
+        { header: '工资月份', key: 'salary_month', width: 12 },
+        { header: '发放日期', key: 'payment_date', width: 15 },
+        { header: '出勤天数', key: 'attendance_days', width: 10 },
+        { header: '迟到次数', key: 'late_count', width: 10 },
+        { header: '早退次数', key: 'early_leave_count', width: 10 },
+        { header: '请假天数', key: 'leave_days', width: 10 },
+        { header: '加班时长', key: 'overtime_hours', width: 10 },
+        { header: '缺勤天数', key: 'absent_days', width: 10 },
+        { header: '基本工资', key: 'basic_salary', width: 12 },
+        { header: '岗位工资', key: 'position_salary', width: 12 },
+        { header: '绩效奖金', key: 'performance_bonus', width: 12 },
+        { header: '加班费', key: 'overtime_pay', width: 12 },
+        { header: '各类补贴', key: 'allowances', width: 12 },
+        { header: '各类扣款', key: 'deductions', width: 12 },
+        { header: '社保扣款', key: 'social_security', width: 12 },
+        { header: '公积金扣款', key: 'housing_fund', width: 12 },
+        { header: '个人所得税', key: 'tax', width: 12 },
+        { header: '其他扣款', key: 'other_deductions', width: 12 },
+        { header: '实发工资', key: 'net_salary', width: 12 },
+        { header: '状态', key: 'status_text', width: 10 },
+        { header: '备注', key: 'remark', width: 30 }
+      ];
+
+      // 添加数据
+      payslips.forEach(payslip => {
+        worksheet.addRow(payslip);
+      });
+
+      // 设置表头样式
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+
+      // 生成文件
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      reply
+        .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('Content-Disposition', 'attachment; filename="payslips_export.xlsx"')
+        .send(buffer);
+
+    } catch (error) {
+      console.error('导出工资条失败:', error);
+      return reply.code(500).send({ success: false, message: '导出失败' });
+    }
+  });
+
   // 批量导入工资条
   fastify.post('/api/admin/payslips/import', async (request, reply) => {
     try {

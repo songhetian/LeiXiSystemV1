@@ -43,6 +43,11 @@ fastify.register(require('./routes/quality-inspection-import-new'))
 fastify.register(require('./routes/notification-settings'))
 // 注册用户管理路由
 fastify.register(require('./routes/user-management'))
+// 注册报销审批相关路由
+fastify.register(require('./routes/reimbursement'))
+fastify.register(require('./routes/approval-workflow'))
+fastify.register(require('./routes/approvers'))
+fastify.register(require('./routes/reimbursement-settings'))
 // 注册文件上传// 注意：multipart 只处理 multipart/form-data，不影响 application/json
 fastify.register(multipart, {
   limits: {
@@ -1280,7 +1285,20 @@ fastify.get('/api/employees', async (request, reply) => {
     query += ' ORDER BY e.created_at DESC';
 
     const [rows] = await pool.query(query, finalParams);
-    return rows;
+
+    // 为每个员工查询其部门权限
+    const employeesWithDepts = await Promise.all(rows.map(async (emp) => {
+      const [depts] = await pool.query(
+        `SELECT d.id, d.name 
+         FROM departments d 
+         INNER JOIN user_departments ud ON d.id = ud.department_id 
+         WHERE ud.user_id = ?`,
+        [emp.user_id]
+      );
+      return { ...emp, departments: depts };
+    }));
+
+    return employeesWithDepts;
   } catch (error) {
     console.error(error);
     reply.code(500).send({ error: '获取员工列表失败' });

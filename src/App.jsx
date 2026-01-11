@@ -94,6 +94,16 @@ const BroadcastList = lazy(() => import('./pages/Messaging').then(module => ({ d
 const MyPayslips = lazy(() => import('./pages/Payroll/MyPayslips'));
 const PayslipManagement = lazy(() => import('./pages/Payroll/PayslipManagement'));
 
+// Reimbursement components
+const ReimbursementApply = lazy(() => import('./components/ReimbursementApply'));
+const ReimbursementList = lazy(() => import('./components/ReimbursementList'));
+const ReimbursementApproval = lazy(() => import('./components/ReimbursementApproval'));
+const ReimbursementSettings = lazy(() => import('./components/ReimbursementSettings'));
+const ReimbursementDetail = lazy(() => import('./components/ReimbursementDetail'));
+const ApprovalWorkflowConfig = lazy(() => import('./components/ApprovalWorkflowConfig'));
+const ApproverManagement = lazy(() => import('./components/ApproverManagement'));
+const RoleWorkflowConfig = lazy(() => import('./components/RoleWorkflowConfig'));
+
 import DatabaseCheck from './components/DatabaseCheck';
 import TopNavbar from './components/TopNavbar';
 
@@ -209,6 +219,9 @@ function App() {
             } else if (notification.type === 'payslip' || notification.related_type === 'payslip' || notification.title?.includes('工资条') || notification.content?.includes('工资条')) {
               // 跳转到我的工资条页面
               handleSetActiveTab('my-payslips');
+            } else if (notification.type?.startsWith('reimbursement') || notification.related_type === 'reimbursement') {
+              // 跳转到报销审批页面
+              handleSetActiveTab('reimbursement-approval');
             }
           }
         }
@@ -454,6 +467,33 @@ function App() {
         return <MyPayslips />
       case 'payslip-management':
         return <PayslipManagement />
+
+      // 报销管理
+      case 'reimbursement-apply':
+        return <ReimbursementApply user={user} onSuccess={() => handleSetActiveTab('reimbursement-list')} />
+      case 'reimbursement-list':
+        return <ReimbursementList
+          user={user}
+          onViewDetail={(record) => handleSetActiveTab('reimbursement-detail', { id: record.id, from: 'reimbursement-list' })}
+        />
+      case 'reimbursement-approval':
+        return <ReimbursementApproval
+          user={user}
+          onViewDetail={(record) => handleSetActiveTab('reimbursement-detail', { id: record.id, from: 'reimbursement-approval' })}
+        />
+      case 'reimbursement-detail':
+        return <ReimbursementDetail
+          reimbursementId={activeTab.params?.id}
+          onBack={() => handleSetActiveTab(activeTab.params?.from || 'reimbursement-list')}
+        />
+      case 'approval-workflow-config':
+        return <ApprovalWorkflowConfig />
+      case 'approver-management':
+        return <ApproverManagement />
+      case 'reimbursement-settings':
+        return <ReimbursementSettings />
+      case 'role-workflow-config':
+        return <RoleWorkflowConfig />
 
       // 质检管理
       case 'quality-score':

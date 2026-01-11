@@ -40,6 +40,15 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
       ],
     },
     {
+      id: 'permission',
+      label: '权限管理',
+      children: [
+        { id: 'user-permission', label: '权限管理' },
+        { id: 'user-role-management', label: '角色分配' },
+        { id: 'user-reset-password', label: '重置密码' },
+      ],
+    },
+    {
       id: 'messaging',
       label: '办公协作', // Renamed from '信息系统' to match user perception if needed, or keep '信息系统'
       children: [
@@ -82,6 +91,26 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
         { id: 'vacation-summary', label: '假期汇总' },
         { id: 'compensatory-approval', label: '调休审批' },
         { id: 'vacation-permissions', label: '假期权限' },
+      ],
+    },
+    {
+      id: 'payroll',
+      label: '工资管理',
+      children: [
+        { id: 'my-payslips', label: '我的工资条' },
+        { id: 'payslip-management', label: '工资条管理' },
+      ],
+    },
+    {
+      id: 'reimbursement',
+      label: '报销管理',
+      children: [
+        { id: 'reimbursement-apply', label: '新建报销' },
+        { id: 'reimbursement-list', label: '我的报销' },
+        { id: 'reimbursement-approval', label: '报销审批' },
+        { id: 'approval-workflow-config', label: '流程配置' },
+        { id: 'approver-management', label: '审批人管理' },
+        { id: 'reimbursement-settings', label: '报销设置' },
       ],
     },
     {

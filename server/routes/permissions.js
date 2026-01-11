@@ -658,6 +658,12 @@ const permissionRoutes = async (fastify, options) => {
     const { id } = request.params;
     const connection = await fastify.mysql.getConnection();
     try {
+      // 检查用户是否存在
+      const [userRows] = await connection.query('SELECT id FROM users WHERE id = ?', [id]);
+      if (userRows.length === 0) {
+        return { success: true, data: [] }; // 如果用户不存在，直接返回空列表，防止 500 导致整个页面崩溃
+      }
+
       const [rows] = await connection.query(
         `SELECT d.*
          FROM departments d
@@ -669,7 +675,7 @@ const permissionRoutes = async (fastify, options) => {
       return { success: true, data: rows };
     } catch (error) {
       console.error('获取员工部门权限失败:', error);
-      return reply.code(500).send({ success: false, error: 'Failed to fetch user departments' });
+      return reply.code(500).send({ success: false, error: 'Failed to fetch user departments', details: error.message });
     } finally {
       connection.release();
     }
@@ -698,22 +704,38 @@ const permissionRoutes = async (fastify, options) => {
 
   // 批量设置员工的部门权限
   fastify.put('/api/users/:id/departments', {
-    preHandler: requirePermission('user:employee:manage')  // 修改权限代码
+    preHandler: requirePermission('user:employee:manage')
   }, async (request, reply) => {
     const { id } = request.params;
     const { department_ids } = request.body;
+    
+    console.log(`[Permission] Setting departments for user ${id}:`, department_ids);
+    
     const connection = await fastify.mysql.getConnection();
     try {
       await connection.beginTransaction();
 
+      // 检查用户是否存在
+      const [userRows] = await connection.query('SELECT id FROM users WHERE id = ?', [id]);
+      if (userRows.length === 0) {
+        await connection.rollback();
+        return reply.code(404).send({ success: false, message: `用户 ID ${id} 不存在，请刷新页面重试` });
+      }
+
+      // 删除旧权限
       await connection.query('DELETE FROM user_departments WHERE user_id = ?', [id]);
 
+      // 插入新权限
       if (Array.isArray(department_ids) && department_ids.length > 0) {
-        const values = department_ids.map(deptId => [id, deptId]);
-        await connection.query(
-          'INSERT INTO user_departments (user_id, department_id) VALUES ?',
-          [values]
-        );
+        // 过滤掉可能的非数字项
+        const validDeptIds = department_ids.filter(d => d && !isNaN(d));
+        if (validDeptIds.length > 0) {
+          const values = validDeptIds.map(deptId => [id, deptId]);
+          await connection.query(
+            'INSERT INTO user_departments (user_id, department_id) VALUES ?',
+            [values]
+          );
+        }
       }
 
       await connection.commit();
@@ -721,7 +743,11 @@ const permissionRoutes = async (fastify, options) => {
     } catch (error) {
       await connection.rollback();
       console.error('批量设置员工部门权限失败:', error);
-      return reply.code(500).send({ success: false, error: 'Failed to update department permissions' });
+      return reply.code(500).send({ 
+        success: false, 
+        error: 'Failed to update department permissions',
+        details: error.message 
+      });
     } finally {
       connection.release();
     }

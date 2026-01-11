@@ -84,7 +84,16 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('查看工资条', 'payroll:payslip:view', 'payslip', 'view', 'payroll', '查看自己的工资条'),
 ('工资条管理', 'payroll:payslip:manage', 'payslip', 'manage', 'payroll', '管理所有工资条，包括新增、编辑、删除'),
 ('工资条发放', 'payroll:payslip:distribute', 'payslip', 'distribute', 'payroll', '发放工资条给员工'),
-('二级密码管理', 'payroll:password:manage', 'password', 'manage', 'payroll', '管理员工工资条二级密码');
+('二级密码管理', 'payroll:password:manage', 'password', 'manage', 'payroll', '管理员工工资条二级密码'),
+
+-- ============================================================
+-- 报销管理 (Reimbursement)
+-- ============================================================
+('提交报销', 'reimbursement:apply:submit', 'apply', 'submit', 'reimbursement', '提交报销申请'),
+('审批报销', 'reimbursement:apply:approve', 'apply', 'approve', 'reimbursement', '审批报销申请'),
+('查看报销', 'reimbursement:record:view', 'record', 'view', 'reimbursement', '查看报销记录'),
+('报销配置', 'reimbursement:config:manage', 'config', 'manage', 'reimbursement', '配置审批流程和审批人'),
+('报销设置', 'reimbursement:config:settings', 'config', 'settings', 'reimbursement', '管理报销类型和费用类型');
 
 -- 3. 确保基础角色存在
 INSERT IGNORE INTO roles (name, description, level, is_system) VALUES

@@ -664,6 +664,42 @@ const allMenuItems = [
     ],
   },
   {
+    id: 'reimbursement',
+    label: '报销管理',
+    icon: <FormOutlined />,
+    permission: 'reimbursement:record:view',
+    children: [
+      {
+        id: 'reimbursement-apply-section',
+        label: '报销申请',
+        icon: <FormOutlined />,
+        children: [
+          { id: 'reimbursement-apply', label: '新建报销', icon: <FormOutlined />, permission: 'reimbursement:apply:submit' },
+          { id: 'reimbursement-list', label: '我的报销', icon: <FileTextOutlined />, permission: 'reimbursement:record:view' },
+        ]
+      },
+      {
+        id: 'reimbursement-approval-section',
+        label: '审批管理',
+        icon: <CheckCircleOutlined />,
+        children: [
+          { id: 'reimbursement-approval', label: '报销审批', icon: <CheckCircleOutlined />, permission: 'reimbursement:apply:approve' },
+        ]
+      },
+      {
+        id: 'reimbursement-config-section',
+        label: '系统配置',
+        icon: <SettingOutlined />,
+        children: [
+          { id: 'approval-workflow-config', label: '流程配置', icon: <SettingOutlined />, permission: 'reimbursement:config:manage' },
+          { id: 'approver-management', label: '审批人管理', icon: <UserOutlined />, permission: 'reimbursement:config:manage' },
+          { id: 'reimbursement-settings', label: '报销设置', icon: <SettingOutlined />, permission: 'reimbursement:config:settings' },
+          { id: 'role-workflow-config', label: '角色流程配置', icon: <TeamOutlined />, permission: 'reimbursement:config:role_workflow' },
+        ]
+      },
+    ],
+  },
+  {
     id: 'quality',
     label: '质检管理',
     icon: <SearchOutlined />,
