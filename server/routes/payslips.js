@@ -10,8 +10,23 @@ module.exports = async function (fastify, opts) {
   // 验证二级密码
   fastify.post('/api/payslips/verify-password', async (request, reply) => {
     try {
+      // 验证 token
+      const authToken = request.headers.authorization?.replace('Bearer ', '');
+      if (!authToken) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(authToken, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { password } = request.body;
-      const userId = request.user.id;
+      const userId = decoded.id;
 
       if (!password) {
         return reply.code(400).send({ success: false, message: '请输入密码' });
@@ -53,8 +68,23 @@ module.exports = async function (fastify, opts) {
   // 修改二级密码
   fastify.post('/api/payslips/change-password', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { oldPassword, newPassword } = request.body;
-      const userId = request.user.id;
+      const userId = decoded.id;
 
       if (!oldPassword || !newPassword) {
         return reply.code(400).send({ success: false, message: '请填写完整信息' });
@@ -97,15 +127,129 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  // 检查密码状态
+  fastify.get('/api/payslips/password-status', async (request, reply) => {
+    try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
+      const userId = decoded.id;
+
+      const [passwords] = await pool.query(
+        'SELECT * FROM payslip_passwords WHERE user_id = ?',
+        [userId]
+      );
+
+      const hasPassword = passwords.length > 0;
+      const isDefault = hasPassword ? passwords[0].is_default : false;
+
+      return {
+        success: true,
+        has_password: hasPassword,
+        is_default: isDefault
+      };
+    } catch (error) {
+      console.error('检查密码状态失败:', error);
+      return reply.code(500).send({ success: false, message: '检查密码状态失败' });
+    }
+  });
+
+  // 设置二级密码
+  fastify.post('/api/payslips/set-password', async (request, reply) => {
+    try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
+      const { password, confirmPassword } = request.body;
+      const userId = decoded.id;
+
+      if (!password || !confirmPassword) {
+        return reply.code(400).send({ success: false, message: '请填写完整信息' });
+      }
+
+      if (password.length < 6) {
+        return reply.code(400).send({ success: false, message: '密码长度至少6位' });
+      }
+
+      if (password !== confirmPassword) {
+        return reply.code(400).send({ success: false, message: '两次输入的密码不一致' });
+      }
+
+      // 检查是否已设置密码
+      const [existing] = await pool.query(
+        'SELECT id FROM payslip_passwords WHERE user_id = ?',
+        [userId]
+      );
+
+      if (existing.length > 0) {
+        return reply.code(400).send({ success: false, message: '已设置过密码，请使用修改密码功能' });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      await pool.query(
+        'INSERT INTO payslip_passwords (user_id, password_hash, is_default, last_changed_at) VALUES (?, ?, 1, NOW())',
+        [userId, passwordHash]
+      );
+
+      return {
+        success: true,
+        message: '密码设置成功'
+      };
+    } catch (error) {
+      console.error('设置二级密码失败:', error);
+      return reply.code(500).send({ success: false, message: '设置密码失败' });
+    }
+  });
+
   // 获取我的工资条列表
   fastify.get('/api/payslips/my-payslips', async (request, reply) => {
     try {
-      const userId = request.user.id;
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
+      const userId = decoded.id;
       const { page = 1, limit = 10, year, month, sortBy = 'salary_month', sortOrder = 'DESC' } = request.query;
 
       // 验证和限制参数
-      const pageNum = Math.max(1, parseInt(page));
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit))); // 限制每页最多100条
+      const pageNum = Math.max(1, parseInt(page) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // 限制每页最多100条，默认10条
       const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
       const validSortBy = ['salary_month', 'net_salary', 'employee_name', 'created_at'].includes(sortBy) ? sortBy : 'salary_month';
 
@@ -114,10 +258,11 @@ module.exports = async function (fastify, opts) {
       let whereClause = 'WHERE p.user_id = ?';
       const params = [userId];
 
-      if (year && month) {
+      if (year && year !== 'null' && year !== 'undefined' && year.trim() !== '' &&
+          month && month !== 'null' && month !== 'undefined' && month.trim() !== '') {
         whereClause += ' AND YEAR(p.salary_month) = ? AND MONTH(p.salary_month) = ?';
         params.push(year, month);
-      } else if (year) {
+      } else if (year && year !== 'null' && year !== 'undefined' && year.trim() !== '') {
         whereClause += ' AND YEAR(p.salary_month) = ?';
         params.push(year);
       }
@@ -126,6 +271,24 @@ module.exports = async function (fastify, opts) {
         `SELECT COUNT(*) as count FROM payslips p ${whereClause}`,
         params
       );
+
+      // 构建动态排序子句
+      let orderClause;
+      switch(validSortBy) {
+        case 'net_salary':
+          orderClause = `ORDER BY p.net_salary ${validSortOrder}, p.created_at DESC`;
+          break;
+        case 'employee_name':
+          orderClause = `ORDER BY u.real_name ${validSortOrder}, p.created_at DESC`;
+          break;
+        case 'created_at':
+          orderClause = `ORDER BY p.created_at ${validSortOrder}, p.created_at DESC`;
+          break;
+        case 'salary_month':
+        default:
+          orderClause = `ORDER BY p.salary_month ${validSortOrder}, p.created_at DESC`;
+          break;
+      }
 
       const [payslips] = await pool.query(
         `SELECT
@@ -148,21 +311,9 @@ module.exports = async function (fastify, opts) {
         LEFT JOIN departments d ON u.department_id = d.id
         LEFT JOIN positions pos ON e.position_id = pos.id
         ${whereClause}
-        ORDER BY
-        CASE
-          WHEN ? = 'salary_month' AND ? = 'ASC' THEN p.salary_month
-          WHEN ? = 'salary_month' AND ? = 'DESC' THEN p.salary_month
-          WHEN ? = 'net_salary' AND ? = 'ASC' THEN p.net_salary
-          WHEN ? = 'net_salary' AND ? = 'DESC' THEN p.net_salary
-          WHEN ? = 'employee_name' AND ? = 'ASC' THEN u.real_name
-          WHEN ? = 'employee_name' AND ? = 'DESC' THEN u.real_name
-          WHEN ? = 'created_at' AND ? = 'ASC' THEN p.created_at
-          WHEN ? = 'created_at' AND ? = 'DESC' THEN p.created_at
-          ELSE p.salary_month
-        END,
-        p.created_at DESC
+        ${orderClause}
         LIMIT ? OFFSET ?`,
-        [...params, validSortBy, validSortOrder, limitNum, offset]
+        [...params, limitNum, offset]
       );
 
       const totalPages = Math.ceil(total[0].count / limitNum);
@@ -194,8 +345,73 @@ module.exports = async function (fastify, opts) {
   // 获取工资条详情
   fastify.get('/api/payslips/:id', async (request, reply) => {
     try {
+      // 验证 JWT token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
+      // 验证二级密码 token
+      const payslipToken = request.headers['x-payslip-token'];
+      console.log('[PayslipDetail] X-Payslip-Token:', payslipToken ? payslipToken.substring(0, 20) + '...' : 'none');
+      
+      if (!payslipToken) {
+        return reply.code(401).send({ success: false, message: '需要验证二级密码' });
+      }
+
+      // 解析 payslipToken: base64(userId:timestamp)
+      try {
+        const tokenData = Buffer.from(payslipToken, 'base64').toString('utf-8');
+        console.log('[PayslipDetail] Token data:', tokenData);
+        const [tokenUserId, tokenTimestamp] = tokenData.split(':');
+        console.log('[PayslipDetail] Token userId:', tokenUserId, 'Expected:', decoded.id);
+        console.log('[PayslipDetail] Token timestamp:', tokenTimestamp);
+
+        // 验证 token 是否属于当前用户
+        if (parseInt(tokenUserId) !== decoded.id) {
+          return reply.code(401).send({ success: false, message: '无效的二级密码令牌' });
+        }
+
+        // 检查用户是否设置了密码
+        const [passwords] = await pool.query(
+          'SELECT * FROM payslip_passwords WHERE user_id = ?',
+          [decoded.id]
+        );
+
+        if (passwords.length === 0) {
+          return reply.code(401).send({ success: false, message: '未设置二级密码' });
+        }
+
+        console.log('[PayslipDetail] Password found, last_changed_at:', passwords[0].last_changed_at);
+
+        // 检查密码是否在 token 生成后被修改过
+        const tokenTime = new Date(parseInt(tokenTimestamp));
+        const passwordChangedAt = passwords[0].last_changed_at;
+
+        console.log('[PayslipDetail] Token time:', tokenTime, 'Password changed at:', passwordChangedAt);
+
+        if (passwordChangedAt && new Date(passwordChangedAt) > tokenTime) {
+          return reply.code(401).send({ success: false, message: '二级密码已修改，请重新验证' });
+        }
+
+        console.log('[PayslipDetail] Password token validation passed');
+
+      } catch (error) {
+        console.error('[PayslipDetail] Token validation error:', error);
+        return reply.code(401).send({ success: false, message: '无效的二级密码令牌' });
+      }
+
       const { id } = request.params;
-      const userId = request.user.id;
+      const userId = decoded.id;
 
       const [payslips] = await pool.query(
         `SELECT
@@ -241,8 +457,23 @@ module.exports = async function (fastify, opts) {
   // 确认工资条
   fastify.post('/api/payslips/:id/confirm', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { id } = request.params;
-      const userId = request.user.id;
+      const userId = decoded.id;
 
       const [payslips] = await pool.query(
         'SELECT * FROM payslips WHERE id = ? AND user_id = ?',
@@ -273,29 +504,44 @@ module.exports = async function (fastify, opts) {
   // 获取所有工资条（管理员）
   fastify.get('/api/admin/payslips', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { page = 1, limit = 20, month, department, status, keyword, sortBy = 'salary_month', sortOrder = 'DESC' } = request.query;
 
       // 验证和限制参数
-      const pageNum = Math.max(1, parseInt(page));
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit))); // 限制每页最多100条
+      const pageNum = Math.max(1, parseInt(page) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20)); // 限制每页最多100条，默认20条
       const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
       const validSortBy = ['salary_month', 'net_salary', 'employee_name', 'created_at'].includes(sortBy) ? sortBy : 'salary_month';
 
       const offset = (pageNum - 1) * limitNum;
-      
+
       // 获取用户权限
       const permissions = await extractUserPermissions(request, pool);
 
       let whereClause = 'WHERE 1=1';
       const params = [];
 
-      if (month) {
+      if (month && month !== 'null' && month !== 'undefined' && month.trim() !== '') {
         whereClause += ' AND DATE_FORMAT(p.salary_month, "%Y-%m") = ?';
         params.push(month);
       }
 
       // 如果指定了特定部门，则检查权限
-      if (department) {
+      if (department && department !== 'null' && department !== 'undefined' && department.trim() !== '') {
         whereClause += ' AND u.department_id = ?';
         params.push(department);
       }
@@ -307,35 +553,63 @@ module.exports = async function (fastify, opts) {
         userId: permissions.userId,
         viewableDepartmentIds: permissions.viewableDepartmentIds
       });
-      
+
       const filterResult = applyDepartmentFilter(
-        permissions, 
-        whereClause, 
+        permissions,
+        whereClause,
         [...params], // 传递参数副本
-        'u.department_id', 
+        'u.department_id',
         'e.user_id'
       );
-      
+
       console.log('[Payslips] 过滤结果:');
       console.log('- query:', filterResult.query);
       console.log('- params:', filterResult.params);
-      
+
       whereClause = filterResult.query;
       let finalParams = filterResult.params;
 
-      if (status) {
+      if (status && status !== 'null' && status !== 'undefined' && status.trim() !== '') {
         whereClause += ' AND p.status = ?';
         finalParams.push(status);
       }
 
-      if (keyword) {
+      if (keyword && keyword !== 'null' && keyword !== 'undefined' && keyword.trim() !== '') {
         whereClause += ' AND (u.real_name LIKE ? OR e.employee_no LIKE ? OR p.payslip_no LIKE ?)';
         const searchTerm = `%${keyword}%`;
         finalParams.push(searchTerm, searchTerm, searchTerm);
       }
 
+      // 查询总数
+      const [total] = await pool.query(
+        `SELECT COUNT(*) as count
+        FROM payslips p
+        LEFT JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN users u ON e.user_id = u.id
+        ${whereClause}`,
+        finalParams
+      );
+
       console.log('[Payslips] 准备执行查询，参数数量:', finalParams.length);
-      
+
+      // 构建动态排序子句
+      let orderClause;
+      switch(validSortBy) {
+        case 'net_salary':
+          orderClause = `ORDER BY p.net_salary ${validSortOrder}, p.created_at DESC`;
+          break;
+        case 'employee_name':
+          orderClause = `ORDER BY u.real_name ${validSortOrder}, p.created_at DESC`;
+          break;
+        case 'created_at':
+          orderClause = `ORDER BY p.created_at ${validSortOrder}, p.created_at DESC`;
+          break;
+        case 'salary_month':
+        default:
+          orderClause = `ORDER BY p.salary_month ${validSortOrder}, p.created_at DESC`;
+          break;
+      }
+
       const [payslips] = await pool.query(
         `SELECT
           p.*,
@@ -352,7 +626,7 @@ module.exports = async function (fastify, opts) {
         ${whereClause}
         ${orderClause}
         LIMIT ? OFFSET ?`,
-        finalParams, limitNum, offset
+        [...finalParams, limitNum, offset]
       );
 
       const totalPages = Math.ceil(total[0].count / limitNum);
@@ -384,9 +658,24 @@ module.exports = async function (fastify, opts) {
   // 创建工资条
   fastify.post('/api/admin/payslips', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const salaryData = request.body;
-      const userId = request.user.id;
-      const permissions = request.user ? (request.user.permissions || {}) : {};
+      const userId = decoded.id;
+      const permissions = decoded.permissions || {};
 
       // 检查员工是否存在，并验证部门权限
       let employeeQuery = `SELECT e.*, u.department_id FROM employees e
@@ -500,9 +789,24 @@ module.exports = async function (fastify, opts) {
   // 更新工资条
   fastify.put('/api/admin/payslips/:id', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { id } = request.params;
       const salaryData = request.body;
-      const permissions = request.user ? (request.user.permissions || {}) : {};
+      const permissions = decoded.permissions || {};
 
       // 检查工资条是否存在，并验证部门权限
       let query = `SELECT p.* FROM payslips p
@@ -576,8 +880,23 @@ module.exports = async function (fastify, opts) {
   // 删除工资条
   fastify.delete('/api/admin/payslips/:id', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { id } = request.params;
-      const permissions = request.user ? (request.user.permissions || {}) : {};
+      const permissions = decoded.permissions || {};
 
       // 检查工资条是否存在，并验证部门权限
       let query = `SELECT p.* FROM payslips p
@@ -618,9 +937,25 @@ module.exports = async function (fastify, opts) {
   // 批量发放工资条
   fastify.post('/api/admin/payslips/batch-send', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { payslip_ids, notify_options = {} } = request.body;
-      const userId = request.user.id;
-      const permissions = request.user ? (request.user.permissions || {}) : {};
+      const userId = decoded.id;
+      const permissions = decoded.permissions || {};
+      const io = fastify.io; // 获取 WebSocket io 实例
 
       if (!payslip_ids || payslip_ids.length === 0) {
         return reply.code(400).send({ success: false, message: '请选择要发放的工资条' });
@@ -628,7 +963,8 @@ module.exports = async function (fastify, opts) {
 
       // 首先验证用户是否有权限访问这些工资条
       const placeholders = payslip_ids.map(() => '?').join(',');
-      let baseQuery = `SELECT p.id FROM payslips p
+      let baseQuery = `SELECT p.id, p.user_id, p.salary_month, p.net_salary, u.real_name as employee_name, p.status
+                      FROM payslips p
                       LEFT JOIN employees e ON p.employee_id = e.id
                       LEFT JOIN users u ON e.user_id = u.id
                       WHERE p.id IN (${placeholders})`;
@@ -648,25 +984,97 @@ module.exports = async function (fastify, opts) {
         return reply.code(403).send({ success: false, message: '没有权限发放所选的工资条' });
       }
 
-      // 发放有权限的工资条
-      const allowedPlaceholders = allowedIds.map(() => '?').join(',');
+      // 记录失败的工资条
+      const failedPayslips = [];
+      const successPayslips = [];
+
+      // 检查每个工资条的状态，只有草稿状态才能发放
+      for (const payslip of allowedPayslips) {
+        if (payslip.status !== 'draft') {
+          failedPayslips.push({
+            id: payslip.id,
+            employee_name: payslip.employee_name,
+            reason: '工资条状态不是草稿，无法发放'
+          });
+        } else {
+          successPayslips.push(payslip);
+        }
+      }
+
+      // 如果没有可发放的工资条
+      if (successPayslips.length === 0) {
+        return {
+          success: false,
+          message: '没有可发放的工资条',
+          failed_payslips: failedPayslips
+        };
+      }
+
+      // 发放有权限的草稿工资条
+      const successIds = successPayslips.map(p => p.id);
+      const successPlaceholders = successIds.map(() => '?').join(',');
+
       await pool.query(
         `UPDATE payslips
         SET status = 'sent', issued_by = ?, issued_at = NOW()
-        WHERE id IN (${allowedPlaceholders}) AND status = 'draft'`,
-        [userId, ...allowedIds]
+        WHERE id IN (${successPlaceholders}) AND status = 'draft'`,
+        [userId, ...successIds]
       );
 
       // 计算成功发放的数量
       const [updated] = await pool.query(
-        `SELECT COUNT(*) as count FROM payslips WHERE id IN (${allowedPlaceholders}) AND status = 'sent'`,
-        allowedIds
+        `SELECT COUNT(*) as count FROM payslips WHERE id IN (${successPlaceholders}) AND status = 'sent'`,
+        successIds
       );
+
+      // 为每个成功发放的员工发送通知
+      const { sendNotificationToUser } = require('../websocket');
+      const sentCount = updated[0].count;
+
+      for (const payslip of successPayslips) {
+        const salaryMonth = new Date(payslip.salary_month);
+        const monthStr = `${salaryMonth.getFullYear()}年${salaryMonth.getMonth() + 1}月`;
+
+        // 发送 WebSocket 实时通知
+        if (io) {
+          sendNotificationToUser(io, payslip.user_id, {
+            type: 'payslip',
+            title: '工资条已发放',
+            content: `您的${monthStr}工资条已发放，实发工资¥${parseFloat(payslip.net_salary).toFixed(2)}`,
+            related_id: payslip.id,
+            related_type: 'payslip',
+            created_at: new Date().toISOString()
+          });
+        }
+
+        // 将通知记录到数据库
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, content, related_id, related_type, is_read, created_at)
+           VALUES (?, 'payslip', ?, ?, ?, 'payslip', 0, NOW())`,
+          [
+            payslip.user_id,
+            '工资条已发放',
+            `您的${monthStr}工资条已发放，实发工资¥${parseFloat(payslip.net_salary).toFixed(2)}`,
+            payslip.id
+          ]
+        );
+      }
+
+      // 如果有失败的工资条，返回部分成功的信息
+      if (failedPayslips.length > 0) {
+        return {
+          success: true,
+          sent_count: sentCount,
+          failed_count: failedPayslips.length,
+          message: `成功发放 ${sentCount} 条工资条，${failedPayslips.length} 条发放失败`,
+          failed_payslips: failedPayslips
+        };
+      }
 
       return {
         success: true,
-        sent_count: updated[0].count,
-        message: `成功发放 ${updated[0].count} 条工资条`
+        sent_count: sentCount,
+        message: `成功发放 ${sentCount} 条工资条`
       };
     } catch (error) {
       console.error('批量发放工资条失败:', error);
@@ -742,8 +1150,23 @@ module.exports = async function (fastify, opts) {
   // 批量导入工资条
   fastify.post('/api/admin/payslips/import', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const data = await request.file();
-      const permissions = request.user ? (request.user.permissions || {}) : {};
+      const permissions = decoded.permissions || {};
 
       if (!data) {
         return reply.code(400).send({ success: false, message: '请上传文件' });
@@ -894,7 +1317,7 @@ module.exports = async function (fastify, opts) {
           results.failed,
           JSON.stringify(results.errors),
           results.failed === 0 ? 'completed' : 'failed',
-          request.user.id
+          decoded.id
         ]
       );
 
@@ -949,6 +1372,21 @@ module.exports = async function (fastify, opts) {
   // 重置二级密码（管理员）
   fastify.post('/api/admin/payslips/reset-password', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { user_ids, reset_to_default = true } = request.body;
 
       if (!user_ids || user_ids.length === 0) {
@@ -995,8 +1433,23 @@ module.exports = async function (fastify, opts) {
   // 获取统计数据
   fastify.get('/api/admin/payslips/statistics', async (request, reply) => {
     try {
+      // 验证 token
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return reply.code(401).send({ success: false, message: '未提供认证令牌' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (error) {
+        return reply.code(401).send({ success: false, message: '无效的认证令牌' });
+      }
+
       const { year, month, department_id } = request.query;
-      const permissions = request.user ? (request.user.permissions || {}) : {};
+      const permissions = decoded.permissions || {};
 
       let whereClause = 'WHERE 1=1';
       const params = [];

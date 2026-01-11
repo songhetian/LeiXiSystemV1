@@ -122,7 +122,6 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
     }
 
     // Check if it is an exam notification
-    // Check if it is an exam notification (by type or title keyword)
     if (
       notification.type === 'exam_notification' ||
       notification.type === 'assessment_plan' ||
@@ -132,6 +131,13 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
        setSelectedNotification(notification);
        setShowConfirmModal(true);
        return;
+    }
+
+    // Check if it is a payslip notification
+    if (notification.type === 'payslip' || notification.title?.includes('工资条')) {
+      onNavigate('my-payslips');
+      onClose();
+      return;
     }
 
     onNavigate('my-notifications');
@@ -154,6 +160,7 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
       case 'attendance_abnormal': return <ExclamationCircleIcon className="w-5 h-5" />;
       case 'exam_notification': return <DocumentTextIcon className="w-5 h-5" />;
       case 'exam_result': return <CheckCircleIcon className="w-5 h-5" />;
+      case 'payslip': return <CheckCircleIcon className="w-5 h-5" />;
       case 'system': return <BellIcon className="w-5 h-5" />;
       default: return <BellIcon className="w-5 h-5" />;
     }
@@ -169,6 +176,7 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
       case 'attendance_abnormal': return 'bg-red-100 text-red-600';
       case 'exam_notification': return 'bg-indigo-100 text-indigo-600';
       case 'exam_result': return 'bg-teal-100 text-teal-600';
+      case 'payslip': return 'bg-green-100 text-green-600';
       case 'system': return 'bg-gray-100 text-gray-600';
       default: return 'bg-gray-100 text-gray-600';
     }
@@ -260,7 +268,7 @@ const NotificationDropdown = ({ onClose, onNavigate, onUpdateUnread }) => {
             onNavigate('my-notifications');
             onClose();
           }}
-          className="w-full py-2 text-center text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors rounded-lg hover:bg-white"
+          className="w-full py-2 text-center text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-100 font-medium transition-colors rounded-lg"
         >
           查看全部通知
         </button>

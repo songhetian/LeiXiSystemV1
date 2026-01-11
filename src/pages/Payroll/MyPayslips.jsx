@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { formatDate } from '../../utils/date';
-import axios from 'axios';
+import api from '../../api';
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig';
 import {
@@ -23,14 +23,18 @@ export default function MyPayslips() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordToken, setPasswordToken] = useState(null);
   const [isDefaultPassword, setIsDefaultPassword] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
   const [form] = Form.useForm();
   const [changePasswordForm] = Form.useForm();
+  const [setPasswordForm] = Form.useForm();
 
   useEffect(() => {
     fetchPayslips();
+    checkPasswordStatus();
   }, [pagination.page, filters]);
 
   const fetchPayslips = async () => {
@@ -42,13 +46,15 @@ export default function MyPayslips() {
         ...filters
       };
 
-      const response = await axios.get(getApiUrl('/api/payslips/my-payslips'), { params });
+      const response = await api.get('/payslips/my-payslips', { params });
 
       if (response.data.success) {
-        setPayslips(response.data.data);
+        // 只展示已发送和已查看的工资条，过滤掉草稿状态
+        const filteredPayslips = response.data.data.filter(p => p.status === 'sent' || p.status === 'viewed' || p.status === 'confirmed');
+        setPayslips(filteredPayslips);
         setPagination(prev => ({
           ...prev,
-          total: response.data.total
+          total: filteredPayslips.length
         }));
       }
     } catch (error) {
@@ -56,6 +62,18 @@ export default function MyPayslips() {
       toast.error('获取工资条列表失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkPasswordStatus = async () => {
+    try {
+      const response = await api.get('/payslips/password-status');
+      if (response.data.success) {
+        setHasPassword(response.data.has_password);
+        setIsDefaultPassword(response.data.is_default);
+      }
+    } catch (error) {
+      console.error('检查密码状态失败:', error);
     }
   };
 
@@ -70,52 +88,122 @@ export default function MyPayslips() {
 
   const handleVerifyPassword = async () => {
     try {
+      console.log('[Frontend] Verifying password...');
       if (!password) {
         toast.error('请输入密码');
         return;
       }
 
-      const response = await axios.post(getApiUrl('/api/payslips/verify-password'), {
-        password
+      // 使用 fetch API 而不是 axios
+      const token = localStorage.getItem('token');
+      const response = await fetch(getApiUrl('/payslips/verify-password'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password })
       });
 
-      if (response.data.success) {
-        setPasswordToken(response.data.token);
-        setIsDefaultPassword(response.data.is_default);
+      const data = await response.json();
+      console.log('[Frontend] Password verification response:', data);
+
+      if (data.success) {
+        console.log('[Frontend] Password verified successfully, token:', data.token ? data.token.substring(0, 30) + '...' : 'none');
+        const newToken = data.token;
+        setIsDefaultPassword(data.is_default);
         setShowPasswordModal(false);
         setPassword('');
-        
+
         if (selectedPayslip) {
-          fetchPayslipDetail(selectedPayslip.id);
+          console.log('[Frontend] Fetching payslip detail for id:', selectedPayslip.id);
+          // 直接使用新获取的 token，而不是依赖状态更新
+          await fetchPayslipDetailWithToken(selectedPayslip.id, newToken);
         }
 
-        if (response.data.is_default) {
+        if (data.is_default) {
           toast.warning('您使用的是默认密码，建议修改密码');
         }
+      } else {
+        console.log('[Frontend] Password verification failed:', data.message);
+        toast.error(data.message || '密码验证失败');
       }
     } catch (error) {
-      console.error('密码验证失败:', error);
-      toast.error(error.response?.data?.message || '密码验证失败');
+      console.error('[Frontend] 密码验证失败:', error);
+      toast.error(error.message || '密码验证失败');
     }
   };
 
   const fetchPayslipDetail = async (id) => {
     try {
-      const response = await axios.get(getApiUrl(`/api/payslips/${id}`), {
-        headers: {
-          'X-Payslip-Token': passwordToken
-        }
+      console.log('[Frontend] Fetching payslip detail for id:', id);
+      console.log('[Frontend] PasswordToken:', passwordToken ? passwordToken.substring(0, 30) + '...' : 'none');
+      
+      // 使用 fetch API 而不是 axios，避免拦截器问题
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'X-Payslip-Token': passwordToken
+      };
+      console.log('[Frontend] Headers to send:', headers);
+      
+      const response = await fetch(getApiUrl(`/payslips/${id}`), {
+        method: 'GET',
+        headers: headers
       });
 
-      if (response.data.success) {
-        setSelectedPayslip(response.data.data);
+      const data = await response.json();
+      console.log('[Frontend] Response:', data);
+
+      if (data.success) {
+        setSelectedPayslip(data.data);
         setShowDetailModal(true);
       }
     } catch (error) {
-      console.error('获取工资条详情失败:', error);
-      toast.error(error.response?.data?.message || '获取工资条详情失败');
+      console.error('[Frontend] 获取工资条详情失败:', error);
+      toast.error(error.message || '获取工资条详情失败');
+
+      if (error.message.includes('401') || error.message.includes('需要验证二级密码')) {
+        console.log('[Frontend] Clearing passwordToken and showing password modal');
+        setPasswordToken(null);
+        setShowPasswordModal(true);
+      }
+    }
+  };
+
+  const fetchPayslipDetailWithToken = async (id, token) => {
+    try {
+      console.log('[Frontend] Fetching payslip detail with token for id:', id);
+      console.log('[Frontend] Token:', token ? token.substring(0, 30) + '...' : 'none');
       
-      if (error.response?.status === 401) {
+      // 直接使用传入的 token
+      const jwtToken = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${jwtToken}`,
+        'X-Payslip-Token': token
+      };
+      console.log('[Frontend] Headers to send:', headers);
+      
+      const response = await fetch(getApiUrl(`/payslips/${id}`), {
+        method: 'GET',
+        headers: headers
+      });
+
+      const data = await response.json();
+      console.log('[Frontend] Response:', data);
+
+      if (data.success) {
+        setSelectedPayslip(data.data);
+        setShowDetailModal(true);
+        // 保存 token 到状态中，供后续使用
+        setPasswordToken(token);
+      }
+    } catch (error) {
+      console.error('[Frontend] 获取工资条详情失败:', error);
+      toast.error(error.message || '获取工资条详情失败');
+
+      if (error.message.includes('401') || error.message.includes('需要验证二级密码')) {
+        console.log('[Frontend] Clearing passwordToken and showing password modal');
         setPasswordToken(null);
         setShowPasswordModal(true);
       }
@@ -124,7 +212,7 @@ export default function MyPayslips() {
 
   const handleConfirmPayslip = async () => {
     try {
-      const response = await axios.post(getApiUrl(`/api/payslips/${selectedPayslip.id}/confirm`));
+      const response = await api.post(`/payslips/${selectedPayslip.id}/confirm`);
 
       if (response.data.success) {
         toast.success('工资条已确认');
@@ -139,7 +227,7 @@ export default function MyPayslips() {
 
   const handleChangePassword = async (values) => {
     try {
-      const response = await axios.post(getApiUrl('/api/payslips/change-password'), {
+      const response = await api.post('/payslips/change-password', {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword
       });
@@ -149,10 +237,32 @@ export default function MyPayslips() {
         setShowChangePasswordModal(false);
         changePasswordForm.resetFields();
         setIsDefaultPassword(false);
+        // 清除旧的 passwordToken，因为密码已修改
+        setPasswordToken(null);
       }
     } catch (error) {
       console.error('修改密码失败:', error);
       toast.error(error.response?.data?.message || '修改密码失败');
+    }
+  };
+
+  const handleSetPassword = async (values) => {
+    try {
+      const response = await api.post('/payslips/set-password', {
+        password: values.password,
+        confirmPassword: values.confirmPassword
+      });
+
+      if (response.data.success) {
+        toast.success('密码设置成功');
+        setShowSetPasswordModal(false);
+        setPasswordForm.resetFields();
+        setHasPassword(true);
+        setIsDefaultPassword(true);
+      }
+    } catch (error) {
+      console.error('设置密码失败:', error);
+      toast.error(error.response?.data?.message || '设置密码失败');
     }
   };
 
@@ -172,31 +282,36 @@ export default function MyPayslips() {
       title: '工资月份',
       dataIndex: 'salary_month',
       key: 'salary_month',
+      align: 'center',
       render: (text) => dayjs(text).format('YYYY年MM月')
     },
     {
       title: '发放日期',
       dataIndex: 'payment_date',
       key: 'payment_date',
+      align: 'center',
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD') : '-'
     },
     {
       title: '实发工资',
       dataIndex: 'net_salary',
       key: 'net_salary',
+      align: 'center',
       render: (text) => <span className="text-green-600 font-semibold">¥{parseFloat(text).toFixed(2)}</span>
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      align: 'center',
       render: (status) => getStatusTag(status)
     },
     {
       title: '操作',
       key: 'action',
+      align: 'center',
       render: (_, record) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-center">
           <Button
             type="link"
             icon={<EyeIcon className="w-4 h-4" />}
@@ -220,22 +335,34 @@ export default function MyPayslips() {
           <p className="text-gray-500 mt-1">查看和管理您的工资条信息</p>
         </div>
         <div className="flex gap-2">
-          {isDefaultPassword && (
+          {hasPassword ? (
+            <>
+              {isDefaultPassword && (
+                <Button
+                  type="primary"
+                  danger
+                  icon={<KeyIcon className="w-4 h-4" />}
+                  onClick={() => setShowChangePasswordModal(true)}
+                >
+                  修改密码
+                </Button>
+              )}
+              <Button
+                icon={<KeyIcon className="w-4 h-4" />}
+                onClick={() => setShowChangePasswordModal(true)}
+              >
+                修改二级密码
+              </Button>
+            </>
+          ) : (
             <Button
               type="primary"
-              danger
               icon={<KeyIcon className="w-4 h-4" />}
-              onClick={() => setShowChangePasswordModal(true)}
+              onClick={() => setShowSetPasswordModal(true)}
             >
-              修改密码
+              设置二级密码
             </Button>
           )}
-          <Button
-            icon={<KeyIcon className="w-4 h-4" />}
-            onClick={() => setShowChangePasswordModal(true)}
-          >
-            修改二级密码
-          </Button>
         </div>
       </div>
 
@@ -272,7 +399,10 @@ export default function MyPayslips() {
             current: pagination.page,
             pageSize: pagination.limit,
             total: pagination.total,
-            onChange: (page) => setPagination(prev => ({ ...prev, page })),
+            onChange: (page, pageSize) => {
+              setPagination(prev => ({ ...prev, page, limit: pageSize }));
+              fetchPayslips(); // 重新获取数据
+            },
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条记录`
           }}
@@ -365,6 +495,138 @@ export default function MyPayslips() {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        title="修改二级密码"
+        open={showChangePasswordModal}
+        onCancel={() => {
+          setShowChangePasswordModal(false);
+          changePasswordForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form
+          form={changePasswordForm}
+          onFinish={handleChangePassword}
+          layout="vertical"
+          className="mt-4"
+        >
+          <Form.Item
+            name="oldPassword"
+            label="原密码"
+            rules={[{ required: true, message: '请输入原密码' }]}
+          >
+            <Input.Password placeholder="请输入原密码" />
+          </Form.Item>
+
+          <Form.Item
+            name="newPassword"
+            label="新密码"
+            rules={[
+              { required: true, message: '请输入新密码' },
+              { min: 6, message: '密码长度至少6位' }
+            ]}
+          >
+            <Input.Password placeholder="请输入新密码（至少6位）" />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            label="确认新密码"
+            dependencies={['newPassword']}
+            rules={[
+              { required: true, message: '请确认新密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次输入的密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="请再次输入新密码" />
+          </Form.Item>
+
+          <Form.Item>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={() => {
+                setShowChangePasswordModal(false);
+                changePasswordForm.resetFields();
+              }}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit">
+                确认修改
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="设置二级密码"
+        open={showSetPasswordModal}
+        onCancel={() => {
+          setShowSetPasswordModal(false);
+          setPasswordForm.resetFields();
+        }}
+        footer={null}
+      >
+        <div className="py-4">
+          <p className="mb-4 text-gray-600">为保护您的隐私，查看工资条需要设置二级密码</p>
+          <Form
+            form={setPasswordForm}
+            onFinish={handleSetPassword}
+            layout="vertical"
+          >
+            <Form.Item
+              name="password"
+              label="密码"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 6, message: '密码长度至少6位' }
+              ]}
+            >
+              <Input.Password placeholder="请输入密码（至少6位）" />
+            </Form.Item>
+
+            <Form.Item
+              name="confirmPassword"
+              label="确认密码"
+              dependencies={['password']}
+              rules={[
+                { required: true, message: '请确认密码' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('两次输入的密码不一致'));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password placeholder="请再次输入密码" />
+            </Form.Item>
+
+            <Form.Item>
+              <div className="flex gap-2 justify-end">
+                <Button onClick={() => {
+                  setShowSetPasswordModal(false);
+                  setPasswordForm.resetFields();
+                }}>
+                  取消
+                </Button>
+                <Button type="primary" htmlType="submit">
+                  确认设置
+                </Button>
+              </div>
+            </Form.Item>
+          </Form>
+        </div>
       </Modal>
 
       <Modal

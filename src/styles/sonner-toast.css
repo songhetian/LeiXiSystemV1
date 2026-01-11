@@ -134,11 +134,17 @@
   cursor: pointer;
   transition: all 0.2s ease;
   margin-left: 8px;
+  display: inline-block;
+  visibility: visible;
+  opacity: 1;
 }
 
 [data-sonner-toast] [data-button]:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
+  display: inline-block;
+  visibility: visible;
+  opacity: 1;
 }
 
 /* 响应式设计 */

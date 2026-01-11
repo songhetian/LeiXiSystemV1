@@ -19,7 +19,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 fastify.register(cors, {
   origin: true, // 允许所有来源，解决开发环境IP变动导致的连接问题
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Payslip-Token'],
   credentials: true,
   exposedHeaders: ['Content-Type']
 })

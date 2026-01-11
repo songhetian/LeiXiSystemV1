@@ -206,6 +206,9 @@ function App() {
               handleSetActiveTab('user-role-management');
             } else if (notification.type === 'new_assessment_plan' || notification.type === 'assessment_plan' || notification.title?.includes('考核计划') || notification.content?.includes('考核计划')) {
               handleSetActiveTab('my-exams');
+            } else if (notification.type === 'payslip' || notification.related_type === 'payslip' || notification.title?.includes('工资条') || notification.content?.includes('工资条')) {
+              // 跳转到我的工资条页面
+              handleSetActiveTab('my-payslips');
             }
           }
         }

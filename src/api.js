@@ -18,6 +18,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // 确保自定义 headers 不被覆盖
+    console.log('[API Request] URL:', config.url);
+    console.log('[API Request] Headers:', config.headers);
     return config;
   },
   (error) => Promise.reject(error)
@@ -30,9 +33,16 @@ api.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/';
+          // 只有在 JWT token 过期时才跳转到登录页面
+          // 如果是二级密码验证失败，不跳转
+          const message = error.response.data?.message || '';
+          const isPasswordError = message.includes('二级密码') || message.includes('需要验证');
+          
+          if (!isPasswordError) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+          }
           break;
         case 403:
           console.error('没有权限访问该资源');

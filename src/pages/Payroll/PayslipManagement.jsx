@@ -24,13 +24,16 @@ export default function PayslipManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingPayslip, setEditingPayslip] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectAllPages, setSelectAllPages] = useState(false);
+  const [showSelectMenu, setShowSelectMenu] = useState(false);
+  const [sending, setSending] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => {
     fetchPayslips();
     fetchDepartments();
     fetchEmployees();
-  }, [pagination.page, filters]);
+  }, [pagination.page, pagination.limit, filters]);
 
   const fetchPayslips = async () => {
     setLoading(true);
@@ -43,7 +46,7 @@ export default function PayslipManagement() {
 
       const queryString = new URLSearchParams(params).toString();
       const url = queryString ? `/api/admin/payslips?${queryString}` : '/api/admin/payslips';
-      
+
       const token = localStorage.getItem('token');
       const response = await fetch(getApiUrl(url), {
         headers: {
@@ -98,7 +101,9 @@ export default function PayslipManagement() {
         }
       });
       const result = await response.json();
-      if (result.success) {
+      if (Array.isArray(result)) {
+        setEmployees(result);
+      } else if (result.success && result.data) {
         setEmployees(result.data);
       }
     } catch (error) {
@@ -168,30 +173,214 @@ export default function PayslipManagement() {
     }
   };
 
+  const handleSingleSend = async (record) => {
+    const token = localStorage.getItem('token');
+
+    Modal.confirm({
+      title: '确认发放',
+      content: `确定要发放 ${record.employee_name} 的工资条吗？`,
+      okText: '确认发放',
+      cancelText: '取消',
+      onOk: async () => {
+        setSending(true);
+        try {
+          toast.loading('正在发送工资条...', { id: 'sending' });
+
+          const response = await fetch(getApiUrl('/api/admin/payslips/batch-send'), {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              payslip_ids: [record.id]
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            toast.success(result.message, { id: 'sending' });
+            fetchPayslips();
+          } else {
+            toast.error(result.message || '发送失败', { id: 'sending' });
+          }
+        } catch (error) {
+          console.error('发送失败:', error);
+          toast.error('发送失败', { id: 'sending' });
+        } finally {
+          setSending(false);
+        }
+      }
+    });
+  };
+
   const handleBatchSend = async () => {
-    if (selectedRowKeys.length === 0) {
+    const token = localStorage.getItem('token');
+
+    if (selectedRowKeys.length === 0 && !selectAllPages) {
       toast.error('请选择要发放的工资条');
       return;
     }
 
+    setSending(true);
+
+    let payslipIds = selectedRowKeys;
+    let message = `确定要发放选中的 ${selectedRowKeys.length} 条工资条吗？`;
+
+    // 如果是跨页全选，需要先获取所有符合条件的待发送工资条ID
+    if (selectAllPages) {
+      try {
+        const params = {
+          page: 1,
+          limit: 10000, // 获取所有数据
+          status: 'draft',
+          ...filters
+        };
+
+        const queryString = new URLSearchParams(params).toString();
+        const url = queryString ? `/api/admin/payslips?${queryString}` : '/api/admin/payslips';
+
+        const response = await fetch(getApiUrl(url), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          payslipIds = data.data.map(p => p.id);
+          message = `确定要发放当前筛选条件下的所有 ${payslipIds.length} 条待发送工资条吗？`;
+        }
+      } catch (error) {
+        console.error('获取所有待发送工资条失败:', error);
+        toast.error('获取工资条列表失败');
+        setSending(false);
+        return;
+      }
+    }
+
     Modal.confirm({
       title: '确认发放',
-      content: `确定要发放选中的 ${selectedRowKeys.length} 条工资条吗？`,
+      content: message,
+      okText: '确认发放',
+      cancelText: '取消',
       onOk: async () => {
         try {
-          const response = await axios.post(getApiUrl('/api/admin/payslips/batch-send'), {
-            payslip_ids: selectedRowKeys
+          toast.loading('正在发送工资条...', { id: 'sending' });
+
+          const response = await fetch(getApiUrl('/api/admin/payslips/batch-send'), {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              payslip_ids: payslipIds
+            })
           });
 
-          if (response.data.success) {
-            toast.success(response.data.message);
+          const result = await response.json();
+
+          if (result.success) {
+            toast.success(result.message, { id: 'sending' });
             setSelectedRowKeys([]);
+            setSelectAllPages(false);
             fetchPayslips();
+
+            // 判断是否有失败的工资条
+            if (result.failed_count && result.failed_count > 0) {
+              // 显示部分成功的模态框
+              Modal.warning({
+                title: '批量发放完成（部分成功）',
+                content: (
+                  <div>
+                    <p className="text-lg mb-2">⚠️ 发送完成</p>
+                    <p>成功发放 <strong className="text-green-600">{result.sent_count}</strong> 条工资条</p>
+                    <p>失败 <strong className="text-red-600">{result.failed_count}</strong> 条</p>
+                    {result.failed_payslips && result.failed_payslips.length > 0 && (
+                      <div className="mt-4">
+                        <p className="font-semibold mb-2">失败的工资条：</p>
+                        <ul className="max-h-60 overflow-y-auto list-disc pl-5">
+                          {result.failed_payslips.map((item, index) => (
+                            <li key={index} className="text-red-600 text-sm">
+                              {item.employee_name} - {item.reason || '未知错误'}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ),
+                okText: '确定',
+                width: 500
+              });
+            } else {
+              // 显示全部成功的模态框
+              Modal.success({
+                title: '批量发放成功',
+                content: (
+                  <div>
+                    <p className="text-lg mb-2">🎉 发送完成！</p>
+                    <p>成功发放 <strong className="text-green-600">{result.sent_count}</strong> 条工资条</p>
+                    <p className="text-gray-500 text-sm mt-2">员工已收到工资条发放通知</p>
+                  </div>
+                ),
+                okText: '确定',
+                width: 400
+              });
+            }
+          } else {
+            toast.error(result.message || '批量发放失败', { id: 'sending' });
+
+            // 显示发送失败模态框
+            Modal.error({
+              title: '批量发放失败',
+              content: (
+                <div>
+                  <p className="text-lg mb-2">❌ 发送失败</p>
+                  <p>{result.message || '批量发放失败，请稍后重试'}</p>
+                  {result.failed_payslips && result.failed_payslips.length > 0 && (
+                    <div className="mt-4">
+                      <p className="font-semibold mb-2">失败的工资条：</p>
+                      <ul className="max-h-60 overflow-y-auto list-disc pl-5">
+                        {result.failed_payslips.map((item, index) => (
+                          <li key={index} className="text-red-600">
+                            {item.employee_name} - {item.reason || '未知错误'}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ),
+              okText: '确定',
+              width: 500
+            });
           }
         } catch (error) {
           console.error('批量发放失败:', error);
-          toast.error('批量发放失败');
+          toast.error('批量发放失败', { id: 'sending' });
+
+          // 显示发送失败模态框
+          Modal.error({
+            title: '批量发放失败',
+            content: (
+              <div>
+                <p className="text-lg mb-2">❌ 发送失败</p>
+                <p>网络错误或服务器异常，请稍后重试</p>
+                <p className="text-gray-500 text-sm mt-2">错误信息：{error.message}</p>
+              </div>
+            ),
+            okText: '确定',
+            width: 400
+          });
+        } finally {
+          setSending(false);
         }
+      },
+      onCancel: () => {
+        setSending(false);
       }
     });
   };
@@ -230,7 +419,7 @@ export default function PayslipManagement() {
       if (response.data.success) {
         toast.success(response.data.message);
         fetchPayslips();
-        
+
         if (response.data.data.errors && response.data.data.errors.length > 0) {
           Modal.warning({
             title: '导入结果',
@@ -266,7 +455,7 @@ export default function PayslipManagement() {
 
   const getStatusTag = (status) => {
     const statusMap = {
-      draft: { color: 'default', text: '草稿' },
+      draft: { color: 'default', text: '待发送' },
       sent: { color: 'processing', text: '已发放' },
       viewed: { color: 'warning', text: '已查看' },
       confirmed: { color: 'success', text: '已确认' }
@@ -280,47 +469,65 @@ export default function PayslipManagement() {
       title: '工资条编号',
       dataIndex: 'payslip_no',
       key: 'payslip_no',
-      width: 150
+      width: 150,
+      align: 'center'
     },
     {
       title: '员工姓名',
       dataIndex: 'employee_name',
-      key: 'employee_name'
+      key: 'employee_name',
+      align: 'center'
     },
     {
       title: '工号',
       dataIndex: 'employee_no',
-      key: 'employee_no'
+      key: 'employee_no',
+      align: 'center'
     },
     {
       title: '部门',
       dataIndex: 'department_name',
-      key: 'department_name'
+      key: 'department_name',
+      align: 'center'
     },
     {
       title: '工资月份',
       dataIndex: 'salary_month',
       key: 'salary_month',
+      align: 'center',
       render: (text) => dayjs(text).format('YYYY-MM')
     },
     {
       title: '实发工资',
       dataIndex: 'net_salary',
       key: 'net_salary',
+      align: 'center',
       render: (text) => `¥${parseFloat(text).toFixed(2)}`
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      align: 'center',
       render: (status) => getStatusTag(status)
     },
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 240,
+      align: 'center',
       render: (_, record) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-center">
+          {record.status === 'draft' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<PaperAirplaneIcon className="w-4 h-4" />}
+              onClick={() => handleSingleSend(record)}
+            >
+              发送
+            </Button>
+          )}
           <Button
             type="link"
             size="small"
@@ -346,10 +553,46 @@ export default function PayslipManagement() {
 
   const rowSelection = {
     selectedRowKeys,
-    onChange: (keys) => setSelectedRowKeys(keys),
+    onChange: (keys) => {
+      setSelectedRowKeys(keys);
+      // 如果手动取消选择，清除全选标志
+      if (keys.length === 0) {
+        setSelectAllPages(false);
+      }
+    },
     getCheckboxProps: (record) => ({
       disabled: record.status !== 'draft'
-    })
+    }),
+    onSelectAll: (selected, selectedRows, changeRows) => {
+      // 全选当前页时不自动设置跨页全选标志
+      if (!selected) {
+        setSelectAllPages(false);
+      }
+    }
+  };
+
+  // 处理全选当前页
+  const handleSelectCurrentPage = () => {
+    const currentPageDraftIds = payslips
+      .filter(p => p.status === 'draft')
+      .map(p => p.id);
+    setSelectedRowKeys(currentPageDraftIds);
+    setSelectAllPages(false);
+    setShowSelectMenu(false);
+  };
+
+  // 处理全选所有页
+  const handleSelectAllPages = () => {
+    setSelectedRowKeys([]);
+    setSelectAllPages(true);
+    setShowSelectMenu(false);
+  };
+
+  // 清除所有选择
+  const handleClearSelection = () => {
+    setSelectedRowKeys([]);
+    setSelectAllPages(false);
+    setShowSelectMenu(false);
   };
 
   return (
@@ -400,7 +643,10 @@ export default function PayslipManagement() {
             style={{ width: 200 }}
             allowClear
             onChange={(value) => setFilters(prev => ({ ...prev, department: value }))}
-            options={departments.map(d => ({ label: d.name, value: d.id }))}
+            options={[
+              { label: '全部部门', value: '' },
+              ...departments.map(d => ({ label: d.name, value: d.id }))
+            ]}
           />
           <Select
             placeholder="选择状态"
@@ -408,7 +654,8 @@ export default function PayslipManagement() {
             allowClear
             onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
             options={[
-              { label: '草稿', value: 'draft' },
+              { label: '全部状态', value: '' },
+              { label: '待发送', value: 'draft' },
               { label: '已发放', value: 'sent' },
               { label: '已查看', value: 'viewed' },
               { label: '已确认', value: 'confirmed' }
@@ -422,13 +669,31 @@ export default function PayslipManagement() {
           <Button type="primary" onClick={fetchPayslips}>
             查询
           </Button>
-          {selectedRowKeys.length > 0 && (
+          <Select
+            placeholder="选择选项"
+            style={{ width: 150 }}
+            value={showSelectMenu ? 'select' : undefined}
+            open={showSelectMenu}
+            onOpenChange={(open) => setShowSelectMenu(open)}
+            onChange={(value) => {
+              if (value === 'current') handleSelectCurrentPage();
+              else if (value === 'all') handleSelectAllPages();
+              else if (value === 'clear') handleClearSelection();
+            }}
+            options={[
+              { label: '全选当前页', value: 'current' },
+              { label: '全选所有页', value: 'all' },
+              { label: '清除选择', value: 'clear' }
+            ]}
+          />
+          {(selectedRowKeys.length > 0 || selectAllPages) && (
             <Button
               type="primary"
               icon={<PaperAirplaneIcon className="w-4 h-4" />}
               onClick={handleBatchSend}
+              loading={sending}
             >
-              批量发放 ({selectedRowKeys.length})
+              {sending ? '发送中...' : selectAllPages ? '批量发放 (全部)' : `批量发放 (${selectedRowKeys.length})`}
             </Button>
           )}
         </div>
@@ -445,7 +710,10 @@ export default function PayslipManagement() {
             current: pagination.page,
             pageSize: pagination.limit,
             total: pagination.total,
-            onChange: (page) => setPagination(prev => ({ ...prev, page })),
+            onChange: (page, pageSize) => {
+              setPagination(prev => ({ ...prev, page, limit: pageSize }));
+              fetchPayslips(); // 重新获取数据
+            },
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条记录`
           }}
@@ -476,10 +744,16 @@ export default function PayslipManagement() {
             >
               <Select
                 showSearch
-                placeholder="请选择员工"
+                placeholder="请选择员工（支持搜索姓名、工号、部门）"
                 optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
                 disabled={!!editingPayslip}
-                options={employees.map(e => ({ label: `${e.real_name}`, value: e.id }))}
+                options={employees.map(e => ({
+                  label: `${e.real_name} (${e.employee_no}) - ${e.department_name || '未分配部门'}`,
+                  value: e.id
+                }))}
               />
             </Form.Item>
 
