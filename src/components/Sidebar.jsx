@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { matchPinyin } from '../utils/searchUtils';
 import { usePermission } from '../contexts/PermissionContext';
 
 import {
@@ -106,7 +107,7 @@ const Sidebar = ({
 
     const filterRecursive = (items) => {
       return items.map(item => {
-        const labelMatch = item.label.toLowerCase().includes(query);
+        const labelMatch = matchPinyin(item.label, query);
 
         if (!item.children) {
           return labelMatch ? item : null;
@@ -465,6 +466,18 @@ const SidebarFooter = ({ user, onLogout }) => {
 
 const allMenuItems = [
   {
+    id: 'dashboard',
+    label: '控制面板',
+    icon: <HomeOutlined />,
+    permission: 'system:dashboard:view',
+  },
+  {
+    id: 'admin-dashboard',
+    label: '企业看板',
+    icon: <BarChartOutlined />,
+    permission: 'system:dashboard:admin',
+  },
+  {
     id: 'hr',
     label: '人事管理',
     icon: <TeamOutlined />,
@@ -500,6 +513,7 @@ const allMenuItems = [
       { id: 'user-permission', label: '权限管理', icon: <SafetyOutlined />, permission: 'system:role:view' },
       { id: 'user-role-management', label: '角色分配', icon: <TeamOutlined />, permission: 'system:role:manage' },
       { id: 'user-reset-password', label: '重置密码', icon: <KeyOutlined />, permission: 'user:security:reset_password' },
+      { id: 'system-logs', label: '操作日志', icon: <FileTextOutlined />, permission: 'system:log:view' },
     ]
   },
   {
@@ -790,6 +804,7 @@ const allMenuItems = [
         label: '个人办公',
         icon: <DesktopOutlined />,
         children: [
+          { id: 'my-todo', label: '待办中心', icon: <CheckCircleOutlined /> },
           { id: 'my-schedule', label: '我的排班', icon: <CalendarOutlined /> },
           { id: 'my-notifications', label: '我的通知', icon: <BellOutlined /> },
           { id: 'my-memos', label: '我的备忘录', icon: <FileTextOutlined /> },

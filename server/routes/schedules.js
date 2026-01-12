@@ -1,6 +1,7 @@
 // 排班管理 API
 const { extractUserPermissions, applyDepartmentFilter } = require('../middleware/checkPermission')
 const { toBeijingDate } = require('../utils/time')
+const dayjs = require('dayjs')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
@@ -537,6 +538,49 @@ module.exports = async function (fastify, opts) {
 
     console.log('✅ updateScheduleForLeave 函数执行完成，准备返回');
     return; // 明确返回
+  });
+
+  // 检查排班冲突
+  fastify.get('/api/schedules/check-conflicts', async (request, reply) => {
+    const { employee_id, start_date, end_date } = request.query;
+
+    try {
+      // 1. 检查请假冲突
+      const [leaves] = await pool.query(
+        `SELECT * FROM leave_records 
+         WHERE employee_id = ? 
+         AND status = 'approved'
+         AND (
+           (start_date <= ? AND end_date >= ?) OR
+           (start_date <= ? AND end_date >= ?) OR
+           (start_date >= ? AND end_date <= ?)
+         )`,
+        [employee_id, start_date, start_date, end_date, end_date, start_date, end_date]
+      );
+
+      // 2. 检查连班情况 (获取前后各7天的数据)
+      const bufferStart = dayjs(start_date).subtract(7, 'day').format('YYYY-MM-DD');
+      const bufferEnd = dayjs(end_date).add(7, 'day').format('YYYY-MM-DD');
+      
+      const [existingSchedules] = await pool.query(
+        `SELECT schedule_date, is_rest_day FROM shift_schedules 
+         WHERE employee_id = ? 
+         AND schedule_date BETWEEN ? AND ?
+         ORDER BY schedule_date ASC`,
+        [employee_id, bufferStart, bufferEnd]
+      );
+
+      return {
+        success: true,
+        data: {
+          leaves,
+          existingSchedules
+        }
+      };
+    } catch (error) {
+      console.error('检查排班冲突失败:', error);
+      return reply.code(500).send({ success: false, message: '检查失败' });
+    }
   });
 
   // 删除今日排班（测试用）

@@ -10,6 +10,7 @@ const {
   findNodeApprovers
 } = require('../utils/workflowEngine')
 const { sendNotificationToUser } = require('../websocket')
+const { recordLog } = require('../utils/logger')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
@@ -96,6 +97,17 @@ module.exports = async function (fastify, opts) {
 
         await connection.commit()
         connection.release()
+
+        // 记录日志
+        await recordLog(pool, {
+          user_id,
+          module: 'reimbursement',
+          action: `创建报销申请: ${title}`,
+          method: 'POST',
+          url: request.url,
+          ip: request.ip,
+          params: { id: reimbursementId, total_amount: totalAmount }
+        });
 
         return {
           success: true,
@@ -282,23 +294,181 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/reimbursement/:id/submit', async (request, reply) => {
     try {
       const result = await startWorkflow(pool, request.params.id)
+      
+      // 记录日志
+      await recordLog(pool, {
+        module: 'reimbursement',
+        action: `提交报销单审批: ID ${request.params.id}`,
+        method: 'POST',
+        url: request.url,
+        ip: request.ip
+      });
+
+      // 🔔 实时推送通知给审批人
+      try {
+        if (result.approvers && result.approvers.length > 0) {
+          const [reimbursement] = await pool.query('SELECT title FROM reimbursements WHERE id = ?', [request.params.id]);
+          const title = reimbursement[0]?.title || '报销申请';
+          
+          for (const approverId of result.approvers) {
+            // 写入数据库
+            await pool.query(
+              `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                approverId,
+                'reimbursement_approval',
+                '待审批报销申请',
+                `您有一个新的报销申请待处理: ${title}`,
+                request.params.id,
+                'reimbursement'
+              ]
+            );
+
+            // WebSocket 推送
+            if (fastify.io) {
+              sendNotificationToUser(fastify.io, approverId, {
+                type: 'reimbursement_approval',
+                title: '待审批报销申请',
+                content: `您有一个新的报销申请待处理: ${title}`,
+                related_id: request.params.id,
+                related_type: 'reimbursement',
+                created_at: new Date()
+              });
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.error('❌ 发送报销审批通知失败:', notificationError);
+      }
+
       return { success: true, data: result }
     } catch (e) { return reply.code(500).send({ success: false, message: e.message }) }
   })
 
   fastify.post('/api/reimbursement/:id/cancel', async (request, reply) => {
     await pool.query("UPDATE reimbursements SET status = 'cancelled' WHERE id = ?", [request.params.id])
+    
+    // 记录日志
+    await recordLog(pool, {
+      module: 'reimbursement',
+      action: `撤销报销申请: ID ${request.params.id}`,
+      method: 'POST',
+      url: request.url,
+      ip: request.ip
+    });
+
     return { success: true }
   })
 
   fastify.delete('/api/reimbursement/:id', async (request, reply) => {
     await pool.query("DELETE FROM reimbursements WHERE id = ?", [request.params.id])
+    
+    // 记录日志
+    await recordLog(pool, {
+      module: 'reimbursement',
+      action: `删除报销草稿: ID ${request.params.id}`,
+      method: 'DELETE',
+      url: request.url,
+      ip: request.ip
+    });
+
     return { success: true }
   })
 
   fastify.post('/api/reimbursement/:id/approval', async (request, reply) => {
     const { approver_id, action, opinion } = request.body
     const result = await processApproval(pool, request.params.id, approver_id, action, opinion)
+    
+    // 记录日志
+    const actionMap = { approve: '通过', reject: '驳回', return: '退回' };
+    await recordLog(pool, {
+      user_id: approver_id,
+      module: 'reimbursement',
+      action: `审批报销单: ${actionMap[action] || action} (ID: ${request.params.id})`,
+      method: 'POST',
+      url: request.url,
+      ip: request.ip,
+      params: { opinion }
+    });
+
+    // 🔔 实时推送通知
+    try {
+      const [reimbursement] = await pool.query('SELECT user_id, title FROM reimbursements WHERE id = ?', [request.params.id]);
+      const applicantId = reimbursement[0]?.user_id;
+      const title = reimbursement[0]?.title || '报销申请';
+
+      if (applicantId) {
+        let notifyTitle = '';
+        let notifyContent = '';
+        let notifyType = '';
+
+        if (action === 'approve') {
+          if (result.completed) {
+            notifyTitle = '报销申请已通过';
+            notifyContent = `您的报销申请 "${title}" 已通过最终审批`;
+            notifyType = 'reimbursement_pass';
+          } else {
+            // 通知下一个节点的审批人
+            if (result.approvers && result.approvers.length > 0) {
+              for (const nextApproverId of result.approvers) {
+                await pool.query(
+                  `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+                   VALUES (?, ?, ?, ?, ?, ?)`,
+                  [nextApproverId, 'reimbursement_approval', '待审批报销申请', `您有一个新的报销申请待处理: ${title}`, request.params.id, 'reimbursement']
+                );
+                if (fastify.io) {
+                  sendNotificationToUser(fastify.io, nextApproverId, {
+                    type: 'reimbursement_approval',
+                    title: '待审批报销申请',
+                    content: `您有一个新的报销申请待处理: ${title}`,
+                    related_id: request.params.id,
+                    related_type: 'reimbursement',
+                    created_at: new Date()
+                  });
+                }
+              }
+            }
+            // 同时也通知申请人进度更新
+            notifyTitle = '报销进度更新';
+            notifyContent = `您的报销申请 "${title}" 已通过当前节点审批，进入下一环节`;
+            notifyType = 'reimbursement_progress';
+          }
+        } else if (action === 'reject') {
+          notifyTitle = '报销申请被驳回';
+          notifyContent = `您的报销申请 "${title}" 已被驳回。意见: ${opinion || '无'}`;
+          notifyType = 'reimbursement_reject';
+        } else if (action === 'return') {
+          notifyTitle = '报销申请被退回';
+          notifyContent = `您的报销申请 "${title}" 已被退回修改。意见: ${opinion || '无'}`;
+          notifyType = 'reimbursement_return';
+        }
+
+        if (notifyTitle) {
+          // 写入数据库
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [applicantId, notifyType, notifyTitle, notifyContent, request.params.id, 'reimbursement']
+          );
+
+          // WebSocket 推送
+          if (fastify.io) {
+            sendNotificationToUser(fastify.io, applicantId, {
+              type: notifyType,
+              title: notifyTitle,
+              content: notifyContent,
+              related_id: request.params.id,
+              related_type: 'reimbursement',
+              created_at: new Date()
+            });
+          }
+        }
+      }
+    } catch (notificationError) {
+      console.error('❌ 发送报销审批结果通知失败:', notificationError);
+    }
+
     return { success: true, data: result }
   })
 }

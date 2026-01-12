@@ -129,13 +129,14 @@ module.exports = async function (fastify, opts) {
             node.approver_type,
             node.approver_id || null,
             node.role_id || null,
+            node.custom_type_name || null,
             node.approval_mode || 'serial',
             node.can_skip ? 1 : 0,
             node.skip_conditions ? JSON.stringify(node.skip_conditions) : null
           ])
           await connection.query(
             `INSERT INTO approval_workflow_nodes
-             (workflow_id, node_order, node_name, approver_type, approver_id, role_id, approval_mode, can_skip, skip_conditions)
+             (workflow_id, node_order, node_name, approver_type, approver_id, role_id, custom_type_name, approval_mode, can_skip, skip_conditions)
              VALUES ?`,
             [nodeValues]
           )
@@ -294,13 +295,14 @@ module.exports = async function (fastify, opts) {
             node.approver_type,
             node.approver_id || null,
             node.role_id || null,
+            node.custom_type_name || null,
             node.approval_mode || 'serial',
             node.can_skip ? 1 : 0,
             node.skip_conditions ? JSON.stringify(node.skip_conditions) : null
           ])
           await connection.query(
             `INSERT INTO approval_workflow_nodes
-             (workflow_id, node_order, node_name, approver_type, approver_id, role_id, approval_mode, can_skip, skip_conditions)
+             (workflow_id, node_order, node_name, approver_type, approver_id, role_id, custom_type_name, approval_mode, can_skip, skip_conditions)
              VALUES ?`,
             [nodeValues]
           )

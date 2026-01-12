@@ -342,6 +342,62 @@ function EmployeeManagement() {
         const result = await response.json()
         const userId = editingEmp ? editingEmp.user_id : result.id
 
+        // 如果是编辑员工，且部门或职位发生变化，记录到变动表
+        if (editingEmp) {
+          const isDeptChanged = parseInt(formData.department_id) !== editingEmp.department_id;
+          const isPosChanged = formData.position !== editingEmp.position_name;
+
+          if (isDeptChanged || isPosChanged) {
+            try {
+              const changeData = {
+                employee_id: editingEmp.id,
+                user_id: editingEmp.user_id,
+                change_type: 'transfer',
+                change_date: getLocalDateString(),
+                old_department_id: editingEmp.department_id,
+                new_department_id: formData.department_id,
+                old_position: editingEmp.position_name,
+                new_position: formData.position,
+                reason: '信息变更'
+              };
+
+              await fetch(getApiUrl('/api/employee-changes/create'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(changeData)
+              });
+            } catch (err) {
+              console.error('记录员工变动失败:', err);
+            }
+          }
+        } else if (result.id) {
+          // 如果是新增员工，记录入职记录
+          try {
+            const changeData = {
+              employee_id: result.id,
+              user_id: result.id, // 这里可能需要从后端获取正确的 user_id
+              change_type: 'hire',
+              change_date: formData.hire_date || getLocalDateString(),
+              old_department_id: null,
+              new_department_id: formData.department_id,
+              old_position: null,
+              new_position: formData.position,
+              reason: '新员工入职'
+            };
+
+            // 注意：新增员工时，result 通常包含 id (employee id) 和 user_id
+            if (result.user_id) changeData.user_id = result.user_id;
+
+            await fetch(getApiUrl('/api/employee-changes/create'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(changeData)
+            });
+          } catch (err) {
+            console.error('记录入职记录失败:', err);
+          }
+        }
+
         // 更新用户角色（单个角色）
         if (formData.role_id) {
           // 先获取当前角色

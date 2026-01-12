@@ -31,6 +31,9 @@ import {
 import { toast } from 'sonner';
 import api from '../api';
 import dayjs from 'dayjs';
+import { matchPinyin, filterOptionWithPinyin } from '../utils/searchUtils';
+
+const { Option } = Select;
 
 const ApproverManagement = () => {
   const [approvers, setApprovers] = useState([]);
@@ -237,10 +240,11 @@ const ApproverManagement = () => {
 
     if (!searchText) return Object.values(groups);
 
-    return Object.values(groups).filter(g =>
-      g.type.toLowerCase().includes(searchLower) ||
-      g.users.some(u => u.user_name?.toLowerCase().includes(searchLower))
+    const result = Object.values(groups).filter(g =>
+      matchPinyin(g.type, searchText) ||
+      g.users.some(u => matchPinyin(u.user_name, searchText))
     );
+    return result;
   }, [approvers, searchText]);
 
   const columns = useMemo(() => [
@@ -427,12 +431,10 @@ const ApproverManagement = () => {
             rules={[{ required: true, message: '请选择用户' }]}
           >
             <Select
-              mode={editingApprover?.id ? undefined : "multiple"}
+              mode={editingApprover?.id ? "default" : "multiple"}
               showSearch
-              placeholder="可搜索并选择用户"
-              filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
+              placeholder="可搜索并选择多个用户"
+              filterOption={filterOptionWithPinyin}
               options={users.map(user => ({
                 value: user.id,
                 label: `${user.real_name} (${user.username})`

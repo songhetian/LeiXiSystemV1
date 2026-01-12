@@ -24,21 +24,22 @@ import {
   BarsOutlined,
   SearchOutlined
 } from '@ant-design/icons';
-import { 
-  Select, 
-  Table, 
-  Pagination, 
-  Radio, 
-  Input, 
-  Tag, 
-  Space, 
-  Tooltip, 
+import {
+  Select,
+  Table,
+  Pagination,
+  Radio,
+  Input,
+  Tag,
+  Space,
+  Tooltip,
   Button,
   Empty,
   Modal
 } from 'antd';
 import { toast } from 'sonner';
 import api from '../api';
+import { matchPinyin, filterOptionWithPinyin } from '../utils/searchUtils';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -66,7 +67,7 @@ const ApprovalWorkflowConfig = () => {
   // 状态管理
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // 视图与分页
   const [viewMode, setViewMode] = useState('card'); // 'card' | 'list'
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,13 +80,14 @@ const ApprovalWorkflowConfig = () => {
   const [showNodeModal, setShowNodeModal] = useState(false);
   const [currentWorkflow, setCurrentWorkflow] = useState(null);
   const [nodes, setNodes] = useState([]);
-  
+
   // 基础数据
   const [roles, setRoles] = useState([]);
   const [users, setUsers] = useState([]);
   const [customTypes, setCustomTypes] = useState([]);
 
   useEffect(() => {
+    console.log('组件挂载，开始加载数据...');
     fetchWorkflows();
     fetchRoles();
     fetchUsers(); // 预加载用户数据，或者在打开节点配置时加载
@@ -94,76 +96,88 @@ const ApprovalWorkflowConfig = () => {
 
   // ===================== 数据获取 =====================
 
-  const fetchWorkflows = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/approval-workflow');
-      if (response.data.success) {
-        setWorkflows(response.data.data);
+    const fetchWorkflows = async () => {
+        setLoading(true);
+        try {
+          const response = await api.get('/approval-workflow');
+          console.log('审批流程API完整响应:', response);
+          console.log('审批流程API响应数据:', response.data);
+          
+          // 处理不同的响应格式
+          if (response.data && response.data.success) {
+            const data = response.data.data || [];
+            console.log('设置流程数据:', data);
+            setWorkflows(data);
+          } else if (Array.isArray(response.data)) {
+            // 兼容直接返回数组的情况
+            console.log('设置流程数据（数组格式）:', response.data);
+            setWorkflows(response.data);
+          } else if (response.data) {
+            // 尝试从响应中提取数据
+            const data = response.data.data || response.data;
+            if (Array.isArray(data)) {
+              console.log('设置流程数据（提取）:', data);
+              setWorkflows(data);
+            } else {
+              console.warn('审批流程API返回格式异常:', response.data);
+              toast.error('获取流程列表失败: 数据格式错误');
+              setWorkflows([]);
+            }
+          } else {
+            console.warn('审批流程API返回空响应');
+            toast.error('获取流程列表失败: 无数据返回');
+            setWorkflows([]);
+          }
+        } catch (error) {
+          console.error('获取流程列表失败:', error);
+          console.error('错误详情:', error.response?.data);
+          toast.error('获取流程列表失败: ' + (error.response?.data?.message || error.message));
+          setWorkflows([]);
+        } finally {
+          setLoading(false);
+        }
+      };    const fetchRoles = async () => {
+      try {
+        const response = await api.get('/approvers/available-roles');
+        if (response.data.success) {
+          setRoles(response.data.data || []);
+        } else if (Array.isArray(response.data)) {
+          setRoles(response.data);
+        }
+      } catch (error) {
+        console.error('获取角色列表失败:', error);
       }
-    } catch (error) {
-      console.error('获取流程列表失败:', error);
-      toast.error('获取流程列表失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const fetchRoles = async () => {
-    try {
-      const response = await api.get('/approvers/available-roles');
-      if (response.data.success) {
-        setRoles(response.data.data);
+    const fetchUsers = async (keyword = '') => {
+      try {
+        const response = await api.get('/approvers/available-users', {
+          params: { keyword }
+        });
+        if (response.data.success) {
+          setUsers(response.data.data || []);
+        } else if (Array.isArray(response.data)) {
+          setUsers(response.data);
+        }
+      } catch (error) {
+        console.error('获取用户列表失败:', error);
       }
-    } catch (error) {
-      console.error('获取角色列表失败:', error);
-    }
-  };
+    };
 
-  const fetchUsers = async (keyword = '') => {
-    try {
-      const response = await api.get('/approvers/available-users', {
-        params: { keyword }
-      });
-      if (response.data.success) {
-        setUsers(response.data.data);
+    const fetchCustomTypes = async () => {
+      try {
+        const response = await api.get('/approvers');
+        const data = response.data.success ? response.data.data : (Array.isArray(response.data) ? response.data : []);
+        if (data) {
+          const types = [...new Set(data.map(a => a.approver_type))];
+          setCustomTypes(types.map(t => ({ value: t, label: t })));
+        }
+      } catch (error) {
+        console.error('获取自定义审批组失败:', error);
       }
-    } catch (error) {
-      console.error('获取用户列表失败:', error);
-    }
-  };
+    };
 
-  const fetchCustomTypes = async () => {
-    try {
-      const response = await api.get('/approvers');
-      if (response.data.success) {
-        const types = [...new Set(response.data.data.map(a => a.approver_type))];
-        // 类型映射表
-        const typeLabels = {
-          'boss': '老板',
-          'finance': '财务',
-          'custom': '自定义审批人',
-          'department_manager': '部门主管',
-          'hr': '人事',
-          'ceo': '首席执行官',
-          'cfo': '首席财务官',
-          'director': '总监',
-          'manager': '经理',
-          'supervisor': '主管'
-        };
-        const mappedTypes = types.map(t => ({ 
-          value: t, 
-          label: typeLabels[t] || t 
-        }));
-        console.log('Custom types:', mappedTypes);
-        setCustomTypes(mappedTypes);
-      }
-    } catch (error) {
-      console.error('获取特殊审批类型失败:', error);
-    }
-  };
-
-  // ===================== 流程操作 =====================
+    // ===================== 流程操作 =====================
 
   const openWorkflowModal = (workflow = null) => {
     if (workflow) {
@@ -276,14 +290,14 @@ const ApprovalWorkflowConfig = () => {
   const updateNode = (index, field, value) => {
     const newNodes = [...nodes];
     newNodes[index][field] = value;
-    
+
     // 切换类型时清空不相关字段
     if (field === 'approver_type') {
       newNodes[index].role_id = null;
       newNodes[index].approver_id = null;
       newNodes[index].custom_type_name = null;
     }
-    
+
     setNodes(newNodes);
   };
 
@@ -351,10 +365,10 @@ const ApprovalWorkflowConfig = () => {
   };
 
   // 过滤和分页逻辑
-  const filteredWorkflows = workflows.filter(w => 
-    w.name.toLowerCase().includes(searchText.toLowerCase())
+  const filteredWorkflows = workflows.filter(w =>
+    matchPinyin(w.name, searchText)
   );
-  
+
   const currentData = filteredWorkflows.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
@@ -436,8 +450,8 @@ const ApprovalWorkflowConfig = () => {
           <p className="page-subtitle">配置报销审批流程和节点</p>
         </div>
         <Space>
-          <Input 
-            placeholder="搜索流程..." 
+          <Input
+            placeholder="搜索流程..."
             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
             style={{ width: 200 }}
             onChange={e => setSearchText(e.target.value)}
@@ -508,10 +522,10 @@ const ApprovalWorkflowConfig = () => {
               </div>
             ) : (
               <div className="workflow-table-wrapper">
-                <Table 
-                  columns={columns} 
-                  dataSource={currentData} 
-                  rowKey="id" 
+                <Table
+                  columns={columns}
+                  dataSource={currentData}
+                  rowKey="id"
                   pagination={false}
                   size="middle"
                 />
@@ -698,6 +712,8 @@ const ApprovalWorkflowConfig = () => {
                     {node.approver_type === 'role' && (
                       <Select
                         placeholder="请选择角色"
+                        showSearch
+                        filterOption={filterOptionWithPinyin}
                         value={node.role_id}
                         onChange={value => updateNode(index, 'role_id', value)}
                         style={{ width: '100%' }}
@@ -712,10 +728,7 @@ const ApprovalWorkflowConfig = () => {
                       <Select
                         showSearch
                         placeholder="搜索并选择用户"
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                        }
+                        filterOption={filterOptionWithPinyin}
                         value={node.approver_id}
                         onChange={value => updateNode(index, 'approver_id', value)}
                         style={{ width: '100%' }}
@@ -729,6 +742,8 @@ const ApprovalWorkflowConfig = () => {
                     {node.approver_type === 'custom_group' && (
                       <Select
                         placeholder="请选择审批组类型"
+                        showSearch
+                        filterOption={filterOptionWithPinyin}
                         value={node.custom_type_name}
                         onChange={value => updateNode(index, 'custom_type_name', value)}
                         style={{ width: '100%' }}
@@ -740,27 +755,27 @@ const ApprovalWorkflowConfig = () => {
 
                 <div className="node-actions">
                   <Tooltip title="上移">
-                    <Button 
-                      size="small" 
-                      icon={<ArrowUpOutlined />} 
-                      onClick={() => moveNode(index, -1)} 
-                      disabled={index === 0} 
+                    <Button
+                      size="small"
+                      icon={<ArrowUpOutlined />}
+                      onClick={() => moveNode(index, -1)}
+                      disabled={index === 0}
                     />
                   </Tooltip>
                   <Tooltip title="下移">
-                    <Button 
-                      size="small" 
-                      icon={<ArrowDownOutlined />} 
-                      onClick={() => moveNode(index, 1)} 
-                      disabled={index === nodes.length - 1} 
+                    <Button
+                      size="small"
+                      icon={<ArrowDownOutlined />}
+                      onClick={() => moveNode(index, 1)}
+                      disabled={index === nodes.length - 1}
                     />
                   </Tooltip>
                   <Tooltip title="删除">
-                    <Button 
-                      size="small" 
-                      danger 
-                      icon={<DeleteOutlined />} 
-                      onClick={() => removeNode(index)} 
+                    <Button
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => removeNode(index)}
                     />
                   </Tooltip>
                 </div>
@@ -800,7 +815,7 @@ const styles = `
     color: #888;
     margin: 4px 0 0 0;
   }
-  
+
   /* 列表视图样式 */
   .workflow-grid {
     display: grid;
@@ -916,7 +931,7 @@ const styles = `
     background-color: #5a6fd1 !important;
     border-color: #5a6fd1 !important;
   }
-  
+
   .pagination-wrapper {
     margin-top: 24px;
     display: flex;
@@ -948,7 +963,7 @@ const styles = `
     color: #ef4444;
     margin-left: 4px;
   }
-  
+
   .condition-section {
     background: #f8fafc;
     padding: 20px;

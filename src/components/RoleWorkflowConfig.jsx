@@ -34,7 +34,7 @@ const RoleWorkflowConfig = () => {
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/approvers/roles/workflows');
+      const response = await api.get('/approvers/roles/workflows');
       if (response.data.success) {
         setRoles(response.data.data);
       }
@@ -48,7 +48,7 @@ const RoleWorkflowConfig = () => {
 
   const fetchWorkflows = async () => {
     try {
-      const response = await api.get('/api/approval-workflow');
+      const response = await api.get('/approval-workflow');
       if (response.data.success) {
         setWorkflows(response.data.data);
       }
@@ -74,7 +74,7 @@ const RoleWorkflowConfig = () => {
         workflow_id: editingRole.workflow_id
       };
 
-      const response = await api.put(`/api/approvers/roles/${editingRole.id}/workflow`, payload);
+      const response = await api.put(`/approvers/roles/${editingRole.id}/workflow`, payload);
 
       if (response.data.success) {
         toast.success('流程配置保存成功');

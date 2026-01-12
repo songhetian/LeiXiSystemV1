@@ -15,6 +15,8 @@ import { PermissionProvider, usePermission } from './contexts/PermissionContext'
 
 // Lazy-loaded components
 const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const AdminDashboard = lazy(() => import('./pages/Dashboard/AdminDashboard'));
 const Sidebar = lazy(() => import('./components/Sidebar'));
 const CustomerList = lazy(() => import('./components/CustomerList'));
 const SessionManagement = lazy(() => import('./components/SessionManagement'));
@@ -27,6 +29,7 @@ const EmployeeApproval = lazy(() => import('./components/EmployeeApproval'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const RoleManagement = lazy(() => import('./pages/System/RoleManagement'));
 const UserRoleManagement = lazy(() => import('./pages/System/UserRoleManagement'));
+const OperationLogs = lazy(() => import('./pages/System/OperationLogs'));
 const KnowledgeManagement = lazy(() => import('./components/KnowledgeManagement'));
 const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
 const KnowledgeFolderView = lazy(() => import('./components/KnowledgeFolderView'));
@@ -45,6 +48,7 @@ const ExamResult = lazy(() => import('./components/ExamResult'));
 const MyExams = lazy(() => import('./components/MyExams'));
 const MyExamResults = lazy(() => import('./components/MyExamResults'));
 const PersonalInfo = lazy(() => import('./components/PersonalInfo'));
+const TodoCenter = lazy(() => import('./pages/Personal/TodoCenter'));
 const MySchedule = lazy(() => import('./pages/Personal/MySchedule'));
 const MyNotifications = lazy(() => import('./pages/Personal/MyNotifications'));
 const MyMemos = lazy(() => import('./pages/Personal/MyMemos'));
@@ -120,7 +124,14 @@ function App() {
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('activeTab');
-    return saved ? JSON.parse(saved) : { name: 'attendance-home', params: {} };
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return { name: 'dashboard', params: {} };
+      }
+    }
+    return { name: 'dashboard', params: {} };
   });
   const [showMemoPopup, setShowMemoPopup] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0) // 未读通知数
@@ -318,7 +329,11 @@ function App() {
   // 检查未读通知数
   const checkUnreadNotifications = async () => {
     try {
-      const response = await fetch(getApiUrl('/api/notifications/unread-count'), {
+      const savedUser = localStorage.getItem('user');
+      const userId = savedUser ? JSON.parse(savedUser).id : null;
+      if (!userId) return;
+
+      const response = await fetch(getApiUrl(`/api/notifications/unread-count?userId=${userId}`), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -389,6 +404,10 @@ function App() {
 
   const renderContent = () => {
     switch (activeTab.name) {
+      case 'dashboard':
+        return <Dashboard onNavigate={handleSetActiveTab} />
+      case 'admin-dashboard':
+        return <AdminDashboard />
       // 员工管理
       case 'user-employee':
         return <EmployeeManagement />
@@ -402,6 +421,8 @@ function App() {
         return <RoleManagement />
       case 'user-role-management':
         return <UserRoleManagement />
+      case 'system-logs':
+        return <OperationLogs />
       // 组织架构
       case 'org-department':
         return <DepartmentManagement />
@@ -564,6 +585,8 @@ function App() {
       // 个人中心
       case 'personal-info':
         return <PersonalInfo />;
+      case 'my-todo':
+        return <TodoCenter onNavigate={handleSetActiveTab} />;
       case 'my-schedule':
         return <MySchedule />;
       case 'my-notifications':
@@ -649,6 +672,7 @@ function App() {
                 user={user}
                 onLogout={handleLogout}
                 unreadCount={unreadCount}
+                onUpdateUnread={setUnreadCount}
                 onNavigate={handleSetActiveTab}
                 zoomLevel={contentZoom}
                 onZoomChange={handleZoomChange}

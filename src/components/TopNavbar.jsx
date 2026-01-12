@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Popover, Slider, Modal } from 'antd';
+import axios from 'axios';
+import { getApiUrl } from '../utils/apiConfig';
 import {
   UserOutlined,
   LogoutOutlined,
@@ -12,13 +14,38 @@ import {
 } from '@ant-design/icons';
 import NotificationDropdown from './NotificationDropdown';
 
-const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoomLevel = 100, onZoomChange }) => {
+const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onUpdateUnread, onNavigate, zoomLevel = 100, onZoomChange }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUnreadCount();
+    }
+  }, [user?.id]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await axios.get(getApiUrl(`/api/notifications/unread-count?userId=${user.id}`));
+      if (response.data.success && onUpdateUnread) {
+        onUpdateUnread(response.data.count);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread count in TopNavbar:', error);
+    }
+  };
   // Menu items definition (copied from Sidebar for breadcrumb mapping)
   // Ideally this should be in a shared config file
   // Menu items definition (copied from Sidebar for breadcrumb mapping)
   // Ideally this should be in a shared config file
   const menuItems = [
+    {
+      id: 'dashboard',
+      label: '控制面板',
+    },
+    {
+      id: 'admin-dashboard',
+      label: '企业看板',
+    },
     {
       id: 'user',
       label: '员工管理',
@@ -46,6 +73,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
         { id: 'user-permission', label: '权限管理' },
         { id: 'user-role-management', label: '角色分配' },
         { id: 'user-reset-password', label: '重置密码' },
+        { id: 'system-logs', label: '操作日志' },
       ],
     },
     {
@@ -154,6 +182,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
       label: '个人中心',
       children: [
         { id: 'personal-info', label: '个人信息' },
+        { id: 'my-todo', label: '待办中心' },
         { id: 'my-schedule', label: '我的排班' },
         { id: 'my-notifications', label: '我的通知' },
         { id: 'my-memos', label: '我的备忘录' },
@@ -163,6 +192,9 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
 
   const breadcrumbs = useMemo(() => {
     for (const menu of menuItems) {
+      if (menu.id === activeTab) {
+        return [{ label: menu.label, id: menu.id }];
+      }
       if (menu.children) {
         const child = menu.children.find(c => c.id === activeTab);
         if (child) {
@@ -263,17 +295,7 @@ const TopNavbar = ({ activeTab, user, onLogout, unreadCount = 0, onNavigate, zoo
             <NotificationDropdown
               onClose={() => setShowNotifications(false)}
               onNavigate={onNavigate}
-              onUpdateUnread={(count) => {
-                // If TopNavbar has a way to update parent state, we could call it here.
-                // But unreadCount is passed as prop.
-                // Ideally, TopNavbar should have a callback to update unread count if it's managed in App.jsx.
-                // For now, we rely on the prop, but the dropdown also fetches its own count.
-                // The dropdown's internal count update won't reflect here unless we lift state up or trigger a refresh.
-                // Since App.jsx manages unreadCount via websocket/polling, it should eventually sync.
-                // However, marking as read in dropdown should ideally update the badge immediately.
-                // We can't easily update the prop from here without a callback prop from App.jsx.
-                // Let's assume App.jsx handles the source of truth.
-              }}
+              onUpdateUnread={onUpdateUnread}
             />
           )}
         </div>

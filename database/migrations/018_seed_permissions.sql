@@ -12,6 +12,8 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 -- ============================================================
 -- 系统管理 (System)
 -- ============================================================
+('查看控制面板', 'system:dashboard:view', 'dashboard', 'view', 'system', '查看系统首页工作台及统计数据'),
+('查看企业看板', 'system:dashboard:admin', 'dashboard', 'admin', 'system', '查看管理员专属的企业全局数据看板'),
 ('查看角色', 'system:role:view', 'role', 'view', 'system', '查看角色列表'),
 ('管理角色', 'system:role:manage', 'role', 'manage', 'system', '新增、编辑、删除角色及配置权限'),
 ('查看日志', 'system:log:view', 'log', 'view', 'system', '查看系统操作日志'),
@@ -93,7 +95,13 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('审批报销', 'reimbursement:apply:approve', 'apply', 'approve', 'reimbursement', '审批报销申请'),
 ('查看报销', 'reimbursement:record:view', 'record', 'view', 'reimbursement', '查看报销记录'),
 ('报销配置', 'reimbursement:config:manage', 'config', 'manage', 'reimbursement', '配置审批流程和审批人'),
-('报销设置', 'reimbursement:config:settings', 'config', 'settings', 'reimbursement', '管理报销类型和费用类型');
+('报销设置', 'reimbursement:config:settings', 'config', 'settings', 'reimbursement', '管理报销类型和费用类型'),
+('角色流程配置', 'reimbursement:config:role_workflow', 'config', 'role_workflow', 'reimbursement', '为不同角色配置特定审批流程'),
+
+-- ============================================================
+-- 个人中心 (Personal)
+-- ============================================================
+('待办中心', 'personal:todo:view', 'todo', 'view', 'personal', '查看并处理个人待办任务');
 
 -- 3. 确保基础角色存在
 INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
@@ -110,6 +118,7 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 JOIN permissions p ON p.code IN (
+    'system:dashboard:view',
     'user:employee:view',
     'org:department:view',
     'org:position:view',

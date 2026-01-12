@@ -1,4 +1,5 @@
 const { requirePermission } = require('../middleware/auth')
+const { recordLog } = require('../utils/logger')
 
 const permissionRoutes = async (fastify, options) => {
   const connInit = await fastify.mysql.getConnection();
@@ -329,6 +330,16 @@ const permissionRoutes = async (fastify, options) => {
       }
 
       await connection.commit();
+
+      // 记录日志
+      await recordLog(connection, {
+        module: 'permission',
+        action: `更新用户角色: 用户ID ${id}`,
+        method: 'PUT',
+        url: request.url,
+        ip: request.ip,
+        params: { roleIds }
+      });
 
       // 🔔 发送实时通知给用户
       try {
@@ -739,6 +750,17 @@ const permissionRoutes = async (fastify, options) => {
       }
 
       await connection.commit();
+
+      // 记录日志
+      await recordLog(connection, {
+        module: 'permission',
+        action: `设置用户部门权限: 用户ID ${id}`,
+        method: 'PUT',
+        url: request.url,
+        ip: request.ip,
+        params: { department_ids }
+      });
+
       return { success: true, message: '部门权限设置成功', count: department_ids?.length || 0 };
     } catch (error) {
       await connection.rollback();

@@ -36,6 +36,8 @@ fastify.addHook('onSend', async (request, reply, payload) => {
 
 // 引入权限中间件
 const { extractUserPermissions, applyDepartmentFilter } = require('./middleware/checkPermission')
+// 引入日志工具
+const { recordLog } = require('./utils/logger')
 
 // 注册质检导入路由
 fastify.register(require('./routes/quality-inspection-import-new'))
@@ -48,6 +50,10 @@ fastify.register(require('./routes/reimbursement'))
 fastify.register(require('./routes/approval-workflow'))
 fastify.register(require('./routes/approvers'))
 fastify.register(require('./routes/reimbursement-settings'))
+fastify.register(require('./routes/system-logs'))
+fastify.register(require('./routes/todo-center'))
+fastify.register(require('./routes/dashboard'))
+fastify.register(require('./routes/admin-dashboard'))
 // 注册文件上传// 注意：multipart 只处理 multipart/form-data，不影响 application/json
 fastify.register(multipart, {
   limits: {
@@ -1499,10 +1505,73 @@ fastify.put('/api/employees/:id', async (request, reply) => {
 // 删除员工（软删除）
 fastify.delete('/api/employees/:id', async (request, reply) => {
   const { id } = request.params;
+  const permissions = await extractUserPermissions(request, pool);
+  
   try {
-    // 将员工状态设置为 deleted
-    await pool.query('UPDATE employees SET status = ? WHERE id = ?', ['deleted', id]);
-    return { success: true, message: '员工删除成功' };
+    // 开启事务确保一致性
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // 1. 获取员工及用户信息用于记录日志（修正：real_name 在 users 表中）
+      const [empRows] = await connection.query(`
+        SELECT e.user_id, u.real_name, e.employee_no 
+        FROM employees e 
+        LEFT JOIN users u ON e.user_id = u.id
+        WHERE e.id = ?`, [id]);
+      
+      if (empRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return reply.code(404).send({ success: false, message: '员工不存在' });
+      }
+
+      const employee = empRows[0];
+      
+      // 2. 将员工状态设置为 deleted
+      await connection.query('UPDATE employees SET status = ? WHERE id = ?', ['deleted', id]);
+      
+      // 3. 同时将对应的用户状态也设置为 deleted（防止登录）
+      await connection.query('UPDATE users SET status = ? WHERE id = ?', ['deleted', employee.user_id]);
+      
+      // 4. 记录操作日志
+      try {
+        // 获取当前操作人的详细信息
+        const opId = permissions?.userId;
+        let opRealName = '系统用户';
+        let opUsername = 'unknown';
+        
+        if (opId) {
+          const [opRows] = await connection.query('SELECT real_name, username FROM users WHERE id = ?', [opId]);
+          if (opRows.length > 0) {
+            opRealName = opRows[0].real_name;
+            opUsername = opRows[0].username;
+          }
+        }
+
+        await recordLog(connection, {
+          user_id: opId,
+          username: opUsername,
+          real_name: opRealName,
+          module: 'user',
+          action: `删除员工: ${employee.real_name} (${employee.employee_no})`,
+          method: 'DELETE',
+          url: request.url,
+          ip: request.ip,
+          status: 1
+        });
+      } catch (logErr) {
+        console.error('记录删除日志失败:', logErr);
+      }
+      
+      await connection.commit();
+      connection.release();
+      return { success: true, message: '员工及其关联账号已成功删除' };
+    } catch (err) {
+      await connection.rollback();
+      if (connection) connection.release();
+      throw err;
+    }
   } catch (error) {
     console.error(error);
     reply.code(500).send({ error: '删除员工失败' });
