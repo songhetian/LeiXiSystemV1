@@ -518,6 +518,29 @@ module.exports = async function (fastify, opts) {
               } else {
                 console.warn('⚠️ 未找到"休息"班次（is_rest_day=1），无法自动更新排班')
               }
+
+              // 🔴 Redis 同步：清理报表缓存
+              if (fastify.redis) {
+                const redis = fastify.redis;
+                const start = new Date(leave.start_date);
+                const end = new Date(leave.end_date);
+                
+                // 清理涉及的所有月份
+                for (let d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+                  const y = d.getFullYear();
+                  const m = d.getMonth() + 1;
+                  await redis.del(`stats:attendance:monthly:${leave.employee_id}:${y}:${m}`);
+                  
+                  // 获取部门 ID
+                  const [u] = await pool.query('SELECT department_id FROM users WHERE id = ?', [leave.user_id]);
+                  if (u.length > 0 && u[0].department_id) {
+                    await redis.del(`stats:attendance:dept:${u[0].department_id}:${y}:${m}`);
+                  }
+                  
+                  // 如果已经跨月，确保循环能终止 (JS Date 对象特性)
+                  if (d.getFullYear() > end.getFullYear() || (d.getFullYear() === end.getFullYear() && d.getMonth() > end.getMonth())) break;
+                }
+              }
             }
           } catch (scheduleError) {
             console.error('❌ 自动更新排班失败:', scheduleError)
@@ -695,6 +718,21 @@ module.exports = async function (fastify, opts) {
                 created_at: new Date()
               })
             }
+          }
+        }
+
+        // 🔴 Redis 同步：清理报表缓存
+        if (fastify.redis && approved && overtimeRecords.length > 0) {
+          const overtime = overtimeRecords[0];
+          const d = new Date(overtime.overtime_date);
+          const y = d.getFullYear();
+          const m = d.getMonth() + 1;
+          const redis = fastify.redis;
+          
+          await redis.del(`stats:attendance:monthly:${overtime.employee_id}:${y}:${m}`);
+          const [u] = await pool.query('SELECT department_id FROM users WHERE id = ?', [overtime.user_id]);
+          if (u.length > 0 && u[0].department_id) {
+            await redis.del(`stats:attendance:dept:${u[0].department_id}:${y}:${m}`);
           }
         }
       } catch (notificationError) {
@@ -971,6 +1009,20 @@ module.exports = async function (fastify, opts) {
         }
       } catch (notificationError) {
         console.error('❌ 创建补卡审批通知失败:', notificationError)
+      }
+
+      // 🔴 Redis 同步：清理报表缓存
+      if (fastify.redis && approved) {
+        const d = new Date(makeup.record_date);
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        const redis = fastify.redis;
+        
+        await redis.del(`stats:attendance:monthly:${makeup.employee_id}:${y}:${m}`);
+        const [u] = await pool.query('SELECT department_id FROM users WHERE id = ?', [makeup.user_id]);
+        if (u.length > 0 && u[0].department_id) {
+          await redis.del(`stats:attendance:dept:${u[0].department_id}:${y}:${m}`);
+        }
       }
 
       await connection.commit()

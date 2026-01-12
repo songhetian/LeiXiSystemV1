@@ -4,8 +4,26 @@ const jwt = require('jsonwebtoken')
 /**
  * 获取当前用户的权限信息
  */
-async function getUserPermissions(pool, userId, departmentIdFromToken) {
+async function getUserPermissions(pool, userId, departmentIdFromToken, redis) {
+  const cacheKey = `user:permissions:${userId}`;
+  
+  // 1. 尝试从 Redis 获取缓存
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        // console.log(`[Redis] Hit permissions cache for user ${userId}`);
+        return JSON.parse(cached);
+      }
+    } catch (cacheError) {
+      console.error('[Redis] Get cache error:', cacheError);
+    }
+  }
+
   try {
+    // 2. 缓存未命中，从 MySQL 查询
+    // console.log(`[MySQL] Fetching permissions for user ${userId}`);
+    
     // 获取用户信息
     const [users] = await pool.query(
       'SELECT id, username, department_id FROM users WHERE id = ?',
@@ -65,14 +83,26 @@ async function getUserPermissions(pool, userId, departmentIdFromToken) {
     // 去重
     const uniqueViewableDepartmentIds = [...new Set(viewableDepartmentIds)];
 
-    return {
+    const permissions = {
       userId: user.id,
       username: user.username,
       departmentId: effectiveDepartmentId,
       viewableDepartmentIds: uniqueViewableDepartmentIds, // 可查看的部门ID列表
       canViewAllDepartments: canViewAllDepartments, // 是否可以查看所有部门
       roles: roles
+    };
+
+    // 3. 写入 Redis 缓存 (有效期 1 小时)
+    if (redis) {
+      try {
+        await redis.set(cacheKey, JSON.stringify(permissions), 'EX', 3600);
+        // console.log(`[Redis] Cached permissions for user ${userId}`);
+      } catch (cacheError) {
+        console.error('[Redis] Set cache error:', cacheError);
+      }
     }
+
+    return permissions;
   } catch (error) {
     console.error('获取用户权限失败:', error)
     return null
@@ -90,7 +120,19 @@ async function extractUserPermissions(request, pool) {
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
     const decoded = jwt.verify(token, JWT_SECRET)
 
-    return await getUserPermissions(pool, decoded.id, decoded.department_id)
+    // 从 fastify 实例中获取 redis 客户端
+    const redis = request.server.redis;
+
+    // --- Redis Session 校验 (黑名单/强制下线逻辑) ---
+    if (redis) {
+      const activeToken = await redis.get(`user:session:${decoded.id}`);
+      if (!activeToken || activeToken !== token) {
+        // console.log(`[Redis] Session invalid or kicked out for user ${decoded.id}`);
+        return null; // 视为无权限，前端会收到 401 并跳转登录
+      }
+    }
+
+    return await getUserPermissions(pool, decoded.id, decoded.department_id, redis)
   } catch (error) {
     return null
   }

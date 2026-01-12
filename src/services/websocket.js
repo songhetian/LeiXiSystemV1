@@ -82,6 +82,12 @@ class WebSocketManager {
       this.emit('online_users_count', data)
     })
 
+    // 下线指令
+    this.socket.on('kicked_out', (data) => {
+      console.log('🚨 [WebSocket] 收到下线指令:', data.message)
+      this.emit('kicked_out', data)
+    })
+
     // 未读数更新
     this.socket.on('unread_count', (data) => {
       this.emit('unread_count', data)

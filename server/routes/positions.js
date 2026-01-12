@@ -118,8 +118,16 @@ module.exports = async function (fastify, opts) {
 
   // 获取单个职位详情
   fastify.get('/api/positions/:id', async (request, reply) => {
-const { id } = request.params
+    const { id } = request.params
+    const redis = fastify.redis
+    const cacheKey = `metadata:position:detail:${id}`
+
     try {
+      if (redis) {
+        const cached = await redis.get(cacheKey)
+        if (cached) return { success: true, data: JSON.parse(cached) }
+      }
+
       const [rows] = await pool.query(
         'SELECT p.*, d.name as department_name FROM positions p LEFT JOIN departments d ON p.department_id = d.id WHERE p.id = ?',
         [id]
@@ -127,6 +135,11 @@ const { id } = request.params
       if (rows.length === 0) {
         return reply.code(404).send({ success: false, message: '职位不存在' })
       }
+
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(rows[0]), 'EX', 3600)
+      }
+
       return { success: true, data: rows[0] }
     } catch (error) {
       console.error('获取职位详情失败:', error)
@@ -147,6 +160,7 @@ const { id } = request.params
       status,
       sort_order
     } = request.body
+    const redis = fastify.redis
 
     try {
       // 验证必填字段
@@ -187,6 +201,9 @@ const { id } = request.params
         ]
       )
 
+      // 清理可能的职位列表相关缓存前缀 (如果有的话)
+      // if (redis) await redis.del(...)
+
       return {
         success: true,
         message: '职位创建成功',
@@ -212,6 +229,7 @@ const { id } = request.params
       status,
       sort_order
     } = request.body
+    const redis = fastify.redis
 
     try {
       // 检查职位是否存在
@@ -279,6 +297,11 @@ const { id } = request.params
         );
       }
 
+      // 清理缓存
+      if (redis) {
+        await redis.del(`metadata:position:detail:${id}`)
+      }
+
       return { success: true, message: '职位更新成功' }
     } catch (error) {
       console.error('更新职位失败:', error)
@@ -289,6 +312,7 @@ const { id } = request.params
   // 删除职位
   fastify.delete('/api/positions/:id', async (request, reply) => {
     const { id } = request.params
+    const redis = fastify.redis
 
     try {
       // 检查职位是否存在
@@ -306,6 +330,11 @@ const { id } = request.params
       )
 
       await pool.query('DELETE FROM positions WHERE id = ?', [id])
+
+      // 清理缓存
+      if (redis) {
+        await redis.del(`metadata:position:detail:${id}`)
+      }
 
       return { success: true, message: '职位删除成功' }
     } catch (error) {

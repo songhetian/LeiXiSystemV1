@@ -66,4 +66,42 @@ const getNotificationTargets = async (pool, eventType, context = {}) => {
   }
 }
 
-module.exports = { getNotificationTargets }
+/**
+ * 创建并发送通知 (包含 DB 写入、Redis 缓存失效、WebSocket 推送)
+ */
+async function createNotification(pool, redis, io, { userId, type, title, content, relatedId, relatedType }) {
+  try {
+    // 1. 写入数据库
+    const [result] = await pool.query(
+      `INSERT INTO notifications (user_id, type, title, content, related_id, related_type)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, type, title, content, relatedId || null, relatedType || null]
+    );
+
+    // 2. 失效 Redis 缓存
+    if (redis) {
+      await redis.del(`user:unread_count:${userId}`);
+    }
+
+    // 3. WebSocket 推送
+    if (io) {
+      const { sendNotificationToUser } = require('../websocket');
+      sendNotificationToUser(io, userId, {
+        id: result.insertId,
+        type,
+        title,
+        content,
+        related_id: relatedId,
+        related_type: relatedType,
+        created_at: new Date()
+      });
+    }
+
+    return result.insertId;
+  } catch (error) {
+    console.error('创建通知失败:', error);
+    throw error;
+  }
+}
+
+module.exports = { getNotificationTargets, createNotification }

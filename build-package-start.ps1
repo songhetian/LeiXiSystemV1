@@ -52,7 +52,7 @@ Write-Host "This script will:" -ForegroundColor Yellow
 Write-Host "0. Clean up old build artifacts and stop running Electron processes"
 Write-Host "1. Build the React frontend (npm run build)"
 Write-Host "2. Package the Electron app (npm run package)"
-Write-Host "3. Start the Node.js Server (npm run server)"
+Write-Host "3. Start the Node.js Server (npm run prod:server)"
 Write-Host ""
 
 # 2. Cleanup old build artifacts
@@ -128,7 +128,7 @@ try {
         Write-Host "Press Ctrl+C to stop the server." -ForegroundColor Gray
         Write-Host ""
 
-        cmd /c "npm run server"
+        cmd /c "npm run prod:server"
     } else {
         Write-Host "Build/Package failed with exit code $LASTEXITCODE" -ForegroundColor Red
         exit $LASTEXITCODE

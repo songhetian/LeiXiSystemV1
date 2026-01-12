@@ -15,6 +15,30 @@ const pump = util.promisify(pipeline)
 // 显式指定 .env 文件路径以确保正确加载
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
+const isProd = process.env.NODE_ENV === 'production'
+
+// 全局错误处理器
+fastify.setErrorHandler((error, request, reply) => {
+  // 记录详细错误到控制台（无论什么环境）
+  request.log.error(error)
+
+  // 生产环境下，隐藏 500 错误的详细技术细节
+  if (isProd && reply.statusCode >= 500) {
+    return reply.send({
+      success: false,
+      message: '服务器繁忙，请稍后再试',
+      error: 'Internal Server Error'
+    })
+  }
+
+  // 开发环境或非 500 错误，返回原始信息
+  reply.send({
+    success: false,
+    message: error.message || '操作失败',
+    ...(isProd ? {} : { stack: error.stack, detail: error })
+  })
+})
+
 // 注册 CORS
 fastify.register(cors, {
   origin: true, // 允许所有来源，解决开发环境IP变动导致的连接问题
@@ -138,29 +162,60 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  timezone: '+08:00'  // 设置为北京时间
-}
-
-let pool
-
-// 初始化数据库连接池
-async function initDatabase() {
-  try {
-    pool = mysql.createPool(dbConfig)
-
-    // 设置时区为北京时间
-    const connection = await pool.getConnection()
-    await connection.query("SET time_zone = '+08:00'")
-    connection.release()
-
-    // 将 pool 装饰到 fastify 实例上，供路由使用
-    fastify.decorate('mysql', pool)
-    console.error('✅ 数据库初始化成功')
-  } catch (error) {
-    console.error('❌ 数据库初始化失败:', error)
+      timezone: '+08:00'  // 设置为北京时间
   }
-}
-
+  
+  // Redis 配置
+  const Redis = require('ioredis');
+  const redisConfig = {
+    host: (dbConfigJson.redis && dbConfigJson.redis.host) || process.env.REDIS_HOST || '127.0.0.1',
+    port: (dbConfigJson.redis && dbConfigJson.redis.port) || process.env.REDIS_PORT || 6379,
+    password: (dbConfigJson.redis && dbConfigJson.redis.password) || process.env.REDIS_PASSWORD || '',
+    db: (dbConfigJson.redis && dbConfigJson.redis.db) || process.env.REDIS_DB || 0
+  };
+  
+  let pool
+  let redis;
+  
+  // 初始化数据库连接池
+  async function initDatabase() {
+    try {
+      pool = mysql.createPool(dbConfig)
+  
+      // 设置时区为北京时间
+      const connection = await pool.getConnection()
+      await connection.query("SET time_zone = '+08:00'")
+      connection.release()
+  
+      // 将 pool 装饰到 fastify 实例上，供路由使用
+      fastify.decorate('mysql', pool)
+      console.error('✅ 数据库初始化成功')
+  
+      // 初始化 Redis
+      try {
+        redis = new Redis(redisConfig);
+        redis.on('error', (err) => {
+          console.error('❌ Redis 连接错误:', err);
+        });
+        redis.on('connect', () => {
+          console.log('✅ Redis 连接成功');
+        });
+        fastify.decorate('redis', redis);
+      } catch (redisError) {
+        console.error('❌ Redis 初始化失败:', redisError);
+      }
+    } catch (error) {
+      console.error('❌ 数据库初始化失败:', error)
+    }
+  }
+  
+  // 优雅关闭
+  fastify.addHook('onClose', async (instance) => {
+    if (redis) {
+      await redis.quit();
+      console.log('👋 Redis 已关闭');
+    }
+  });
 // 健康检查
 fastify.get('/api/health', async (request, reply) => {
   try {
@@ -530,6 +585,11 @@ fastify.post('/api/auth/login', async (request, reply) => {
       [token, user.id]
     )
 
+    // Redis 同步：存储当前活跃 Session (有效期 7 天，与 Refresh Token 一致)
+    if (redis) {
+      await redis.set(`user:session:${user.id}`, token, 'EX', 7 * 24 * 3600);
+    }
+
     // 返回登录信息（不包含密码）
     const { password_hash, ...userInfo } = user
 
@@ -579,6 +639,11 @@ fastify.post('/api/auth/logout', async (request, reply) => {
       [decoded.id]
     )
 
+    // Redis 同步：清除活跃 Session
+    if (redis) {
+      await redis.del(`user:session:${decoded.id}`);
+    }
+
     return {
       success: true,
       message: '退出登录成功'
@@ -607,7 +672,7 @@ fastify.post('/api/auth/refresh', async (request, reply) => {
 
     // 检查用户是否存在且状态正常
     const [users] = await pool.query(
-      'SELECT id, username, status, session_token FROM users WHERE id = ?',
+      'SELECT id, username, status, session_token, department_id FROM users WHERE id = ?',
       [decoded.id]
     )
 
@@ -649,6 +714,11 @@ fastify.post('/api/auth/refresh', async (request, reply) => {
       [newToken, user.id]
     )
 
+    // Redis 同步：更新 Session (有效期 7 天)
+    if (redis) {
+      await redis.set(`user:session:${user.id}`, newToken, 'EX', 7 * 24 * 3600);
+    }
+
     return {
       token: newToken,
       refresh_token: newRefreshToken,
@@ -687,6 +757,11 @@ fastify.post('/api/users/:userId/reset-password', async (request, reply) => {
       'UPDATE users SET password_hash = ?, session_token = NULL, session_created_at = NULL WHERE id = ?',
       [passwordHash, userId]
     )
+
+    // Redis 同步：强制下线该用户
+    if (redis) {
+      await redis.del(`user:session:${userId}`);
+    }
 
     // 记录操作日志（可选）
 
@@ -793,6 +868,51 @@ fastify.get('/api/auth/permissions', async (request, reply) => {
   } catch (error) {
     console.error('获取权限失败:', error)
     return reply.code(401).send({ success: false, message: '获取权限失败' })
+  }
+})
+
+// 批量强制下线用户
+fastify.post('/api/auth/batch-logout', async (request, reply) => {
+  const { userIds } = request.body;
+
+  if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+    return reply.code(400).send({ success: false, message: '请选择要下线的用户' });
+  }
+
+  try {
+    // 1. 清理 MySQL 中的 session_token
+    await pool.query(
+      'UPDATE users SET session_token = NULL, session_created_at = NULL WHERE id IN (?)',
+      [userIds]
+    );
+
+    // 2. 清理 Redis 中的活跃 Session
+    if (redis) {
+      const pipeline = redis.pipeline();
+      userIds.forEach(id => {
+        pipeline.del(`user:session:${id}`);
+        pipeline.del(`user:permissions:${id}`); // 同时清理权限缓存，确保下次登录获取最新
+      });
+      await pipeline.exec();
+    }
+
+    // 3. 🔔 实时推送下线指令 (WebSocket)
+    if (fastify.io) {
+      userIds.forEach(id => {
+        fastify.io.to(`user_${id}`).emit('kicked_out', {
+          message: '您的账号已被管理员强制下线',
+          timestamp: new Date()
+        });
+      });
+    }
+
+    // 稍微延迟一下返回，确保 WebSocket 指令已发出
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    return { success: true, message: `成功强制下线 ${userIds.length} 名用户` };
+  } catch (error) {
+    console.error('批量下线失败:', error);
+    return reply.code(500).send({ success: false, message: '操作失败' });
   }
 })
 
@@ -933,6 +1053,18 @@ fastify.put('/api/customers/:id', async (request, reply) => {
       'UPDATE users SET real_name = ?, email = ?, phone = ?, department_id = ?, status = ? WHERE id = ?',
       [name, email, phone, departmentId, status, id]
     )
+
+    // Redis 同步：如果账号被禁用或删除，强制下线并清理权限缓存
+    if (redis && status !== 'active') {
+      await redis.del(`user:session:${id}`);
+      await redis.del(`user:permissions:${id}`);
+    }
+
+    // 🔴 新增：清理所有员工列表相关的缓存
+    if (redis) {
+      const keys = await redis.keys('list:employees:default:*');
+      if (keys.length > 0) await redis.del(...keys);
+    }
 
     // 更新员工信息
     await pool.query(
@@ -1288,6 +1420,19 @@ fastify.get('/api/employees', async (request, reply) => {
     query = filtered.query;
     const finalParams = filtered.params;
 
+    // --- Redis 缓存逻辑 ---
+    const redis = fastify.redis;
+    // 只有当是“默认视图”（在职、无关键词、无特定部门筛选、无日期筛选）时才进行缓存
+    const isDefaultQuery = !includeDeleted && !department_id && !keyword && !position && status === 'active' && !rating && !date_from && !date_to;
+    const cacheKey = `list:employees:default:${permissions?.userId || 'guest'}`;
+
+    if (redis && isDefaultQuery) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    }
+
     query += ' ORDER BY e.created_at DESC';
 
     const [rows] = await pool.query(query, finalParams);
@@ -1303,6 +1448,11 @@ fastify.get('/api/employees', async (request, reply) => {
       );
       return { ...emp, departments: depts };
     }));
+
+    // 写入缓存 (有效期 10 分钟)
+    if (redis && isDefaultQuery) {
+      await redis.set(cacheKey, JSON.stringify(employeesWithDepts), 'EX', 600);
+    }
 
     return employeesWithDepts;
   } catch (error) {
@@ -1409,6 +1559,12 @@ fastify.post('/api/employees', async (request, reply) => {
     } catch (changeError) {
       console.error('⚠️ 创建员工变动记录失败:', changeError);
       // 不影响员工创建，只记录错误
+    }
+
+    // 🔴 Redis 同步：清理员工列表缓存
+    if (redis) {
+      const keys = await redis.keys('list:employees:default:*');
+      if (keys.length > 0) await redis.del(...keys);
     }
 
     return { success: true, id: userResult.insertId };
@@ -1534,6 +1690,15 @@ fastify.delete('/api/employees/:id', async (request, reply) => {
       // 3. 同时将对应的用户状态也设置为 deleted（防止登录）
       await connection.query('UPDATE users SET status = ? WHERE id = ?', ['deleted', employee.user_id]);
       
+      // Redis 同步：强制下线并清理权限缓存
+      if (redis) {
+        await redis.del(`user:session:${employee.user_id}`);
+        await redis.del(`user:permissions:${employee.user_id}`);
+        // 清理员工列表缓存
+        const keys = await redis.keys('list:employees:default:*');
+        if (keys.length > 0) await redis.del(...keys);
+      }
+
       // 4. 记录操作日志
       try {
         // 获取当前操作人的详细信息
@@ -1724,15 +1889,20 @@ fastify.post('/api/employees/batch-import', async (request, reply) => {
       }
 
       successCount++;
-    } catch (error) {
-      console.error(`导入员工失败 (${emp.real_name}):`, error);
-      errors.push(`${emp.real_name}: ${error.message}`);
-      failCount++;
-    }
-  }
-
-  return {
-    success: true,
+        } catch (error) {
+          console.error(`导入员工失败 (${emp.real_name}):`, error);
+          errors.push(`${emp.real_name}: ${error.message}`);
+          failCount++;
+        }
+      }
+    
+      // 🔴 Redis 同步：批量导入后清理列表缓存
+      if (redis) {
+        const keys = await redis.keys('list:employees:default:*');
+        if (keys.length > 0) await redis.del(...keys);
+      }
+    
+      return {    success: true,
     message: `导入完成：成功 ${successCount} 名，失败 ${failCount} 名`,
     successCount,
     failCount,
@@ -1923,6 +2093,11 @@ fastify.post('/api/users/:id/reject', async (request, reply) => {
       'UPDATE users SET status = ?, approval_note = ?, updated_at = NOW() WHERE id = ?',
       ['rejected', note || null, id]
     );
+
+    // Redis 同步：清理权限缓存
+    if (redis) {
+      await redis.del(`user:permissions:${id}`);
+    }
 
     // 记录审批日志
     // await pool.query(
@@ -3464,8 +3639,8 @@ fastify.register(require('./routes/broadcasts'))
 
 const { setupWebSocket } = require('./websocket')
 
-// 设置WebSocket - 直接使用 fastify.server (它是 Node.js http.Server 实例)
-const io = setupWebSocket(fastify.server)
+// 设置WebSocket - 直接使用 fastify.server
+const io = setupWebSocket(fastify.server, redis)
 // 将io实例挂载到fastify，供其他路由使用
 fastify.decorate('io', io)
 

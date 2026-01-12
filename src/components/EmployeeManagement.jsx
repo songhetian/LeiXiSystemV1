@@ -640,6 +640,43 @@ function EmployeeManagement() {
     }
   }
 
+  // 批量强制下线功能
+  const handleBatchLogout = async () => {
+    if (selectedEmployeeIds.length === 0) return
+
+    try {
+      const selectedEmployees = employees.filter(emp => selectedEmployeeIds.includes(emp.id))
+      const userIds = selectedEmployees.map(emp => emp.user_id).filter(Boolean)
+
+      if (userIds.length === 0) {
+        toast.error('选中的员工没有关联的用户账号')
+        return
+      }
+
+      const token = localStorage.getItem('token')
+      const response = await fetch(getApiUrl('/api/auth/batch-logout'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userIds })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(result.message || '操作成功')
+        setSelectedEmployeeIds([])
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.message || '批量下线失败')
+      }
+    } catch (error) {
+      console.error('批量下线失败:', error)
+      toast.error('操作异常: ' + error.message)
+    }
+  }
+
   const handleManagerClick = (emp) => {
     setManagerChangingEmp(emp)
     setManagerChangeValue(emp.is_department_manager === 1 || emp.is_department_manager === true)
@@ -881,6 +918,12 @@ function EmployeeManagement() {
                   className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors"
                 >
                   一键离职
+                </button>
+                <button
+                  onClick={handleBatchLogout}
+                  className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded hover:bg-black transition-colors"
+                >
+                  一键下线
                 </button>
                 <button
                   onClick={() => setSelectedEmployeeIds([])}

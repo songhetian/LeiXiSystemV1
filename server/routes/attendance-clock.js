@@ -104,6 +104,22 @@ module.exports = async function (fastify, opts) {
         )
       }
 
+      // Redis 同步：清理个人首页缓存和月度报表缓存
+      if (fastify.redis) {
+        const now = beijingTime || new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        
+        await fastify.redis.del(`stats:dashboard:${user_id}`);
+        await fastify.redis.del(`stats:attendance:monthly:${employee_id}:${year}:${month}`);
+        
+        // 获取部门 ID 以清理部门缓存
+        const [userDept] = await pool.query('SELECT department_id FROM users WHERE id = ?', [user_id]);
+        if (userDept.length > 0 && userDept[0].department_id) {
+          await fastify.redis.del(`stats:attendance:dept:${userDept[0].department_id}:${year}:${month}`);
+        }
+      }
+
       return {
         success: true,
         message: status === 'late' ? '打卡成功，但您迟到了' : '打卡成功',
@@ -125,6 +141,10 @@ module.exports = async function (fastify, opts) {
 
     try {
       const today = getBeijingDate()
+      // 用于 Redis 缓存清理的时间参考
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const beijingTime = new Date(utc + (3600000 * 8));
 
       // 查找今天的打卡记录
       const [records] = await pool.query(
@@ -210,6 +230,21 @@ module.exports = async function (fastify, opts) {
             'attendance'
           ]
         )
+      }
+
+      // Redis 同步：清理个人首页缓存和月度报表缓存
+      if (fastify.redis) {
+        const year = beijingTime.getFullYear();
+        const month = beijingTime.getMonth() + 1;
+        
+        await fastify.redis.del(`stats:dashboard:${user_id}`);
+        await fastify.redis.del(`stats:attendance:monthly:${employee_id}:${year}:${month}`);
+        
+        // 获取部门 ID
+        const [userDept] = await pool.query('SELECT department_id FROM users WHERE id = ?', [user_id]);
+        if (userDept.length > 0 && userDept[0].department_id) {
+          await fastify.redis.del(`stats:attendance:dept:${userDept[0].department_id}:${year}:${month}`);
+        }
       }
 
       return {

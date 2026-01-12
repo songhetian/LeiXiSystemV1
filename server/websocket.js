@@ -9,12 +9,13 @@ const userConnections = new Map()
 /**
  * 设置WebSocket服务器
  * @param {http.Server} server - HTTP服务器实例
+ * @param {object} redis - Redis 实例
  * @returns {SocketIO.Server} Socket.IO服务器实例
  */
-function setupWebSocket(server) {
+function setupWebSocket(server, redis) {
   const io = socketIO(server, {
     cors: {
-      origin: true, // 允许所有来源
+      origin: true,
       credentials: true,
       methods: ['GET', 'POST']
     },
@@ -22,8 +23,17 @@ function setupWebSocket(server) {
     pingInterval: 25000
   })
 
+  // 挂载 redis 实例到 io 方便后续工具函数使用
+  io.redis = redis;
+
+  // 服务器启动时清理在线列表（防止旧数据污染）
+  if (redis) {
+    redis.del('online_users').catch(err => console.error('Redis 清理在线列表失败:', err));
+  }
+
   // 认证中间件
   io.use((socket, next) => {
+    // ... 原有逻辑保持不变
     const token = socket.handshake.auth.token
     if (!token) {
       return next(new Error('Authentication error: No token provided'))
@@ -42,15 +52,20 @@ function setupWebSocket(server) {
   })
 
   // 连接处理
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     const userId = socket.userId
     console.log(`✅ [WebSocket] 用户 ${socket.username} (ID: ${userId}) 已连接`)
 
-    // 记录连接
+    // 1. 记录连接 (本地内存)
     if (!userConnections.has(userId)) {
       userConnections.set(userId, new Set())
     }
     userConnections.get(userId).add(socket.id)
+
+    // 2. 记录在线状态 (Redis 全局)
+    if (redis) {
+      await redis.sadd('online_users', userId);
+    }
 
     // 加入用户专属房间
     socket.join(`user_${userId}`)
@@ -62,9 +77,10 @@ function setupWebSocket(server) {
       timestamp: new Date().toISOString()
     })
 
-    // 广播在线用户数（可选）
+    // 广播全系统在线人数 (从 Redis 获取)
+    const onlineCount = redis ? await redis.scard('online_users') : userConnections.size;
     io.emit('online_users_count', {
-      count: userConnections.size
+      count: onlineCount
     })
 
     // 心跳检测
@@ -74,13 +90,11 @@ function setupWebSocket(server) {
 
     // 客户端请求未读通知数
     socket.on('request_unread_count', async () => {
-      // 这里可以查询数据库获取未读数
-      // 暂时发送一个示例响应
       socket.emit('unread_count', { count: 0 })
     })
 
     // 断开连接
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
       console.log(`❌ [WebSocket] 用户 ${socket.username} 已断开连接 (原因: ${reason})`)
 
       const connections = userConnections.get(userId)
@@ -88,12 +102,17 @@ function setupWebSocket(server) {
         connections.delete(socket.id)
         if (connections.size === 0) {
           userConnections.delete(userId)
+          // 3. 从 Redis 移除在线状态
+          if (redis) {
+            await redis.srem('online_users', userId);
+          }
         }
       }
 
-      // 广播在线用户数
+      // 再次广播全系统在线人数
+      const currentOnlineCount = redis ? await redis.scard('online_users') : userConnections.size;
       io.emit('online_users_count', {
-        count: userConnections.size
+        count: currentOnlineCount
       })
     })
 
@@ -156,27 +175,38 @@ function sendBroadcast(io, userIds, broadcast) {
 }
 
 /**
- * 获取在线用户数
- * @returns {number} 在线用户数
+ * 获取在线用户数 (跨进程)
+ * @returns {Promise<number>} 在线用户数
  */
-function getOnlineUserCount() {
+async function getOnlineUserCount(io) {
+  if (io.redis) {
+    return await io.redis.scard('online_users');
+  }
   return userConnections.size
 }
 
 /**
- * 检查用户是否在线
+ * 检查用户是否在线 (跨进程)
+ * @param {object} io - io 实例
  * @param {number} userId - 用户ID
- * @returns {boolean} 是否在线
+ * @returns {Promise<boolean>} 是否在线
  */
-function isUserOnline(userId) {
+async function isUserOnline(io, userId) {
+  if (io.redis) {
+    return await io.redis.sismember('online_users', userId) === 1;
+  }
   return userConnections.has(userId)
 }
 
 /**
- * 获取所有在线用户ID
- * @returns {number[]} 在线用户ID数组
+ * 获取所有在线用户ID (跨进程)
+ * @returns {Promise<number[]>} 在线用户ID数组
  */
-function getOnlineUserIds() {
+async function getOnlineUserIds(io) {
+  if (io.redis) {
+    const ids = await io.redis.smembers('online_users');
+    return ids.map(id => parseInt(id));
+  }
   return Array.from(userConnections.keys())
 }
 

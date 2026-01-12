@@ -117,12 +117,22 @@ async function userManagementRoutes(fastify, options) {
     }
 
     try {
-      // 联表查询 users 和 employees 表
+      const redis = fastify.redis;
+      const cacheKey = `user:profile:${userId}`;
+
+      // 1. 尝试从 Redis 获取
+      if (redis) {
+        const cached = await redis.get(cacheKey);
+        if (cached) return { success: true, data: JSON.parse(cached) };
+      }
+
+      // 2. 缓存未命中，联表查询 users 和 employees 表
       const [rows] = await pool.query(
         `SELECT
           u.id, u.username, u.real_name, u.email, u.phone, u.avatar, u.department_id,
           u.id_card_front_url, u.id_card_back_url,
-          e.emergency_contact, e.emergency_phone, e.address, e.education
+          e.emergency_contact, e.emergency_phone, e.address, e.education,
+          e.skills, e.remark, e.employee_no, e.hire_date, e.rating, u.updated_at
          FROM users u
          LEFT JOIN employees e ON u.id = e.user_id
          WHERE u.id = ?`,
@@ -131,6 +141,11 @@ async function userManagementRoutes(fastify, options) {
 
       if (rows.length === 0) {
         return reply.code(404).send({ success: false, message: '用户不存在' })
+      }
+
+      // 3. 写入 Redis (缓存 1 小时)
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(rows[0]), 'EX', 3600);
       }
 
       return { success: true, data: rows[0] }
@@ -144,6 +159,8 @@ async function userManagementRoutes(fastify, options) {
   fastify.put('/api/users/:userId/profile', {
     preHandler: requirePermission('user:profile:update')
   }, async (request, reply) => {
+    const redis = fastify.redis;
+    // ... 原有验证逻辑 ...
     const token = request.headers.authorization?.replace('Bearer ', '')
     if (!token) {
       return reply.code(401).send({ success: false, message: '未登录' })
@@ -161,7 +178,6 @@ async function userManagementRoutes(fastify, options) {
     // 检查用户是否在更新自己的资料
     if (decoded.id != userId) {
       // 如果不是更新自己的资料，需要检查是否为超级管理员
-      const pool = fastify.mysql
       // 检查是否为超级管理员
       const [userRoles] = await pool.query(
         `SELECT r.name
@@ -188,7 +204,9 @@ async function userManagementRoutes(fastify, options) {
       emergency_contact,
       emergency_phone,
       address,
-      education
+      education,
+      skills,
+      remark
     } = request.body
 
     try {
@@ -211,22 +229,32 @@ async function userManagementRoutes(fastify, options) {
         ]
       )
 
-      // 更新 employees 表（更新 emergency_contact, emergency_phone, address, education）
+      // 更新 employees 表
       await pool.query(
         `UPDATE employees SET
           emergency_contact = ?,
           emergency_phone = ?,
           address = ?,
-          education = ?
+          education = ?,
+          skills = ?,
+          remark = ?
         WHERE user_id = ?`,
         [
           emergency_contact || null,
           emergency_phone || null,
           address || null,
           education || null,
+          skills || null,
+          remark || null,
           userId
         ]
       )
+
+      // Redis 同步：清理个人资料缓存和通用权限缓存
+      if (redis) {
+        await redis.del(`user:profile:${userId}`);
+        await redis.del(`user:permissions:${userId}`);
+      }
 
       return { success: true, message: '个人资料更新成功' }
     } catch (error) {

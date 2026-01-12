@@ -3,9 +3,22 @@ module.exports = async function (fastify, opts) {
 
     // 获取所有假期类型
     fastify.get('/api/vacation-types', async (request, reply) => {
+        const redis = fastify.redis;
+        const cacheKey = 'metadata:vacation_types:all';
+
         try {
+            if (redis) {
+                const cached = await redis.get(cacheKey);
+                if (cached) return { success: true, data: JSON.parse(cached) };
+            }
+
             // Updated sorting: Pinned items first, then by sort_order
             const [rows] = await pool.query('SELECT * FROM vacation_types ORDER BY is_pinned DESC, sort_order ASC, id ASC')
+            
+            if (redis) {
+                await redis.set(cacheKey, JSON.stringify(rows), 'EX', 86400);
+            }
+
             return { success: true, data: rows }
         } catch (error) {
             console.error('获取假期类型失败:', error)
@@ -16,13 +29,14 @@ module.exports = async function (fastify, opts) {
     // 创建假期类型
     fastify.post('/api/vacation-types', async (request, reply) => {
         let { code, name, base_days, included_in_total, description, enabled, sort_order, is_pinned } = request.body
+        const redis = fastify.redis;
 
         if (!code || !name) {
             return reply.code(400).send({ success: false, message: '代码和名称为必填项' })
         }
 
         try {
-            // Auto-generate code from name if not provided (same logic as before)
+            // ... 原有代码逻辑 (自动生成代码等) ...
             if (!code) {
                 let generatedCode = name.toLowerCase()
                     .replace(/[^a-z0-9\s]/g, '')
@@ -48,7 +62,6 @@ module.exports = async function (fastify, opts) {
                 }
             }
 
-            // Get max sort_order if not provided
             if (sort_order === undefined) {
                 const [maxRow] = await pool.query('SELECT MAX(sort_order) as max_sort FROM vacation_types');
                 sort_order = (maxRow[0].max_sort || 0) + 1;
@@ -70,6 +83,9 @@ module.exports = async function (fastify, opts) {
                 ]
             )
 
+            // 清理缓存
+            if (redis) await redis.del('metadata:vacation_types:all');
+
             return { success: true, message: '创建成功', data: { id: result.insertId, code } }
         } catch (error) {
             console.error('创建假期类型失败:', error)
@@ -81,6 +97,7 @@ module.exports = async function (fastify, opts) {
     fastify.put('/api/vacation-types/:id', async (request, reply) => {
         const { id } = request.params
         const { name, base_days, included_in_total, description, enabled, is_pinned, sort_order } = request.body
+        const redis = fastify.redis;
 
         try {
             const updates = []
@@ -98,6 +115,10 @@ module.exports = async function (fastify, opts) {
 
             params.push(id)
             await pool.query(`UPDATE vacation_types SET ${updates.join(', ')} WHERE id = ?`, params)
+            
+            // 清理缓存
+            if (redis) await redis.del('metadata:vacation_types:all');
+
             return { success: true, message: '更新成功' }
         } catch (error) {
             console.error('更新假期类型失败:', error)
@@ -108,8 +129,10 @@ module.exports = async function (fastify, opts) {
     // 删除假期类型
     fastify.delete('/api/vacation-types/:id', async (request, reply) => {
         const { id } = request.params
+        const redis = fastify.redis;
         try {
             await pool.query('DELETE FROM vacation_types WHERE id = ?', [id])
+            if (redis) await redis.del('metadata:vacation_types:all');
             return { success: true, message: '删除成功' }
         } catch (error) {
             console.error('删除假期类型失败:', error)
@@ -120,11 +143,13 @@ module.exports = async function (fastify, opts) {
     // 批量删除假期类型
     fastify.post('/api/vacation-types/batch-delete', async (request, reply) => {
         const { ids } = request.body
+        const redis = fastify.redis;
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
             return reply.code(400).send({ success: false, message: '请选择要删除的类型' })
         }
         try {
             await pool.query('DELETE FROM vacation_types WHERE id IN (?)', [ids])
+            if (redis) await redis.del('metadata:vacation_types:all');
             return { success: true, message: '批量删除成功' }
         } catch (error) {
             console.error('批量删除假期类型失败:', error)

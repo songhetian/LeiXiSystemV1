@@ -44,20 +44,28 @@ module.exports = async function (fastify, opts) {
   })
 
   // 获取所有部门列表（用于管理场景，绕过权限检查）
-  // 获取所有部门列表（用于管理场景，绕过权限检查）
   fastify.get('/api/departments/all', async (request, reply) => {
-    try {
-      // 获取用户权限（用于日志记录，但不用于权限检查）
-      const permissions = await extractUserPermissions(request, pool)
+    const redis = fastify.redis;
+    const cacheKey = 'metadata:departments:all';
 
-      // 记录访问日志
-      if (permissions) {
-        // 访问日志省略标准输出
+    try {
+      // 1. 尝试从 Redis 获取
+      if (redis) {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return { success: true, data: JSON.parse(cached) };
+        }
       }
 
-      // 直接返回所有部门，不进行权限过滤（这是管理端点的特殊处理）
+      // 2. Redis 没有，查 MySQL
       let query = 'SELECT * FROM departments WHERE status = "active" ORDER BY sort_order, id'
       const [rows] = await pool.query(query)
+
+      // 3. 写入 Redis (有效期 24 小时，因为变更会自动清理)
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(rows), 'EX', 86400);
+      }
+
       return { success: true, data: rows }
     } catch (error) {
       console.error('获取所有部门列表失败:', error)
@@ -68,11 +76,25 @@ module.exports = async function (fastify, opts) {
   // 获取单个部门详情
   fastify.get('/api/departments/detail/:id', async (request, reply) => {
     const { id } = request.params
+    const redis = fastify.redis;
+    const cacheKey = `metadata:department:detail:${id}`;
+
     try {
+      // 尝试从缓存获取
+      if (redis) {
+        const cached = await redis.get(cacheKey);
+        if (cached) return { success: true, data: JSON.parse(cached) };
+      }
+
       const [rows] = await pool.query('SELECT * FROM departments WHERE id = ?', [id])
       if (rows.length === 0) {
         return reply.code(404).send({ success: false, message: '部门不存在' })
       }
+
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(rows[0]), 'EX', 3600);
+      }
+
       return { success: true, data: rows[0] }
     } catch (error) {
       console.error('获取部门详情失败:', error)
@@ -83,6 +105,7 @@ module.exports = async function (fastify, opts) {
   // 创建部门
   fastify.post('/api/departments/create', async (request, reply) => {
     const { name, parent_id, description, manager_id, status, sort_order } = request.body
+    const redis = fastify.redis;
 
     try {
       // 验证必填字段
@@ -110,6 +133,11 @@ module.exports = async function (fastify, opts) {
         ]
       )
 
+      // 清理部门列表缓存
+      if (redis) {
+        await redis.del('metadata:departments:all');
+      }
+
       return {
         success: true,
         message: '部门创建成功',
@@ -125,6 +153,7 @@ module.exports = async function (fastify, opts) {
   fastify.put('/api/departments/update/:id', async (request, reply) => {
     const { id } = request.params
     const { name, parent_id, description, manager_id, status, sort_order } = request.body
+    const redis = fastify.redis;
 
     try {
       // 检查部门是否存在
@@ -154,6 +183,12 @@ module.exports = async function (fastify, opts) {
         ]
       )
 
+      // 清理缓存
+      if (redis) {
+        await redis.del('metadata:departments:all');
+        await redis.del(`metadata:department:detail:${id}`);
+      }
+
       return { success: true, message: '部门更新成功' }
     } catch (error) {
       console.error('更新部门失败:', error)
@@ -164,6 +199,7 @@ module.exports = async function (fastify, opts) {
   // 删除部门
   fastify.delete('/api/departments/delete/:id', async (request, reply) => {
     const { id } = request.params
+    const redis = fastify.redis;
 
     try {
       // 检查部门是否存在
@@ -185,6 +221,12 @@ module.exports = async function (fastify, opts) {
       }
 
       await pool.query('DELETE FROM departments WHERE id = ?', [id])
+
+      // 清理缓存
+      if (redis) {
+        await redis.del('metadata:departments:all');
+        await redis.del(`metadata:department:detail:${id}`);
+      }
 
       return { success: true, message: '部门删除成功' }
     } catch (error) {

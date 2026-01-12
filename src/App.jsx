@@ -288,16 +288,35 @@ function App() {
       })
     }
 
+    // 监听下线指令
+    const handleKickedOut = (data) => {
+      console.log('🚨 账号被强制下线:', data.message)
+      toast.error('登录失效', {
+        description: data.message || '您的账号已被管理员强制下线',
+        duration: null, // 永久显示直到用户点击
+        action: {
+          label: '确定',
+          onClick: () => handleLogout()
+        }
+      })
+      // 3秒后自动执行退出
+      setTimeout(() => {
+        handleLogout()
+      }, 3000)
+    }
+
     // 清除旧的监听器，防止重复注册
     wsManager.removeAllListeners('notification')
     wsManager.removeAllListeners('memo')
     wsManager.removeAllListeners('broadcast')
     wsManager.removeAllListeners('unread_count')
+    wsManager.removeAllListeners('kicked_out')
 
     // 注册事件监听器
     wsManager.on('notification', handleNotification)
     wsManager.on('memo', handleMemo)
     wsManager.on('broadcast', handleBroadcast)
+    wsManager.on('kicked_out', handleKickedOut)
 
     // 监听未读数更新
     wsManager.on('unread_count', (data) => {

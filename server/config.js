@@ -11,6 +11,13 @@ module.exports = {
     queueLimit: 0
   },
 
+  redis: {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || '',
+    db: process.env.REDIS_DB || 0
+  },
+
   server: {
     port: process.env.PORT || 3001,
     host: process.env.HOST || '0.0.0.0'

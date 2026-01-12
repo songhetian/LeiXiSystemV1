@@ -6,8 +6,16 @@ module.exports = async function (fastify, opts) {
   // 个人考勤月报
   fastify.get('/api/attendance/monthly-report', async (request, reply) => {
     const { employee_id, year, month } = request.query
+    const redis = fastify.redis
+    const cacheKey = `stats:attendance:monthly:${employee_id}:${year}:${month}`
 
     try {
+      // 1. 尝试从 Redis 获取
+      if (redis) {
+        const cached = await redis.get(cacheKey)
+        if (cached) return { success: true, data: JSON.parse(cached) }
+      }
+
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`
       const endDate = new Date(year, month, 0).toISOString().split('T')[0]
 
@@ -55,25 +63,32 @@ module.exports = async function (fastify, opts) {
         leaveData[item.leave_type] = parseFloat(item.total_days)
       })
 
+      const finalData = {
+        period: { year, month, start_date: startDate, end_date: endDate },
+        attendance: {
+          total_days: attendanceStats[0].total_days,
+          normal_days: attendanceStats[0].normal_days,
+          late_days: attendanceStats[0].late_days,
+          early_days: attendanceStats[0].early_days,
+          absent_days: attendanceStats[0].absent_days,
+          clock_in_days: attendanceStats[0].clock_in_days,
+          total_work_hours: parseFloat(attendanceStats[0].total_work_hours)
+        },
+        leave: leaveData,
+        overtime: {
+          count: overtimeStats[0].overtime_count,
+          total_hours: parseFloat(overtimeStats[0].total_hours)
+        }
+      };
+
+      // 2. 写入 Redis (有效期 1 小时)
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(finalData), 'EX', 3600);
+      }
+
       return {
         success: true,
-        data: {
-          period: { year, month, start_date: startDate, end_date: endDate },
-          attendance: {
-            total_days: attendanceStats[0].total_days,
-            normal_days: attendanceStats[0].normal_days,
-            late_days: attendanceStats[0].late_days,
-            early_days: attendanceStats[0].early_days,
-            absent_days: attendanceStats[0].absent_days,
-            clock_in_days: attendanceStats[0].clock_in_days,
-            total_work_hours: parseFloat(attendanceStats[0].total_work_hours)
-          },
-          leave: leaveData,
-          overtime: {
-            count: overtimeStats[0].overtime_count,
-            total_hours: parseFloat(overtimeStats[0].total_hours)
-          }
-        }
+        data: finalData
       }
     } catch (error) {
       console.error('获取月度报表失败:', error)
@@ -84,8 +99,18 @@ module.exports = async function (fastify, opts) {
   // 部门考勤统计
   fastify.get('/api/attendance/department-stats', async (request, reply) => {
   const { department_id, year, month, start_date, end_date, keyword, page = 1, limit = 10 } = request.query;
+  const redis = fastify.redis;
+  
+  // 仅在无关键词搜索且按年月查询时缓存
+  const isCacheable = !keyword && year && month;
+  const cacheKey = `stats:attendance:dept:${department_id}:${year}:${month}`;
 
   try {
+    if (redis && isCacheable) {
+      const cached = await redis.get(cacheKey);
+      if (cached) return { success: true, data: JSON.parse(cached) };
+    }
+
     // Determine date range
     let startDate, endDate;
     if (start_date && end_date) {
@@ -96,6 +121,7 @@ module.exports = async function (fastify, opts) {
       endDate = new Date(year, month, 0).toISOString().split('T')[0];
     }
 
+    // ... (中间复杂的 SQL 查询逻辑保持不变)
     // Build keyword clause and parameters
     let keywordClause = '';
     const queryParams = [startDate, endDate, startDate, endDate, department_id];
@@ -141,84 +167,73 @@ module.exports = async function (fastify, opts) {
     let workDays = 22; // Default fallback
 
     if (year && month) {
-      // For monthly stats: total days in month - holiday days configured for that month
-      // Get total days in the month
       const totalDaysInMonth = new Date(year, month, 0).getDate();
-
-      // Query holidays configured for this month
       const [holidayResult] = await pool.query(
         'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month = ?',
         [year, month]
       );
-
       const holidayDays = parseInt(holidayResult[0]?.holiday_days) || 0;
       workDays = totalDaysInMonth - holidayDays;
-
     } else if (start_date && end_date) {
-      // For custom date range: calculate actual days in range
       const start = new Date(startDate);
       const end = new Date(endDate);
       let totalDays = 0;
-
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         totalDays++;
       }
-
-      // Query holidays that fall within this date range
       const startYear = start.getFullYear();
       const endYear = end.getFullYear();
       const startMonth = start.getMonth() + 1;
       const endMonth = end.getMonth() + 1;
-
       let holidayDays = 0;
       if (startYear === endYear) {
-        // Same year
         const [holidayResult] = await pool.query(
           'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month >= ? AND month <= ?',
           [startYear, startMonth, endMonth]
         );
         holidayDays = parseInt(holidayResult[0]?.holiday_days) || 0;
       } else {
-        // Cross year
-        const [result1] = await pool.query(
-          'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month >= ?',
-          [startYear, startMonth]
-        );
-        const [result2] = await pool.query(
-          'SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month <= ?',
-          [endYear, endMonth]
-        );
+        const [result1] = await pool.query('SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month >= ?', [startYear, startMonth]);
+        const [result2] = await pool.query('SELECT COALESCE(SUM(days), 0) as holiday_days FROM holidays WHERE year = ? AND month <= ?', [endYear, endMonth]);
         holidayDays = (parseInt(result1[0]?.holiday_days) || 0) + (parseInt(result2[0]?.holiday_days) || 0);
       }
-
       workDays = totalDays - holidayDays;
     }
 
-    // Pagination
+    const finalData = {
+      period: { year, month, start_date: startDate, end_date: endDate },
+      summary: {
+        total_employees: totalEmployees,
+        work_days: workDays,
+        attendance_rate: totalEmployees > 0 ? ((totalAttendanceDays / (totalEmployees * workDays)) * 100).toFixed(2) : 0,
+        total_late_count: totalLateCount,
+        total_early_count: totalEarlyCount,
+        total_absent_count: totalAbsentCount,
+      },
+      employees: allStats.map(item => ({
+        ...item,
+        late_count: Number(item.late_count) || 0,
+        early_count: Number(item.early_count) || 0,
+        absent_count: Number(item.absent_count) || 0,
+        total_work_hours: parseFloat(item.total_work_hours),
+        leave_days: parseFloat(item.leave_days),
+        attendance_rate: workDays > 0 ? ((item.attendance_days / workDays) * 100).toFixed(2) : 0,
+      })),
+    };
+
+    if (redis && isCacheable) {
+      await redis.set(cacheKey, JSON.stringify(finalData), 'EX', 1800);
+    }
+
+    // 后置分页处理
     const offset = (page - 1) * limit;
-    const paginatedStats = allStats.slice(offset, offset + parseInt(limit));
+    const paginatedEmployees = finalData.employees.slice(offset, offset + parseInt(limit));
 
     return {
       success: true,
       data: {
-        period: { year, month, start_date: startDate, end_date: endDate },
-        summary: {
-          total_employees: totalEmployees,
-          work_days: workDays,
-          attendance_rate: totalEmployees > 0 ? ((totalAttendanceDays / (totalEmployees * workDays)) * 100).toFixed(2) : 0,
-          total_late_count: totalLateCount,
-          total_early_count: totalEarlyCount,
-          total_absent_count: totalAbsentCount,
-        },
-        employees: paginatedStats.map(item => ({
-          ...item,
-          late_count: Number(item.late_count) || 0,
-          early_count: Number(item.early_count) || 0,
-          absent_count: Number(item.absent_count) || 0,
-          total_work_hours: parseFloat(item.total_work_hours),
-          leave_days: parseFloat(item.leave_days),
-          attendance_rate: workDays > 0 ? ((item.attendance_days / workDays) * 100).toFixed(2) : 0,
-        })),
+        ...finalData,
+        employees: paginatedEmployees
       },
       pagination: {
         page: parseInt(page),

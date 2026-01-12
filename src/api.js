@@ -30,6 +30,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const errorMsg = error.response?.data?.message || error.message || '未知错误';
+    
     if (error.response) {
       switch (error.response.status) {
         case 401:
@@ -42,24 +44,26 @@ api.interceptors.response.use(
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/';
+          } else {
+            import('sonner').then(({ toast }) => toast.error(errorMsg));
           }
           break;
         case 403:
-          console.error('没有权限访问该资源');
+          import('sonner').then(({ toast }) => toast.error('权限不足：' + errorMsg));
           break;
         case 404:
-          console.error('请求的资源不存在');
+          import('sonner').then(({ toast }) => toast.error('资源不存在'));
           break;
         case 500:
-          console.error('服务器内部错误');
+          import('sonner').then(({ toast }) => toast.error('服务器错误：' + errorMsg));
           break;
         default:
-          console.error('请求失败:', error.response.data?.message || error.message);
+          import('sonner').then(({ toast }) => toast.error('操作失败：' + errorMsg));
       }
     } else if (error.request) {
-      console.error('网络错误，请检查网络连接');
+      import('sonner').then(({ toast }) => toast.error('网络错误，请检查网络连接'));
     } else {
-      console.error('请求配置错误:', error.message);
+      import('sonner').then(({ toast }) => toast.error('请求配置错误'));
     }
     return Promise.reject(error);
   }

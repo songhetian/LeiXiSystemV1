@@ -7,12 +7,23 @@ module.exports = async function (fastify, opts) {
   const pool = fastify.mysql;
 
   fastify.get('/api/admin/dashboard/stats', async (request, reply) => {
+    const redis = fastify.redis;
+    const cacheKey = 'stats:admin_dashboard';
+
     try {
       const { extractUserPermissions } = require('../middleware/checkPermission');
       const permissions = await extractUserPermissions(request, pool);
       
       if (!permissions || !permissions.canViewAllDepartments) {
         return reply.code(403).send({ success: false, message: '权限不足' });
+      }
+
+      // 1. 尝试从 Redis 获取
+      if (redis) {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return { success: true, data: JSON.parse(cached) };
+        }
       }
 
       const today = dayjs().format('YYYY-MM-DD');
@@ -66,21 +77,28 @@ module.exports = async function (fastify, opts) {
       // --- 4. 安全审计 ---
       const [[{ todayLogs }]] = await pool.query('SELECT COUNT(*) as total FROM operation_logs WHERE created_at >= ?', [today + ' 00:00:00']);
 
+      const finalData = {
+        overview: {
+          totalUsers,
+          pendingUsers,
+          todayClocks,
+          monthReimbursement: parseFloat(monthReimbursement?.total || 0),
+          todayLogs
+        },
+        charts: {
+          deptDistribution: deptDistribution.map(d => ({ name: d.name, value: parseInt(d.value) })),
+          reimbursementByType: reimbursementByType.length > 0 ? reimbursementByType : []
+        }
+      };
+
+      // 2. 写入 Redis (有效期 10 分钟)
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(finalData), 'EX', 600);
+      }
+
       return {
         success: true,
-        data: {
-          overview: {
-            totalUsers,
-            pendingUsers,
-            todayClocks,
-            monthReimbursement: parseFloat(monthReimbursement?.total || 0),
-            todayLogs
-          },
-          charts: {
-            deptDistribution: deptDistribution.map(d => ({ name: d.name, value: parseInt(d.value) })),
-            reimbursementByType: reimbursementByType.length > 0 ? reimbursementByType : []
-          }
-        }
+        data: finalData
       };
     } catch (error) {
       console.error('Admin Dashboard Error:', error);

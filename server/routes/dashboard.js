@@ -10,10 +10,21 @@ module.exports = async function (fastify, opts) {
     const { user_id } = request.query;
     if (!user_id) return reply.code(400).send({ success: false, message: 'Missing user_id' });
 
+    const redis = fastify.redis;
+    const cacheKey = `stats:dashboard:${user_id}`;
+
     try {
       const { extractUserPermissions } = require('../middleware/checkPermission');
       const permissions = await extractUserPermissions(request, pool);
       if (!permissions) return reply.code(401).send({ success: false });
+
+      // 1. 尝试从 Redis 获取
+      if (redis) {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return { success: true, data: JSON.parse(cached) };
+        }
+      }
 
       const today = dayjs().format('YYYY-MM-DD');
       const startOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
@@ -35,24 +46,13 @@ module.exports = async function (fastify, opts) {
       let personalStats = {};
 
       if (permissions.canViewAllDepartments) {
-        // 管理员数据
+        // 管理员数据 (复用部分缓存逻辑或直接查询)
         const [[{ totalEmployees }]] = await pool.query('SELECT COUNT(*) as totalEmployees FROM employees WHERE status != "deleted"');
         const [[{ todayClockIn }]] = await pool.query('SELECT COUNT(DISTINCT user_id) as todayClockIn FROM attendance_records WHERE attendance_date = ?', [today]);
         
-        // 部门质检平均分 (示例)
-        const [qaStats] = await pool.query(`
-          SELECT d.name as dept_name, AVG(qs.score) as avg_score 
-          FROM quality_sessions qs
-          JOIN users u ON qs.agent_id = u.id
-          JOIN departments d ON u.department_id = d.id
-          WHERE qs.status = 'completed'
-          GROUP BY d.id LIMIT 5
-        `);
-
         adminStats = {
           totalEmployees,
-          todayClockIn,
-          qaStats
+          todayClockIn
         };
       }
 
@@ -74,15 +74,22 @@ module.exports = async function (fastify, opts) {
         monthAbsents: absents
       };
 
+      const finalData = {
+        user,
+        pendingCount,
+        adminStats,
+        personalStats,
+        serverTime: new Date()
+      };
+
+      // 2. 写入 Redis (有效期 2 分钟，因为待办数和打卡状态需要相对实时)
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(finalData), 'EX', 120);
+      }
+
       return {
         success: true,
-        data: {
-          user,
-          pendingCount,
-          adminStats,
-          personalStats,
-          serverTime: new Date()
-        }
+        data: finalData
       };
     } catch (error) {
       console.error('Dashboard Stats Error:', error);
