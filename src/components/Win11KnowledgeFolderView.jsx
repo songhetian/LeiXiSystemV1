@@ -178,8 +178,10 @@ const Win11KnowledgeFolderView = () => {
       const filtered = (categoriesData || []).filter(c => {
         const t = String(c?.type || '').toLowerCase();
         const notDeleted = !c.deleted_at && c.status !== 'deleted' && c.is_deleted !== 1;
-        // 逻辑: 用户ID匹配 + common + 未删除
-        return isOwnedBy(c, uid) && t === 'common' && notDeleted;
+        const isActuallyPublic = c.is_public === 1 || t === 'common' || t === 'public';
+        
+        // 逻辑: (公开分类 OR 我创建的分类) AND 未删除
+        return (isActuallyPublic || isOwnedBy(c, uid)) && notDeleted;
       });
 
       setCategories(filtered);
@@ -201,10 +203,13 @@ const Win11KnowledgeFolderView = () => {
       const response = await axios.get(getApiUrl('/api/knowledge/articles'));
       console.log('Folder Articles API Response:', response.data); // 调试信息
       // 确保返回的是数组
-      let articlesData = response.data || [];
+      const uid = getCurrentUserId();
       const filtered = (articlesData || []).filter(a => {
-        // 这里只过滤掉已删除的文档，其余全部交给前端视图按分类/搜索再筛选
-        return !a.deleted_at && a.status !== 'deleted' && a.is_deleted !== 1;
+        const notDeleted = !a.deleted_at && a.status !== 'deleted' && a.is_deleted !== 1;
+        const isActuallyPublic = a.is_public === 1 || String(a.type).toLowerCase() === 'common' || String(a.type).toLowerCase() === 'public';
+        
+        // 逻辑: (公开文章 OR 我创建的文章) AND 未删除
+        return (isActuallyPublic || isOwnedBy(a, uid)) && notDeleted;
       });
       setArticles(filtered);
     } catch (error) {

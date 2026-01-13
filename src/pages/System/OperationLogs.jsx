@@ -27,10 +27,22 @@ const OperationLogs = () => {
     { label: '用户管理', value: 'user' },
     { label: '权限管理', value: 'permission' },
     { label: '考勤管理', value: 'attendance' },
+    { label: '假期管理', value: 'vacation' },
     { label: '报销管理', value: 'reimbursement' },
+    { label: '财务资产', value: 'finance' },
     { label: '审批流配置', value: 'workflow' },
+    { label: '信息系统', value: 'messaging' },
+    { label: '质检管理', value: 'quality' },
+    { label: '知识库', value: 'knowledge' },
+    { label: '考核系统', value: 'assessment' },
     { label: '系统设置', value: 'system' }
   ];
+
+  // 模块中文映射对象
+  const moduleMap = modules.reduce((acc, curr) => {
+    acc[curr.value] = curr.label;
+    return acc;
+  }, {});
 
   useEffect(() => {
     fetchLogs();
@@ -76,10 +88,9 @@ const OperationLogs = () => {
       width: 150,
       align: 'center',
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{record.real_name}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>@{record.username}</Text>
-        </Space>
+        <Text strong className="text-slate-700">
+          {record.latest_real_name || record.real_name || '系统服务'}
+        </Text>
       )
     },
     {
@@ -88,7 +99,11 @@ const OperationLogs = () => {
       key: 'module',
       width: 120,
       align: 'center',
-      render: (m) => <Tag color="blue">{m.toUpperCase()}</Tag>
+      render: (m) => (
+        <Tag color="default" className="bg-slate-100 border-slate-200 text-slate-600 px-2 py-0.5 rounded">
+          {moduleMap[m] || m}
+        </Tag>
+      )
     },
     {
       title: '操作动作',

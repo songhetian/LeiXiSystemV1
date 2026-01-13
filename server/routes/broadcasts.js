@@ -196,17 +196,32 @@ module.exports = async function (fastify, opts) {
           [values]
         )
 
-        // 🔔 实时推送广播（WebSocket）
+        // 🔔 实时推送广播（WebSocket & Redis）
         if (fastify.io) {
-          sendBroadcast(fastify.io, targetUserIds, {
+          const broadcastData = {
             id: broadcastId,
             type,
             title,
             content,
             priority,
             created_at: new Date()
-          })
-          console.log(`📣 广播已推送给 ${targetUserIds.length} 个用户`)
+          };
+
+          // 1. 如果有 Redis，通过 Redis 发布，实现跨服务器同步
+          if (fastify.redis) {
+            targetUserIds.forEach(targetId => {
+              fastify.redis.publish('system_notifications', JSON.stringify({
+                ...broadcastData,
+                userId: targetId,
+                type: 'broadcast' // 显式标记为广播类型
+              }));
+            });
+          } else {
+            // 2. 兜底本地 Socket.io 发送
+            sendBroadcast(fastify.io, targetUserIds, broadcastData);
+          }
+          
+          console.log(`📣 广播已排队发送给 ${targetUserIds.length} 个用户`);
         }
       }
 

@@ -52,6 +52,7 @@ const TodoCenter = lazy(() => import('./pages/Personal/TodoCenter'));
 const MySchedule = lazy(() => import('./pages/Personal/MySchedule'));
 const MyNotifications = lazy(() => import('./pages/Personal/MyNotifications'));
 const MyMemos = lazy(() => import('./pages/Personal/MyMemos'));
+const MyAssets = lazy(() => import('./pages/Personal/MyAssets'));
 const EmployeeMemos = lazy(() => import('./pages/Employee/EmployeeMemos'));
 const UnreadMemoPopup = lazy(() => import('./components/UnreadMemoPopup'));
 
@@ -65,6 +66,9 @@ const NotificationCenter = lazy(() => import('./components/NotificationCenter'))
 const NotificationSender = lazy(() => import('./components/NotificationSender'));
 const NotificationSettings = lazy(() => import('./components/NotificationSettings'));
 const BroadcastManagement = lazy(() => import('./pages/Admin/BroadcastManagement'));
+const WeChatPage = lazy(() => import('./pages/Messaging/WeChatPage'));
+const GroupManagement = lazy(() => import('./pages/Messaging/GroupManagement'));
+const WorkflowSettings = lazy(() => import('./pages/System/WorkflowSettings'));
 
 
 const LeaveRecords = lazy(() => import('./pages/Attendance').then(module => ({ default: module.LeaveRecords })));
@@ -107,6 +111,10 @@ const ReimbursementDetail = lazy(() => import('./components/ReimbursementDetail'
 const ApprovalWorkflowConfig = lazy(() => import('./components/ApprovalWorkflowConfig'));
 const ApproverManagement = lazy(() => import('./components/ApproverManagement'));
 const RoleWorkflowConfig = lazy(() => import('./components/RoleWorkflowConfig'));
+const DeviceManagement = lazy(() => import('./pages/Finance/Assets/AssetManagement'));
+const DeviceList = lazy(() => import('./pages/Logistics/DeviceList'));
+const AssetRequestAudit = lazy(() => import('./pages/Finance/Assets/AssetRequestAudit'));
+const InventoryManagement = lazy(() => import('./pages/Finance/Inventory/InventoryManagement'));
 
 import DatabaseCheck from './components/DatabaseCheck';
 import TopNavbar from './components/TopNavbar';
@@ -233,6 +241,15 @@ function App() {
             } else if (notification.type?.startsWith('reimbursement') || notification.related_type === 'reimbursement') {
               // 跳转到报销审批页面
               handleSetActiveTab('reimbursement-approval');
+            } else if (notification.type?.startsWith('asset') || notification.related_type === 'asset_request') {
+              // 跳转到资产审批页面 (根据用户角色)
+              const savedUser = localStorage.getItem('user');
+              const role = savedUser ? JSON.parse(savedUser).role : '';
+              if (role === '超级管理员' || role === 'admin') {
+                  handleSetActiveTab('asset-request-audit');
+              } else {
+                  handleSetActiveTab('my-assets');
+              }
             }
           }
         }
@@ -455,6 +472,10 @@ function App() {
         return <BroadcastManagement />
       case 'notification-settings': // New case for NotificationSettings
         return <NotificationSettings />
+      case 'messaging-chat':
+        return <WeChatPage />
+      case 'messaging-group-management':
+        return <GroupManagement />
 
       // 考勤管理
       case 'attendance-home':
@@ -535,6 +556,16 @@ function App() {
       case 'role-workflow-config':
         return <RoleWorkflowConfig />
 
+      // 后勤设备管理
+      case 'logistics-device-mgmt':
+        return <DeviceManagement />
+      case 'logistics-device-list':
+        return <DeviceList />
+      case 'asset-request-audit':
+        return <AssetRequestAudit />
+      case 'inventory-management':
+        return <InventoryManagement />
+
       // 质检管理
       case 'quality-score':
         return <QualityInspection />
@@ -610,12 +641,16 @@ function App() {
         return <MySchedule />;
       case 'my-notifications':
         return <MyNotifications />;
+      case 'my-assets':
+        return <MyAssets />;
       case 'my-memos':
         return <MyMemos />;
       case 'employee-memos':
         return <EmployeeMemos />;
 
       // 系统管理
+      case 'system-workflow':
+        return <WorkflowSettings />
 
       default:
         return <NotFound />    }

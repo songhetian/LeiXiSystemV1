@@ -8,215 +8,229 @@ const userConnections = new Map()
 
 /**
  * 设置WebSocket服务器
- * @param {http.Server} server - HTTP服务器实例
- * @param {object} redis - Redis 实例
- * @returns {SocketIO.Server} Socket.IO服务器实例
  */
-function setupWebSocket(server, redis) {
+function setupWebSocket(server, redis, getPool) {
   const io = socketIO(server, {
-    cors: {
-      origin: true,
-      credentials: true,
-      methods: ['GET', 'POST']
-    },
+    cors: { origin: true, credentials: true, methods: ['GET', 'POST'] },
     pingTimeout: 60000,
     pingInterval: 25000
   })
 
-  // 挂载 redis 实例到 io 方便后续工具函数使用
   io.redis = redis;
 
-  // 服务器启动时清理在线列表（防止旧数据污染）
+  // --- Redis Pub/Sub Integration ---
+  if (redis) {
+    const subClient = redis.duplicate();
+    subClient.subscribe('chat_messages', 'system_notifications', (err, count) => {
+        if (err) console.error('Redis 订阅失败:', err);
+        else console.log(`🔌 [Redis Pub/Sub] 已订阅 ${count} 个频道`);
+    });
+
+    subClient.on('message', (channel, message) => {
+        try {
+            const data = JSON.parse(message);
+            if (channel === 'chat_messages') {
+                if (data.group_id) io.to(`group_${data.group_id}`).emit('receive_message', data);
+                else if (data.receiver_id) io.to(`user_${data.receiver_id}`).emit('receive_message', data);
+            } else if (channel === 'system_notifications') {
+                if (data.userId) {
+                    const event = data.type === 'broadcast' ? 'new_broadcast' : (data.type === 'memo' ? 'new_memo' : 'new_notification');
+                    io.to(`user_${data.userId}`).emit(event, data);
+                } else {
+                    io.emit('new_notification', data);
+                }
+            }
+        } catch (e) { console.error('Redis 消息解析失败:', e); }
+    });
+  }
+
   if (redis) {
     redis.del('online_users').catch(err => console.error('Redis 清理在线列表失败:', err));
   }
 
-  // 认证中间件
   io.use((socket, next) => {
-    // ... 原有逻辑保持不变
     const token = socket.handshake.auth.token
-    if (!token) {
-      return next(new Error('Authentication error: No token provided'))
-    }
-
+    if (!token) return next(new Error('Authentication error: No token provided'))
     try {
       const decoded = jwt.verify(token, JWT_SECRET)
-      socket.userId = decoded.id
+      socket.userId = String(decoded.id); // 强制转字符串
       socket.username = decoded.username || decoded.real_name
-      socket.userRole = decoded.role
       next()
-    } catch (err) {
-      console.error('WebSocket认证失败:', err.message)
-      next(new Error('Authentication error: Invalid token'))
-    }
+    } catch (err) { next(new Error('Authentication error: Invalid token')) }
   })
 
-  // 连接处理
   io.on('connection', async (socket) => {
     const userId = socket.userId
     console.log(`✅ [WebSocket] 用户 ${socket.username} (ID: ${userId}) 已连接`)
 
-    // 1. 记录连接 (本地内存)
-    if (!userConnections.has(userId)) {
-      userConnections.set(userId, new Set())
-    }
+    if (!userConnections.has(userId)) userConnections.set(userId, new Set())
     userConnections.get(userId).add(socket.id)
 
-    // 2. 记录在线状态 (Redis 全局)
+    // 记录在线状态
     if (redis) {
       await redis.sadd('online_users', userId);
+      console.log(`📡 [Redis] 上线登记成功: ${userId}`);
+      
+      // 强制触发一次全局统计广播
+      const count = await redis.scard('online_users');
+      io.emit('online_users_count', { count });
     }
 
-    // 加入用户专属房间
     socket.join(`user_${userId}`)
+    socket.emit('connected', { message: '已连接', userId: userId, timestamp: new Date() })
 
-    // 发送欢迎消息
-    socket.emit('connected', {
-      message: '已连接到实时通知服务器',
-      userId: userId,
-      timestamp: new Date().toISOString()
-    })
-
-    // 广播全系统在线人数 (从 Redis 获取)
-    const onlineCount = redis ? await redis.scard('online_users') : userConnections.size;
-    io.emit('online_users_count', {
-      count: onlineCount
-    })
-
-    // 心跳检测
-    socket.on('ping', () => {
+    // 接收心跳时补录状态 (防止Redis意外丢失)
+    socket.on('ping', async () => {
+      if (redis) await redis.sadd('online_users', userId);
       socket.emit('pong', { timestamp: Date.now() })
     })
 
-    // 客户端请求未读通知数
-    socket.on('request_unread_count', async () => {
-      socket.emit('unread_count', { count: 0 })
-    })
+    // --- Chat Events ---
 
-    // 断开连接
+    // 加入群组房间
+    socket.on('join_group', (groupId) => {
+        socket.join(`group_${groupId}`);
+        console.log(`User ${userId} joined group_${groupId}`);
+    });
+
+    // 离开群组房间
+    socket.on('leave_group', (groupId) => {
+        socket.leave(`group_${groupId}`);
+    });
+
+    // 发送消息
+    socket.on('send_message', async (data) => {
+        const pool = getPool ? getPool() : null;
+        if (!pool || !redis) return;
+
+        try {
+            const { targetId, targetType, content, type = 'text', fileUrl } = data;
+            
+            // 使用全局队列处理 (由 index.js 初始化并挂载到 io 上)
+            if (!io.messageQueue) {
+                const MessageQueue = require('./utils/messageQueue');
+                io.messageQueue = new MessageQueue(pool, redis);
+                await io.messageQueue.initSequence();
+            }
+
+            // 1. 快速入队并获取 ID
+            const msgToQueue = {
+                sender_id: userId,
+                group_id: targetId,
+                content,
+                msg_type: type,
+                file_url: fileUrl,
+                sender_name: socket.username,
+                sender_avatar: socket.handshake.auth.avatar // 假设前端传了，没传也没关系
+            };
+
+            const savedMsg = await io.messageQueue.enqueue(msgToQueue);
+
+            // 补全发送者信息 (用于前端显示，无需查库)
+            // 如果前端没传 avatar，可以在这里通过 socket 获取
+            if (!savedMsg.sender_name) savedMsg.sender_name = socket.username;
+
+            // 2. Redis 极速广播 (不等待写库)
+            await redis.publish('chat_messages', JSON.stringify(savedMsg));
+            
+            // 更新最后一条消息预览
+            const preview = {
+                content: type === 'text' ? content : (type === 'image' ? '[图片]' : '[文件]'),
+                time: savedMsg.created_at,
+                sender: savedMsg.sender_name
+            };
+            await redis.set(`chat:group:${targetId}:last_msg`, JSON.stringify(preview), 'EX', 86400 * 7);
+
+            // 维护最近消息历史缓存 (List)
+            const historyKey = `chat:group:${targetId}:recent_messages`;
+            await redis.lpush(historyKey, JSON.stringify(savedMsg));
+            await redis.ltrim(historyKey, 0, 99);
+            await redis.expire(historyKey, 86400 * 3);
+
+        } catch (err) {
+            console.error('Chat Send Error:', err);
+            socket.emit('error', { message: '消息发送失败' });
+        }
+    });
+
     socket.on('disconnect', async (reason) => {
-      console.log(`❌ [WebSocket] 用户 ${socket.username} 已断开连接 (原因: ${reason})`)
-
+      console.log(`❌ [WebSocket] 用户 ${socket.username} 已断开: ${reason}`)
       const connections = userConnections.get(userId)
       if (connections) {
         connections.delete(socket.id)
         if (connections.size === 0) {
           userConnections.delete(userId)
-          // 3. 从 Redis 移除在线状态
           if (redis) {
             await redis.srem('online_users', userId);
+            console.log(`📡 [Redis] 下线移除成功: ${userId}`);
           }
         }
       }
-
-      // 再次广播全系统在线人数
-      const currentOnlineCount = redis ? await redis.scard('online_users') : userConnections.size;
-      io.emit('online_users_count', {
-        count: currentOnlineCount
-      })
-    })
-
-    // 错误处理
-    socket.on('error', (error) => {
-      console.error(`❌ [WebSocket] Socket错误 (用户: ${socket.username}):`, error)
     })
   })
 
-  console.log('🔌 [WebSocket] 服务器已启动')
   return io
 }
 
-/**
- * 发送通知给指定用户
- * @param {SocketIO.Server} io - Socket.IO服务器实例
- * @param {number} userId - 用户ID
- * @param {object} notification - 通知对象
- */
 function sendNotificationToUser(io, userId, notification) {
-  io.to(`user_${userId}`).emit('new_notification', notification)
-  console.log(`📨 [WebSocket] 通知已发送给用户 ${userId}:`, notification.title)
+  if (io.redis) {
+      io.redis.publish('system_notifications', JSON.stringify({ ...notification, userId }));
+  } else {
+      io.to(`user_${userId}`).emit('new_notification', notification)
+  }
 }
 
-/**
- * 发送备忘录给指定用户
- * @param {SocketIO.Server} io - Socket.IO服务器实例
- * @param {number} userId - 用户ID
- * @param {object} memo - 备忘录对象
- */
-function sendMemoToUser(io, userId, memo) {
-  io.to(`user_${userId}`).emit('new_memo', memo)
-  console.log(`📝 [WebSocket] 备忘录已发送给用户 ${userId}:`, memo.title)
-}
-
-/**
- * 批量发送通知
- * @param {SocketIO.Server} io - Socket.IO服务器实例
- * @param {number[]} userIds - 用户ID数组
- * @param {object} notification - 通知对象
- */
 function broadcastNotification(io, userIds, notification) {
-  userIds.forEach(userId => {
-    sendNotificationToUser(io, userId, notification)
-  })
-  console.log(`📢 [WebSocket] 广播通知已发送给 ${userIds.length} 个用户`)
+  userIds.forEach(userId => sendNotificationToUser(io, userId, notification));
 }
 
-/**
- * 发送广播消息
- * @param {SocketIO.Server} io - Socket.IO服务器实例
- * @param {number[]} userIds - 用户ID数组
- * @param {object} broadcast - 广播对象
- */
 function sendBroadcast(io, userIds, broadcast) {
   userIds.forEach(userId => {
-    io.to(`user_${userId}`).emit('new_broadcast', broadcast)
-  })
-  console.log(`📣 [WebSocket] 系统广播已发送给 ${userIds.length} 个用户`)
+    if (io.redis) {
+        io.redis.publish('system_notifications', JSON.stringify({ ...broadcast, userId, type: 'broadcast' }));
+    } else {
+        io.to(`user_${userId}`).emit('new_broadcast', broadcast)
+    }
+  });
+}
+
+function sendMemoToUser(io, userId, memo) {
+  if (io.redis) {
+      io.redis.publish('system_notifications', JSON.stringify({ ...memo, userId, type: 'memo' }));
+  } else {
+      io.to(`user_${userId}`).emit('new_memo', memo)
+  }
 }
 
 /**
- * 获取在线用户数 (跨进程)
- * @returns {Promise<number>} 在线用户数
+ * 强制断开用户的所有Socket连接
  */
+function forceDisconnectUser(io, userId) {
+  const socketIds = userConnections.get(String(userId));
+  if (socketIds) {
+    socketIds.forEach(sid => {
+      const socket = io.sockets.sockets.get(sid);
+      if (socket) {
+        socket.emit('kicked_out', { message: '您的账号已被停用或删除' });
+        socket.disconnect(true);
+      }
+    });
+    userConnections.delete(String(userId));
+    console.log(`🚨 [WebSocket] 已强制切断用户 ${userId} 的所有连接`);
+  }
+}
+
 async function getOnlineUserCount(io) {
-  if (io.redis) {
-    return await io.redis.scard('online_users');
-  }
-  return userConnections.size
+  if (io.redis) return await io.redis.scard('online_users');
+  return userConnections.size;
 }
 
-/**
- * 检查用户是否在线 (跨进程)
- * @param {object} io - io 实例
- * @param {number} userId - 用户ID
- * @returns {Promise<boolean>} 是否在线
- */
-async function isUserOnline(io, userId) {
-  if (io.redis) {
-    return await io.redis.sismember('online_users', userId) === 1;
-  }
-  return userConnections.has(userId)
-}
-
-/**
- * 获取所有在线用户ID (跨进程)
- * @returns {Promise<number[]>} 在线用户ID数组
- */
-async function getOnlineUserIds(io) {
-  if (io.redis) {
-    const ids = await io.redis.smembers('online_users');
-    return ids.map(id => parseInt(id));
-  }
-  return Array.from(userConnections.keys())
-}
-
-module.exports = {
-  setupWebSocket,
-  sendNotificationToUser,
+module.exports = { 
+  setupWebSocket, 
+  sendNotificationToUser, 
+  broadcastNotification, 
+  sendBroadcast, 
   sendMemoToUser,
-  broadcastNotification,
-  sendBroadcast,
   getOnlineUserCount,
-  isUserOnline,
-  getOnlineUserIds
+  forceDisconnectUser
 }

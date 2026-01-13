@@ -1,0 +1,73 @@
+// 创建员工变动记录
+fastify.post('/api/employee-changes/create', async (request, reply) => {
+  const {
+    employee_id,
+    user_id,
+    change_type,
+    change_date,
+    old_department_id,
+    new_department_id,
+    old_position,
+    new_position,
+    reason
+  } = request.body;
+
+  try {
+    if (!employee_id || !user_id || !change_type || !change_date) {
+      return reply.code(400).send({ error: '缺少必填字段' });
+    }
+
+    // 1. 自动获取当前的 position_id 作为旧职位 ID
+    const [currentEmp] = await pool.query(
+      'SELECT position_id, department_id FROM employees WHERE id = ?',
+      [employee_id]
+    );
+    
+    const oldPosId = currentEmp[0]?.position_id || null;
+    const oldDeptId = old_department_id || currentEmp[0]?.department_id || null;
+
+    // 2. 如果传了新职位名称，尝试获取其 ID
+    let newPosId = null;
+    if (new_position) {
+      const [posRows] = await pool.query('SELECT id FROM positions WHERE name = ?', [new_position]);
+      if (posRows.length > 0) newPosId = posRows[0].id;
+    }
+
+    const formattedChangeDate = change_date.split('T')[0];
+
+    // 3. 写入数据库，包含您要求的 ID 字段
+    const [result] = await pool.query(
+      `INSERT INTO employee_changes
+      (employee_id, user_id, change_type, change_date, 
+       old_department_id, new_department_id, 
+       old_position, new_position, 
+       old_position_id, new_position_id, reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        employee_id,
+        user_id,
+        change_type,
+        formattedChangeDate,
+        oldDeptId,
+        new_department_id || oldDeptId,
+        old_position || null,
+        new_position || null,
+        oldPosId,
+        newPosId,
+        reason || null
+      ]
+    );
+
+    // 🔴 关键修复：清除员工列表 Redis 缓存
+    const redis = fastify.redis;
+    if (redis) {
+      const keys = await redis.keys('list:employees:default:*');
+      if (keys.length > 0) await redis.del(...keys);
+    }
+
+    return { success: true, id: result.insertId };
+  } catch (error) {
+    console.error('❌ 创建变动记录失败:', error);
+    return reply.code(500).send({ error: '创建变动记录失败', message: error.message });
+  }
+});

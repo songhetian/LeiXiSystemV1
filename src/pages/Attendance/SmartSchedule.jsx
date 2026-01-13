@@ -2,11 +2,7 @@
  * 真正意义的智能排班 (算法驱动)
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  Card, Row, Col, Select, DatePicker, Button, Table, Tag, 
-  Space, Modal, Typography, Empty, Badge, Tooltip, Alert, 
-  InputNumber, Divider, Progress, Steps, Result
-} from 'antd';
+import { Card, Row, Col, Select, DatePicker, Button, Table, Tag, Space, Modal, Typography, Empty, Badge, Tooltip, Alert, InputNumber, Divider, Progress, Steps, Result } from 'antd';
 import { 
   RocketOutlined, 
   PlusOutlined, 

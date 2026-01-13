@@ -138,6 +138,40 @@ module.exports = async function (fastify, opts) {
         await redis.del('metadata:departments:all');
       }
 
+      // --- Auto-Create Chat Group for Department ---
+      try {
+        const deptId = result.insertId;
+        // Find a valid owner (Manager or First User)
+        let ownerId = manager_id;
+        if (!ownerId) {
+            const [firstUser] = await pool.query('SELECT id FROM users ORDER BY id ASC LIMIT 1');
+            if (firstUser.length > 0) ownerId = firstUser[0].id;
+        }
+        
+        if (ownerId) {
+            await pool.query(
+                'INSERT INTO chat_groups (name, owner_id, type, department_id) VALUES (?, ?, ?, ?)',
+                [name, ownerId, 'group', deptId]
+            );
+
+            // Record Operation Log
+            await recordLog(pool, {
+                user_id: 0, // System action
+                username: 'system',
+                real_name: '系统自动',
+                module: 'messaging',
+                action: `自动为新部门 [${name}] 创建聊天群组`,
+                method: 'SYSTEM',
+                url: '/api/departments/create',
+                ip: '127.0.0.1',
+                status: 1
+            });
+        }
+      } catch (groupErr) {
+          console.error('Failed to auto-create group for department:', groupErr);
+          // Don't fail the request, just log it.
+      }
+
       return {
         success: true,
         message: '部门创建成功',
@@ -183,6 +217,13 @@ module.exports = async function (fastify, opts) {
         ]
       )
 
+      // --- Sync Name to Chat Group ---
+      try {
+          await pool.query('UPDATE chat_groups SET name = ? WHERE department_id = ?', [name, id]);
+      } catch (syncErr) {
+          console.error('Failed to sync group name:', syncErr);
+      }
+
       // 清理缓存
       if (redis) {
         await redis.del('metadata:departments:all');
@@ -221,6 +262,13 @@ module.exports = async function (fastify, opts) {
       }
 
       await pool.query('DELETE FROM departments WHERE id = ?', [id])
+
+      // --- Sync Delete Chat Group ---
+      try {
+          await pool.query('DELETE FROM chat_groups WHERE department_id = ?', [id]);
+      } catch (syncErr) {
+          console.error('Failed to delete department chat group:', syncErr);
+      }
 
       // 清理缓存
       if (redis) {

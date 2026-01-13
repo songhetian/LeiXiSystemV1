@@ -26,27 +26,6 @@ async function userManagementRoutes(fastify, options) {
     }
   })
 
-  // 更新用户是否为部门主管
-  fastify.put('/api/users/:userId/department-manager', {
-    preHandler: requirePermission('user:employee:manage')
-  }, async (request, reply) => {
-    const { userId } = request.params
-    const { isDepartmentManager } = request.body
-
-    try {
-      // 执行更新
-      await pool.query(
-        'UPDATE users SET is_department_manager = ? WHERE id = ?',
-        [isDepartmentManager ? 1 : 0, userId]
-      )
-
-      return { success: true, message: '更新成功' }
-    } catch (error) {
-      console.error('更新部门主管标识失败:', error)
-      return reply.code(500).send({ success: false, message: '更新失败' })
-    }
-  })
-
   // 获取用户的审批人
   fastify.get('/api/users/:userId/approver', async (request, reply) => {
     const { userId } = request.params
@@ -250,10 +229,11 @@ async function userManagementRoutes(fastify, options) {
         ]
       )
 
-      // Redis 同步：清理个人资料缓存和通用权限缓存
+      // Redis 同步：清理个人资料缓存、通用权限缓存和审计身份缓存
       if (redis) {
         await redis.del(`user:profile:${userId}`);
         await redis.del(`user:permissions:${userId}`);
+        await redis.del(`user:identity:${userId}`);
       }
 
       return { success: true, message: '个人资料更新成功' }

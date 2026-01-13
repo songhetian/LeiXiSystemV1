@@ -17,6 +17,7 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('查看角色', 'system:role:view', 'role', 'view', 'system', '查看角色列表'),
 ('管理角色', 'system:role:manage', 'role', 'manage', 'system', '新增、编辑、删除角色及配置权限'),
 ('查看日志', 'system:log:view', 'log', 'view', 'system', '查看系统操作日志'),
+('流程设置', 'system:workflow:manage', 'workflow', 'manage', 'system', '配置资产、报销、请假等业务的审批流程'),
 
 -- ============================================================
 -- 员工管理 (User)
@@ -41,6 +42,8 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 -- ============================================================
 ('查看广播', 'messaging:broadcast:view', 'broadcast', 'view', 'messaging', '查看系统广播'),
 ('发布广播', 'messaging:broadcast:manage', 'broadcast', 'manage', 'messaging', '发布、管理系统广播'),
+('使用聊天', 'messaging:chat:use', 'chat', 'use', 'messaging', '使用即时通讯系统进行单聊和群聊'),
+('管理群组', 'messaging:chat:manage', 'group', 'manage', 'messaging', '创建和管理群组'),
 ('通知设置', 'messaging:config:manage', 'config', 'manage', 'messaging', '配置系统通知规则'),
 
 -- ============================================================
@@ -51,6 +54,16 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 ('考勤设置', 'attendance:config:manage', 'config', 'manage', 'attendance', '修改考勤规则、班次、排班'),
 ('考勤审批', 'attendance:approval:manage', 'approval', 'manage', 'attendance', '审批请假、加班、补卡申请'),
 ('排班管理', 'attendance:schedule:manage', 'schedule', 'manage', 'attendance', '管理员工排班'),
+
+-- ============================================================
+-- 资产与库存管理 (Finance & Assets)
+-- ============================================================
+('查看资产', 'finance:asset:view', 'asset', 'view', 'finance', '查看固定资产列表'),
+('管理资产', 'finance:asset:manage', 'asset', 'manage', 'finance', '新增、编辑、分配、报废资产'),
+('审批资产申请', 'finance:asset:audit', 'asset_request', 'audit', 'finance', '审核员工提交的设备升级或报修申请'),
+('资产配置管理', 'finance:asset:config', 'asset_config', 'manage', 'finance', '管理业务分类、配件类型及设备型号模版'),
+('采购管理', 'finance:procurement:manage', 'inventory', 'procure', 'finance', '创建采购单、录入物品'),
+('库存盘点', 'finance:inventory:audit', 'inventory', 'audit', 'finance', '进行库存盘点和修正'),
 
 -- ============================================================
 -- 假期管理 (Vacation)
@@ -101,10 +114,13 @@ INSERT INTO permissions (name, code, resource, action, module, description) VALU
 -- ============================================================
 -- 个人中心 (Personal)
 -- ============================================================
-('待办中心', 'personal:todo:view', 'todo', 'view', 'personal', '查看并处理个人待办任务');
+('待办中心', 'personal:todo:view', 'todo', 'view', 'personal', '查看并处理个人待办任务'),
+('查看我的资产', 'personal:asset:view', 'asset', 'view', 'personal', '查看分配给自己的资产设备'),
+('申请设备升级', 'personal:asset:upgrade', 'asset', 'upgrade', 'personal', '提交设备配置升级或维修申请');
 
 -- 3. 确保基础角色存在
 INSERT IGNORE INTO roles (name, description, level, is_system) VALUES
+('超级管理员', '系统最高权限管理员', 100, 1),
 ('普通员工', '系统默认基础角色，拥有基本查看权限', 1, 1);
 
 -- 4. 为【超级管理员】分配所有权限
@@ -123,12 +139,18 @@ JOIN permissions p ON p.code IN (
     'org:department:view',
     'org:position:view',
     'messaging:broadcast:view',
+    'messaging:chat:use',
+    'messaging:chat:manage',
     'attendance:record:view',
     'vacation:record:view',
     'knowledge:article:view',
     'assessment:plan:view',
     'user:profile:update',
-    'payroll:payslip:view'
+    'payroll:payslip:view',
+    'finance:asset:view',
+    'finance:procurement:manage',
+    'personal:asset:view',
+    'personal:asset:upgrade'
 )
 WHERE r.name = '普通员工';
 
@@ -147,7 +169,9 @@ SELECT
         (SELECT id FROM permissions WHERE code = 'assessment:plan:view'),
         (SELECT id FROM permissions WHERE code = 'assessment:result:view'),
         (SELECT id FROM permissions WHERE code = 'user:profile:update'),
-        (SELECT id FROM permissions WHERE code = 'user:memo:manage')
+        (SELECT id FROM permissions WHERE code = 'user:memo:manage'),
+        (SELECT id FROM permissions WHERE code = 'personal:asset:view'),
+        (SELECT id FROM permissions WHERE code = 'personal:asset:upgrade')
     )
 WHERE NOT EXISTS (SELECT 1 FROM permission_templates WHERE name = '员工基础权限');
 

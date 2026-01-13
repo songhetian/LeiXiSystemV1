@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ChartTitle, Tooltip, Legend);
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 

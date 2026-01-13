@@ -32,6 +32,7 @@ import {
   SettingOutlined,
   RightOutlined,
   ShopOutlined,
+  ShoppingCartOutlined,
   CloseCircleOutlined,
   TagsOutlined,
   SoundOutlined,
@@ -531,6 +532,8 @@ const allMenuItems = [
           { id: 'notification-settings', label: '通知设置', icon: <BellOutlined />, permission: 'messaging:config:manage' },
         ]
       },
+      { id: 'messaging-chat', label: '即时通讯', icon: <MessageOutlined />, permission: 'messaging:chat:use' },
+      { id: 'messaging-group-management', label: '群组管理', icon: <TeamOutlined />, permission: 'messaging:chat:manage' },
       { id: 'employee-memos', label: '部门备忘录', icon: <BellOutlined />, permission: 'user:memo:manage' },
     ]
   },
@@ -787,6 +790,44 @@ const allMenuItems = [
     ],
   },
   {
+    id: 'finance',
+    label: '财务管理',
+    icon: <DatabaseOutlined />,
+    permission: 'reimbursement:record:view',
+    children: [
+      {
+        id: 'finance-reimbursement',
+        label: '财务报销',
+        icon: <FileTextOutlined />,
+        permission: 'reimbursement:apply:approve',
+        children: [
+            { id: 'reimbursement-approval', label: '报销审批', icon: <CheckCircleOutlined />, permission: 'reimbursement:apply:approve' },
+            { id: 'reimbursement-settings', label: '报销设置', icon: <SettingOutlined />, permission: 'reimbursement:config:settings' },
+        ]
+      },
+      { id: 'system-workflow', label: '流程设置', icon: <SyncOutlined />, permission: 'system:workflow:manage' }
+    ]
+  },
+  {
+    id: 'logistics',
+    label: '后勤管理',
+    icon: <ShopOutlined />,
+    permission: 'finance:asset:view',
+    children: [
+      {
+        id: 'logistics-devices',
+        label: '设备管理',
+        icon: <DesktopOutlined />,
+        children: [
+            { id: 'logistics-device-mgmt', label: '设备管理', icon: <DesktopOutlined />, permission: 'finance:asset:manage' },
+            { id: 'logistics-device-list', label: '实机明细', icon: <FileSearchOutlined />, permission: 'finance:asset:manage' },
+            { id: 'asset-request-audit', label: '申请审批', icon: <CheckCircleOutlined />, permission: 'finance:asset:audit' },
+            { id: 'inventory-management', label: '库存管理', icon: <ShoppingCartOutlined />, permission: 'finance:procurement:manage' },
+        ]
+      }
+    ]
+  },
+  {
     id: 'personal',
     label: '个人中心',
     icon: <UserOutlined />,
@@ -807,6 +848,7 @@ const allMenuItems = [
           { id: 'my-todo', label: '待办中心', icon: <CheckCircleOutlined /> },
           { id: 'my-schedule', label: '我的排班', icon: <CalendarOutlined /> },
           { id: 'my-notifications', label: '我的通知', icon: <BellOutlined /> },
+          { id: 'my-assets', label: '个人资产', icon: <DesktopOutlined />, permission: 'personal:asset:view' },
           { id: 'my-memos', label: '我的备忘录', icon: <FileTextOutlined /> },
         ]
       },

@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import api from '../../api';
 import Breadcrumb from '../../components/Breadcrumb';
+import RealtimeAttendanceCard from './RealtimeAttendanceCard';
 
 const { Title, Text } = Typography;
 
@@ -106,40 +107,9 @@ const AdminDashboard = () => {
       </Row>
 
       <Row gutter={[24, 24]}>
-        {/* 部门人数分布 - 饼图 */}
+        {/* 部门实时考勤 - 列表与详情 */}
         <Col xs={24} lg={12}>
-          <Card 
-            title={<Space><PieChartOutlined /> 部门人员分布</Space>} 
-            bordered={false} 
-            style={{ borderRadius: 16, height: '400px' }}
-          >
-            <div style={{ width: '100%', height: 300 }}>
-              {data?.charts?.deptDistribution?.length > 0 ? (
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={data?.charts?.deptDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {data?.charts?.deptDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" height={36}/>
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <Empty description="暂无部门人员数据" style={{ marginTop: 60 }} />
-              )}
-            </div>
-          </Card>
+          <RealtimeAttendanceCard />
         </Col>
 
         {/* 报销费用分布 - 柱状图 */}

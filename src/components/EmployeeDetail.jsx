@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { formatDate } from '../utils/date'
-import Modal from './Modal'
-import { getApiUrl } from '../utils/apiConfig'
-import { getImageUrl } from '../utils/fileUtils'
+import { Drawer, Tag, Timeline, Badge, Typography, Avatar, Divider, Space, Skeleton, Empty, Descriptions, Button, Tooltip, Progress, ConfigProvider, theme } from 'antd'
 import { 
   PhoneOutlined, 
   MailOutlined, 
@@ -12,33 +9,39 @@ import {
   AuditOutlined,
   TrophyOutlined,
   IdcardOutlined,
-  EnvironmentOutlined,
   UserOutlined,
-  CheckCircleFilled,
   ClockCircleOutlined,
   SafetyCertificateOutlined,
-  ApartmentOutlined,
+  EditOutlined,
+  NodeIndexOutlined,
+  KeyOutlined,
   GlobalOutlined,
-  InfoCircleOutlined
+  CheckCircleFilled,
+  ExclamationCircleFilled
 } from '@ant-design/icons'
+import { formatDate } from '../utils/date'
+import { getApiUrl } from '../utils/apiConfig'
+import { getImageUrl } from '../utils/fileUtils'
 
-function EmployeeDetail({ employee, isOpen, onClose, departments }) {
+const { Title, Text, Paragraph } = Typography;
+
+function EmployeeDetail({ employee, isOpen, onClose, departments, onAction }) {
   const [employeeChanges, setEmployeeChanges] = useState([])
   const [detailedEmployee, setDetailedEmployee] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   useEffect(() => {
     if (employee && isOpen) {
+      // 立即设置已有基础信息，让用户第一时间看到内容
       setDetailedEmployee(employee)
       fetchFullProfile()
       fetchEmployeeChanges()
-    } else {
-      setDetailedEmployee(null)
-      setEmployeeChanges([])
     }
   }, [employee, isOpen])
 
   const fetchFullProfile = async () => {
+    setProfileLoading(true)
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(getApiUrl(`/api/users/${employee.user_id}/profile`), {
@@ -52,6 +55,8 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
       }
     } catch (error) {
       console.error('获取员工详细信息失败:', error)
+    } finally {
+      setProfileLoading(false)
     }
   }
 
@@ -74,271 +79,238 @@ function EmployeeDetail({ employee, isOpen, onClose, departments }) {
     }
   }
 
-  const calculateDuration = (startDate) => {
-    if (!startDate) return '-'
-    const start = new Date(startDate)
-    const end = new Date()
-    const diffTime = Math.abs(end - start)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    if (diffDays < 365) return `${diffDays}天`
-    return `${(diffDays / 365).toFixed(1)}年`
+  // 计算资料完善度 (示例逻辑)
+  const calculateCompleteness = () => {
+    if (!detailedEmployee) return 0;
+    const fields = ['phone', 'email', 'address', 'education', 'skills', 'id_card_front_url', 'emergency_contact'];
+    const filled = fields.filter(f => detailedEmployee[f]).length;
+    return Math.round((filled / fields.length) * 100);
   }
 
-  const getWorkExperience = () => {
-    if (!employeeChanges.length && detailedEmployee?.hire_date) {
-      return [{
-        department: departments.find(d => d.id === detailedEmployee.department_id)?.name || '未归属',
-        position: detailedEmployee.position_name || '岗位待定',
-        startDate: detailedEmployee.hire_date,
-        isCurrent: true,
-        type: 'hire',
-        reason: '初始入职'
-      }]
+  const calculateDurationDays = (startDate) => {
+    if (!startDate) return 0
+    const start = new Date(startDate)
+    const end = new Date()
+    return Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24))
+  }
+
+  const getChangeLabel = (type) => {
+    const config = {
+      hire: { color: 'green', text: '入职' },
+      transfer: { color: 'blue', text: '调岗' },
+      promotion: { color: 'gold', text: '晋升' },
+      resign: { color: 'red', text: '离职' },
+      terminate: { color: 'red', text: '解聘' }
     }
-    return [...employeeChanges].sort((a, b) => new Date(b.change_date) - new Date(a.change_date))
+    return config[type] || { color: 'default', text: type }
   }
 
   if (!employee) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="xlarge" noPadding={true}>
-      <div className="flex flex-col md:flex-row h-[85vh] bg-white overflow-hidden rounded-2xl">
+    <Drawer
+      title={null}
+      placement="right"
+      onClose={onClose}
+      open={isOpen}
+      width={650}
+      bodyStyle={{ padding: 0, overflowX: 'hidden' }}
+      closable={false}
+    >
+      {/* 极简控制条 */}
+      <div className="absolute top-4 right-4 z-50 flex gap-2">
+        <Tooltip title="编辑此员工">
+          <Button shape="circle" icon={<EditOutlined />} onClick={() => onAction?.('edit', detailedEmployee)} />
+        </Tooltip>
+        <Button shape="circle" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>} onClick={onClose} />
+      </div>
+
+      {/* 头部：身份卡片 */}
+      <div className="bg-slate-950 p-10 pt-12 relative overflow-hidden">
+        <div className="absolute top-[-10%] right-[-5%] w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-64 h-64 bg-indigo-600/10 rounded-full blur-[80px]"></div>
         
-        {/* 左侧：个人信息概览区 (Light Gray Sidebar) */}
-        <div className="w-full md:w-85 bg-slate-50 border-r border-slate-100 flex flex-col shrink-0">
-          {/* 头像名片 */}
-          <div className="p-8 pb-4">
-            <div className="relative mb-6">
-              <div className="w-36 h-36 mx-auto rounded-3xl bg-white p-1.5 shadow-xl shadow-slate-200/50 border border-slate-100 transition-all hover:scale-[1.02]">
-                <div className="w-full h-full rounded-2xl bg-slate-50 flex items-center justify-center text-5xl font-bold overflow-hidden">
-                  {detailedEmployee?.avatar ? (
-                    <img src={getImageUrl(detailedEmployee.avatar)} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <UserOutlined className="text-slate-300" />
-                  )}
-                </div>
-              </div>
-              <div className="absolute bottom-1 right-12 bg-white p-1 rounded-full shadow-md">
-                <div className={`w-4 h-4 rounded-full border-2 border-white ${detailedEmployee?.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">{detailedEmployee?.real_name}</h2>
-              <div className="mt-2 inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold border border-blue-100">
-                {detailedEmployee?.position_name || '待定岗位'}
-              </div>
-            </div>
+        <div className="flex items-start gap-8 relative z-10">
+          <div className="relative group">
+            <Badge 
+              dot 
+              offset={[-15, 115]} 
+              status={detailedEmployee?.status === 'active' ? 'success' : 'default'}
+              style={{ width: 20, height: 20, border: '4px solid #020617' }}
+            >
+              <Avatar 
+                size={130} 
+                src={detailedEmployee?.avatar ? getImageUrl(detailedEmployee.avatar) : null}
+                icon={<UserOutlined />}
+                className="border-4 border-white/5 shadow-2xl rounded-[2.5rem] bg-slate-900 transition-transform group-hover:scale-105 duration-500"
+              />
+            </Badge>
           </div>
 
-          {/* 核心指标统计 */}
-          <div className="px-8 py-6 grid grid-cols-2 gap-4 border-y border-slate-200/60 my-2">
-            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
-              <span className="text-lg font-black text-slate-800">{calculateDuration(detailedEmployee?.hire_date)}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase">在职时长</span>
+          <div className="flex-1 min-w-0 pt-2">
+            <Space align="center" size="middle" className="mb-2">
+              <Title level={2} style={{ margin: 0, color: 'white', letterSpacing: '-0.02em' }}>{detailedEmployee?.real_name}</Title>
+              {detailedEmployee?.is_department_manager === 1 && (
+                <Tag color="#EAB308" className="m-0 border-none px-3 rounded-full font-black text-[10px] text-slate-950 uppercase tracking-wider">Manager</Tag>
+              )}
+            </Space>
+            
+            <div className="flex flex-wrap gap-y-2 items-center text-slate-400 text-sm font-medium">
+              <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[11px] font-bold border border-blue-500/20">#{detailedEmployee?.employee_no}</span>
+              <span className="mx-3 opacity-20">|</span>
+              <span>{detailedEmployee?.department_name}</span>
+              <span className="mx-3 opacity-20">|</span>
+              <span>{detailedEmployee?.position_name || '待定岗位'}</span>
             </div>
-            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-1">
-                <span className="text-lg font-black text-slate-800">{detailedEmployee?.rating || 3}</span>
-                <TrophyOutlined className="text-amber-400 text-xs" />
-              </div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase">综合评分</span>
-            </div>
-          </div>
 
-          {/* 联系方式与个人信息 */}
-          <div className="flex-1 px-8 py-4 space-y-6 overflow-y-auto scrollbar-hide">
-            <section>
-              <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-                <InfoCircleOutlined className="text-blue-500" /> 联系与地址
-              </h4>
-              <div className="space-y-4">
-                <ContactItem icon={<PhoneOutlined />} label="手机" value={detailedEmployee?.phone} color="blue" />
-                <ContactItem icon={<MailOutlined />} label="邮箱" value={detailedEmployee?.email} color="purple" />
-                <ContactItem icon={<HomeOutlined />} label="地址" value={detailedEmployee?.address} color="emerald" isAddress={true} />
-              </div>
-            </section>
-
-            <section>
-              <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-                <IdcardOutlined className="text-blue-500" /> 证件资料
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <IDCardPreview url={detailedEmployee?.id_card_front_url} label="正面" />
-                <IDCardPreview url={detailedEmployee?.id_card_back_url} label="反面" />
-              </div>
-            </section>
-          </div>
-        </div>
-
-        {/* 右侧：详细内容区 (Clean White) */}
-        <div className="flex-1 flex flex-col bg-white">
-          {/* Header */}
-          <div className="px-10 py-6 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                <SolutionOutlined className="text-xl" />
+            <div className="mt-8 grid grid-cols-3 gap-6">
+              <div>
+                <div className="text-white text-xl font-black">{calculateDurationDays(detailedEmployee?.hire_date)}<span className="text-[10px] ml-1 opacity-40">DAYS</span></div>
+                <div className="text-slate-500 text-[9px] font-black uppercase tracking-tighter mt-1">在职天数</div>
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-800">员工档案全景</h3>
-                <p className="text-xs text-slate-400 font-medium">Employee Professional Profile</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full transition-all text-slate-400">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-10 space-y-12">
-            {/* 核心档案块 */}
-            <section>
-              <SectionHeader icon={<SafetyCertificateOutlined />} title="核心档案" />
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
-                <ProfileItem label="员工编号" value={detailedEmployee?.employee_no} subValue="Employee ID" />
-                <ProfileItem label="所属部门" value={departments.find(d => d.id === detailedEmployee?.department_id)?.name} subValue="Department" />
-                <ProfileItem label="入职日期" value={detailedEmployee?.hire_date ? formatDate(detailedEmployee.hire_date) : '-'} subValue="Join Date" />
-                <ProfileItem label="最高学历" value={detailedEmployee?.education} subValue="Education" />
-                <ProfileItem label="系统账号" value={detailedEmployee?.username} subValue="System Account" />
-                <ProfileItem label="紧急联系人" value={detailedEmployee?.emergency_contact ? `${detailedEmployee.emergency_contact} (${detailedEmployee.emergency_phone})` : '-'} subValue="Emergency" />
-              </div>
-            </section>
-
-            {/* 成长轨迹时间轴 */}
-            <section>
-              <SectionHeader icon={<ClockCircleOutlined />} title="成长足迹" />
-              <div className="relative pl-10">
-                <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-100"></div>
-                <div className="space-y-10">
-                  {getWorkExperience().map((item, idx) => (
-                    <TimelineItem key={idx} item={item} isFirst={idx === 0} />
-                  ))}
+                <div className="text-white text-xl font-black flex items-center gap-1.5">
+                  {detailedEmployee?.rating || 3}
+                  <TrophyOutlined className="text-amber-500 text-sm" />
                 </div>
+                <div className="text-slate-500 text-[9px] font-black uppercase tracking-tighter mt-1">绩效评级</div>
               </div>
-            </section>
-
-            {/* 综合评价与备注 */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              <CommentCard title="技能专长" content={detailedEmployee?.skills} icon={<TrophyOutlined />} color="blue" />
-              <CommentCard title="管理备注" content={detailedEmployee?.remark} icon={<AuditOutlined />} color="slate" />
+              <div>
+                <Progress 
+                  percent={calculateCompleteness()} 
+                  size={[60, 8]} 
+                  strokeColor={{ '0%': '#3b82f6', '100%': '#8b5cf6' }} 
+                  trailColor="rgba(255,255,255,0.05)"
+                  format={() => null}
+                />
+                <div className="text-slate-500 text-[9px] font-black uppercase tracking-tighter mt-1">资料完善度 {calculateCompleteness()}%</div>
+              </div>
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="px-10 py-6 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-4 shrink-0">
-            <button 
-              onClick={onClose} 
-              className="px-12 py-3 bg-slate-900 text-white text-sm font-black rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:shadow-slate-300 active:scale-95"
-            >
-              完成查阅
-            </button>
           </div>
         </div>
-
-        {/* 加载中动画 */}
-        {loading && !detailedEmployee && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-50">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <div className="text-blue-600 text-xs font-black tracking-[0.4em] uppercase animate-pulse">Archiving Data...</div>
-          </div>
-        )}
       </div>
-    </Modal>
+
+      {/* 主体内容 */}
+      <div className="p-10 space-y-12">
+        {/* 快捷操作卡片 */}
+        <div className="flex gap-3">
+           <Button block icon={<EditOutlined />} onClick={() => onAction?.('edit', detailedEmployee)}>编辑档案</Button>
+           <Button block icon={<KeyOutlined />} onClick={() => onAction?.('resetPassword', detailedEmployee)}>重置密码</Button>
+           <Button block icon={<NodeIndexOutlined />} onClick={() => onAction?.('permission', detailedEmployee)}>分配角色</Button>
+        </div>
+
+        {/* 联络与档案 */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">
+              <GlobalOutlined className="text-blue-500" /> 核心档案明细
+            </div>
+            {profileLoading && <Skeleton.Button active size="small" />}
+          </div>
+
+          <div className="bg-slate-50 rounded-3xl border border-slate-100 p-8">
+            {profileLoading ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <Descriptions column={2} colon={false} labelStyle={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold' }} contentStyle={{ color: '#1e293b', fontWeight: 'bold' }}>
+                <Descriptions.Item label="手机号码" span={1}><PhoneOutlined className="mr-2 text-blue-500" />{detailedEmployee?.phone || '-'}</Descriptions.Item>
+                <Descriptions.Item label="入职日期" span={1}><CalendarOutlined className="mr-2 text-emerald-500" />{formatDate(detailedEmployee?.hire_date)}</Descriptions.Item>
+                <Descriptions.Item label="电子邮箱" span={2}><MailOutlined className="mr-2 text-purple-500" />{detailedEmployee?.email || '-'}</Descriptions.Item>
+                <Descriptions.Item label="最高学历" span={1}>{detailedEmployee?.education || '-'}</Descriptions.Item>
+                <Descriptions.Item label="登录账号" span={1}>{detailedEmployee?.username}</Descriptions.Item>
+                <Descriptions.Item label="居住地址" span={2}><HomeOutlined className="mr-2 text-slate-400" />{detailedEmployee?.address || '-'}</Descriptions.Item>
+                <Descriptions.Item label="紧急联系人" span={2}>
+                  <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-slate-200">
+                    <Text strong className="text-xs">{detailedEmployee?.emergency_contact || '未填写'}</Text>
+                    <Divider type="vertical" />
+                    <Text className="text-xs text-slate-500">{detailedEmployee?.emergency_phone || '-'}</Text>
+                  </div>
+                </Descriptions.Item>
+              </Descriptions>
+            )}
+          </div>
+          
+          {/* 证件预览 */}
+          <div className="mt-6 flex gap-4">
+             <div className="flex-1 flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 hover:border-blue-400 transition-all cursor-pointer group" onClick={() => detailedEmployee?.id_card_front_url && window.open(getImageUrl(detailedEmployee.id_card_front_url))}>
+                <IdcardOutlined className="text-2xl text-slate-300 group-hover:text-blue-500 mb-2" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Card Front</span>
+             </div>
+             <div className="flex-1 flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 hover:border-blue-400 transition-all cursor-pointer group" onClick={() => detailedEmployee?.id_card_back_url && window.open(getImageUrl(detailedEmployee.id_card_back_url))}>
+                <IdcardOutlined className="text-2xl text-slate-300 group-hover:text-blue-500 mb-2" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Card Back</span>
+             </div>
+          </div>
+        </section>
+
+        {/* 职业成长轨迹 - 从变动记录中读取 */}
+        <section>
+          <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-10">
+            <ClockCircleOutlined className="text-indigo-500" /> 职业成长轨迹 / Career Path
+          </div>
+          
+          {loading ? (
+            <div className="px-4"><Skeleton active /></div>
+          ) : employeeChanges.length > 0 ? (
+            <div className="px-6">
+              <Timeline 
+                mode="left"
+                items={employeeChanges.map((change, idx) => ({
+                  color: getChangeLabel(change.change_type).color,
+                  label: <span className="text-[10px] font-black text-slate-400">{formatDate(change.change_date)}</span>,
+                  children: (
+                    <div className="mb-10 pl-2">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-black text-slate-800 text-sm leading-none">
+                          {change.new_department_name || '未知部门'} · {change.new_position_name || change.new_position || '未知岗位'}
+                        </span>
+                        <Tag color={getChangeLabel(change.change_type).color} className="m-0 border-none px-2 rounded-md font-bold text-[9px] uppercase">
+                          {getChangeLabel(change.change_type).text}
+                        </Tag>
+                      </div>
+                      <div className="text-xs text-slate-500 bg-slate-50 p-4 rounded-2xl border-l-4 border-slate-200 italic shadow-sm">
+                        “ {change.reason || '无记录备注'} ”
+                      </div>
+                    </div>
+                  )
+                }))}
+              />
+            </div>
+          ) : (
+            <Empty description="暂无历史变动记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </section>
+
+        {/* 评价与标签 */}
+        <section className="pb-16">
+          <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-8">
+            <TrophyOutlined className="text-amber-500" /> 评价与技能 / Feedback
+          </div>
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+              <div className="text-[10px] font-black text-blue-600 uppercase mb-4 flex items-center gap-2">
+                <CheckCircleFilled /> 核心技能特长
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {detailedEmployee?.skills ? detailedEmployee.skills.split(/[,，、\s]+/).map((skill, i) => (
+                  <Tag key={i} className="m-0 bg-blue-50 border-blue-100 text-blue-600 font-bold px-3 py-1 rounded-xl text-xs">{skill}</Tag>
+                )) : <Text type="secondary" italic>尚未定义技能标签</Text>}
+              </div>
+            </div>
+            
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-4 flex items-center gap-2">
+                <ExclamationCircleFilled /> 内部管理备注
+              </div>
+              <Paragraph className="text-sm text-slate-600 m-0 leading-relaxed italic line-clamp-4">
+                {detailedEmployee?.remark || '暂无内部评价备注。'}
+              </Paragraph>
+            </div>
+          </div>
+        </section>
+      </div>
+    </Drawer>
   )
 }
 
-/* --- 内部小组件 (确保样式统一) --- */
-
-const ContactItem = ({ icon, label, value, color, isAddress }) => (
-  <div className="flex items-center gap-4 group">
-    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm transition-colors ${
-      color === 'blue' ? 'bg-blue-100 text-blue-600' : 
-      color === 'purple' ? 'bg-purple-100 text-purple-600' : 
-      'bg-emerald-100 text-emerald-600'
-    }`}>
-      {icon}
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{label}</div>
-      <div className={`text-sm font-bold text-slate-700 truncate ${isAddress ? 'text-xs' : ''}`}>{value || '-'}</div>
-    </div>
-  </div>
-);
-
-const IDCardPreview = ({ url, label }) => (
-  <div 
-    className="group relative aspect-[1.586/1] bg-white rounded-xl overflow-hidden border border-slate-200 cursor-pointer transition-all hover:border-blue-400 hover:shadow-lg"
-    onClick={() => url && window.open(getImageUrl(url), '_blank')}
-  >
-    {url ? (
-      <img src={getImageUrl(url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
-    ) : (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-        <IdcardOutlined className="text-xl mb-1" />
-        <span className="text-[10px] font-bold">未上传</span>
-      </div>
-    )}
-    <div className="absolute top-2 left-2 px-2 py-0.5 bg-slate-900/80 text-white text-[9px] font-black rounded uppercase tracking-tighter">
-      {label}
-    </div>
-  </div>
-);
-
-const SectionHeader = ({ icon, title }) => (
-  <div className="flex items-center gap-3 mb-8">
-    <div className="text-blue-600 text-xl font-bold">{icon}</div>
-    <h4 className="text-lg font-black text-slate-800 tracking-tight">{title}</h4>
-    <div className="h-px bg-slate-100 flex-1 ml-4"></div>
-  </div>
-);
-
-const ProfileItem = ({ label, value, subValue }) => (
-  <div className="group">
-    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{label}</div>
-    <div className="text-sm font-bold text-slate-700 leading-none">{value || '-'}</div>
-    <div className="text-[9px] text-slate-300 mt-1 uppercase font-medium">{subValue}</div>
-  </div>
-);
-
-const TimelineItem = ({ item, isFirst }) => (
-  <div className="relative group">
-    <div className={`absolute -left-[25px] top-1 w-5 h-5 rounded-full border-4 bg-white transition-all duration-300 ${
-      isFirst ? 'border-blue-600 ring-4 ring-blue-100' : 'border-slate-200 group-hover:border-blue-300'
-    }`}></div>
-    <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/20 transition-all duration-300">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <h5 className="text-sm font-black text-slate-800">
-          {item.new_department_name || item.department} <span className="mx-2 text-slate-300">/</span> {item.new_position_name || item.new_position || item.position}
-        </h5>
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-white text-[10px] font-black text-slate-400 rounded-lg border border-slate-100 shadow-sm uppercase tracking-wider">
-            {formatDate(item.change_date || item.startDate)}
-          </span>
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${item.type === 'hire' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-            {item.type === 'hire' ? 'Join' : 'Transfer'}
-          </span>
-        </div>
-      </div>
-      <p className="text-xs text-slate-500 font-medium leading-relaxed border-l-2 border-slate-200 pl-3">
-        {item.reason || '无备注。'}
-      </p>
-    </div>
-  </div>
-);
-
-const CommentCard = ({ title, content, icon, color }) => (
-  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-    <div className={`absolute top-0 right-0 p-6 opacity-[0.03] group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500 ${color === 'blue' ? 'text-blue-900' : 'text-slate-900'}`}>
-      {React.cloneElement(icon, { style: { fontSize: '100px' } })}
-    </div>
-    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-      <span className={`w-2 h-2 rounded-full ${color === 'blue' ? 'bg-blue-500' : 'bg-slate-400'}`}></span> {title}
-    </h4>
-    <p className="text-sm text-slate-600 font-medium leading-relaxed relative z-10">
-      {content || `暂无${title}信息。`}
-    </p>
-  </div>
-);
-
 export default EmployeeDetail
-
-

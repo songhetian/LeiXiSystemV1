@@ -19,50 +19,51 @@ module.exports = async function (fastify, opts) {
 
     try {
       const offset = (page - 1) * limit
-      let query = 'SELECT * FROM operation_logs WHERE 1=1'
+      let query = `
+        SELECT l.*, u.real_name as latest_real_name
+        FROM operation_logs l
+        LEFT JOIN users u ON l.user_id = u.id
+        WHERE 1=1
+      `
       const params = []
 
       if (username) {
-        query += ' AND (username LIKE ? OR real_name LIKE ?)'
-        params.push(`%${username}%`, `%${username}%`)
+        query += ' AND (l.username LIKE ? OR l.real_name LIKE ? OR u.real_name LIKE ?)'
+        params.push(`%${username}%`, `%${username}%`, `%${username}%`)
       }
 
       if (module) {
-        query += ' AND module = ?'
+        query += ' AND l.module = ?'
         params.push(module)
       }
 
       if (status !== undefined && status !== '') {
-        query += ' AND status = ?'
+        query += ' AND l.status = ?'
         params.push(status === 'true' || status === '1' ? 1 : 0)
       }
 
       if (start_date) {
-        query += ' AND created_at >= ?'
+        query += ' AND l.created_at >= ?'
         params.push(start_date + ' 00:00:00')
       }
 
       if (end_date) {
-        query += ' AND created_at <= ?'
+        query += ' AND l.created_at <= ?'
         params.push(end_date + ' 23:59:59')
       }
 
-      query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+      query += ' ORDER BY l.created_at DESC LIMIT ? OFFSET ?'
       params.push(parseInt(limit), offset)
 
       const [logs] = await pool.query(query, params)
 
-      // 获取总数
-      let countQuery = 'SELECT COUNT(*) as total FROM operation_logs WHERE 1=1'
-      const countParams = []
-      // ... 重复上面的筛选逻辑用于计数 (这里为了简洁省略，实际生产环境建议封装)
-      
-      const [countResult] = await pool.query('SELECT COUNT(*) as total FROM operation_logs', [])
+      // 使用简单的计数查询
+      const [[{ total }]] = await pool.query('SELECT COUNT(*) as total FROM operation_logs', [])
 
       return {
         success: true,
         data: logs,
-        total: countResult[0].total
+        total: total
       }
     } catch (error) {
       console.error('获取日志失败:', error)

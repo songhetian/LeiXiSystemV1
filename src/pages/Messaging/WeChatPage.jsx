@@ -1,1021 +1,597 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-  ArrowLeftOutlined,
+  SearchOutlined,
+  PlusOutlined,
+  UserOutlined,
+  TeamOutlined,
   MoreOutlined,
   SmileOutlined,
-  AudioOutlined,
-  PhoneOutlined,
-  VideoCameraOutlined,
   PictureOutlined,
   FileOutlined,
-  CameraOutlined,
-  EnvironmentOutlined,
+  SendOutlined,
+  CloseOutlined,
+  BellOutlined,
+  AudioMutedOutlined
 } from '@ant-design/icons';
+import { message, Modal, Upload, Avatar, Badge, Tooltip, Image, Drawer, List, Dropdown, Mentions } from 'antd';
 import { tokenManager, apiGet, apiPost } from '../../utils/apiClient';
-import "./BroadcastPage.css";
+import { io } from 'socket.io-client';
+
+const { Option } = Mentions;
+
+// Simple Shadcn-like Button Component
+const Button = ({ children, onClick, variant = 'primary', className = '', ...props }) => {
+  const baseStyle = "px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const variants = {
+    primary: "bg-[#07c160] text-white hover:bg-[#06ad56] focus:ring-green-500",
+    secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500",
+    ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
+    destructive: "bg-red-500 text-white hover:bg-red-600"
+  };
+  
+  return (
+    <button 
+      onClick={onClick} 
+      className={`${baseStyle} ${variants[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Input Component
+const Input = ({ className = '', ...props }) => (
+  <input 
+    className={`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    {...props}
+  />
+);
 
 const WeChatPage = () => {
-  // 模式切换状态 - 'broadcast' 广播模式, 'chat' 聊天模式
-  const [mode, setMode] = useState('broadcast');
-
-  // 广播相关状态
-  const [broadcastTitle, setBroadcastTitle] = useState('');
-  const [broadcastContent, setBroadcastContent] = useState('');
-  const [selectedRecipients, setSelectedRecipients] = useState([]);
-  const [searchContact, setSearchContact] = useState('');
-  const [searchType, setSearchType] = useState(''); // 搜索类型：部门/个人/全体
-  const [searchDepartment, setSearchDepartment] = useState(''); // 部门搜索
-
-  // 聊天相关状态
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [messageInput, setMessageInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
-
-  // 控制模态框显示
-  const [showReadByModal, setShowReadByModal] = useState(false);
-  const [currentReadBy, setCurrentReadBy] = useState([]);
-  const [modalTitle, setModalTitle] = useState('');
-
-  // 新增状态用于控制发送成功模态框
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-
-  // 真实数据状态
-  const [viewableDepartments, setViewableDepartments] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // 构建联系人数据
-  const [contacts, setContacts] = useState([]);
-
-  // 已选中的联系人（持久化保存）
-  const [savedRecipients, setSavedRecipients] = useState(() => {
-    const saved = localStorage.getItem('broadcastRecipients');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // 消息历史（从服务器获取的真实数据）
+  // --- State ---
+  const [currentUser, setCurrentUser] = useState(null);
+  const [socket, setSocket] = useState(null);
+  const [contacts, setContacts] = useState([]); // Groups
+  const [activeChat, setActiveChat] = useState(null); 
   const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState('');
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // Group Details
+  const [isMembersDrawerOpen, setIsMembersDrawerOpen] = useState(false);
+  const [currentGroupMembers, setCurrentGroupMembers] = useState([]);
+
+  // Create Group Modal (Admin only)
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]); 
 
   const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const activeChatRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const isAdmin = useMemo(() => {
+    return currentUser?.role === '超级管理员' || currentUser?.role === 'admin';
+  }, [currentUser]);
 
+  // --- Initialization ---
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, chatMessages]);
+    const token = tokenManager.getToken();
+    if (!token) return;
+    
+    const user = tokenManager.parseToken(token);
+    setCurrentUser(user);
 
-  // 保存已选联系人到localStorage
-  useEffect(() => {
-    localStorage.setItem('broadcastRecipients', JSON.stringify(savedRecipients));
-  }, [savedRecipients]);
+    fetchContacts();
 
-  // 获取真实数据
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // 从JWT中获取用户信息和可见部门
-        const token = tokenManager.getToken();
-        const payload = tokenManager.parseToken(token);
+    const socketUrl = window.location.port === '5173' ? 'http://localhost:3001' : window.location.origin;
+    const newSocket = io(socketUrl, {
+      auth: { token },
+      transports: ['websocket']
+    });
 
-        // 获取用户可见的部门IDs
-        const viewableDeptIds = payload?.viewableDepartmentIds || [];
-        console.log('用户可见部门IDs:', viewableDeptIds);
-
-        if (viewableDeptIds.length > 0) {
-          // 获取部门列表 - 使用与BroadcastManagement.jsx相同的方式
-          const deptsResponse = await apiGet('/api/departments');
-          if (Array.isArray(deptsResponse)) {
-            // 过滤出用户可见的部门
-            const filteredDepartments = deptsResponse.filter(dept =>
-              viewableDeptIds.includes(dept.id)
-            );
-            setViewableDepartments(filteredDepartments);
-            console.log('获取到的部门信息:', filteredDepartments);
-          }
-
-          // 获取员工信息 - 使用与BroadcastManagement.jsx相同的方式
-          const employeesResponse = await apiGet('/api/employees');
-          if (Array.isArray(employeesResponse)) {
-            setEmployees(employeesResponse);
-            console.log('获取到的员工信息:', employeesResponse);
-          }
-        } else {
-          // 如果没有可见部门，获取所有部门（这种情况应该很少见）
-          const deptsResponse = await apiGet('/api/departments');
-          if (Array.isArray(deptsResponse)) {
-            setViewableDepartments(deptsResponse); // 显示所有可见部门
-          }
-          // 获取所有员工
-          const employeesResponse = await apiGet('/api/employees');
-          if (Array.isArray(employeesResponse)) {
-            setEmployees(employeesResponse);
-          }
+    newSocket.on('connect', () => console.log('Chat Connected'));
+    
+    // 监听成员更新 (实时刷新)
+    newSocket.on('member_update', (data) => {
+        const currentChat = activeChatRef.current;
+        if (currentChat && data.groupId === currentChat.id) {
+            console.log('👥 群成员发生变动，正在刷新...', data);
+            fetchMembers(data.groupId);
         }
-      } catch (error) {
-        console.error('获取数据失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    });
 
-    fetchData();
+    newSocket.on('receive_message', (msg) => {
+        const currentChat = activeChatRef.current;
+        const myName = currentUser?.real_name || currentUser?.name;
+        const isMentioned = msg.content && myName && msg.content.includes(`@${myName}`);
+
+        if (currentChat && msg.group_id === currentChat.id) {
+             setMessages(prev => [...prev, msg]);
+             apiPost('/api/chat/read', { groupId: currentChat.id, messageId: msg.id });
+             setTimeout(scrollToBottom, 50);
+        } else {
+            setContacts(prev => prev.map(g => {
+                if (g.id === msg.group_id) {
+                    return {
+                        ...g,
+                        unread_count: (g.unread_count || 0) + 1,
+                        has_mention: g.has_mention || isMentioned, // Track mention
+                        last_message: msg.content,
+                        last_message_time: msg.created_at
+                    };
+                }
+                return g;
+            }));
+            
+            if (document.hidden || !currentChat || currentChat.id !== msg.group_id) {
+                showNotification(msg); 
+            }
+        }
+    });
+
+    setSocket(newSocket);
+    return () => newSocket.disconnect();
   }, []);
 
-  // 构建联系人数据
   useEffect(() => {
-    const contactList = [];
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
-    // 添加部门
-    viewableDepartments.forEach(dept => {
-      // 获取该部门的员工数量
-      const deptEmployees = employees.filter(emp => emp.department_id === dept.id);
-      contactList.push({
-        id: dept.id,
-        name: dept.name,
-        type: 'department',
-        avatar: dept.name.substring(0, 1),
-        members: deptEmployees.length,
-        employees: deptEmployees
-      });
-    });
+  // Removed general auto-scroll effect to avoid conflict with load-more position logic
 
-    // 添加个人
-    employees.forEach(emp => {
-      const dept = viewableDepartments.find(d => d.id === emp.department_id);
-      contactList.push({
-        id: emp.id,
-        name: emp.real_name,
-        type: 'individual',
-        avatar: emp.real_name.substring(0, 1),
-        department: dept ? dept.name : ''
-      });
-    });
+  useEffect(() => {
+      if ("Notification" in window && Notification.permission !== "granted") {
+          Notification.requestPermission();
+      }
+  }, []);
 
-    // 添加全体成员
-    const totalMembers = employees.length;
-    if (totalMembers > 0) {
-      contactList.push({
-        id: 999,
-        name: '全体成员',
-        type: 'all',
-        avatar: '全',
-        members: totalMembers,
-        departments: viewableDepartments.map(d => d.name)
-      });
+  // --- Logic ---
+
+  const fetchContacts = async () => {
+    try {
+      const res = await apiGet('/api/chat/contacts');
+      if (res.success) {
+        setContacts(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+      message.error('加载群组失败');
     }
+  };
 
-    setContacts(contactList);
-  }, [viewableDepartments, employees]);
-
-  // 根据搜索类型和关键词过滤联系人
-  const filteredContacts = useMemo(() => {
-    if (!searchType) return [];
-
-    let result = contacts.filter(contact => contact.type === searchType);
-
-    // 如果有搜索关键词，进行过滤
-    if (searchContact.trim()) {
-      result = result.filter(contact =>
-        contact.name.toLowerCase().includes(searchContact.toLowerCase())
-      );
-    }
-
-    // 如果是个人搜索，并且有部门筛选
-    if (searchType === 'individual' && searchDepartment.trim()) {
-      result = result.filter(contact =>
-        contact.department.toLowerCase().includes(searchDepartment.toLowerCase())
-      );
-    }
-
-    return result;
-  }, [contacts, searchContact, searchType, searchDepartment]);
-
-  // 处理发送广播
-  const handleSendBroadcast = async () => {
-    if (!broadcastContent.trim() || selectedRecipients.length === 0) {
-      // 使用模态框显示错误信息
-      setSuccessMessage('请填写广播内容并选择接收人');
-      setShowSuccessModal(true);
-      return;
-    }
+  const fetchHistory = async (chat, beforeId = null) => {
+    if (isLoadingMore) return;
+    
+    const limit = 30;
+    const isInitial = beforeId === null;
+    
+    if (!isInitial) setIsLoadingMore(true);
 
     try {
-      // 构造发送数据
-      let targetType = '';
-      let targetData = null;
+      const url = `/api/chat/history?targetId=${chat.id}&targetType=group&limit=${limit}${beforeId ? `&beforeId=${beforeId}` : ''}`;
+      const res = await apiGet(url);
+      
+      if (res.success) {
+        const newMsgs = res.data;
+        
+        if (isInitial) {
+            setMessages(newMsgs);
+            setHasMore(newMsgs.length === limit);
+            if (newMsgs.length > 0) {
+                const lastMsgId = newMsgs[newMsgs.length - 1].id;
+                apiPost('/api/chat/read', { groupId: chat.id, messageId: lastMsgId });
+            }
+            setTimeout(scrollToBottom, 100);
+        } else {
+            // Loading older messages
+            const container = scrollContainerRef.current;
+            const oldScrollHeight = container.scrollHeight;
+            
+            setMessages(prev => [...newMsgs, ...prev]);
+            setHasMore(newMsgs.length === limit);
+            setIsLoadingMore(false);
 
-      if (selectedRecipients.some(r => r.type === 'all')) {
-        targetType = 'all';
-      } else if (selectedRecipients.some(r => r.type === 'department')) {
-        targetType = 'department';
-        targetData = selectedRecipients.filter(r => r.type === 'department').map(r => r.id);
-      } else {
-        targetType = 'individual';
-        targetData = selectedRecipients.filter(r => r.type === 'individual').map(r => r.id);
+            // After state update and render, restore scroll position
+            setTimeout(() => {
+                if (container) {
+                    container.scrollTop = container.scrollHeight - oldScrollHeight;
+                }
+            }, 0);
+        }
       }
-
-      const payload = {
-        title: broadcastTitle || '广播消息',
-        content: broadcastContent,
-        type: 'info',
-        priority: 'normal',
-        targetType: targetType,
-        [`target${targetType.charAt(0).toUpperCase() + targetType.slice(1)}s`]: JSON.stringify(targetData)
-      };
-
-      // 发送广播
-      const response = await apiPost('/api/broadcasts', payload);
-
-      if (response.success) {
-        // 显示成功消息模态框
-        setSuccessMessage(`广播发送成功！已发送给 ${response.data.recipientCount} 人`);
-        setShowSuccessModal(true);
-
-        // 创建本地消息记录
-        const newMessage = {
-          id: messages.length + 1,
-          type: 'sent',
-          title: broadcastTitle || '广播消息',
-          content: broadcastContent,
-          timestamp: new Date().toLocaleTimeString('zh-CN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          recipients: selectedRecipients.map(r => r.name).join(', '),
-          readCount: 0,
-          totalCount: response.data.recipientCount,
-          avatar: broadcastContent.substring(0, 1),
-          readBy: [] // 初始为空
-        };
-
-        setMessages([...messages, newMessage]);
-
-        // 重置表单
-        setBroadcastTitle('');
-        setBroadcastContent('');
-      } else {
-        // 显示错误消息模态框
-        setSuccessMessage('广播发送失败：' + (response.message || '未知错误'));
-        setShowSuccessModal(true);
-      }
-    } catch (error) {
-      console.error('发送广播失败:', error);
-      // 显示错误消息模态框
-      setSuccessMessage('广播发送失败：' + error.message);
-      setShowSuccessModal(true);
+    } catch (err) {
+      console.error(err);
+      setIsLoadingMore(false);
     }
   };
 
-  // 处理发送聊天消息
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedContact) return;
-
-    const newMessage = {
-      id: chatMessages.length + 1,
-      content: messageInput,
-      timestamp: new Date().toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      sender: 'me', // 当前用户
-      type: 'sent'
-    };
-
-    setChatMessages([...chatMessages, newMessage]);
-    setMessageInput('');
-  };
-
-  // 切换联系人选择（广播模式）
-  const toggleRecipient = (contact) => {
-    setSelectedRecipients(prev => {
-      const isSelected = prev.some(r => r.id === contact.id);
-      if (isSelected) {
-        return prev.filter(r => r.id !== contact.id);
-      } else {
-        return [...prev, contact];
+  const handleScroll = (e) => {
+      const { scrollTop } = e.currentTarget;
+      if (scrollTop === 0 && hasMore && !isLoadingMore && activeChat) {
+          const firstMsgId = messages.length > 0 ? messages[0].id : null;
+          if (firstMsgId) {
+              fetchHistory(activeChat, firstMsgId);
+          }
       }
-    });
   };
 
-  // 选择联系人（聊天模式）
-  const selectContact = (contact) => {
-    setSelectedContact(contact);
-    // 这里可以加载聊天记录
-    setChatMessages([
-      {
-        id: 1,
-        content: `你好，我是${contact.name}`,
-        timestamp: '10:00',
-        sender: contact.name,
-        type: 'received'
+  const fetchMembers = async (groupId) => {
+    try {
+      const res = await apiGet(`/api/chat/groups/${groupId}/members`);
+      if (res.success) {
+        setCurrentGroupMembers(res.data);
       }
-    ]);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // 添加到已保存联系人
-  const addToSavedRecipients = (contact) => {
-    setSavedRecipients(prev => {
-      const isAlreadySaved = prev.some(r => r.id === contact.id);
-      if (!isAlreadySaved) {
-        return [...prev, contact];
+  const toggleMute = async (groupId, currentMute) => {
+      try {
+          const res = await apiPost('/api/chat/mute', { groupId, isMuted: !currentMute });
+          if (res.success) {
+              setContacts(prev => prev.map(c => c.id === groupId ? { ...c, is_muted: !currentMute } : c));
+              if (activeChat?.id === groupId) {
+                  setActiveChat(prev => ({ ...prev, is_muted: !currentMute }));
+              }
+              message.success(!currentMute ? '已开启免打扰' : '已关闭免打扰');
+          }
+      } catch (err) {
+          message.error('操作失败');
       }
-      return prev;
-    });
   };
 
-  // 从已保存联系人中移除
-  const removeFromSavedRecipients = (contactId) => {
-    setSavedRecipients(prev => prev.filter(r => r.id !== contactId));
+  const openCreateGroupModal = async () => {
+      setIsGroupModalOpen(true);
+      try {
+          const res = await apiGet('/api/chat/users');
+          if (res.success) setAllUsers(res.data);
+      } catch (err) { console.error(err); }
   };
 
-  // 显示已读人员名单 - 改为模态框
-  const showReadByList = (readBy, title) => {
-    setCurrentReadBy(readBy);
-    setModalTitle(title);
-    setShowReadByModal(true);
-  };
+  const showNotification = (msg) => {
+      if (!("Notification" in window)) return;
+      const group = contacts.find(c => c.id === msg.group_id);
+      
+      // Check if I am mentioned in the text
+      const myName = currentUser?.real_name || currentUser?.name;
+      const isMentioned = msg.content && myName && msg.content.includes(`@${myName}`);
 
-  // 关闭模态框
-  const closeReadByModal = () => {
-    setShowReadByModal(false);
-    setCurrentReadBy([]);
-    setModalTitle('');
-  };
+      // If muted AND not mentioned, don't show
+      if (group?.is_muted && !isMentioned) return;
 
-  if (loading) {
-    return (
-      <div className="wechat-page" style={{ height: '95vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div>加载中...</div>
-      </div>
-    );
+      if (Notification.permission === "granted") {
+          const title = isMentioned 
+            ? `[有人@你] ${msg.group_name || group?.name || "群聊"}` 
+            : (msg.group_name || group?.name || "新消息");
+
+          new Notification(title, {
+              body: `${msg.sender_name}: ${msg.content}`,
+              icon: '/icons/logo.ico'
+          });
+      }
   }
 
-  return (
-    <div className="wechat-page" style={{ height: '95vh' }}>
-      {/* 模式切换按钮 */}
-      <div style={{
-        padding: '10px 16px',
-        backgroundColor: '#f0f0f0',
-        borderBottom: '1px solid #d9d9d9',
-        display: 'flex',
-        gap: '10px'
-      }}>
-        <button
-          onClick={() => setMode('broadcast')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: mode === 'broadcast' ? '#07c160' : '#e0e0e0',
-            color: mode === 'broadcast' ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: mode === 'broadcast' ? 'bold' : 'normal'
-          }}
-        >
-          广播模式
-        </button>
-        <button
-          onClick={() => setMode('chat')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: mode === 'chat' ? '#07c160' : '#e0e0e0',
-            color: mode === 'chat' ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: mode === 'chat' ? 'bold' : 'normal'
-          }}
-        >
-          聊天模式
-        </button>
+  const selectChat = (item) => {
+    setActiveChat({ ...item, type: 'group' });
+    // Clear unread and mentions
+    setContacts(prev => prev.map(c => 
+        c.id === item.id ? { ...c, unread_count: 0, has_mention: false } : c
+    ));
+    fetchHistory(item);
+    fetchMembers(item.id); 
+    if (socket) {
+      socket.emit('join_group', item.id);
+    }
+  };
+
+  const sendMessage = async (content = inputText, type = 'text', fileUrl = null) => {
+    if ((!content || !content.trim() && !fileUrl) || !activeChat || !socket) return;
+    const payload = { targetId: activeChat.id, targetType: 'group', content, type, fileUrl };
+    socket.emit('send_message', payload);
+    setInputText('');
+  };
+
+  const handleFileUpload = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const baseUrl = window.location.port === '5173' ? 'http://localhost:3001' : window.location.origin;
+      const res = await fetch(`${baseUrl}/api/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${tokenManager.getToken()}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        const fullUrl = `${baseUrl}${data.url}`;
+        sendMessage(data.filename, file.type.startsWith('image/') ? 'image' : 'file', fullUrl);
+      }
+    } catch (err) {
+      message.error('上传失败');
+    }
+    return false;
+  };
+
+  const createGroup = async () => {
+    if (!groupName || selectedMembers.length === 0) return;
+    try {
+      const res = await apiPost('/api/chat/groups', { name: groupName, memberIds: selectedMembers });
+      if (res.success) {
+        message.success('群组创建成功');
+        setIsGroupModalOpen(false);
+        fetchContacts();
+        setGroupName('');
+        setSelectedMembers([]);
+      }
+    } catch (err) { message.error('Failed to create group'); }
+  };
+
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  // --- Render Helpers ---
+
+  const renderContactList = () => {
+    return (
+      <div className="overflow-y-auto h-full space-y-2 p-2">
+        {contacts.length > 0 ? (
+          <div className="mb-4">
+            {contacts.map(g => (
+              <div 
+                key={`group-${g.id}`} 
+                onClick={() => selectChat(g)}
+                className={`flex items-center p-3 rounded-lg cursor-pointer transition-all ${activeChat?.id === g.id ? 'bg-[#c6c6c6] shadow-sm' : 'hover:bg-green-50'}`}
+              >
+                <Badge count={g.is_muted ? 0 : (g.unread_count || 0)} dot={g.is_muted && g.unread_count > 0} size="small" offset={[-5, 5]}>
+                   <Avatar shape="square" icon={<TeamOutlined />} className="bg-green-600" src={g.avatar} />
+                </Badge>
+                <div className="ml-3 font-medium text-gray-800 flex-1 truncate">
+                    <div className="flex justify-between items-center">
+                        <span className="truncate">{g.name}</span>
+                        <div className="flex items-center gap-1">
+                            {g.is_muted && <AudioMutedOutlined className="text-[10px] text-gray-400" />}
+                            {g.last_message_time && <span className="text-[10px] text-gray-400">{new Date(g.last_message_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <div className="text-xs text-gray-500 truncate flex-1">
+                            {g.has_mention && <span className="text-red-500 font-bold mr-1">[有人@我]</span>}
+                            {g.last_message || '暂无消息'}
+                        </div>
+                    </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+            <div className="p-4 text-center text-gray-400 text-sm">暂无群组</div>
+        )}
       </div>
+    );
+  };
 
-      {/* Left Sidebar - Contact List and Search */}
-      <div className="wechat-sidebar" style={{ width: '300px' }}>
-        {/* Search Box */}
-        <div className="sidebar-search">
-          {/* Type Selection Buttons - 放在独立的一行 */}
-          {mode === 'broadcast' ? (
-            <>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <button
-                  onClick={() => setSearchType('department')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 4px', // 减小高度
-                    backgroundColor: searchType === 'department' ? '#07c160' : '#f0f0f0',
-                    color: searchType === 'department' ? 'white' : '#333',
-                    border: 'none',
-                    borderRadius: '6px', // 圆角
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                  onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                >
-                  部门
-                </button>
-                <button
-                  onClick={() => setSearchType('individual')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 4px', // 减小高度
-                    backgroundColor: searchType === 'individual' ? '#07c160' : '#f0f0f0',
-                    color: searchType === 'individual' ? 'white' : '#333',
-                    border: 'none',
-                    borderRadius: '6px', // 圆角
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                  onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                >
-                  个人
-                </button>
-                <button
-                  onClick={() => setSearchType('all')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 4px', // 减小高度
-                    backgroundColor: searchType === 'all' ? '#07c160' : '#f0f0f0',
-                    color: searchType === 'all' ? 'white' : '#333',
-                    border: 'none',
-                    borderRadius: '6px', // 圆角
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // 阴影
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'}
-                  onMouseOut={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
-                >
-                  全体
-                </button>
-              </div>
-
-              {/* 搜索框 - 独立放在第二行 */}
-              <div style={{ marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  placeholder={`搜索${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}...`}
-                  value={searchContact}
-                  onChange={(e) => setSearchContact(e.target.value)}
-                  className="search-input"
-                  style={{ width: '100%', marginBottom: '8px' }}
-                />
-
-                {/* 部门搜索框 - 仅在搜索个人时显示 */}
-                {searchType === 'individual' && (
-                  <input
-                    type="text"
-                    placeholder="按部门筛选..."
-                    value={searchDepartment}
-                    onChange={(e) => setSearchDepartment(e.target.value)}
-                    className="search-input"
-                    style={{ width: '100%' }}
-                  />
-                )}
-              </div>
-            </>
-          ) : (
-            // 聊天模式的搜索框
-            <div style={{ marginBottom: '12px' }}>
-              <input
-                type="text"
-                placeholder="搜索联系人..."
-                value={searchContact}
-                onChange={(e) => setSearchContact(e.target.value)}
-                className="search-input"
-                style={{ width: '100%' }}
-              />
-            </div>
+  return (
+    <div className="flex h-[93vh] bg-[#f5f5f5] overflow-hidden font-sans border-b border-gray-200">
+      
+      {/* 1. Sidebar (Contacts) */}
+      <div className="w-64 bg-[#e7e7e7] flex flex-col border-r border-[#d1d1d1]">
+        {/* Header */}
+        <div className="h-16 flex items-center justify-between px-4 bg-[#f5f5f5] border-b border-[#d1d1d1]">
+          <h1 className="text-lg font-bold text-gray-700">消息</h1>
+          {isAdmin && (
+            <Tooltip title="发起群聊">
+                <Button variant="ghost" className="p-2" onClick={openCreateGroupModal}>
+                <PlusOutlined className="text-lg" />
+                </Button>
+            </Tooltip>
           )}
         </div>
+        
+        {/* Search */}
+        <div className="p-3">
+           <div className="relative">
+             <SearchOutlined className="absolute left-3 top-2.5 text-gray-400" />
+             <Input placeholder="搜索" className="pl-9 h-8 bg-[#e2e2e2] border-none text-xs" />
+           </div>
+        </div>
 
-        {/* Saved Recipients - 仅在广播模式显示 */}
-        {mode === 'broadcast' && savedRecipients.length > 0 && (
-          <div style={{ padding: '0 12px 12px 12px' }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#666' }}>常用联系人</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {savedRecipients.map(recipient => (
-                <div
-                  key={`saved-${recipient.id}`}
-                  onClick={() => toggleRecipient(recipient)}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: selectedRecipients.some(r => r.id === recipient.id) ? '#07c160' : '#f0f0f0',
-                    color: selectedRecipients.some(r => r.id === recipient.id) ? 'white' : '#333',
-                    borderRadius: '16px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  {recipient.name}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFromSavedRecipients(recipient.id);
-                    }}
-                    style={{
-                      cursor: 'pointer',
-                      color: selectedRecipients.some(r => r.id === recipient.id) ? 'white' : '#ff4d4f'
-                    }}
-                  >
-                    ×
-                  </span>
-                </div>
-              ))}
+        {/* List */}
+        {renderContactList()}
+      </div>
+
+      {/* 2. Main Chat Area */}
+      <div className="flex-1 flex flex-col bg-[#f5f5f5]">
+        {activeChat ? (
+          <>
+            {/* Header */}
+            <div className="h-16 flex items-center justify-between px-6 bg-[#f5f5f5] border-b border-[#e7e7e7]">
+               <div className="flex items-center">
+                 <span className="text-lg font-medium text-gray-900">{activeChat.name}</span>
+                 {activeChat.is_muted && <AudioMutedOutlined className="ml-2 text-gray-400 text-sm" />}
+               </div>
+               <Button variant="ghost" onClick={() => { setIsMembersDrawerOpen(true); fetchMembers(activeChat.id); }}>
+                   <MoreOutlined className="text-xl" />
+               </Button>
             </div>
+
+            {/* Messages */}
+            <div 
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-6 space-y-4"
+            >
+              {isLoadingMore && (
+                  <div className="flex justify-center py-2">
+                      <div className="text-xs text-gray-400 flex items-center">
+                          <span className="animate-spin mr-2">⏳</span> 加载中...
+                      </div>
+                  </div>
+              )}
+              {!hasMore && messages.length > 0 && (
+                  <div className="text-center text-[10px] text-gray-300 py-2">没有更多消息了</div>
+              )}
+              {messages.map((msg, idx) => {
+                // Handle System Messages
+                if (msg.msg_type === 'system' || msg.sender_id === 0) {
+                    return (
+                        <div key={idx} className="flex justify-center my-2">
+                            <span className="bg-gray-200/50 text-gray-500 text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider italic">
+                                {msg.content}
+                            </span>
+                        </div>
+                    );
+                }
+
+                const isMe = msg.sender_id === currentUser?.id;
+                const myName = currentUser?.real_name || currentUser?.name;
+                const amIMentioned = msg.content && myName && msg.content.includes(`@${myName}`);
+
+                return (
+                  <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    {!isMe && (
+                      <Avatar src={msg.sender_avatar} className="mr-2 mt-1 flex-shrink-0" size="small" icon={<UserOutlined />} />
+                    )}
+                    <div className="max-w-[70%]">
+                      {!isMe && <div className="text-xs text-gray-400 mb-1 ml-1">{msg.sender_name}</div>}
+                      <div className={`px-4 py-2 rounded-lg text-sm relative break-words shadow-sm 
+                        ${isMe ? 'bg-[#95ec69] text-black' : (amIMentioned ? 'bg-amber-100 border border-amber-200 text-amber-900 ring-2 ring-amber-400 ring-opacity-20' : 'bg-white text-gray-800')} 
+                        ${msg.msg_type === 'image' ? 'p-1 bg-opacity-50' : ''}`}>
+                        {msg.msg_type === 'image' ? (
+                            <div className="overflow-hidden rounded-md">
+                                <Image src={msg.file_url} alt="image" className="cursor-pointer hover:opacity-90 transition-opacity" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'cover' }} preview={{ mask: <div className="text-white text-xs font-sans">点击预览</div> }} placeholder={<div className="w-40 h-40 bg-gray-100 flex items-center justify-center text-gray-400">加载中...</div>} />
+                            </div>
+                        ) : msg.msg_type === 'file' ? (
+                            <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center underline">
+                                <FileOutlined className="mr-2"/> {msg.content}
+                            </a>
+                        ) : (
+                            msg.content
+                        )}
+                      </div>
+                    </div>
+                    {isMe && (
+                      <Avatar src={currentUser?.avatar} className="ml-2 mt-1 flex-shrink-0 bg-green-600" size="small" icon={<UserOutlined />} />
+                    )}
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="bg-[#f5f5f5] border-t border-[#e7e7e7] p-4">
+              <div className="flex items-center gap-5 mb-3 px-2 text-gray-500">
+                <Tooltip title="发送图片">
+                    <Upload beforeUpload={handleFileUpload} showUploadList={false} accept="image/*">
+                        <PictureOutlined className="text-xl hover:text-[#07c160] cursor-pointer transition-colors" />
+                    </Upload>
+                </Tooltip>
+                <Tooltip title="发送文件">
+                    <Upload beforeUpload={handleFileUpload} showUploadList={false}>
+                        <FileOutlined className="text-xl hover:text-[#07c160] cursor-pointer transition-colors" />
+                    </Upload>
+                </Tooltip>
+              </div>
+              
+              <Mentions
+                autoSize={{ minRows: 2, maxRows: 6 }}
+                className="w-full bg-transparent border-none focus:ring-0 text-sm p-2 shadow-none resize-none"
+                placeholder="发送消息..."
+                value={inputText}
+                onChange={setInputText}
+                onKeyDown={e => { 
+                    if (e.key === 'Enter' && !e.shiftKey) { 
+                        e.preventDefault(); 
+                        sendMessage(); 
+                    } 
+                }}
+                options={currentGroupMembers.filter(m => m.id !== currentUser?.id).map(m => ({
+                    value: m.name,
+                    label: m.name,
+                    key: m.id
+                }))}
+              />
+
+              <div className="flex justify-between items-center mt-2">
+                 <div className="text-xs text-gray-400">Enter 发送, @ 提醒成员</div>
+                 <Button onClick={() => sendMessage()}>发送</Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+             <TeamOutlined style={{ fontSize: 64, marginBottom: 16, opacity: 0.2 }} />
+             <p>选择一个联系人开始聊天</p>
           </div>
         )}
-
-        {/* Contact List */}
-        <div className="contact-list">
-          {(mode === 'broadcast' ? searchType : searchContact) ? (
-            (mode === 'broadcast' ? filteredContacts : contacts.filter(c =>
-              c.name.toLowerCase().includes(searchContact.toLowerCase())
-            )).length > 0 ? (
-              (mode === 'broadcast' ? filteredContacts : contacts.filter(c =>
-                c.name.toLowerCase().includes(searchContact.toLowerCase())
-              )).map((contact) => (
-                <div
-                  key={contact.id}
-                  className={`contact-item ${
-                    mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? 'active' : ''
-                      : selectedContact?.id === contact.id ? 'active' : ''
-                  }`}
-                  onClick={() => mode === 'broadcast' ? toggleRecipient(contact) : selectContact(contact)}
-                  onDoubleClick={() => mode === 'broadcast' && addToSavedRecipients(contact)}
-                >
-                  <div className="contact-avatar">
-                    <div className="avatar-text">{contact.avatar}</div>
-                  </div>
-                  <div className="contact-info">
-                    <div className="contact-header">
-                      <span className="contact-name">{contact.name}</span>
-                    </div>
-                    <div className="contact-message">
-                      {mode === 'broadcast' ? (
-                        contact.type === 'department'
-                          ? `${contact.members}名成员`
-                          : contact.type === 'individual'
-                            ? contact.department
-                            : `${contact.members}名成员`
-                      ) : (
-                        "点击开始聊天"
-                      )}
-                    </div>
-                  </div>
-                  <div style={{
-                    padding: '4px 8px',
-                    backgroundColor: mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? '#07c160' : '#f0f0f0'
-                      : selectedContact?.id === contact.id ? '#07c160' : '#f0f0f0',
-                    color: mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? 'white' : '#333'
-                      : selectedContact?.id === contact.id ? 'white' : '#333',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                  }}>
-                    {mode === 'broadcast'
-                      ? selectedRecipients.some(r => r.id === contact.id) ? '已选' : '选择'
-                      : selectedContact?.id === contact.id ? '聊天中' : '聊天'}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                {mode === 'broadcast'
-                  ? `无匹配的${searchType === 'department' ? '部门' : searchType === 'individual' ? '个人' : '全体'}信息`
-                  : '无匹配的联系人'}
-              </div>
-            )
-          ) : (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-              {mode === 'broadcast' ? '请选择搜索类型' : '请输入搜索关键词'}
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Right Side - Chat Area */}
-      <div className="wechat-main">
-        <div className="wechat-header">
-          <div className="header-title">
-            <h2>{mode === 'broadcast' ? '广播消息' : selectedContact ? selectedContact.name : '聊天'}</h2>
-          </div>
-        </div>
-
-        {/* Messages Area */}
-        <div className="wechat-messages">
-          {mode === 'broadcast' ? (
-            // 广播模式消息显示
-            messages.map((msg) => (
-              <div key={msg.id} className={`message-wrapper ${msg.type}`} style={{ justifyContent: 'flex-end' }}>
-                <div
-                  className={`message-bubble ${msg.type}`}
-                  style={{ backgroundColor: '#95ec69', color: '#000', cursor: 'pointer' }}
-                  onClick={() => showReadByList(msg.readBy, msg.title)}
+      {/* Modals & Drawers */}
+      <Drawer
+        title={`群成员 (${currentGroupMembers.length})`}
+        placement="right"
+        onClose={() => setIsMembersDrawerOpen(false)}
+        open={isMembersDrawerOpen}
+        width={300}
+      >
+        <div className="mb-6 pb-6 border-b">
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">消息免打扰</span>
+                <button 
+                    onClick={() => toggleMute(activeChat?.id, activeChat?.is_muted)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${activeChat?.is_muted ? 'bg-green-500' : 'bg-gray-200'}`}
                 >
-                  <div style={{ fontWeight: '500', marginBottom: '4px' }}>{msg.title}</div>
-                  <div className="message-content" style={{ marginBottom: '8px' }}>{msg.content}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    发送给: {msg.recipients} |
-                    已读: {msg.readCount}/{msg.totalCount} |
-                    时间: {msg.timestamp}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#666', marginTop: '4px', textDecoration: 'underline' }}>
-                    点击查看详情
-                  </div>
-                </div>
-                <div className="message-avatar sent">{msg.avatar}</div>
-              </div>
-            ))
-          ) : (
-            // 聊天模式消息显示
-            selectedContact ? (
-              chatMessages.map((msg) => (
-                <div key={msg.id} className={`message-wrapper ${msg.type}`}>
-                  {msg.type === 'received' && (
-                    <>
-                      <div className="message-avatar received">{selectedContact.avatar}</div>
-                      <div className="message-bubble received">
-                        <div className="message-content">{msg.content}</div>
-                        <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginTop: '4px' }}>
-                          {msg.timestamp}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  {msg.type === 'sent' && (
-                    <>
-                      <div className="message-bubble sent">
-                        <div className="message-content">{msg.content}</div>
-                        <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginTop: '4px' }}>
-                          {msg.timestamp}
-                        </div>
-                      </div>
-                      <div className="message-avatar sent">我</div>
-                    </>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: '#999'
-              }}>
-                请选择一个联系人开始聊天
-              </div>
-            )
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Bottom Input Bar */}
-        <div className="wechat-input-bar">
-          {mode === 'broadcast' ? (
-            // 广播模式输入栏
-            <>
-              <div style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
-                  {selectedRecipients.map(recipient => (
-                    <div
-                      key={recipient.id}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        backgroundColor: '#e0e0e0',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px'
-                      }}
-                    >
-                      {recipient.name}
-                      <span
-                        onClick={() => toggleRecipient(recipient)}
-                        style={{
-                          marginLeft: '4px',
-                          cursor: 'pointer',
-                          color: '#ff4d4f'
-                        }}
-                      >
-                        ×
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {selectedRecipients.length > 0 && (
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    发送给: {selectedRecipients.map(r => r.name).join(', ')}
-                  </div>
-                )}
-              </div>
-
-              <div className="input-controls">
-                {/* 去除了+按钮 */}
-                <div className="input-wrapper">
-                  <textarea
-                    placeholder="请输入广播内容..."
-                    value={broadcastContent}
-                    onChange={(e) => setBroadcastContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      // Enter 发送（排除Shift+Enter换行的情况）
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendBroadcast();
-                      }
-                    }}
-                    className="message-input"
-                    style={{
-                      minHeight: '30px', // 进一步减小最小高度
-                      resize: 'none',
-                      fontFamily: 'inherit',
-                      maxHeight: '80px', // 减小最大高度
-                      overflowY: 'auto' // 超出时显示滚动条
-                    }}
-                  />
-                </div>
-                <button
-                  className="send-btn"
-                  onClick={handleSendBroadcast}
-                  disabled={!broadcastContent.trim() || selectedRecipients.length === 0}
-                >
-                  发送
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${activeChat?.is_muted ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-              </div>
-            </>
-          ) : (
-            // 聊天模式输入栏
-            selectedContact ? (
-              <div className="input-controls">
-                <div className="input-btn">
-                  <SmileOutlined />
-                </div>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    placeholder="请输入消息..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSendMessage();
-                      }
-                    }}
-                    className="message-input"
-                  />
-                </div>
-                <button
-                  className="send-btn"
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim()}
-                >
-                  发送
-                </button>
-              </div>
-            ) : null
+            </div>
+        </div>
+
+        <List
+          itemLayout="horizontal"
+          dataSource={currentGroupMembers}
+          renderItem={item => (
+            <List.Item>
+              <List.Item.Meta
+                avatar={<Avatar src={item.avatar} icon={<UserOutlined />} />}
+                title={item.name}
+                description={<div className="text-xs">{item.role === 'admin' && <span className="text-orange-500 mr-2">[群主]</span>}{item.department_name}</div>}
+              />
+            </List.Item>
           )}
-        </div>
-      </div>
+        />
+      </Drawer>
 
-      {/* Read By Modal - 优化模态框设计 */}
-      {showReadByModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '500px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'hidden',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '20px',
-              paddingBottom: '16px',
-              borderBottom: '1px solid #eee'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#333' }}>{modalTitle} - 已读人员详情</h3>
-              <button
-                onClick={closeReadByModal}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  padding: '0',
-                  color: '#999',
-                  width: '30px',
-                  height: '30px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  transition: 'background-color 0.3s'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-              >
-                ×
-              </button>
-            </div>
-            <div style={{
-              maxHeight: '60vh',
-              overflowY: 'auto',
-              paddingRight: '8px'
-            }}>
-              {currentReadBy.length > 0 ? (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                  gap: '12px'
-                }}>
-                  {currentReadBy.map((name, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        padding: '12px 8px',
-                        backgroundColor: '#f8f9fa',
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        fontSize: '14px',
-                        color: '#333',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-                      onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-                    >
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: '#07c160',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 8px',
-                        color: 'white',
-                        fontWeight: 'bold'
-                      }}>
-                        {name.charAt(0)}
-                      </div>
-                      {name}
+      <Modal
+        title="发起群聊"
+        open={isGroupModalOpen}
+        onCancel={() => setIsGroupModalOpen(false)}
+        onOk={createGroup}
+        okText="创建"
+        cancelText="取消"
+      >
+        <div className="space-y-4 py-4">
+           <div>
+             <label className="block text-sm font-medium text-gray-700 mb-1">群名称</label>
+             <Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="请输入群名称" />
+           </div>
+           <div>
+             <label className="block text-sm font-medium text-gray-700 mb-1">选择成员</label>
+             <div className="max-h-60 overflow-y-auto border rounded-md p-2">
+                {allUsers.map(u => (
+                    <div key={u.id} onClick={() => { if (selectedMembers.includes(u.id)) { setSelectedMembers(prev => prev.filter(id => id !== u.id)); } else { setSelectedMembers(prev => [...prev, u.id]); } }} className={`flex items-center p-2 rounded cursor-pointer ${selectedMembers.includes(u.id) ? 'bg-green-50' : 'hover:bg-gray-50'}`} >
+                    <div className={`w-4 h-4 rounded border mr-2 flex items-center justify-center ${selectedMembers.includes(u.id) ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}> {selectedMembers.includes(u.id) && <div className="w-2 h-2 bg-white rounded-full" />} </div>
+                    <Avatar size="small" src={u.avatar} className="mr-2" />
+                    <span className="text-sm">{u.name}</span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', color: '#999', padding: '40px 20px' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
-                  <p>暂无已读人员</p>
-                </div>
-              )}
-            </div>
-            <div style={{ textAlign: 'center', marginTop: '24px' }}>
-              <button
-                onClick={closeReadByModal}
-                style={{
-                  padding: '10px 30px',
-                  backgroundColor: '#07c160',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  boxShadow: '0 2px 6px rgba(7, 193, 96, 0.3)',
-                  transition: 'all 0.3s'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#06b054';
-                  e.target.style.boxShadow = '0 4px 12px rgba(7, 193, 96, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = '#07c160';
-                  e.target.style.boxShadow = '0 2px 6px rgba(7, 193, 96, 0.3)';
-                }}
-              >
-                关闭
-              </button>
-            </div>
-          </div>
+                ))}
+             </div>
+           </div>
         </div>
-      )}
-
-      {/* Success Message Modal - 发送成功提示模态框 */}
-      {showSuccessModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '30px',
-            maxWidth: '400px',
-            width: '90%',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-          }}>
-            <div style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '50%',
-              backgroundColor: '#07c160',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              color: 'white',
-              fontSize: '30px'
-            }}>
-              ✓
-            </div>
-            <h3 style={{
-              margin: '0 0 15px 0',
-              fontSize: '20px',
-              color: '#333',
-              fontWeight: '500'
-            }}>
-              提示
-            </h3>
-            <p style={{
-              margin: '0 0 25px 0',
-              fontSize: '16px',
-              color: '#666',
-              lineHeight: '1.5'
-            }}>
-              {successMessage}
-            </p>
-            <button
-              onClick={() => setShowSuccessModal(false)}
-              style={{
-                padding: '12px 30px',
-                backgroundColor: '#07c160',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '500',
-                boxShadow: '0 2px 6px rgba(7, 193, 96, 0.3)',
-                transition: 'all 0.3s'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#06b054';
-                e.target.style.boxShadow = '0 4px 12px rgba(7, 193, 96, 0.4)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = '#07c160';
-                e.target.style.boxShadow = '0 2px 6px rgba(7, 193, 96, 0.3)';
-              }}
-            >
-              确定
-            </button>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

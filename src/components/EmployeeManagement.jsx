@@ -7,6 +7,7 @@ import UserDepartmentModal from './UserDepartmentModal'  // 添加这一行
 import { getApiUrl } from '../utils/apiConfig'
 import { getImageUrl } from '../utils/fileUtils'
 import { formatDate, getBeijingDateString, getLocalDateString } from '../utils/date'
+import { Switch } from 'antd'
 
 function EmployeeManagement() {
   const [employees, setEmployees] = useState([])
@@ -49,6 +50,11 @@ function EmployeeManagement() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [batchOperationType, setBatchOperationType] = useState('');
+
+  // 资产确认模态框状态
+  const [isAssetConfirmModalOpen, setIsAssetConfirmModalOpen] = useState(false);
+  const [assetConfirmData, setAssetConfirmData] = useState({ count: 0, deviceNos: '' });
+  const [pendingAction, setPendingAction] = useState(null);
 
   // 搜索条件
   const [searchFilters, setSearchFilters] = useState({
@@ -310,23 +316,33 @@ function EmployeeManagement() {
     })
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    // 表单校验
-    const errors = {}
-    if (!formData.real_name) errors.real_name = true
-    if (!formData.phone) errors.phone = true
-    if (!formData.department_id) errors.department_id = true
-    if (!formData.position) errors.position = true
-
-    setValidationErrors(errors)
-
-    if (Object.keys(errors).length > 0) {
-      toast.error('请填写必填项')
-      return
+  // --- 新增：处理主管身份快速切换 ---
+  const handleManagerToggle = async (checked, emp) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(getApiUrl(`/api/users/${emp.user_id}/department-manager`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isDepartmentManager: checked })
+      })
+      const result = await response.json()
+      if (result.success) {
+        toast.success(`已${checked ? '授权' : '撤销'}主管身份`);
+        // 立即刷新列表以反映最新状态
+        fetchEmployees();
+      } else {
+        toast.error(result.message || '更新失败');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('网络通讯失败');
     }
+  }
 
+  const performSubmit = async () => {
     try {
       const url = editingEmp
         ? getApiUrl(`/api/employees/${editingEmp.id}`)
@@ -334,7 +350,10 @@ function EmployeeManagement() {
 
       const response = await fetch(url, {
         method: editingEmp ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(formData)
       })
 
@@ -363,7 +382,10 @@ function EmployeeManagement() {
 
               await fetch(getApiUrl('/api/employee-changes/create'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify(changeData)
               });
             } catch (err) {
@@ -375,7 +397,7 @@ function EmployeeManagement() {
           try {
             const changeData = {
               employee_id: result.id,
-              user_id: result.id, // 这里可能需要从后端获取正确的 user_id
+              user_id: result.user_id || result.id,
               change_type: 'hire',
               change_date: formData.hire_date || getLocalDateString(),
               old_department_id: null,
@@ -385,12 +407,12 @@ function EmployeeManagement() {
               reason: '新员工入职'
             };
 
-            // 注意：新增员工时，result 通常包含 id (employee id) 和 user_id
-            if (result.user_id) changeData.user_id = result.user_id;
-
             await fetch(getApiUrl('/api/employee-changes/create'), {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
               body: JSON.stringify(changeData)
             });
           } catch (err) {
@@ -400,32 +422,49 @@ function EmployeeManagement() {
 
         // 更新用户角色（单个角色）
         if (formData.role_id) {
-          // 先获取当前角色
-          const currentRolesRes = await fetch(getApiUrl(`/api/users/${userId}/roles`))
-          const currentRoles = await currentRolesRes.json()
-
-          // 删除所有现有角色
-          for (const role of currentRoles) {
-            await fetch(getApiUrl(`/api/users/${userId}/roles/${role.id}`), {
-              method: 'DELETE'
+          try {
+            // 先获取当前角色
+            const currentRolesRes = await fetch(getApiUrl(`/api/users/${userId}/roles`), {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             })
-          }
+            const currentRoles = await currentRolesRes.json()
 
-          // 添加新角色
-          await fetch(getApiUrl(`/api/users/${userId}/roles`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role_id: formData.role_id })
-          })
+            // 删除所有现有角色
+            for (const role of currentRoles) {
+              await fetch(getApiUrl(`/api/users/${userId}/roles/${role.id}`), {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              })
+            }
+
+            // 添加新角色
+            await fetch(getApiUrl(`/api/users/${userId}/roles`), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({ roleId: formData.role_id })
+            })
+          } catch (roleErr) {
+            console.error('更新角色失败:', roleErr);
+          }
         }
 
         // 更新部门主管标识
         if (userId) {
-          await fetch(getApiUrl(`/api/users/${userId}/department-manager`), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isDepartmentManager: formData.is_department_manager })
-          })
+          try {
+            await fetch(getApiUrl(`/api/users/${userId}/department-manager`), {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({ isDepartmentManager: formData.is_department_manager })
+            })
+          } catch (mgrErr) {
+            console.error('更新主管标识失败:', mgrErr);
+          }
         }
 
         toast.success(editingEmp ? '员工更新成功' : '员工创建成功')
@@ -434,7 +473,53 @@ function EmployeeManagement() {
         resetForm()
       }
     } catch (error) {
+      console.error(error);
       toast.error('操作失败')
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    // 表单校验
+    const errors = {}
+    if (!formData.real_name) errors.real_name = true
+    if (!formData.phone) errors.phone = true
+    if (!formData.department_id) errors.department_id = true
+    if (!formData.position) errors.position = true
+
+    setValidationErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      toast.error('请填写必填项')
+      return
+    }
+
+    try {
+      // 如果是离职/停用操作，先检查名下资产
+      if (editingEmp && formData.status !== 'active' && editingEmp.status === 'active') {
+        try {
+          const token = localStorage.getItem('token')
+          const assetRes = await fetch(getApiUrl(`/api/assets/employee/${editingEmp.user_id}`), {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const assetData = await assetRes.json();
+
+          if (assetData.success && assetData.data && assetData.data.length > 0) {
+            const deviceNos = assetData.data.map(d => d.asset_no).join(', ');
+            setAssetConfirmData({ count: assetData.data.length, deviceNos });
+            setPendingAction(() => performSubmit);
+            setIsAssetConfirmModalOpen(true);
+            return;
+          }
+        } catch (err) {
+          console.error('资产校验失败:', err);
+        }
+      }
+
+      await performSubmit();
+    } catch (error) {
+      toast.error('提交表单失败')
     }
   }
 
@@ -490,7 +575,10 @@ function EmployeeManagement() {
 
     try {
       const response = await fetch(getApiUrl(`/api/employees/${deletingEmp.id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       })
       if (response.ok) {
         toast.success('员工删除成功')
@@ -515,130 +603,89 @@ function EmployeeManagement() {
     setIsStatusModalOpen(true)
   }
 
-  const handleStatusChange = async () => {
-    if (!statusChangingEmp) return
+    const handleStatusChange = async () => {
+      if (!statusChangingEmp || !statusChangeData.newStatus) return
 
-    try {
-      // 1. 更新员工状态
-      const response = await fetch(getApiUrl(`/api/employees/${statusChangingEmp.id}`), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...statusChangingEmp,
-          status: statusChangeData.newStatus
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('状态更新失败:', errorData)
-        toast.error('状态更新失败: ' + (errorData.error || '未知错误'))
-        return
+      const performStatusChange = async () => {
+        try {
+          const response = await fetch(getApiUrl(`/api/employees/${statusChangingEmp.id}/status-closure`), {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              status: statusChangeData.newStatus,
+              reason: statusChangeData.reason,
+              changeDate: statusChangeData.changeDate
+            })
+          })
+          if (response.ok) {
+            toast.success('状态更新成功，操作已审计');
+            setIsStatusModalOpen(false)
+            fetchEmployees()
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error('提交失败')
+        }
       }
 
-      // 2. 记录变动到employee_changes表
-      const changeType = statusChangeData.newStatus === 'resigned' ? 'resign' :
-        statusChangeData.newStatus === 'inactive' ? 'terminate' : 'hire'
+      // 如果是离职/停用操作，先检查名下资产
+      if (statusChangeData.newStatus !== 'active') {
+        try {
+          const token = localStorage.getItem('token')
+          const assetRes = await fetch(getApiUrl(`/api/assets/employee/${statusChangingEmp.user_id}`), {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const assetData = await assetRes.json();
 
-      const changeData = {
-        employee_id: statusChangingEmp.id,
-        user_id: statusChangingEmp.user_id,
-        change_type: changeType,
-        change_date: statusChangeData.changeDate,
-        old_department_id: statusChangingEmp.department_id,
-        new_department_id: statusChangingEmp.department_id,
-        old_position: statusChangingEmp.position_name,
-        new_position: statusChangingEmp.position_name,
-        reason: statusChangeData.reason
+          if (assetData.success && assetData.data && assetData.data.length > 0) {
+            const deviceNos = assetData.data.map(d => d.asset_no).join(', ');
+            setAssetConfirmData({ count: assetData.data.length, deviceNos });
+            setPendingAction(() => performStatusChange);
+            setIsAssetConfirmModalOpen(true);
+            return;
+          }
+        } catch (err) {
+          console.error('资产校验失败:', err);
+        }
       }
 
-
-      const changeResponse = await fetch(getApiUrl('/api/employee-changes/create'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(changeData)
-      })
-
-      if (!changeResponse.ok) {
-        const errorData = await changeResponse.json()
-        console.error('创建变动记录失败:', errorData)
-        toast.warning('状态已更新，但变动记录创建失败')
-      } else {
-        const result = await changeResponse.json()
-        toast.success('状态修改成功')
-      }
-
-      setIsStatusModalOpen(false)
-      setStatusChangingEmp(null)
-      fetchEmployees()
-    } catch (error) {
-      console.error('操作失败:', error)
-      toast.error('操作失败: ' + error.message)
+      await performStatusChange();
     }
-  }
 
-  // 批量状态更新功能
+  // 批量操作功能 (调用新接口)
   const handleBatchStatusUpdate = async () => {
     if (selectedEmployeeIds.length === 0) return
-
     try {
-      // 使用本地时区的年月日，避免 UTC 转换导致的日期偏差
-      const changeDate = getLocalDateString()
-      const changeType = batchOperationType === 'resigned' ? 'resign' :
-                        batchOperationType === 'inactive' ? 'terminate' : 'hire'
+      const token = localStorage.getItem('token')
+      // 统一使用 batch-closure 接口处理所有状态变更
+      let endpoint = `/api/employees/batch-closure`;
+      let method = 'POST';
+      let body = {
+        ids: selectedEmployeeIds,
+        status: batchOperationType,
+        reason: '批量后台操作'
+      };
 
-      // 获取选中的员工信息
-      const selectedEmployees = employees.filter(emp => selectedEmployeeIds.includes(emp.id))
+      const response = await fetch(getApiUrl(endpoint), {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body)
+      })
 
-      // 批量更新员工状态
-      for (const emp of selectedEmployees) {
-        const response = await fetch(getApiUrl(`/api/employees/${emp.id}`), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...emp,
-            status: batchOperationType
-          })
-        })
-
-        if (!response.ok) {
-          console.error(`员工 ${emp.real_name} 状态更新失败`)
-          continue
-        }
-
-        // 记录变动到employee_changes表
-        const changeData = {
-          employee_id: emp.id,
-          user_id: emp.user_id,
-          change_type: changeType,
-          change_date: changeDate,
-          old_department_id: emp.department_id,
-          new_department_id: emp.department_id,
-          old_position: emp.position_name,
-          new_position: emp.position_name,
-          reason: '批量操作'
-        }
-
-        await fetch(getApiUrl('/api/employee-changes/create'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(changeData)
-        })
+      if (response.ok) {
+        const statusText = batchOperationType === 'active' ? '恢复' : (batchOperationType === 'resigned' ? '离职' : '停用');
+        toast.success(`成功批量${statusText} ${selectedEmployeeIds.length} 名员工`);
+        setIsBatchModalOpen(false)
+        setSelectedEmployeeIds([])
+        fetchEmployees()
       }
-
-      const statusText = batchOperationType === 'active' ? '在职' :
-                        batchOperationType === 'inactive' ? '停用' : '离职'
-      toast.success(`成功将 ${selectedEmployeeIds.length} 名员工设置为${statusText}状态`)
-
-      setIsBatchModalOpen(false)
-      setSelectedEmployeeIds([])
-      setBatchOperationType('')
-      fetchEmployees()
-    } catch (error) {
-      console.error('批量操作失败:', error)
-      toast.error('批量操作失败: ' + error.message)
-    }
+    } catch (error) { toast.error('批量操作失败') }
   }
+
+
 
   // 批量强制下线功能
   const handleBatchLogout = async () => {
@@ -973,16 +1020,13 @@ function EmployeeManagement() {
               </select>
             </div>
             <div className="w-32">
-              <label className="block text-xs font-medium text-gray-600 mb-1.5 tracking-wide uppercase">状态</label>
-              <select
-                value={searchFilters.status}
-                onChange={(e) => handleSearchChange('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all bg-white"
-              >
-                <option value="">全部</option>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">状态</label>
+              <select value={searchFilters.status} onChange={(e) => handleSearchChange('status', e.target.value)} className="w-full px-3 py-2 border border-gray-200 text-sm rounded bg-white">
                 <option value="active">在职</option>
                 <option value="inactive">停用</option>
                 <option value="resigned">离职</option>
+                <option value="deleted">已删除</option>
+                <option value="">全部</option>
               </select>
             </div>
             <div className="w-28">
@@ -1248,27 +1292,20 @@ function EmployeeManagement() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                          <span
-                            key={i}
-                            className={`w-3 h-3 rounded-sm ${i < emp.rating ? 'bg-amber-400' : 'bg-gray-200'}`}
-                          />
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <button
-                        onClick={() => handleManagerClick(emp)}
-                        className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${emp.is_department_manager
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                      >
-                        {emp.is_department_manager ? '是' : '否'}
-                      </button>
-                    </td>
+                  <td className="px-5 py-4 text-center">
+                    <div className="flex items-center justify-center">
+                      <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[11px] font-black border border-amber-100">{emp.rating}星</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <Switch
+                      size="small"
+                      checked={emp.is_department_manager === 1}
+                      onChange={(checked) => handleManagerToggle(checked, emp)}
+                      className={emp.is_department_manager ? 'bg-blue-600' : 'bg-gray-200'}
+                    />
+                  </td>
+
                     <td className="px-5 py-4 text-center">
                       <button
                         onClick={() => handleStatusClick(emp)}
@@ -1554,6 +1591,20 @@ function EmployeeManagement() {
               />
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">账号状态</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all bg-white"
+              >
+                <option value="active">在职</option>
+                <option value="inactive">停用</option>
+                <option value="resigned">离职</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">员工评级</label>
               <select
                 value={formData.rating}
@@ -1565,23 +1616,12 @@ function EmployeeManagement() {
                 ))}
               </select>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">紧急联系人</label>
               <input
                 type="text"
                 value={formData.emergency_contact}
                 onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
-                className="w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5 tracking-wide uppercase">紧急联系电话</label>
-              <input
-                type="tel"
-                value={formData.emergency_phone}
-                onChange={(e) => setFormData({ ...formData, emergency_phone: e.target.value })}
                 className="w-full px-3 py-2 border text-sm rounded focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:outline-none transition-all"
               />
             </div>
@@ -1905,6 +1945,62 @@ function EmployeeManagement() {
             }`}
           >
             确认
+          </button>
+        </div>
+      </Modal>
+
+      {/* 资产变更确认模态框 */}
+      <Modal
+        isOpen={isAssetConfirmModalOpen}
+        onClose={() => {
+          setIsAssetConfirmModalOpen(false);
+          setPendingAction(null);
+        }}
+        title="设备回收确认"
+        size="small"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-lg text-amber-800">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <p className="text-sm font-bold">资产变动警告</p>
+              <p className="text-xs mt-1">该员工名下仍有 <span className="font-bold underline">{assetConfirmData.count}</span> 台在用设备。</p>
+            </div>
+          </div>
+
+          <div className="px-1">
+            <p className="text-xs text-gray-500 mb-2 uppercase font-medium">涉及设备编号：</p>
+            <div className="p-3 bg-gray-50 rounded border border-gray-100 max-h-32 overflow-y-auto">
+              <p className="text-xs font-mono text-gray-600 break-all leading-relaxed">
+                {assetConfirmData.deviceNos}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-500 italic">
+            * 确认操作后，上述设备将自动转为“闲置”状态并解除绑定。
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+          <button
+            onClick={() => {
+              setIsAssetConfirmModalOpen(false);
+              setPendingAction(null);
+            }}
+            className="px-5 py-2 border border-gray-200 text-sm text-gray-700 hover:bg-white hover:border-gray-300 rounded transition-all"
+          >
+            取消操作
+          </button>
+          <button
+            onClick={async () => {
+              if (pendingAction) await pendingAction();
+              setIsAssetConfirmModalOpen(false);
+              setPendingAction(null);
+            }}
+            className="px-5 py-2 bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 rounded shadow-sm transition-all"
+          >
+            确认并继续
           </button>
         </div>
       </Modal>

@@ -609,6 +609,8 @@ CREATE TABLE `employee_changes`  (
   `new_department_id` int NULL DEFAULT NULL COMMENT '新部门ID',
   `old_position` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '原职位',
   `new_position` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '新职位',
+  `old_position_id` int NULL DEFAULT NULL COMMENT '原职位ID',
+  `new_position_id` int NULL DEFAULT NULL COMMENT '新职位ID',
   `reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '变动原因',
   `remarks` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '备注',
   `created_by` int NULL DEFAULT NULL COMMENT '创建人ID',
@@ -618,7 +620,9 @@ CREATE TABLE `employee_changes`  (
   INDEX `employee_id`(`employee_id` ASC) USING BTREE,
   INDEX `user_id`(`user_id` ASC) USING BTREE,
   INDEX `change_type`(`change_type` ASC) USING BTREE,
-  INDEX `change_date`(`change_date` ASC) USING BTREE
+  INDEX `change_date`(`change_date` ASC) USING BTREE,
+  INDEX `idx_old_position_id`(`old_position_id` ASC) USING BTREE,
+  INDEX `idx_new_position_id`(`new_position_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '员工变动记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

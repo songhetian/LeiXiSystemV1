@@ -38,14 +38,25 @@ const CustomerList = () => {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('确定要删除这个客服人员吗？')) {
-      try {
-        await customerAPI.delete(id)
-        toast.success('删除成功！')
-        loadCustomers()
-      } catch (error) {
-        toast.error('删除失败')
+    try {
+      // 1. 预检资产
+      const { apiGet } = await import('../utils/apiClient');
+      const assetRes = await apiGet(`/api/assets?user_id=${id}&status=in_use`);
+      
+      let confirmMsg = '确定要删除这个客服人员吗？';
+      if (assetRes.success && assetRes.data.length > 0) {
+          const assetNames = assetRes.data.map(a => a.name).join(', ');
+          confirmMsg = `⚠️ 警告：该员工名下仍有未归还资产 [${assetNames}]！\n删除员工将导致资产自动转为闲置状态。确定继续吗？`;
       }
+
+      if (window.confirm(confirmMsg)) {
+        await customerAPI.delete(id)
+        toast.success('删除成功！资产已自动回收（如有）。')
+        loadCustomers()
+      }
+    } catch (error) {
+      toast.error('操作失败')
+      console.error(error)
     }
   }
 

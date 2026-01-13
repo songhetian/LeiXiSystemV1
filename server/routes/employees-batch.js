@@ -1,8 +1,10 @@
 // 员工批量操作 API
 const bcrypt = require('bcryptjs')
+const { syncUserChatGroups } = require('../utils/personnelClosure')
 
 module.exports = async function (fastify, opts) {
   const pool = fastify.mysql
+  const redis = fastify.redis
 
   // 批量导入员工
   fastify.post('/api/employees/batch-import', async (request, reply) => {
@@ -90,6 +92,8 @@ module.exports = async function (fastify, opts) {
           formattedHireDate = emp.hire_date.split('T')[0];
         }
 
+        const empStatus = emp.status || 'active';
+
         // 创建用户
         const [userResult] = await pool.query(
           `INSERT INTO users (username, password_hash, real_name, email, phone, department_id, status)
@@ -101,7 +105,7 @@ module.exports = async function (fastify, opts) {
             emp.email,
             emp.phone,
             department_id,
-            emp.status || 'active'
+            empStatus
           ]
         )
 
@@ -139,7 +143,7 @@ module.exports = async function (fastify, opts) {
             positionId,
             formattedHireDate,
             emp.rating || 3,
-            emp.status || 'active',
+            empStatus,
             emp.emergency_contact,
             emp.emergency_phone,
             emp.address,
@@ -148,6 +152,15 @@ module.exports = async function (fastify, opts) {
             emp.remark
           ]
         )
+
+        // 自动化聊天群组同步 (闭环)
+        try {
+          if (empStatus === 'active') {
+            await syncUserChatGroups(pool, userId, department_id, true, redis, fastify.io);
+          }
+        } catch (chatErr) {
+          console.error(`批量导入员工 ${emp.real_name} 自动加群失败:`, chatErr);
+        }
 
         // 记录入职变动
         try {
@@ -181,6 +194,12 @@ module.exports = async function (fastify, opts) {
       }
     }
 
+    // 清理缓存
+    if (redis) {
+      const keys = await redis.keys('list:employees:default:*');
+      if (keys.length > 0) await redis.del(...keys);
+    }
+
     return {
       success: true,
       message: `导入完成：成功 ${successCount} 名，失败 ${failCount} 名`,
@@ -190,3 +209,4 @@ module.exports = async function (fastify, opts) {
     }
   })
 }
+

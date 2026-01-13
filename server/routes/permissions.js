@@ -751,8 +751,17 @@ const permissionRoutes = async (fastify, options) => {
 
       await connection.commit();
 
-      // 记录日志
+      // --- 关键修复：从 Token 中提取真实操作人 ---
+      const token = request.headers.authorization?.replace('Bearer ', '');
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const [opRows] = await connection.query('SELECT real_name, username FROM users WHERE id = ?', [decoded.id]);
+      const op = opRows[0] || { real_name: '系统管理员', username: 'admin' };
+
+      // 记录日志 (带上真实操作人信息)
       await recordLog(connection, {
+        user_id: decoded.id,
+        real_name: op.real_name,
+        username: op.username,
         module: 'permission',
         action: `设置用户部门权限: 用户ID ${id}`,
         method: 'PUT',
