@@ -314,6 +314,38 @@ module.exports = async function (fastify, opts) {
     }
   })
 
+  // 4.5 Mark as Read
+  fastify.post('/api/chat/read', async (request, reply) => {
+    try {
+      const user = getUserFromToken(request);
+      const { groupId, messageId } = request.body;
+
+      if (!groupId) return reply.code(400).send({ success: false, message: 'groupId is required' });
+
+      // If messageId is provided, use it. Otherwise get the latest message ID for the group.
+      let finalMessageId = messageId;
+      if (!finalMessageId) {
+        const [lastMsg] = await pool.query(
+          'SELECT id FROM chat_messages WHERE group_id = ? ORDER BY id DESC LIMIT 1',
+          [groupId]
+        );
+        if (lastMsg.length > 0) finalMessageId = lastMsg[0].id;
+      }
+
+      if (finalMessageId) {
+        await pool.query(
+          'UPDATE chat_group_members SET last_read_message_id = ? WHERE group_id = ? AND user_id = ?',
+          [finalMessageId, groupId, user.id]
+        );
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('[Chat Read] Error:', err);
+      return reply.code(500).send({ success: false });
+    }
+  });
+
   // 5. Mute Toggle
   fastify.post('/api/chat/mute', async (request, reply) => {
       try {

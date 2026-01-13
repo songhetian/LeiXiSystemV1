@@ -39,6 +39,7 @@ import {
   DesktopOutlined,
   LogoutOutlined,
   ThunderboltFilled,
+  ExportOutlined,
 } from '@ant-design/icons';
 
 import { Modal } from 'antd';
@@ -823,6 +824,7 @@ const allMenuItems = [
             { id: 'logistics-device-list', label: '实机明细', icon: <FileSearchOutlined />, permission: 'finance:asset:manage' },
             { id: 'asset-request-audit', label: '申请审批', icon: <CheckCircleOutlined />, permission: 'finance:asset:audit' },
             { id: 'inventory-management', label: '库存管理', icon: <ShoppingCartOutlined />, permission: 'finance:procurement:manage' },
+            { id: 'inventory-receive', label: '物品领取', icon: <ExportOutlined />, permission: 'finance:inventory:receive' },
         ]
       }
     ]

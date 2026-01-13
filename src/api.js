@@ -1,8 +1,9 @@
 // src/api.js
 import axios from 'axios';
 import { getApiBaseUrl } from './utils/apiConfig';
+import { toast } from 'sonner';
 
-// 创建 axios 实例，baseURL 已经包含 /api 前缀
+// 创建 axios 实例
 const api = axios.create({
   baseURL: getApiBaseUrl(),
   timeout: 30000,
@@ -11,6 +12,18 @@ const api = axios.create({
   },
 });
 
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+const subscribeTokenRefresh = (cb) => {
+  refreshSubscribers.push(cb);
+};
+
+const onRrefreshed = (token) => {
+  refreshSubscribers.map((cb) => cb(token));
+  refreshSubscribers = [];
+};
+
 // 请求拦截器 - 添加 token
 api.interceptors.request.use(
   (config) => {
@@ -18,53 +31,87 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // 确保自定义 headers 不被覆盖
-    console.log('[API Request] URL:', config.url);
-    console.log('[API Request] Headers:', config.headers);
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// 响应拦截器 - 统一错误处理
+// 响应拦截器 - 统一错误处理与自动刷新 Token
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const errorMsg = error.response?.data?.message || error.message || '未知错误';
+  async (error) => {
+    const { config, response } = error;
+    const originalRequest = config;
+    const errorMsg = response?.data?.message || error.message || '未知错误';
     
-    if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          // 只有在 JWT token 过期时才跳转到登录页面
-          // 如果是二级密码验证失败，不跳转
-          const message = error.response.data?.message || '';
-          const isPasswordError = message.includes('二级密码') || message.includes('需要验证');
-          
-          if (!isPasswordError) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/';
-          } else {
-            import('sonner').then(({ toast }) => toast.error(errorMsg));
+    if (response) {
+      if (response.status === 401 && !originalRequest._retry) {
+        // 如果是登录请求报错，直接返回
+        if (originalRequest.url.includes('/auth/login')) {
+          return Promise.reject(error);
+        }
+
+        // 处理二级密码逻辑
+        const message = response.data?.message || '';
+        if (message.includes('二级密码') || message.includes('需要验证')) {
+          toast.error(errorMsg);
+          return Promise.reject(error);
+        }
+
+        if (isRefreshing) {
+          return new Promise((resolve) => {
+            subscribeTokenRefresh((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(api(originalRequest));
+            });
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (!refreshToken) throw new Error('No refresh token');
+
+          const res = await axios.post(`${getApiBaseUrl()}/auth/refresh`, { refresh_token: refreshToken });
+          if (res.data.token) {
+            const newToken = res.data.token;
+            localStorage.setItem('token', newToken);
+            if (res.data.refresh_token) localStorage.setItem('refresh_token', res.data.refresh_token);
+            
+            onRrefreshed(newToken);
+            isRefreshing = false;
+            
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return api(originalRequest);
           }
-          break;
+        } catch (refreshErr) {
+          isRefreshing = false;
+          localStorage.clear();
+          window.location.href = '/';
+          return Promise.reject(refreshErr);
+        }
+      }
+
+      switch (response.status) {
         case 403:
-          import('sonner').then(({ toast }) => toast.error('权限不足：' + errorMsg));
+          toast.error('权限不足：' + errorMsg);
           break;
         case 404:
-          import('sonner').then(({ toast }) => toast.error('资源不存在'));
+          // 仅记录到控制台，不再弹窗显示 404
+          console.warn('API 404 Not Found:', originalRequest.url);
           break;
         case 500:
-          import('sonner').then(({ toast }) => toast.error('服务器错误：' + errorMsg));
+          toast.error('服务器错误：' + errorMsg);
           break;
         default:
-          import('sonner').then(({ toast }) => toast.error('操作失败：' + errorMsg));
+          if (response.status !== 401) toast.error('操作失败：' + errorMsg);
       }
     } else if (error.request) {
-      import('sonner').then(({ toast }) => toast.error('网络错误，请检查网络连接'));
-    } else {
-      import('sonner').then(({ toast }) => toast.error('请求配置错误'));
+      toast.error('网络错误，请检查网络连接');
     }
+    
     return Promise.reject(error);
   }
 );

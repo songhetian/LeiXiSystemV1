@@ -32,13 +32,30 @@ async function personnelLogicRoutes(fastify, options) {
         if (redis) await redis.set(cacheKey, JSON.stringify(op), 'EX', 86400); // 缓存 24 小时
       }
 
-      // 3. 异步记录日志 (不阻塞主业务)
+      // 3. 处理目标用户信息 (ID -> 姓名)
+      let finalAction = action;
+      if (targetId) {
+        try {
+          const [targetRows] = await pool.query('SELECT real_name, username FROM users WHERE id = ?', [targetId]);
+          if (targetRows.length > 0) {
+            const target = targetRows[0];
+            const name = target.real_name || target.username;
+            finalAction = `${action} [目标: ${name}]`;
+          } else {
+            finalAction = `${action} [目标ID: ${targetId}]`;
+          }
+        } catch (targetError) {
+          finalAction = `${action} [目标ID: ${targetId}]`;
+        }
+      }
+
+      // 4. 异步记录日志
       recordLog(pool, {
         user_id: opId,
         username: op.username,
         real_name: op.real_name,
         module,
-        action: `${action}${targetId ? ` (目标ID: ${targetId})` : ''}`,
+        action: finalAction,
         method: request.method,
         url: request.url,
         ip: request.ip,
@@ -53,7 +70,7 @@ async function personnelLogicRoutes(fastify, options) {
     const { userId } = request.params;
     const { isDepartmentManager } = request.body;
     await pool.query('UPDATE users SET is_department_manager = ? WHERE id = ?', [isDepartmentManager ? 1 : 0, userId]);
-    
+
     if (redis) {
       const keys = await redis.keys('list:employees:*');
       if (keys.length > 0) await redis.del(...keys);
@@ -66,7 +83,8 @@ async function personnelLogicRoutes(fastify, options) {
   fastify.put('/api/employees/:id/status-closure', async (request, reply) => {
     const { id } = request.params;
     const { status, reason, changeDate } = request.body;
-    
+    const redis = fastify.redis; // Ensure we get it from fastify
+
     console.log(`[Status Closure] ID: ${id}, Target Status: ${status}`);
 
     const [empRows] = await pool.query('SELECT user_id, department_id, position_id FROM employees WHERE id = ?', [id]);
@@ -77,7 +95,7 @@ async function personnelLogicRoutes(fastify, options) {
       // 1. 更新数据库状态 (同步两表)
       await pool.query('UPDATE employees SET status = ? WHERE id = ?', [status, id]);
       await pool.query('UPDATE users SET status = ? WHERE id = ?', [status, user_id]);
-      
+
       // 2. 聊天组闭环 (Redis + WebSocket + 强制断开)
       const { forceDisconnectUser } = require('../websocket');
       await syncUserChatGroups(pool, user_id, department_id, status === 'active', redis, fastify.io);
@@ -99,8 +117,16 @@ async function personnelLogicRoutes(fastify, options) {
       );
 
       if (redis) {
-        const keys = await redis.keys('*employees*');
-        if (keys.length > 0) await redis.del(...keys);
+        // Clear global employee lists (specific pattern + wildcard just in case)
+        const keys1 = await redis.keys('list:employees:default:*');
+        const keys2 = await redis.keys('*employees*');
+        const allKeys = [...new Set([...keys1, ...keys2])];
+        if (allKeys.length > 0) await redis.del(...allKeys);
+
+        // Also clear user specific caches
+        await redis.del(`user:profile:${user_id}`);
+        await redis.del(`user:permissions:${user_id}`);
+
         const { cacheUserProfile } = require('../utils/personnelClosure');
         await cacheUserProfile(pool, redis, user_id);
       }
@@ -173,7 +199,7 @@ async function personnelLogicRoutes(fastify, options) {
              VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?)`,
             [id, user_id, status === 'resigned' ? 'resign' : (status === 'active' ? 'hire' : (status === 'deleted' ? 'terminate' : 'transfer')), department_id, department_id, position_id, position_id, reason || '批量状态调整']
           );
-        } catch (e) {}
+        } catch (e) { }
 
         successCount++;
       } catch (err) {
@@ -183,8 +209,10 @@ async function personnelLogicRoutes(fastify, options) {
 
     // 清理全局列表缓存
     if (redis) {
-      const keys = await redis.keys('*employees*');
-      if (keys.length > 0) await redis.del(...keys);
+      const keys1 = await redis.keys('list:employees:default:*');
+      const keys2 = await redis.keys('*employees*');
+      const allKeys = [...new Set([...keys1, ...keys2])];
+      if (allKeys.length > 0) await redis.del(...allKeys);
     }
 
     await auditAction(request, 'user', `批量变更 ${successCount} 名员工状态为: ${status}`);

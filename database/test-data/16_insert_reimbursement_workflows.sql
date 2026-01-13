@@ -30,27 +30,28 @@ SET @wf3_id = LAST_INSERT_ID();
 
 -- =============================================================================
 -- 3. 标准流程节点: 部门主管 → 财务 → 申请人确认
+-- approver_type 有效值: 'user','role','department_manager','boss','finance','initiator','custom'
 -- =============================================================================
 INSERT INTO `approval_workflow_nodes` (`workflow_id`, `node_order`, `node_name`, `approver_type`, `custom_type_name`, `approval_mode`) VALUES
-(@wf1_id, 1, '部门主管审批', 'custom_group', '部门主管', 'serial'),
-(@wf1_id, 2, '财务审核', 'custom_group', '财务', 'serial'),
+(@wf1_id, 1, '部门主管审批', 'department_manager', NULL, 'serial'),
+(@wf1_id, 2, '财务审核', 'finance', NULL, 'serial'),
 (@wf1_id, 3, '申请人确认', 'initiator', NULL, 'serial');
 
 -- =============================================================================
 -- 4. 管理层流程节点: 老板 → 财务 → 申请人确认
 -- =============================================================================
 INSERT INTO `approval_workflow_nodes` (`workflow_id`, `node_order`, `node_name`, `approver_type`, `custom_type_name`, `approval_mode`) VALUES
-(@wf2_id, 1, '老板审批', 'custom_group', '老板', 'serial'),
-(@wf2_id, 2, '财务审核', 'custom_group', '财务', 'serial'),
+(@wf2_id, 1, '老板审批', 'boss', NULL, 'serial'),
+(@wf2_id, 2, '财务审核', 'finance', NULL, 'serial'),
 (@wf2_id, 3, '申请人确认', 'initiator', NULL, 'serial');
 
 -- =============================================================================
 -- 5. 大额流程节点: 部门主管 → 老板 → 财务 → 申请人确认
 -- =============================================================================
 INSERT INTO `approval_workflow_nodes` (`workflow_id`, `node_order`, `node_name`, `approver_type`, `custom_type_name`, `approval_mode`) VALUES
-(@wf3_id, 1, '部门主管审批', 'custom_group', '部门主管', 'serial'),
-(@wf3_id, 2, '老板审批', 'custom_group', '老板', 'serial'),
-(@wf3_id, 3, '财务审核', 'custom_group', '财务', 'serial'),
+(@wf3_id, 1, '部门主管审批', 'department_manager', NULL, 'serial'),
+(@wf3_id, 2, '老板审批', 'boss', NULL, 'serial'),
+(@wf3_id, 3, '财务审核', 'finance', NULL, 'serial'),
 (@wf3_id, 4, '申请人确认', 'initiator', NULL, 'serial');
 
 SET FOREIGN_KEY_CHECKS = 1;

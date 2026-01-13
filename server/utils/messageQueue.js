@@ -17,22 +17,61 @@ class MessageQueue {
   async initSequence() {
     const [rows] = await this.pool.query('SELECT MAX(id) as maxId FROM chat_messages');
     const maxId = rows[0].maxId || 0;
-    await this.redis.setnx(this.idKey, maxId);
-    console.log(`🚀 [MessageQueue] ID 序列初始化完成，起始 ID: ${maxId}`);
+    if (this.redis) {
+      await this.redis.setnx(this.idKey, maxId);
+      console.log(`🚀 [MessageQueue] Redis ID 序列初始化完成，起始 ID: ${maxId}`);
+    } else {
+      this.localIdSeq = maxId;
+      console.log(`🚀 [MessageQueue] 内存 ID 序列初始化完成 (无 Redis)，起始 ID: ${maxId}`);
+    }
   }
 
   /**
    * 消息入队
    */
   async enqueue(message) {
-    // 1. 获取全局唯一 ID
-    const nextId = await this.redis.incr(this.idKey);
+    let nextId;
+    if (this.redis) {
+      // 1. 获取 Redis 全局唯一 ID
+      nextId = await this.redis.incr(this.idKey);
+    } else {
+      // 1b. 无 Redis 时使用内存计数 (注意：多进程部署会有冲突，但在单服务器 desktop 环境下可行)
+      this.localIdSeq = (this.localIdSeq || 0) + 1;
+      nextId = this.localIdSeq;
+    }
+
     const msgWithId = { ...message, id: nextId, created_at: new Date() };
 
-    // 2. 推入待持久化队列
-    await this.redis.rpush(this.queueKey, JSON.stringify(msgWithId));
-    
+    if (this.redis) {
+      // 2. 推入 Redis 待持久化队列
+      await this.redis.rpush(this.queueKey, JSON.stringify(msgWithId));
+    } else {
+      // 2b. 无 Redis 时立即写入 MySQL 确保不丢失
+      await this.saveDirectly(msgWithId);
+    }
+
     return msgWithId;
+  }
+
+  /**
+   * 无 Redis 时直接保存到数据库
+   */
+  async saveDirectly(item) {
+    const sql = `
+      INSERT INTO chat_messages (id, sender_id, group_id, content, msg_type, file_url, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE id=id
+    `;
+    const values = [
+      item.id,
+      item.sender_id,
+      item.group_id,
+      item.content,
+      item.msg_type || 'text',
+      item.file_url || null,
+      new Date(item.created_at)
+    ];
+    await this.pool.query(sql, values);
   }
 
   /**
@@ -45,7 +84,7 @@ class MessageQueue {
     try {
       const batchSize = 100;
       const messages = await this.redis.lrange(this.queueKey, 0, batchSize - 1);
-      
+
       if (messages.length === 0) {
         this.isProcessing = false;
         return;
@@ -56,12 +95,12 @@ class MessageQueue {
       const values = messages.map(m => {
         const item = JSON.parse(m);
         return [
-          item.id, 
-          item.sender_id, 
-          item.group_id, 
-          item.content, 
-          item.msg_type || 'text', 
-          item.file_url || null, 
+          item.id,
+          item.sender_id,
+          item.group_id,
+          item.content,
+          item.msg_type || 'text',
+          item.file_url || null,
           new Date(item.created_at)
         ];
       });
@@ -77,7 +116,7 @@ class MessageQueue {
 
       // 移除已成功写入的消息
       await this.redis.ltrim(this.queueKey, messages.length, -1);
-      
+
     } catch (err) {
       console.error('❌ [MessageQueue] 持久化失败:', err);
     } finally {

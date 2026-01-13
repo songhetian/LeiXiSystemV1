@@ -108,3 +108,20 @@ The application operates as a local client-server model packaged together:
 *   **Backend Logs:** Check the terminal running `npm run server`.
 *   **Frontend Logs:** Browser Console (DevTools).
 *   **Electron:** Main process logs appear in the terminal; Renderer logs in the DevTools window.
+
+## Recent Changes (2026-01-14)
+
+### 1. Fixed "Cannot read properties of null (reading 'targetUsers')"
+*   **Location:** `src/pages/Admin/BroadcastManagement.jsx`
+*   **Issue:** The preview modal tried to access `previewData.targetUsers` while `previewData` was null (e.g., during initial render or before form validation passed).
+*   **Fix:** Added optional chaining (`previewData?.targetUsers?.length`) to safely access the property.
+
+### 2. Improved Redis Connection Stability
+*   **Location:** `server/index.js`
+*   **Changes:**
+    *   Forced `family: 4` (IPv4) to avoid IPv6 resolution delays.
+    *   Enabled `keepAlive: 10000` (10s) to prevent idle timeouts from firewalls/routers.
+    *   Added a custom `retryStrategy` with exponential backoff (min 50ms, max 2000ms).
+    *   Set `connectTimeout: 10000` (10s) and `maxRetriesPerRequest: 3`.
+*   **Verification:** Verified `server/websocket.js` inherits these settings via `redis.duplicate()`.
+

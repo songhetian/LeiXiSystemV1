@@ -62,7 +62,21 @@ module.exports = async function (fastify, opts) {
   })
 
   // 2. Add Procurement (Purchase & Stock In)
-  fastify.post('/api/inventory/procure', async (request, reply) => {
+  fastify.post('/api/inventory/procure', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['quantity'],
+        properties: {
+          item_name: { type: 'string' },
+          category: { type: 'string' },
+          quantity: { type: 'number', minimum: 1 },
+          price_per_unit: { type: 'number', minimum: 0 },
+          item_id: { type: 'number' }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const user = getUserFromToken(request)
       const { item_name, category, quantity, price_per_unit, supplier, purchase_date, item_id } = request.body
@@ -82,7 +96,7 @@ module.exports = async function (fastify, opts) {
             finalItemId = newItem.insertId
         }
 
-        const totalPrice = quantity * price_per_unit
+        const totalPrice = (quantity || 0) * (price_per_unit || 0)
 
         // Insert Procurement Record
         await conn.query(
@@ -111,7 +125,7 @@ module.exports = async function (fastify, opts) {
             user_id: user.id,
             username: user.username,
             real_name: user.real_name,
-            module: 'finance',
+            module: 'inventory',
             action: `采购入库: ${item_name || '现有物品'} +${quantity}`,
             method: 'POST',
             url: request.url,
@@ -132,7 +146,20 @@ module.exports = async function (fastify, opts) {
   })
 
   // 3. Usage (Stock Out)
-  fastify.post('/api/inventory/use', async (request, reply) => {
+  fastify.post('/api/inventory/use', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['item_id', 'quantity'],
+        properties: {
+          item_id: { type: 'number' },
+          quantity: { type: 'number', minimum: 1 },
+          purpose: { type: 'string' },
+          user_id: { type: 'number' }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const user = getUserFromToken(request)
       const { item_id, quantity, purpose, user_id } = request.body // user_id is who received it
@@ -173,6 +200,19 @@ module.exports = async function (fastify, opts) {
             await redis.decrby(getStockKey(item_id), quantity)
         }
 
+        // Log
+        await recordLog(pool, {
+            user_id: user.id,
+            username: user.username,
+            real_name: user.real_name,
+            module: 'inventory',
+            action: `库存领用: ${rows[0].name} -${quantity} (用途: ${purpose})`,
+            method: 'POST',
+            url: request.url,
+            ip: request.ip,
+            status: 1
+        })
+
         return { success: true }
       } catch (e) {
         await conn.rollback()
@@ -186,7 +226,19 @@ module.exports = async function (fastify, opts) {
   })
 
   // 4. Audit/Stocktaking (盘点)
-  fastify.post('/api/inventory/audit', async (request, reply) => {
+  fastify.post('/api/inventory/audit', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['item_id', 'actual_stock'],
+        properties: {
+          item_id: { type: 'number' },
+          actual_stock: { type: 'number', minimum: 0 },
+          notes: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
     try {
       const user = getUserFromToken(request)
       const { item_id, actual_stock, notes } = request.body
@@ -228,7 +280,7 @@ module.exports = async function (fastify, opts) {
                 user_id: user.id,
                 username: user.username,
                 real_name: user.real_name,
-                module: 'finance',
+                module: 'inventory',
                 action: `库存盘点异常: ${rows[0].name} (差异: ${discrepancy})`,
                 method: 'POST',
                 url: request.url,

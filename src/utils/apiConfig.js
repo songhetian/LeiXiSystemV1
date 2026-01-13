@@ -101,15 +101,19 @@ export async function getApiBaseUrlAsync() {
  */
 export const getApiUrl = (path) => {
   const baseUrl = getApiBaseUrl();
-  // 如果path已经包含/api，则移除baseUrl中的/api
-  if (path.startsWith('/api/')) {
-    return baseUrl.replace(/\/api$/, '') + path;
+  let cleanPath = path;
+  
+  // 如果路径以 /api/ 开头，且 baseUrl 以 /api 结尾，说明重复了
+  if (path.startsWith('/api/') && baseUrl.endsWith('/api')) {
+    cleanPath = path.substring(4); // 移除前面的 "/api"
   }
-  // 如果path不以/开头，添加/
-  if (!path.startsWith('/')) {
-    path = '/' + path;
+  
+  // 确保 cleanPath 以 / 开头
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
   }
-  return baseUrl + path;
+  
+  return baseUrl + cleanPath;
 }
 
 /**
@@ -119,15 +123,17 @@ export const getApiUrl = (path) => {
  */
 export async function getApiUrlAsync(path) {
   const baseUrl = await getApiBaseUrlAsync();
-  // 如果path已经包含/api，则移除baseUrl中的/api
-  if (path.startsWith('/api/')) {
-    return baseUrl.replace(/\/api$/, '') + path;
+  let cleanPath = path;
+  
+  if (path.startsWith('/api/') && baseUrl.endsWith('/api')) {
+    cleanPath = path.substring(4);
   }
-  // 如果path不以/开头，添加/
-  if (!path.startsWith('/')) {
-    path = '/' + path;
+  
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
   }
-  return baseUrl + path;
+  
+  return baseUrl + cleanPath;
 }
 
 export default {

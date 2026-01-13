@@ -117,6 +117,21 @@ class WebSocketManager {
       this.emit('disconnected', { reason })
     })
 
+    // --- 新增：即时通讯相关监听 ---
+    this.socket.on('receive_message', (msg) => {
+      console.log('📩 [WebSocket] 收到即时通讯消息:', msg)
+      this.emit('receive_message', msg)
+
+      // 注意：这里我们不直接引用 chatStore 避免循环依赖或加载顺序问题
+      // 而是通过 emit 触发，在系统入口处订阅并更新 store
+    })
+
+    this.socket.on('member_update', (data) => {
+      console.log('👥 [WebSocket] 群成员变动:', data)
+      this.emit('member_update', data)
+    })
+    // ----------------------------
+
     // 重连尝试
     this.socket.on('reconnect_attempt', (attemptNumber) => {
       console.log(`🔄 [WebSocket] 尝试重连 (${attemptNumber}/${this.maxReconnectAttempts})...`)

@@ -3,17 +3,22 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, List, Avatar, Tag, Button, Empty, Skeleton, Typography, Space } from 'antd';
-import { 
-  UserOutlined, 
-  CheckCircleOutlined, 
-  ClockCircleOutlined, 
+import {
+  UserOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
   RocketOutlined,
   CalendarOutlined,
   WalletOutlined,
   BellOutlined,
   ArrowRightOutlined,
-  RiseOutlined
+  RiseOutlined,
+  CalendarFilled,
+  NotificationFilled,
+  CarryOutFilled,
+  TeamOutlined as EmployeesIcon
 } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -24,6 +29,98 @@ dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const { Title, Text } = Typography;
+
+const StatCard = ({ title, value, suffix, icon, color, onClick, description, delay = 0, valueColor }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay }}
+    whileHover={{ y: -5, transition: { duration: 0.2 } }}
+    className="h-full"
+  >
+    <Card
+      bordered={false}
+      hoverable
+      className="h-full overflow-hidden relative group"
+      style={{
+        borderRadius: 24,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
+        background: 'white',
+        cursor: onClick ? 'pointer' : 'default'
+      }}
+      onClick={onClick}
+      bodyStyle={{ padding: '24px' }}
+    >
+      <div className="flex justify-between items-start relative z-10">
+        <div className="flex-1">
+          <div className="text-gray-400 font-extrabold text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+            {title}
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-[900] tracking-tight transition-all group-hover:scale-105 origin-left inline-block" style={{ color: valueColor || '#111827' }}>
+              {value}
+            </span>
+            {suffix && <span className="text-xs font-bold text-gray-400 ml-0.5">{suffix}</span>}
+          </div>
+          {description && (
+            <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
+              <span className="text-[11px] text-gray-400 font-medium">{description}</span>
+              {onClick && <ArrowRightOutlined className="text-[10px] text-gray-300 group-hover:text-blue-500 transition-colors" />}
+            </div>
+          )}
+        </div>
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner transition-transform group-hover:rotate-12"
+          style={{ background: `${color}10`, color: color }}
+        >
+          {icon}
+        </div>
+      </div>
+      {/* Background decoration */}
+      <div className="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none group-hover:scale-110 transition-transform duration-500">
+        {React.cloneElement(icon, { style: { fontSize: 90 } })}
+      </div>
+    </Card>
+  </motion.div>
+);
+
+const EntryCard = ({ title, desc, icon, color, onClick, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.4, delay }}
+    whileHover={{ y: -5, transition: { duration: 0.2 } }}
+    className="h-full"
+  >
+    <div
+      className={`p-8 rounded-[32px] cursor-pointer transition-all hover:shadow-xl hover:shadow-${color}/10 flex flex-col items-center justify-center text-center h-full border border-white group`}
+      style={{
+        backgroundColor: `${color}08`,
+        backdropFilter: 'blur(10px)',
+      }}
+      onClick={onClick}
+    >
+      <div
+        className="w-16 h-16 rounded-[22px] flex items-center justify-center mb-5 shadow-sm transition-all group-hover:scale-110 group-hover:rotate-6"
+        style={{ backgroundColor: 'white', color: color, boxShadow: `0 8px 20px ${color}15` }}
+      >
+        {React.cloneElement(icon, { style: { fontSize: 30 } })}
+      </div>
+      <div className="text-lg font-bold text-gray-800 mb-1.5">{title}</div>
+      <div className="text-xs text-gray-400 font-medium leading-relaxed">{desc}</div>
+    </div>
+  </motion.div>
+);
+
+const getGreeting = () => {
+  const hour = dayjs().hour();
+  if (hour < 6) return '凌晨好';
+  if (hour < 11) return '早上好';
+  if (hour < 13) return '中午好';
+  if (hour < 18) return '下午好';
+  return '晚上好';
+};
 
 const Dashboard = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
@@ -53,7 +150,7 @@ const Dashboard = ({ onNavigate }) => {
 
   const fetchStats = async () => {
     const userId = localStorage.getItem('userId') || JSON.parse(localStorage.getItem('user'))?.id;
-    
+
     if (!userId) {
       console.warn('Dashboard: No userId found, skipping stats fetch');
       setLoading(false);
@@ -80,159 +177,215 @@ const Dashboard = ({ onNavigate }) => {
       <div className="mb-6">
         <Breadcrumb items={['首页', '控制面板']} />
       </div>
-      <div style={{ marginBottom: 32 }}>
-        <Title level={2} style={{ margin: 0, fontWeight: 800, color: '#111827' }}>
-          您好，{stats?.user?.real_name || '用户'} 👋
-        </Title>
-        <Text type="secondary" style={{ fontSize: 15 }}>
-          欢迎回到雷犀客服管理系统。今天是 {dayjs().format('YYYY年MM月DD日')}，{dayjs().format('dddd')}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: 32 }}
+      >
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-1.5 h-8 bg-blue-600 rounded-full" />
+          <Title level={2} style={{ margin: 0, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
+            {getGreeting()}，{stats?.user?.real_name || '用户'} 👋
+          </Title>
+        </div>
+        <Text type="secondary" style={{ fontSize: 16, display: 'block', marginLeft: '22px' }}>
+          欢迎回到雷犀客服管理系统。今天是 <span className="text-blue-600 font-medium">{dayjs().format('YYYY年MM月DD日')}</span>，{dayjs().format('dddd')}
         </Text>
-      </div>
+      </motion.div>
 
       {loading ? (
         <Skeleton active />
       ) : (
         <>
           {/* 顶层统计项 */}
-          <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+          <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} hoverable style={{ borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                <Statistic
-                  title={<Text strong type="secondary"><BellOutlined /> 待办任务</Text>}
-                  value={stats?.pendingCount || 0}
-                  valueStyle={{ color: '#f5222d', fontWeight: 800, fontSize: 32 }}
-                  suffix="项"
-                />
-                <Button type="link" onClick={() => onNavigate('my-todo')} style={{ padding: 0, marginTop: 8 }}>
-                  进入待办中心 <ArrowRightOutlined />
-                </Button>
-              </Card>
+              <StatCard
+                title="待办任务"
+                icon={<CarryOutFilled />}
+                value={stats?.pendingCount || 0}
+                suffix="项"
+                color="#f5222d"
+                valueColor="#f5222d"
+                description="需要立即处理的事项"
+                delay={0.1}
+                onClick={() => onNavigate('my-todo')}
+              />
             </Col>
-            
+
             {stats?.adminStats && (
               <Col xs={24} sm={12} lg={6}>
-                <Card bordered={false} hoverable style={{ borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                  <Statistic
-                    title={<Text strong type="secondary"><UserOutlined /> 全公司员工</Text>}
-                    value={stats.adminStats.totalEmployees}
-                    valueStyle={{ color: '#111827', fontWeight: 800, fontSize: 32 }}
-                  />
-                  <div className="text-xs text-gray-400 mt-2">今日在线: {stats.adminStats.todayClockIn} 人</div>
-                </Card>
+                <StatCard
+                  title="全公司员工"
+                  icon={<EmployeesIcon />}
+                  value={stats.adminStats.totalEmployees}
+                  suffix="人"
+                  color="#1890ff"
+                  description={`今日在线 ${stats.adminStats.todayClockIn} 人`}
+                  delay={0.2}
+                />
               </Col>
             )}
 
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} hoverable style={{ borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                <Statistic
-                  title={<Text strong type="secondary"><ClockCircleOutlined /> 今日打卡</Text>}
-                  value={stats?.personalStats?.todayClock?.clock_in ? '已签到' : '未签到'}
-                  valueStyle={{ color: stats?.personalStats?.todayClock?.clock_in ? '#52c41a' : '#faad14', fontWeight: 800, fontSize: 24 }}
-                />
-                <Button type="link" onClick={() => onNavigate('attendance-home')} style={{ padding: 0, marginTop: 8 }}>
-                  {stats?.personalStats?.todayClock?.clock_in ? '查看打卡记录' : '立即去打卡'} <ArrowRightOutlined />
-                </Button>
-              </Card>
+              <StatCard
+                title="今日打卡状态"
+                icon={<ClockCircleOutlined />}
+                value={stats?.personalStats?.todayClock?.clock_in ? '已签到' : '未签到'}
+                color={stats?.personalStats?.todayClock?.clock_in ? '#52c41a' : '#faad14'}
+                valueColor={stats?.personalStats?.todayClock?.clock_in ? '#52c41a' : '#faad14'}
+                description={stats?.personalStats?.todayClock?.clock_in ? `打卡时间 ${dayjs(stats.personalStats.todayClock.clock_in).format('HH:mm')}` : '尚未完成今日签到'}
+                delay={0.3}
+                onClick={() => onNavigate('attendance-home')}
+              />
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} hoverable style={{ borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                <Statistic
-                  title={<Text strong type="secondary"><RiseOutlined /> 本月异常</Text>}
-                  value={stats?.personalStats?.monthAbsents || 0}
-                  valueStyle={{ color: '#cf1322', fontWeight: 800, fontSize: 32 }}
-                  suffix="次"
-                />
-                <Button type="link" onClick={() => onNavigate('attendance-home')} style={{ padding: 0, marginTop: 8 }}>
-                  查看考勤详情 <ArrowRightOutlined />
-                </Button>
-              </Card>
+              <StatCard
+                title="本月考勤异常"
+                icon={<RiseOutlined />}
+                value={stats?.personalStats?.monthAbsents || 0}
+                suffix="次"
+                color="#722ed1"
+                valueColor="#cf1322"
+                description="包含迟到、早退、缺卡"
+                delay={0.4}
+                onClick={() => onNavigate('attendance-home')}
+              />
             </Col>
           </Row>
 
           <Row gutter={[24, 24]}>
             {/* 左侧：快捷操作 */}
-            <Col xs={24} lg={12}>
-              <Card 
-                title={<Title level={5} style={{ margin: 0 }}>快捷入口</Title>}
-                bordered={false}
-                style={{ borderRadius: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)', height: '100%' }}
+            <Col xs={24} lg={14}>
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="h-full"
               >
-                <div className="grid grid-cols-2 gap-6 mt-4">
-                  <div 
-                    className="p-8 bg-blue-50 rounded-3xl cursor-pointer hover:bg-blue-100 transition-all hover:scale-[1.02] text-center"
-                    onClick={() => onNavigate('reimbursement-apply')}
-                  >
-                    <WalletOutlined style={{ fontSize: 32 }} className="text-blue-600 mb-3" />
-                    <div className="text-lg font-bold text-blue-900">申请报销</div>
-                    <div className="text-xs text-blue-400 mt-1">快速提交费用报销</div>
+                <Card
+                  title={
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="w-1 h-4 bg-orange-400 rounded-full" />
+                      <span className="font-bold text-gray-800">快捷入口</span>
+                    </div>
+                  }
+                  bordered={false}
+                  className="h-full"
+                  style={{ borderRadius: 32, boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}
+                >
+                  <div className="grid grid-cols-2 gap-6 mt-4">
+                    <EntryCard
+                      title="申请报销"
+                      desc="快速提交费用报销流程"
+                      icon={<WalletOutlined />}
+                      color="#3b82f6"
+                      onClick={() => onNavigate('reimbursement-apply')}
+                      delay={0.6}
+                    />
+                    <EntryCard
+                      title="请假申请"
+                      desc="在线提交人事请假流程"
+                      icon={<CalendarOutlined />}
+                      color="#a855f7"
+                      onClick={() => onNavigate('attendance-leave-apply')}
+                      delay={0.7}
+                    />
+                    <EntryCard
+                      title="参加考试"
+                      desc="查阅并完成待办考核"
+                      icon={<RocketOutlined />}
+                      color="#f97316"
+                      onClick={() => onNavigate('my-exams')}
+                      delay={0.8}
+                    />
+                    <EntryCard
+                      title="知识库"
+                      desc="查阅标准客服业务话术"
+                      icon={<CheckCircleOutlined />}
+                      color="#10b981"
+                      onClick={() => onNavigate('knowledge-articles')}
+                      delay={0.9}
+                    />
                   </div>
-                  <div 
-                    className="p-8 bg-purple-50 rounded-3xl cursor-pointer hover:bg-purple-100 transition-all hover:scale-[1.02] text-center"
-                    onClick={() => onNavigate('attendance-leave-apply')}
-                  >
-                    <CalendarOutlined style={{ fontSize: 32 }} className="text-purple-600 mb-3" />
-                    <div className="text-lg font-bold text-purple-900">请假申请</div>
-                    <div className="text-xs text-purple-400 mt-1">在线提交请假流程</div>
-                  </div>
-                  <div 
-                    className="p-8 bg-orange-50 rounded-3xl cursor-pointer hover:bg-orange-100 transition-all hover:scale-[1.02] text-center"
-                    onClick={() => onNavigate('my-exams')}
-                  >
-                    <RocketOutlined style={{ fontSize: 32 }} className="text-orange-600 mb-3" />
-                    <div className="text-lg font-bold text-orange-900">参加考试</div>
-                    <div className="text-xs text-orange-400 mt-1">查看待完成考核</div>
-                  </div>
-                  <div 
-                    className="p-8 bg-green-50 rounded-3xl cursor-pointer hover:bg-green-100 transition-all hover:scale-[1.02] text-center"
-                    onClick={() => onNavigate('knowledge-articles')}
-                  >
-                    <CheckCircleOutlined style={{ fontSize: 32 }} className="text-green-600 mb-3" />
-                    <div className="text-lg font-bold text-green-900">知识库</div>
-                    <div className="text-xs text-green-400 mt-1">查阅业务标准话术</div>
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              </motion.div>
             </Col>
 
             {/* 右侧：最新通知 */}
-            <Col xs={24} lg={12}>
-              <Card 
-                title={<Title level={5} style={{ margin: 0 }}>最新通知</Title>}
-                bordered={false}
-                style={{ borderRadius: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)', height: '100%' }}
+            <Col xs={24} lg={10}>
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="h-full"
               >
-                <List
-                  itemLayout="horizontal"
-                  dataSource={notifications}
-                  locale={{ emptyText: <Empty description="暂无通知" /> }}
-                  renderItem={item => (
-                    <List.Item style={{ padding: '20px 0', borderBottom: '1px solid #f3f4f6' }}>
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<BellOutlined />} style={{ backgroundColor: item.is_read ? '#f5f5f5' : '#f0f7ff', color: item.is_read ? '#bfbfbf' : '#1890ff' }} />}
-                        title={<Text strong style={{ fontSize: 15, color: item.is_read ? '#8c8c8c' : '#111827' }}>{item.title}</Text>}
-                        description={
-                          <Space direction="vertical" size={0} style={{ width: '100%' }}>
-                            <Text type="secondary" ellipsis style={{ maxWidth: '100%', fontSize: 13 }}>{item.content}</Text>
-                            <Space>
-                              <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(item.created_at).fromNow()}</Text>
-                              {!item.is_read && <Tag color="red" style={{ fontSize: 10, borderRadius: 4, lineHeight: '16px' }}>未读</Tag>}
-                            </Space>
-                          </Space>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-                <Button 
-                  type="link" 
-                  block 
-                  style={{ marginTop: 16 }} 
-                  onClick={() => onNavigate('my-notifications')}
+                <Card
+                  title={
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                      <span className="font-bold text-gray-800">最新通知</span>
+                    </div>
+                  }
+                  extra={
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => onNavigate('my-notifications')}
+                      className="text-blue-500 font-bold hover:text-blue-600"
+                    >
+                      查看全部 <ArrowRightOutlined className="text-[10px]" />
+                    </Button>
+                  }
+                  bordered={false}
+                  className="h-full"
+                  style={{ borderRadius: 32, boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}
                 >
-                  查看全部通知
-                </Button>
-              </Card>
+                  <List
+                    itemLayout="horizontal"
+                    dataSource={notifications}
+                    className="notifications-list-custom"
+                    locale={{ emptyText: <Empty description="暂无通知" style={{ padding: '40px 0' }} /> }}
+                    renderItem={(item, index) => (
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.7 + (index * 0.1) }}
+                      >
+                        <List.Item className="hover:bg-gray-50/80 transition-colors p-4 rounded-2xl border-none mb-1 group cursor-pointer">
+                          <List.Item.Meta
+                            avatar={
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${item.is_read ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-500 shadow-sm'}`}>
+                                <NotificationFilled className={item.is_read ? '' : 'animate-pulse'} />
+                              </div>
+                            }
+                            title={
+                              <div className="flex items-center justify-between">
+                                <Text strong className={`text-[14px] ${item.is_read ? 'text-gray-400' : 'text-gray-800'}`}>
+                                  {item.title}
+                                </Text>
+                                {!item.is_read && <div className="w-2 h-2 bg-red-500 rounded-full" />}
+                              </div>
+                            }
+                            description={
+                              <div className="flex flex-col gap-1 mt-0.5">
+                                <Text type="secondary" ellipsis className="text-[12px] max-w-full">
+                                  {item.content}
+                                </Text>
+                                <Text className="text-[11px] text-gray-300 font-medium">
+                                  {dayjs(item.created_at).fromNow()}
+                                </Text>
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      </motion.div>
+                    )}
+                  />
+                </Card>
+              </motion.div>
             </Col>
           </Row>
         </>

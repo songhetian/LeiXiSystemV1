@@ -53,7 +53,7 @@ module.exports = async function (fastify, opts) {
   fastify.post('/api/assets/categories', async (request) => {
     const user = getUserFromToken(request);
     const { name, code } = request.body;
-    await pool.query('INSERT INTO asset_categories (name, code, status) VALUES (?, ?, "active")', [name, code || name.substring(0,2).toUpperCase()]);
+    await pool.query('INSERT INTO asset_categories (name, code, status) VALUES (?, ?, "active")', [name, code || name.substring(0, 2).toUpperCase()]);
     await recordLog(pool, { user_id: user.id, username: user.username, real_name: user.real_name, module: 'logistics', action: `新增业务分类: ${name}`, method: 'POST', url: request.url, ip: request.ip, status: 1 });
     return sendSuccess(null);
   })
@@ -184,7 +184,7 @@ module.exports = async function (fastify, opts) {
       if (template?.length) { const vals = template.map(t => [id, t.component_id, t.quantity]); await connection.query('INSERT INTO asset_model_templates (model_id, component_id, quantity) VALUES ?', [vals]); }
       await recordLog(connection, { user_id: user.id, username: user.username, real_name: user.real_name, module: 'logistics', action: `修改设备型号: ${name}`, method: 'PUT', url: request.url, ip: request.ip, status: 1 });
       await connection.commit(); return sendSuccess(null);
-    } catch(e) { await connection.rollback(); throw e; } finally { connection.release(); }
+    } catch (e) { await connection.rollback(); throw e; } finally { connection.release(); }
   })
   fastify.delete('/api/assets/devices/:id', async (request, reply) => {
     const user = getUserFromToken(request);
@@ -252,11 +252,11 @@ module.exports = async function (fastify, opts) {
       } else {
         await connection.query('INSERT INTO device_config_details (device_id, component_type_id, component_id, change_type, status) VALUES (?, ?, ?, ?, "active")', [id, component_type_id, new_component_id, change_type]);
       }
-      await connection.query('INSERT INTO asset_upgrades (asset_id, component_type_id, old_component_id, new_component_id, upgrade_type, reason, upgrade_date, handled_by) VALUES (?,?,?,?,?,?,NOW(),?)', [id, component_type_id, old_component_id||null, new_component_id, change_type, reason, user.id]);
-      
+      await connection.query('INSERT INTO asset_upgrades (asset_id, component_type_id, old_component_id, new_component_id, upgrade_type, reason, upgrade_date, handled_by) VALUES (?,?,?,?,?,?,NOW(),?)', [id, component_type_id, old_component_id || null, new_component_id, change_type, reason, user.id]);
+
       const [dev] = await connection.query('SELECT asset_no FROM devices WHERE id = ?', [id]);
       await recordLog(connection, { user_id: user.id, username: user.username, real_name: user.real_name, module: 'logistics', action: `变更设备配件 [${dev[0].asset_no}]: ${change_type === 'upgrade' ? '性能升级' : '调整/降级'}`, method: 'POST', url: request.url, ip: request.ip, status: 1 });
-      
+
       await connection.commit(); await refreshDeviceConfig(id); return sendSuccess(null);
     } catch (e) { await connection.rollback(); throw e; } finally { connection.release(); }
   })
@@ -279,7 +279,7 @@ module.exports = async function (fastify, opts) {
     const { id } = request.params;
     const [dev] = await pool.query('SELECT asset_no, device_status FROM devices WHERE id = ?', [id]);
     if (dev[0]?.device_status === 'in_use') return reply.code(400).send({ success: false, message: '使用中的设备无法直接报废' });
-    await pool.query('UPDATE devices SET status = "deleted", device_status = "scrapped" WHERE id = ?', [id]);
+    await pool.query('UPDATE devices SET status = "deleted", device_status = "scrapped", current_user_id = NULL WHERE id = ?', [id]);
     await recordLog(pool, { user_id: user.id, username: user.username, real_name: user.real_name, module: 'logistics', action: `报废/销毁物理设备: ${dev[0]?.asset_no}`, method: 'DELETE', url: request.url, ip: request.ip, status: 1 });
     return sendSuccess(null);
   })
@@ -303,7 +303,15 @@ module.exports = async function (fastify, opts) {
         await connection.query('UPDATE devices SET current_user_id = ?, device_status = "in_use" WHERE id = ?', [user_id, deviceId]);
         const [d] = await connection.query('SELECT asset_no FROM devices WHERE id = ?', [deviceId]); assetNo = d[0].asset_no;
       }
-      await recordLog(connection, { user_id: user.id, username: user.username, real_name: user.real_name, module: 'logistics', action: `分配设备 ${assetNo} 至用户ID ${user_id}`, method: 'POST', url: '/api/assets/assign', ip: request.ip, status: 1 });
+      let targetDisplay = `ID ${user_id}`;
+      try {
+        const [targetRows] = await connection.query('SELECT real_name FROM users WHERE id = ?', [user_id]);
+        if (targetRows.length > 0 && targetRows[0].real_name) {
+          targetDisplay = targetRows[0].real_name;
+        }
+      } catch (e) { }
+
+      await recordLog(connection, { user_id: user.id, username: user.username, real_name: user.real_name, module: 'logistics', action: `分配设备 ${assetNo} 至用户: [${targetDisplay}]`, method: 'POST', url: '/api/assets/assign', ip: request.ip, status: 1 });
       await connection.commit(); await refreshDeviceConfig(deviceId); return sendSuccess({ asset_no: assetNo });
     } catch (e) { await connection.rollback(); throw e; } finally { connection.release(); }
   })
@@ -325,8 +333,8 @@ module.exports = async function (fastify, opts) {
       SELECT u.id as user_id, u.real_name, u.avatar, d.name as department_name, pos.name as position_name,
              (SELECT COUNT(*) FROM devices 
               WHERE current_user_id = u.id 
-              AND status != 'deleted' 
-              AND device_status = 'in_use') as device_count
+              AND (status != 'deleted' OR status IS NULL)
+              AND device_status != 'scrapped') as device_count
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN employees e ON u.id = e.user_id
@@ -341,7 +349,7 @@ module.exports = async function (fastify, opts) {
   })
 
   fastify.get('/api/assets/employee/:userId', async (request) => {
-    const [rows] = await pool.query(`SELECT dev.*, am.name as model_name, adf.name as form_name FROM devices dev JOIN asset_models am ON dev.model_id = am.id LEFT JOIN asset_device_forms adf ON am.form_id = adf.id WHERE dev.current_user_id = ? AND (dev.status != 'deleted' OR dev.status IS NULL) AND dev.device_status = 'in_use'`, [request.params.userId]);
+    const [rows] = await pool.query(`SELECT dev.*, am.name as model_name, adf.name as form_name FROM devices dev JOIN asset_models am ON dev.model_id = am.id LEFT JOIN asset_device_forms adf ON am.form_id = adf.id WHERE dev.current_user_id = ? AND (dev.status != 'deleted' OR dev.status IS NULL) AND dev.device_status != 'scrapped'`, [request.params.userId]);
     const data = await Promise.all(rows.map(async (dev) => { const config = await refreshDeviceConfig(dev.id); return { ...dev, components: config }; }));
     return sendSuccess(data);
   })
