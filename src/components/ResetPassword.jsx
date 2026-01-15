@@ -38,11 +38,17 @@ function ResetPassword() {
 
       if (response.ok) {
         const data = await response.json()
-        setEmployees(data)
+        if (Array.isArray(data)) {
+          setEmployees(data)
+        } else {
+          console.error('API returned non-array:', data)
+          setEmployees([])
+        }
       }
     } catch (error) {
       console.error('获取员工列表失败:', error)
       toast.error('获取员工列表失败')
+      setEmployees([])
     } finally {
       setLoading(false)
     }
@@ -57,7 +63,9 @@ function ResetPassword() {
         }
       })
       const data = await response.json()
-      setDepartments(data.filter(d => d.status === 'active'))
+      if (Array.isArray(data)) {
+        setDepartments(data.filter(d => d.status === 'active'))
+      }
     } catch (error) {
       console.error('获取部门列表失败')
     }
@@ -110,29 +118,36 @@ function ResetPassword() {
     }
   }
 
-  // 过滤员工
-  const filteredEmployees = employees.filter(emp => {
-    const matchKeyword = !searchFilters.keyword ||
-      emp.real_name?.toLowerCase().includes(searchFilters.keyword.toLowerCase()) ||
-      emp.username?.toLowerCase().includes(searchFilters.keyword.toLowerCase()) ||
-      emp.employee_no?.toLowerCase().includes(searchFilters.keyword.toLowerCase())
+  // [ResetPassword-v4] 终极过滤逻辑
+  const displayEmployeesList = (() => {
+    const source = Array.isArray(employees) ? employees : [];
+    const filtered = source.filter(emp => {
+      const matchKeyword = !searchFilters.keyword ||
+        (emp.real_name?.toLowerCase().includes(searchFilters.keyword.toLowerCase())) ||
+        (emp.username?.toLowerCase().includes(searchFilters.keyword.toLowerCase())) ||
+        (emp.employee_no?.toLowerCase().includes(searchFilters.keyword.toLowerCase()));
 
-    const matchDepartment = !searchFilters.department ||
-      emp.department_id === parseInt(searchFilters.department)
+      const matchDepartment = !searchFilters.department ||
+        emp.department_id === parseInt(searchFilters.department);
 
-    return matchKeyword && matchDepartment
-  })
+      return matchKeyword && matchDepartment;
+    });
+    return Array.isArray(filtered) ? filtered : [];
+  })();
 
   // 更新总页数
   useEffect(() => {
-    setTotalPages(Math.ceil(filteredEmployees.length / pageSize))
-  }, [filteredEmployees, pageSize])
+    const count = displayEmployeesList.length;
+    setTotalPages(Math.ceil(count / pageSize));
+  }, [displayEmployeesList, pageSize]);
 
   // 获取当前页数据
   const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * pageSize
-    return filteredEmployees.slice(startIndex, startIndex + pageSize)
-  }
+    // 使用 Array.from 确保绝对安全，并重命名变量规避缓存冲突
+    const safeList = Array.from(displayEmployeesList || []);
+    const startIndex = (currentPage - 1) * pageSize;
+    return safeList.slice(startIndex, startIndex + pageSize);
+  };
 
   // 分页控制
   const handlePageChange = (page) => setCurrentPage(page)
@@ -160,6 +175,8 @@ function ResetPassword() {
       </div>
     )
   }
+
+  const totalCount = displayEmployeesList.length
 
   return (
     <div className="p-8">
@@ -223,7 +240,7 @@ function ResetPassword() {
               </tr>
             </thead>
             <tbody>
-              {filteredEmployees.length > 0 ? (
+              {totalCount > 0 ? (
                 getCurrentPageData().map((employee) => (
                   <tr key={employee.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-4 text-sm text-gray-600">{employee.employee_no || '-'}</td>
@@ -274,7 +291,7 @@ function ResetPassword() {
         </div>
 
         {/* 分页 */}
-        {filteredEmployees.length > 0 && (
+        {totalCount > 0 && (
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span>每页</span>
@@ -288,7 +305,7 @@ function ResetPassword() {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span>条，共 {filteredEmployees.length} 条</span>
+              <span>条，共 {totalCount} 条</span>
             </div>
 
             {totalPages > 1 && (
