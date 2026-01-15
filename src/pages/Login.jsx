@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner';
-import axios from 'axios'
-import { getApiUrl } from '../utils/apiConfig'
+import { apiGet, apiPost } from '../utils/apiClient'
 import { tokenManager } from '../utils/apiClient'
 import { pinyin } from 'pinyin-pro'
 
@@ -53,8 +52,10 @@ const Login = ({ onLoginSuccess }) => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await axios.get(getApiUrl('/api/departments?forManagement=true'))
-        setDepartments(response.data || [])
+        const response = await apiGet('/api/departments?forManagement=true')
+        if (response.success) {
+          setDepartments(response.data || [])
+        }
       } catch (error) {
         console.error('获取部门列表失败:', error)
       }
@@ -82,17 +83,17 @@ const Login = ({ onLoginSuccess }) => {
 
     setIsCheckingUsername(true)
     try {
-      const response = await axios.post(getApiUrl('/api/auth/check-username'), {
+      const response = await apiPost('/api/auth/check-username', {
         username: username.trim(),
         realName: realName || formData.real_name
       })
 
-      if (response.data.available) {
+      if (response.success && response.available) {
         setUsernameAvailable(true)
         setUsernameSuggestions([])
       } else {
         setUsernameAvailable(false)
-        setUsernameSuggestions(response.data.suggestions || [])
+        setUsernameSuggestions(response.suggestions || [])
       }
     } catch (error) {
       console.error('检查用户名失败:', error)
@@ -150,7 +151,7 @@ const Login = ({ onLoginSuccess }) => {
   const performLogin = async (forceLogin = false) => {
     console.log('执行登录，forceLogin:', forceLogin);
     try {
-      const response = await axios.post(getApiUrl('/api/auth/login'), {
+      const response = await apiPost('/api/auth/login', {
         username: formData.username,
         password: formData.password,
         forceLogin
@@ -158,18 +159,18 @@ const Login = ({ onLoginSuccess }) => {
         timeout: 10000 // 10秒超时
       })
 
-      console.log('登录API响应:', response.data);
+      console.log('登录API响应:', response);
 
-      if (response.data.success) {
-        tokenManager.setToken(response.data.token, response.data.expiresIn || 3600)
-        if (response.data.refresh_token) {
-          tokenManager.setRefreshToken(response.data.refresh_token)
+      if (response.success) {
+        tokenManager.setToken(response.token, response.expiresIn || 3600)
+        if (response.refresh_token) {
+          tokenManager.setRefreshToken(response.refresh_token)
         }
         // 存储token
-        localStorage.setItem('token', response.data.token)
+        localStorage.setItem('token', response.token)
 
         // 存储用户信息,但不包含图片URL(避免缓存问题)
-        const userDataForStorage = { ...response.data.user }
+        const userDataForStorage = { ...response.user }
         delete userDataForStorage.id_card_front_url
         delete userDataForStorage.id_card_back_url
         localStorage.setItem('user', JSON.stringify(userDataForStorage))
@@ -190,7 +191,7 @@ const Login = ({ onLoginSuccess }) => {
 
         toast.success('登录成功！')
         setShowConfirmModal(false)
-        onLoginSuccess(response.data.user)
+        onLoginSuccess(response.user)
       }
     } catch (error) {
       console.error('登录API错误:', error);
@@ -217,19 +218,18 @@ const Login = ({ onLoginSuccess }) => {
       if (isLogin) {
         console.log('检查活跃会话');
         // 先检查是否有活跃会话
-        console.log('发送检查会话请求到:', getApiUrl('/api/auth/check-session'));
-        const checkResponse = await axios.post(getApiUrl('/api/auth/check-session'), {
+        const checkResponse = await apiPost('/api/auth/check-session', {
           username: formData.username
         }, {
           timeout: 10000 // 10秒超时
         })
 
-        console.log('检查会话响应:', checkResponse.data);
+        console.log('检查会话响应:', checkResponse);
 
-        if (checkResponse.data.hasActiveSession) {
+        if (checkResponse.success && checkResponse.hasActiveSession) {
           // 有活跃会话，显示确认对话框
           console.log('检测到活跃会话，显示确认对话框');
-          setSessionInfo(checkResponse.data)
+          setSessionInfo(checkResponse)
           setShowConfirmModal(true)
           setLoading(false)
           return
@@ -245,13 +245,13 @@ const Login = ({ onLoginSuccess }) => {
       } else {
         console.log('注册流程');
         // 注册
-        const response = await axios.post(getApiUrl('/api/auth/register'), formData, {
+        const response = await apiPost('/api/auth/register', formData, {
           timeout: 10000 // 10秒超时
         })
 
-        console.log('注册响应:', response.data);
+        console.log('注册响应:', response);
 
-        if (response.data.success) {
+        if (response.success) {
           setShowSuccessModal(true)
           setFormData({ username: '', password: '', real_name: '', email: '', phone: '', department_id: '' })
           setFieldErrors({})

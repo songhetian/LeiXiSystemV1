@@ -27,6 +27,13 @@ const onRrefreshed = (token) => {
 // 请求拦截器 - 添加 token
 api.interceptors.request.use(
   (config) => {
+    // 自动清洗 URL，防止重复的 /api 前缀
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.substring(4);
+    } else if (config.url && config.url.startsWith('api/')) {
+      config.url = config.url.substring(3);
+    }
+
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -38,7 +45,21 @@ api.interceptors.request.use(
 
 // 响应拦截器 - 统一错误处理与自动刷新 Token
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 自动规范化响应数据格式
+    if (response.data && typeof response.data === 'object' && !('success' in response.data)) {
+      response.data = {
+        success: true,
+        data: response.data
+      };
+    } else if (Array.isArray(response.data)) {
+      response.data = {
+        success: true,
+        data: response.data
+      };
+    }
+    return response;
+  },
   async (error) => {
     const { config, response } = error;
     const originalRequest = config;

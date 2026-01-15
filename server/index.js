@@ -53,8 +53,6 @@ fastify.setErrorHandler(async (error, request, reply) => {
 // 注册插件
 fastify.register(cors, {
   origin: true,
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Payslip-Token'],
   credentials: true
 })
 
@@ -136,6 +134,7 @@ fastify.register(require('./routes/auth'))
 fastify.register(require('./routes/upload'))
 fastify.register(require('./routes/departments'))
 fastify.register(require('./routes/employees'))
+fastify.register(require('./routes/employee-changes'))
 fastify.register(require('./routes/permissions'))
 fastify.register(require('./routes/quality-tags'))
 fastify.register(require('./routes/customer-service'))
@@ -160,12 +159,44 @@ fastify.register(require('./routes/memos'))
 fastify.register(require('./routes/broadcasts'))
 fastify.register(require('./routes/positions'))
 fastify.register(require('./routes/attendance-approval'))
+fastify.register(require('./routes/attendance-clock'))
+fastify.register(require('./routes/attendance-export'))
+fastify.register(require('./routes/attendance-stats'))
+fastify.register(require('./routes/attendance'))
 fastify.register(require('./routes/leave'))
 fastify.register(require('./routes/overtime'))
 fastify.register(require('./routes/makeup'))
+fastify.register(require('./routes/schedule'))
+fastify.register(require('./routes/schedules'))
+fastify.register(require('./routes/schedule-excel'))
+fastify.register(require('./routes/shifts'))
+fastify.register(require('./routes/smart-schedule'))
 fastify.register(require('./routes/vacation-types'))
+fastify.register(require('./routes/vacation-balance'))
+fastify.register(require('./routes/vacation-conversion'))
+fastify.register(require('./routes/vacation-settings'))
+fastify.register(require('./routes/vacation-stats'))
+fastify.register(require('./routes/vacation-type-balances'))
+fastify.register(require('./routes/conversion-rules'))
+fastify.register(require('./routes/compensatory-leave'))
+fastify.register(require('./routes/holidays'))
+fastify.register(require('./routes/payslips'))
+fastify.register(require('./routes/exams'))
+fastify.register(require('./routes/exam-categories'))
+fastify.register(require('./routes/assessment-plans'))
+fastify.register(require('./routes/assessment-results'))
+fastify.register(require('./routes/learning-center'))
+fastify.register(require('./routes/learning-plans'))
+fastify.register(require('./routes/learning-tasks'))
 fastify.register(require('./routes/knowledge-reading'))
+fastify.register(require('./routes/knowledge-stats'))
 fastify.register(require('./routes/quality-inspection'))
+fastify.register(require('./routes/quality-cases'))
+fastify.register(require('./routes/case-categories'))
+fastify.register(require('./routes/quality-case-interactions'))
+fastify.register(require('./routes/employees-batch'))
+fastify.register(require('./routes/statistics'))
+fastify.register(require('./routes/export'))
 
 // 系统基础接口
 fastify.get('/api/health', async () => ({ status: 'ok', time: new Date() }))
@@ -217,7 +248,10 @@ const start = async () => {
     await initDatabase();
     await fastify.ready();
     fastify.listen({ port: process.env.PORT || 3001, host: '0.0.0.0' }, async (err, address) => {
-      if (err) process.exit(1);
+      if (err) {
+        console.error('❌ Fastify listen failed:', err);
+        process.exit(1);
+      }
       
       // 启动消息队列 Worker
       const MessageQueue = require('./utils/messageQueue');
@@ -228,6 +262,7 @@ const start = async () => {
       console.log(`🚀 Server listening on ${address}`);
     });
   } catch (err) {
+    console.error('❌ Server startup failed:', err);
     process.exit(1);
   }
 };

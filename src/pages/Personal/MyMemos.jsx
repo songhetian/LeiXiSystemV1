@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import axios from 'axios'
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './MyMemos.css'
 
-import { getApiUrl } from '../../utils/apiConfig'
 import { wsManager } from '../../services/websocket'
 
 const MyMemos = () => {
@@ -80,25 +79,20 @@ const MyMemos = () => {
         (params[key] === '' || params[key] === undefined) && delete params[key]
       )
 
-      const token = localStorage.getItem('token')
-      const response = await axios.get(getApiUrl('/api/memos/my-memos'), {
-        params,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await apiGet('/api/memos/my-memos', {
+        params
       })
 
-      if (response.data.success) {
-        setMemos(response.data.data)
+      if (response.success) {
+        setMemos(response.data)
         setPagination(prev => ({
           ...prev,
-          total: response.data.pagination.total
+          total: response.pagination.total
         }))
       }
     } catch (error) {
       console.error('加载备忘录失败:', error)
-      console.error('错误详情:', error.response?.data)
-      alert(`加载备忘录失败: ${error.response?.data?.message || error.message}`)
+      alert(`加载备忘录失败: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -132,26 +126,16 @@ const MyMemos = () => {
     }
 
     try {
-      const token = localStorage.getItem('token')
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-
       if (editMode) {
-        await axios.put(
-          getApiUrl(`/api/memos/personal/${currentMemo.id}`),
-          formData,
-          config
+        await apiPut(
+          `/api/memos/personal/${currentMemo.id}`,
+          formData
         )
         alert('更新成功')
       } else {
-        await axios.post(
-          getApiUrl('/api/memos/personal'),
-          formData,
-          config
+        await apiPost(
+          '/api/memos/personal',
+          formData
         )
         alert('创建成功')
       }
@@ -160,7 +144,7 @@ const MyMemos = () => {
       loadMemos()
     } catch (error) {
       console.error('保存失败:', error)
-      alert(error.response?.data?.message || '保存失败')
+      alert(error.message || '保存失败')
     }
   }
 
@@ -173,17 +157,12 @@ const MyMemos = () => {
     if (!window.confirm('确定要删除这条备忘录吗？')) return
 
     try {
-      const token = localStorage.getItem('token')
-      await axios.delete(getApiUrl(`/api/memos/personal/${memo.id}`), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      await apiDelete(`/api/memos/personal/${memo.id}`)
       alert('删除成功')
       loadMemos()
     } catch (error) {
       console.error('删除失败:', error)
-      alert(error.response?.data?.message || '删除失败')
+      alert(error.message || '删除失败')
     }
   }
 
@@ -194,12 +173,7 @@ const MyMemos = () => {
     // 标记为已读
     if (!memo.is_read) {
       try {
-        const token = localStorage.getItem('token')
-        await axios.put(getApiUrl(`/api/memos/${memo.id}/read`), {}, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        await apiPut(`/api/memos/${memo.id}/read`, {})
         loadMemos()
       } catch (error) {
         console.error('标记已读失败:', error)

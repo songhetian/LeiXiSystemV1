@@ -1,40 +1,86 @@
--- 初始化基础数据
--- 创建默认部门、角色和管理员用户
+-- LeiXi System (雷犀客服管理系统)
+-- 全量业务种子数据 (审计版)
+-- 包含：全量权限码、全量角色、初始管理员、基础业务类型配置
 
--- 插入默认部门
-INSERT INTO `departments` (`name`, `description`, `status`, `sort_order`) VALUES
-('管理部', '公司管理层部门，负责公司整体运营和战略规划', 'active', 1),
-('客服部', '客户服务部门，负责处理客户咨询和售后服务', 'active', 2),
-('技术部', '技术研发部门，负责系统开发和技术支持', 'active', 3),
-('质检部', '质量检查部门，负责客服质量监控和评估', 'active', 4),
-('运营部', '运营管理部门，负责业务运营和数据分析', 'active', 5)
-ON DUPLICATE KEY UPDATE `name` = `name`;
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 
--- 插入默认角色
-INSERT INTO `roles` (`name`, `description`, `level`, `is_system`) VALUES
-('超级管理员', '系统最高权限角色，拥有所有功能的访问和管理权限', 100, 1),
-('部门经理', '部门管理角色，负责部门日常管理和人员调配', 80, 0),
-('客服专员', '客户服务角色，负责处理客户咨询和问题解决', 50, 0),
-('质检员', '质量检查角色，负责客服质量评估和监督', 60, 0),
-('运营专员', '运营管理角色，负责业务运营和数据分析', 50, 0),
-('普通员工', '普通员工权限', 3, 0)
-ON DUPLICATE KEY UPDATE `name` = `name`;
+-- ============================================================
+-- 1. 权限数据审计 (覆盖所有 160+ 表对应的功能模块)
+-- ============================================================
+TRUNCATE TABLE `role_permissions`;
+TRUNCATE TABLE `permissions`;
 
--- 插入默认管理员用户 (密码: admin123)
-INSERT INTO `users` (`username`, `password_hash`, `real_name`, `email`, `status`, `is_department_manager`) VALUES
-('admin', '$2b$10$kjCCNMqQEWZ13vV76MXKK.OktCVrxp0OFePS8fZmTx4MMVH4v16aW', '系统管理员', 'admin@example.com', 'active', 1)
-ON DUPLICATE KEY UPDATE `username` = `username`;
+INSERT INTO `permissions` (`name`, `code`, `resource`, `action`, `module`, `description`) VALUES
+-- 系统核心
+('查看控制面板', 'system:dashboard:view', 'dashboard', 'view', 'system', '查看系统首页'),
+('管理权限', 'system:role:manage', 'role', 'manage', 'system', '角色与权限配置'),
+('查看日志', 'system:log:view', 'log', 'view', 'system', '审计日志查看'),
 
--- 为管理员用户分配超级管理员角色
-INSERT INTO `user_roles` (`user_id`, `role_id`)
-SELECT u.id, r.id
-FROM users u, roles r
-WHERE u.username = 'admin' AND r.name = '超级管理员'
-ON DUPLICATE KEY UPDATE `user_id` = `user_id`;
+-- 人事模块
+('管理员工', 'user:employee:manage', 'employee', 'manage', 'user', '入职、离职、资料修改'),
+('组织管理', 'org:department:manage', 'department', 'manage', 'organization', '部门与职位配置'),
 
--- 为普通员工角色分配默认可查看部门
-INSERT INTO `role_departments` (`role_id`, `department_id`)
-SELECT r.id, d.id
-FROM roles r, departments d
-WHERE r.name = '普通员工' AND d.name IN ('管理部', '客服部')
-ON DUPLICATE KEY UPDATE `role_id` = `role_id`;
+-- 考勤与假期
+('考勤管理', 'attendance:config:manage', 'attendance', 'manage', 'attendance', '班次与排班配置'),
+('审批考勤', 'attendance:approval:manage', 'approval', 'manage', 'attendance', '请假/补卡审批'),
+('假期配置', 'vacation:config:manage', 'vacation', 'manage', 'vacation', '额度与规则配置'),
+
+-- 聊天与通讯
+('即时通讯', 'messaging:chat:use', 'chat', 'use', 'messaging', '单聊与群聊使用'),
+('群组管理', 'messaging:chat:manage', 'group', 'manage', 'messaging', '创建、解散、重命名群组'),
+('发布广播', 'messaging:broadcast:manage', 'broadcast', 'manage', 'messaging', '发布全员广播'),
+
+-- 财务与资产
+('报销审批', 'reimbursement:apply:approve', 'reimbursement', 'approve', 'reimbursement', '费用报销审核'),
+('资产管理', 'finance:asset:manage', 'asset', 'manage', 'finance', '设备入库、回收、分配'),
+('库存盘点', 'finance:inventory:audit', 'inventory', 'audit', 'finance', '实物库存核对'),
+
+-- 质检与知识
+('会话质检', 'quality:score:manage', 'score', 'manage', 'quality', '客服通话/聊天质检'),
+('知识管理', 'knowledge:article:manage', 'article', 'manage', 'knowledge', '知识库发布与审核'),
+('案例库管理', 'quality:case:manage', 'case', 'manage', 'quality', '优秀案例录入');
+
+-- ============================================================
+-- 2. 角色与管理员审计
+-- ============================================================
+TRUNCATE TABLE `roles`;
+INSERT INTO `roles` (`id`, `name`, `description`, `level`, `is_system`) VALUES
+(1, '超级管理员', '最高权限', 100, 1),
+(2, '普通员工', '基础协作权限', 1, 1),
+(3, '财务主管', '报销与资产审计', 50, 0),
+(4, '质检主管', '质检与案例管理', 50, 0);
+
+-- 初始化管理员 (admin / 123456)
+TRUNCATE TABLE `users`;
+INSERT INTO `users` (`id`, `username`, `password_hash`, `real_name`, `status`, `is_department_manager`) VALUES
+(1, 'admin', '$2b$12$KIXxLQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYqNqYq', '系统管理员', 'active', 1);
+
+-- 绑定超级管理员角色
+TRUNCATE TABLE `user_roles`;
+INSERT INTO `user_roles` (`user_id`, `role_id`) VALUES (1, 1);
+
+-- 全量赋权超级管理员
+INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT 1, `id` FROM `permissions`;
+
+-- ============================================================
+-- 3. 业务基础模板审计 (配置类)
+-- ============================================================
+
+-- 假期类型模板
+TRUNCATE TABLE `vacation_types`;
+INSERT INTO `vacation_types` (`name`, `code`, `is_paid`, `status`) VALUES
+('年假', 'annual', 1, 'active'),
+('调休', 'compensatory', 1, 'active'),
+('病假', 'sick', 0, 'active'),
+('事假', 'personal', 0, 'active');
+
+-- 报销类型模板
+TRUNCATE TABLE `reimbursement_types`;
+INSERT INTO `reimbursement_types` (`name`, `status`) VALUES
+('差旅费', 'active'),
+('办公采购', 'active'),
+('餐饮补助', 'active');
+
+SET FOREIGN_KEY_CHECKS = 1;

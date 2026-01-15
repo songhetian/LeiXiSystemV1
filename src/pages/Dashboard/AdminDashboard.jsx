@@ -15,7 +15,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
 } from 'recharts';
-import api from '../../api';
+import { apiGet } from '../../utils/apiClient';
 import Breadcrumb from '../../components/Breadcrumb';
 import RealtimeAttendanceCard from './RealtimeAttendanceCard';
 
@@ -34,11 +34,11 @@ const AdminDashboard = () => {
   const fetchAdminStats = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/admin/dashboard/stats', {
+      const response = await apiGet('/api/admin/dashboard/stats', {
         params: { user_id: localStorage.getItem('userId') }
       });
-      if (response.data.success) {
-        setData(response.data.data);
+      if (response.success) {
+        setData(response.data);
       }
     } catch (error) {
       console.error('Fetch admin stats failed:', error);

@@ -18,19 +18,9 @@ import {
 	Tooltip
 } from 'antd';
 import {
-	UserOutlined,
-	SearchOutlined,
-	PlusOutlined,
-	SyncOutlined,
-	DesktopOutlined,
-	SettingOutlined,
-	AppstoreOutlined,
-	DeleteOutlined,
-	EditOutlined,
-	EyeOutlined,
 	SwapOutlined
 } from '@ant-design/icons';
-import api from '../../../api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../../utils/apiClient';
 import Breadcrumb from '../../../components/Breadcrumb';
 import { getImageUrl } from '../../../utils/fileUtils';
 import DeviceModelEditor from './DeviceModelEditor';
@@ -91,28 +81,24 @@ const AssetManagement = () => {
 	const fetchFilterData = async () => {
 		try {
 			const [deptRes, posRes] = await Promise.all([
-				api.get('/departments'),
-				api.get('/positions')
+				apiGet('/api/departments'),
+				apiGet('/api/positions')
 			]);
-			setDepartments(
-				Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.data || []
-			);
-			setPositions(
-				Array.isArray(posRes.data) ? posRes.data : posRes.data.data || []
-			);
+			setDepartments(deptRes.success ? deptRes.data : []);
+			setPositions(posRes.success ? posRes.data : []);
 		} catch (e) {}
 	};
 
 	const fetchBaseConfig = async () => {
 		try {
 			const [catRes, typeRes, formRes] = await Promise.all([
-				api.get('/assets/categories'),
-				api.get('/assets/component-types'),
-				api.get('/assets/forms')
+				apiGet('/api/assets/categories'),
+				apiGet('/api/assets/component-types'),
+				apiGet('/api/assets/forms')
 			]);
-			if (catRes.data.success) setCategories(catRes.data.data);
-			if (formRes.data.success) setForms(formRes.data.data);
-			if (typeRes.data.success) setCompTypes(typeRes.data.data);
+			if (catRes.success) setCategories(catRes.data);
+			if (formRes.success) setForms(formRes.data);
+			if (typeRes.success) setCompTypes(typeRes.data);
 		} catch (e) {}
 	};
 
@@ -120,16 +106,16 @@ const AssetManagement = () => {
 		setLoading(true);
 		try {
 			if (activeTab === 'employees') {
-				const res = await api.get('/assets/employee-centric', {
+				const res = await apiGet('/api/assets/employee-centric', {
 					params: filters
 				});
-				if (res.data.success) setEmployees(res.data.data);
+				if (res.success) setEmployees(res.data);
 			} else if (activeTab === 'devices') {
-				const res = await api.get('/assets/devices');
-				if (res.data.success) setDevices(res.data.data);
+				const res = await apiGet('/api/assets/devices');
+				if (res.success) setDevices(res.data);
 			} else if (activeTab === 'components') {
-				const res = await api.get('/assets/components');
-				if (res.data.success) setComponents(res.data.data);
+				const res = await apiGet('/api/assets/components');
+				if (res.success) setComponents(res.data);
 			}
 		} catch (e) {
 			toast.error('加载失败');
@@ -140,17 +126,17 @@ const AssetManagement = () => {
 
 	const fetchAssignedUsers = async () => {
 		try {
-			const res = await api.get(`/assets/devices/${selectedDevice.id}/users`, {
+			const res = await apiGet(`/api/assets/devices/${selectedDevice.id}/users`, {
 				params: assignedFilters
 			});
-			if (res.data.success) setAssignedUsers(res.data.data);
+			if (res.success) setAssignedUsers(res.data);
 		} catch (e) {}
 	};
 
 	const fetchIdleAssets = async () => {
 		try {
-			const res = await api.get('/assets/idle');
-			if (res.data.success) setIdleAssets(res.data.data);
+			const res = await apiGet('/api/assets/idle');
+			if (res.success) setIdleAssets(res.data);
 		} catch (e) {}
 	};
 
@@ -158,9 +144,9 @@ const AssetManagement = () => {
 		setSelectedUser(user);
 		setLoading(true);
 		try {
-			const res = await api.get(`/assets/employee/${user.user_id}`);
-			if (res.data.success) {
-				setUserAssets(res.data.data);
+			const res = await apiGet(`/api/assets/employee/${user.user_id}`);
+			if (res.success) {
+				setUserAssets(res.data);
 				setIsUserDetailOpen(true);
 			}
 		} catch (e) {
@@ -172,7 +158,7 @@ const AssetManagement = () => {
 	const handleAssignSubmit = async () => {
 		try {
 			const values = await form.validateFields();
-			await api.post('/assets/assign', {
+			await apiPost('/api/assets/assign', {
 				...values,
 				user_id: selectedUser.user_id
 			});
@@ -185,7 +171,7 @@ const AssetManagement = () => {
 	const handleCompEntry = async () => {
 		try {
 			const values = await form.validateFields();
-			await api.post('/assets/components', values);
+			await apiPost('/api/assets/components', values);
 			toast.success('规格已保存');
 			setIsCompEntryOpen(false);
 			fetchMainData();
@@ -197,11 +183,11 @@ const AssetManagement = () => {
 			const values = await form.validateFields();
 			const endpoint =
 				baseModalConfig.type === 'category'
-					? '/assets/categories'
+					? '/api/assets/categories'
 					: baseModalConfig.type === 'form'
-						? '/assets/forms'
-						: '/assets/component-types';
-			await api.post(endpoint, values);
+						? '/api/assets/forms'
+						: '/api/assets/component-types';
+			await apiPost(endpoint, values);
 			toast.success('配置已更新');
 			setIsBaseModalOpen(false);
 			fetchBaseConfig();
@@ -210,10 +196,10 @@ const AssetManagement = () => {
 
 	const handleDeleteItem = (type, record) => {
 		const endpointMap = {
-			category: `/assets/categories/${record.id}`,
-			form: `/assets/forms/${record.id}`,
-			type: `/assets/component-types/${record.id}`,
-			component: `/assets/components/${record.id}`
+			category: `/api/assets/categories/${record.id}`,
+			form: `/api/assets/forms/${record.id}`,
+			type: `/api/assets/component-types/${record.id}`,
+			component: `/api/assets/components/${record.id}`
 		};
 
 		Modal.confirm({
@@ -224,13 +210,13 @@ const AssetManagement = () => {
 			okButtonProps: { danger: true },
 			onOk: async () => {
 				try {
-					const res = await api.delete(endpointMap[type]);
-					if (res.data.success) {
+					const res = await apiDelete(endpointMap[type]);
+					if (res.success) {
 						toast.success('删除成功');
 						type === 'component' ? fetchMainData() : fetchBaseConfig();
 					}
 				} catch (e) {
-					toast.error(e.response?.data?.message || '删除失败');
+					toast.error(e.message || '删除失败');
 				}
 			}
 		});
@@ -342,7 +328,7 @@ const AssetManagement = () => {
 								okText: '删除',
 								okButtonProps: { danger: true },
 								onOk: async () => {
-									await api.delete(`/assets/devices/${r.id}`);
+									await apiDelete(`/api/assets/devices/${r.id}`);
 									fetchMainData();
 								}
 							});
@@ -818,7 +804,7 @@ const AssetManagement = () => {
 											cancelText: '取消',
 											okButtonProps: { danger: true },
 											onOk: async () => {
-												await api.post('/assets/return', { asset_id: r.id });
+												await apiPost('/api/assets/return', { asset_id: r.id });
 												handleUserDetail(selectedUser);
 												fetchMainData();
 											}

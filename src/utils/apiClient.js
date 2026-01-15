@@ -37,14 +37,41 @@ export const handleApiError = (error) => {
 };
 
 /**
+ * 清理路径，移除开头的 /api 前缀，避免与 baseURL 中的 /api 重复
+ * 例如: /api/roles -> /roles
+ */
+const cleanPath = (path) => {
+  if (!path) return '';
+  if (path.startsWith('/api/')) return path.substring(4);
+  if (path.startsWith('api/')) return path.substring(3);
+  return path;
+};
+
+/**
+ * 规范化响应数据
+ * 如果后端返回的是原始数组或没有 success 字段的对象，统一封装为 { success: true, data: ... }
+ */
+const normalizeResponse = (data) => {
+  // 如果已经是标准格式，直接返回
+  if (data && typeof data === 'object' && 'success' in data) {
+    return data;
+  }
+  
+  // 如果是数组，或者是不包含 success 的对象，封装它
+  return {
+    success: true,
+    data: data
+  };
+};
+
+/**
  * 统一的API请求封装 (Axios 版)
  * 为了兼容旧代码，这里需要捕获错误并返回 success: false 结构
  */
 export const apiGet = async (path, options = {}) => {
   try {
-    // getApiUrl 会根据 baseURL 自动处理 /api 前缀，确保生成的 URL 是绝对路径且正确
-    const res = await api.get(path, options);
-    return res.data;
+    const res = await api.get(cleanPath(path), options);
+    return normalizeResponse(res.data);
   } catch (error) {
     return error.response?.data || { success: false, message: error.message };
   }
@@ -52,8 +79,8 @@ export const apiGet = async (path, options = {}) => {
 
 export const apiPost = async (path, data, options = {}) => {
   try {
-    const res = await api.post(path, data, options);
-    return res.data;
+    const res = await api.post(cleanPath(path), data, options);
+    return normalizeResponse(res.data);
   } catch (error) {
     return error.response?.data || { success: false, message: error.message };
   }
@@ -61,8 +88,8 @@ export const apiPost = async (path, data, options = {}) => {
 
 export const apiPut = async (path, data, options = {}) => {
   try {
-    const res = await api.put(path, data, options);
-    return res.data;
+    const res = await api.put(cleanPath(path), data, options);
+    return normalizeResponse(res.data);
   } catch (error) {
     return error.response?.data || { success: false, message: error.message };
   }
@@ -70,8 +97,8 @@ export const apiPut = async (path, data, options = {}) => {
 
 export const apiDelete = async (path, options = {}) => {
   try {
-    const res = await api.delete(path, options);
-    return res.data;
+    const res = await api.delete(cleanPath(path), options);
+    return normalizeResponse(res.data);
   } catch (error) {
     return error.response?.data || { success: false, message: error.message };
   }
@@ -79,11 +106,11 @@ export const apiDelete = async (path, options = {}) => {
 
 export const apiUpload = async (path, formData, options = {}) => {
   try {
-    const res = await api.post(path, formData, {
+    const res = await api.post(cleanPath(path), formData, {
       ...options,
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return res.data;
+    return normalizeResponse(res.data);
   } catch (error) {
     return error.response?.data || { success: false, message: error.message };
   }

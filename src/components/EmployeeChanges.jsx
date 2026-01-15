@@ -46,7 +46,9 @@ function EmployeeChanges() {
       }
 
       const data = await response.json()
-      setChanges(data)
+      // Handle both standard response { success: true, data: [...] } and raw array [...]
+      const changesList = data.success && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])
+      setChanges(changesList)
     } catch (error) {
       toast.error('获取变动记录失败')
     }

@@ -7,6 +7,13 @@ const axiosInstance = axios.create()
 // 请求拦截器：自动添加 Authorization header
 axiosInstance.interceptors.request.use(
   (config) => {
+    // 自动清洗 URL
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.substring(4);
+    } else if (config.url && config.url.startsWith('api/')) {
+      config.url = config.url.substring(3);
+    }
+
     const token = tokenManager.getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -20,7 +27,16 @@ axiosInstance.interceptors.request.use(
 
 // 响应拦截器：处理 401 错误
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 自动规范化响应数据
+    if (response.data && typeof response.data === 'object' && !('success' in response.data)) {
+      response.data = {
+        success: true,
+        data: response.data
+      };
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config
 

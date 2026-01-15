@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiGet, apiPut } from '../../utils/apiClient';
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig';
 import { formatDate, getBeijingDate } from '../../utils/date';
 import Breadcrumb from '../../components/Breadcrumb';
 import {
@@ -109,13 +108,12 @@ export default function BroadcastList() {
 
       Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
 
-      const response = await axios.get(getApiUrl('/api/broadcasts/my-broadcasts'), {
-        params,
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await apiGet('/api/broadcasts/my-broadcasts', {
+        params
       });
 
-      if (response.data && response.data.success) {
-        let broadcastData = (response.data.data || []).map(item => ({
+      if (response.success) {
+        let broadcastData = (response.data || []).map(item => ({
           ...item,
           is_read: item.is_read === 1 || item.is_read === true
         }));
@@ -130,8 +128,8 @@ export default function BroadcastList() {
         setBroadcasts(broadcastData);
         setPagination(prev => ({
           ...prev,
-          total: response.data.pagination?.total || 0,
-          totalPages: response.data.pagination?.totalPages || 0
+          total: response.pagination?.total || 0,
+          totalPages: response.pagination?.totalPages || 0
         }));
       }
     } catch (error) {
@@ -147,9 +145,7 @@ export default function BroadcastList() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      await axios.put(getApiUrl(`/api/broadcasts/${id}/read`), {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiPut(`/api/broadcasts/${id}/read`, {});
 
       setBroadcasts(prev => prev.map(n =>
         n.id === id ? { ...n, is_read: true } : n

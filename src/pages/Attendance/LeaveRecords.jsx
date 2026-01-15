@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { formatDateOnly } from '../../utils/dateUtils'
-import axios from 'axios'
+import { apiGet, apiPost } from '../../utils/apiClient'
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig'
 
 
 export default function LeaveRecords({ onNavigate }) {
@@ -32,9 +31,9 @@ export default function LeaveRecords({ onNavigate }) {
 
   const fetchEmployeeInfo = async (userId) => {
     try {
-      const response = await axios.get(getApiUrl(`/api/employees/by-user/${userId}`))
-      if (response.data.success && response.data.data) {
-        setEmployee(response.data.data)
+      const response = await apiGet(`/api/employees/by-user/${userId}`)
+      if (response.success && response.data) {
+        setEmployee(response.data)
       } else {
         toast.error('未找到员工信息')
       }
@@ -49,7 +48,7 @@ export default function LeaveRecords({ onNavigate }) {
 
     setLoading(true)
     try {
-      const response = await axios.get(getApiUrl('/api/leave/records'), {
+      const response = await apiGet('/api/leave/records', {
         params: {
           employee_id: employee.id,
           status: statusFilter,
@@ -58,9 +57,9 @@ export default function LeaveRecords({ onNavigate }) {
         }
       })
 
-      if (response.data.success) {
-        setRecords(response.data.data)
-        setPagination(prev => ({ ...prev, ...response.data.pagination }))
+      if (response.success) {
+        setRecords(response.data)
+        setPagination(prev => ({ ...prev, ...response.pagination }))
       }
     } catch (error) {
       toast.error('获取请假记录失败')
@@ -78,15 +77,15 @@ export default function LeaveRecords({ onNavigate }) {
     if (!cancelRecordId) return
 
     try {
-      const response = await axios.post(getApiUrl(`/api/leave/records/${cancelRecordId}/cancel`))
-      if (response.data.success) {
+      const response = await apiPost(`/api/leave/records/${cancelRecordId}/cancel`)
+      if (response.success) {
         toast.success('请假申请已撤销')
         setShowCancelModal(false)
         setCancelRecordId(null)
         fetchRecords()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '撤销失败')
+      toast.error(error.message || '撤销失败')
     }
   }
 

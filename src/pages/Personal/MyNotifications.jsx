@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiGet, apiPut, apiDelete } from '../../utils/apiClient';
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig';
 import {
   BellIcon,
   CheckCircleIcon,
@@ -100,10 +99,10 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
       Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
 
-      const response = await axios.get(getApiUrl('/api/notifications'), { params });
+      const response = await apiGet('/api/notifications', { params });
 
-      if (response.data && response.data.success) {
-        const notificationData = (response.data.data || []).map(item => ({
+      if (response.success) {
+        const notificationData = (response.data || []).map(item => ({
           ...item,
           is_read: item.is_read === 1 || item.is_read === true
         }));
@@ -111,8 +110,8 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
         setNotifications(notificationData);
         setPagination(prev => ({
           ...prev,
-          total: response.data.pagination?.total || 0,
-          totalPages: response.data.pagination?.totalPages || 0
+          total: response.pagination?.total || 0,
+          totalPages: response.pagination?.totalPages || 0
         }));
       }
     } catch (error) {
@@ -133,8 +132,10 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
   const loadUnreadCount = async () => {
     try {
-      const response = await axios.get(getApiUrl(`/api/notifications/unread-count?userId=${userId}`));
-      setUnreadCount(response.data.count);
+      const response = await apiGet(`/api/notifications/unread-count?userId=${userId}`);
+      if (response.success) {
+        setUnreadCount(response.data.count);
+      }
     } catch (error) {
       console.error('加载未读数量失败:', error);
     }
@@ -142,7 +143,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
   const markAsRead = async (id) => {
     try {
-      await axios.put(getApiUrl(`/api/notifications/${id}/read`));
+      await apiPut(`/api/notifications/${id}/read`);
       setNotifications(prev => prev.map(n =>
         n.id === id ? { ...n, is_read: true } : n
       ));
@@ -158,7 +159,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
   const markAllAsRead = async () => {
     try {
-      await axios.put(getApiUrl('/api/notifications/read-all'), { userId });
+      await apiPut('/api/notifications/read-all', { userId });
       loadNotifications();
       loadUnreadCount();
       toast.success('全部已读');
@@ -175,7 +176,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
     }
     try {
       await Promise.all(selectedIds.map(id =>
-        axios.put(getApiUrl(`/api/notifications/${id}/read`))
+        apiPut(`/api/notifications/${id}/read`)
       ));
       loadNotifications();
       loadUnreadCount();
@@ -192,7 +193,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
     if (!window.confirm('确定要删除这条通知吗？')) return;
 
     try {
-      await axios.delete(getApiUrl(`/api/notifications/${id}`));
+      await apiDelete(`/api/notifications/${id}`);
       loadNotifications();
       loadUnreadCount();
       toast.success('删除成功');
@@ -214,7 +215,7 @@ export default function MyNotifications({ unreadCount: propUnreadCount, setUnrea
 
     try {
       await Promise.all(selectedIds.map(id =>
-        axios.delete(getApiUrl(`/api/notifications/${id}`))
+        apiDelete(`/api/notifications/${id}`)
       ));
       loadNotifications();
       loadUnreadCount();

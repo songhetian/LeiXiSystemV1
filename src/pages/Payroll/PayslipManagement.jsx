@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig';
+import { apiGet, apiPost, apiPut, apiDelete, apiUpload } from '../../utils/apiClient';
 import {
   BanknotesIcon,
   PlusIcon,
@@ -46,27 +46,13 @@ export default function PayslipManagement() {
         ...filters
       };
 
-      const queryString = new URLSearchParams(params).toString();
-      const url = queryString ? `/api/admin/payslips?${queryString}` : '/api/admin/payslips';
+      const response = await apiGet('/api/admin/payslips', { params });
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl(url), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setPayslips(data.data);
+      if (response.success) {
+        setPayslips(response.data);
         setPagination(prev => ({
           ...prev,
-          total: data.total
+          total: response.total
         }));
       }
     } catch (error) {
@@ -79,13 +65,7 @@ export default function PayslipManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl('/api/departments/list'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const result = await response.json();
+      const result = await apiGet('/api/departments/list');
       if (result.success) {
         setDepartments(result.data);
       }
@@ -96,17 +76,13 @@ export default function PayslipManagement() {
 
   const fetchEmployees = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl('/api/employees'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const result = await response.json();
-      if (Array.isArray(result)) {
-        setEmployees(result);
-      } else if (result.success && result.data) {
+      const result = await apiGet('/api/employees');
+      // result is normalized: { success: true, data: [...] }
+      if (result.success && Array.isArray(result.data)) {
         setEmployees(result.data);
+      } else if (Array.isArray(result)) {
+        // Fallback for raw array just in case
+        setEmployees(result);
       }
     } catch (error) {
       console.error('获取员工列表失败:', error);
@@ -135,14 +111,14 @@ export default function PayslipManagement() {
       content: '确定要删除这条工资条吗？',
       onOk: async () => {
         try {
-          const response = await axios.delete(getApiUrl(`/api/admin/payslips/${id}`));
-          if (response.data.success) {
+          const response = await apiDelete(`/api/admin/payslips/${id}`);
+          if (response.success) {
             toast.success('删除成功');
             fetchPayslips();
           }
         } catch (error) {
           console.error('删除失败:', error);
-          toast.error(error.response?.data?.message || '删除失败');
+          toast.error(error.message || '删除失败');
         }
       }
     });
@@ -158,12 +134,12 @@ export default function PayslipManagement() {
 
       let response;
       if (editingPayslip) {
-        response = await axios.put(getApiUrl(`/api/admin/payslips/${editingPayslip.id}`), data);
+        response = await apiPut(`/api/admin/payslips/${editingPayslip.id}`, data);
       } else {
-        response = await axios.post(getApiUrl('/api/admin/payslips'), data);
+        response = await apiPost('/api/admin/payslips', data);
       }
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success(editingPayslip ? '更新成功' : '创建成功');
         setShowModal(false);
         form.resetFields();
@@ -171,13 +147,11 @@ export default function PayslipManagement() {
       }
     } catch (error) {
       console.error('保存失败:', error);
-      toast.error(error.response?.data?.message || '保存失败');
+      toast.error(error.message || '保存失败');
     }
   };
 
   const handleSingleSend = async (record) => {
-    const token = localStorage.getItem('token');
-
     Modal.confirm({
       title: '确认发放',
       content: `确定要发放 ${record.employee_name} 的工资条吗？`,
@@ -188,18 +162,9 @@ export default function PayslipManagement() {
         try {
           toast.loading('正在发送工资条...', { id: 'sending' });
 
-          const response = await fetch(getApiUrl('/api/admin/payslips/batch-send'), {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              payslip_ids: [record.id]
-            })
+          const result = await apiPost('/api/admin/payslips/batch-send', {
+            payslip_ids: [record.id]
           });
-
-          const result = await response.json();
 
           if (result.success) {
             toast.success(result.message, { id: 'sending' });
@@ -240,16 +205,8 @@ export default function PayslipManagement() {
           ...filters
         };
 
-        const queryString = new URLSearchParams(params).toString();
-        const url = queryString ? `/api/admin/payslips?${queryString}` : '/api/admin/payslips';
+        const data = await apiGet('/api/admin/payslips', { params });
 
-        const response = await fetch(getApiUrl(url), {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        const data = await response.json();
         if (data.success) {
           payslipIds = data.data.map(p => p.id);
           message = `确定要发放当前筛选条件下的所有 ${payslipIds.length} 条待发送工资条吗？`;
@@ -271,18 +228,9 @@ export default function PayslipManagement() {
         try {
           toast.loading('正在发送工资条...', { id: 'sending' });
 
-          const response = await fetch(getApiUrl('/api/admin/payslips/batch-send'), {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              payslip_ids: payslipIds
-            })
+          const result = await apiPost('/api/admin/payslips/batch-send', {
+            payslip_ids: payslipIds
           });
-
-          const result = await response.json();
 
           if (result.success) {
             toast.success(result.message, { id: 'sending' });
@@ -402,37 +350,29 @@ export default function PayslipManagement() {
       console.log('=== 导出工资条 ===');
       console.log('当前筛选条件:', filters);
       console.log('导出参数:', params);
-      console.log('导出URL:', apiUrl);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl(apiUrl), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await apiGet('/api/admin/payslips/export', {
+        params,
+        responseType: 'blob'
       });
 
-      console.log('响应状态:', response.status);
-      console.log('响应头:', response.headers);
+      if (response.success && response.data) {
+        const blob = response.data;
+        console.log('Blob大小:', blob.size);
+        console.log('Blob类型:', blob.type);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('导出失败响应:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `工资条导出_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        toast.success('导出成功');
+      } else {
+        throw new Error('导出失败');
       }
-
-      const blob = await response.blob();
-      console.log('Blob大小:', blob.size);
-      console.log('Blob类型:', blob.type);
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `工资条导出_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
-      toast.success('导出成功');
     } catch (error) {
       console.error('导出失败:', error);
       toast.error('导出失败');
@@ -441,18 +381,20 @@ export default function PayslipManagement() {
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await axios.get(getApiUrl('/api/admin/payslips/import-template'), {
+      const response = await apiGet('/api/admin/payslips/import-template', {
         responseType: 'blob'
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'payslip_import_template.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('模板下载成功');
+      if (response.success && response.data) {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'payslip_import_template.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast.success('模板下载成功');
+      }
     } catch (error) {
       console.error('下载模板失败:', error);
       toast.error('下载模板失败');
@@ -464,28 +406,24 @@ export default function PayslipManagement() {
     formData.append('file', file);
 
     try {
-      const response = await axios.post(getApiUrl('/api/admin/payslips/import'), formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await apiUpload('/api/admin/payslips/import', formData);
 
-      if (response.data.success) {
-        toast.success(response.data.message);
+      if (response.success) {
+        toast.success(response.message);
         fetchPayslips();
 
-        if (response.data.data.errors && response.data.data.errors.length > 0) {
+        if (response.data && response.data.errors && response.data.errors.length > 0) {
           Modal.warning({
             title: '导入结果',
             content: (
               <div>
-                <p>成功: {response.data.data.success} 条</p>
-                <p>失败: {response.data.data.failed} 条</p>
-                {response.data.data.errors.length > 0 && (
+                <p>成功: {response.data.success} 条</p>
+                <p>失败: {response.data.failed} 条</p>
+                {response.data.errors.length > 0 && (
                   <div className="mt-2">
                     <p className="font-semibold">错误详情：</p>
                     <ul className="max-h-40 overflow-y-auto">
-                      {response.data.data.errors.slice(0, 10).map((err, idx) => (
+                      {response.data.errors.slice(0, 10).map((err, idx) => (
                         <li key={idx} className="text-red-500 text-sm">
                           第{err.row}行: {err.message}
                         </li>
@@ -498,6 +436,8 @@ export default function PayslipManagement() {
             width: 500
           });
         }
+      } else {
+        toast.error(response.message || '导入失败');
       }
     } catch (error) {
       console.error('导入失败:', error);

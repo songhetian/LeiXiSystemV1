@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Input, Select, Space, Tag, message, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, PublishOutlined, ArchiveOutlined, SwapOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiGet, apiPut, apiDelete } from '../../utils/apiClient';
 import '../../styles/assessment-business.css';
 
 const { Search } = Input;
@@ -27,24 +27,23 @@ const ExamList = () => {
   const fetchExams = async (params = {}) => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/exams', {
+      const response = await apiGet('/api/exams', {
         params: {
           page: params.pagination?.current || pagination.current,
           pageSize: params.pagination?.pageSize || pagination.pageSize,
           ...filters,
           ...params.filters,
-        },
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored in localStorage
-        },
+        }
       });
-      setExams(response.data.data.exams);
-      setPagination({
-        ...pagination,
-        current: response.data.data.page,
-        pageSize: response.data.data.pageSize,
-        total: response.data.data.total,
-      });
+      if (response.success && response.data) {
+        setExams(response.data.exams || []);
+        setPagination({
+          ...pagination,
+          current: response.data.page,
+          pageSize: response.data.pageSize,
+          total: response.data.total,
+        });
+      }
     } catch (error) {
       message.error('获取试卷列表失败');
       console.error('Failed to fetch exams:', error);
@@ -191,11 +190,11 @@ const ExamList = () => {
 
   const handlePublish = async (id) => {
     try {
-      await axios.put(`/api/exams/${id}/status`, { status: 'published' }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      message.success('试卷发布成功');
-      fetchExams();
+      const response = await apiPut(`/api/exams/${id}/status`, { status: 'published' });
+      if (response.success) {
+        message.success('试卷发布成功');
+        fetchExams();
+      }
     } catch (error) {
       message.error('试卷发布失败');
       console.error('Failed to publish exam:', error);
@@ -204,11 +203,11 @@ const ExamList = () => {
 
   const handleArchive = async (id) => {
     try {
-      await axios.put(`/api/exams/${id}/status`, { status: 'archived' }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      message.success('试卷归档成功');
-      fetchExams();
+      const response = await apiPut(`/api/exams/${id}/status`, { status: 'archived' });
+      if (response.success) {
+        message.success('试卷归档成功');
+        fetchExams();
+      }
     } catch (error) {
       message.error('试卷归档失败');
       console.error('Failed to archive exam:', error);
@@ -217,11 +216,11 @@ const ExamList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`/api/exams/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      message.success('试卷删除成功');
-      fetchExams();
+      const response = await apiDelete(`/api/exams/${id}`);
+      if (response.success) {
+        message.success('试卷删除成功');
+        fetchExams();
+      }
     } catch (error) {
       message.error('试卷删除失败');
       console.error('Failed to delete exam:', error);

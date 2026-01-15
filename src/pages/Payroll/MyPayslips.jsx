@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatDate } from '../../utils/date';
-import api from '../../api';
+import { apiGet, apiPost, apiPut } from '../../utils/apiClient';
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig';
 import {
   BanknotesIcon,
   EyeIcon,
@@ -46,11 +45,11 @@ export default function MyPayslips() {
         ...filters
       };
 
-      const response = await api.get('/payslips/my-payslips', { params });
+      const response = await apiGet('/api/payslips/my-payslips', { params });
 
-      if (response.data.success) {
+      if (response.success) {
         // 只展示已发送和已查看的工资条，过滤掉草稿状态
-        const filteredPayslips = response.data.data.filter(p => p.status === 'sent' || p.status === 'viewed' || p.status === 'confirmed');
+        const filteredPayslips = response.data.filter(p => p.status === 'sent' || p.status === 'viewed' || p.status === 'confirmed');
         setPayslips(filteredPayslips);
         setPagination(prev => ({
           ...prev,
@@ -67,8 +66,8 @@ export default function MyPayslips() {
 
   const checkPasswordStatus = async () => {
     try {
-      const response = await api.get('/payslips/password-status');
-      if (response.data.success) {
+      const response = await apiGet('/api/payslips/password-status');
+      if (response.success) {
         setHasPassword(response.data.has_password);
         setIsDefaultPassword(response.data.is_default);
       }
@@ -94,18 +93,7 @@ export default function MyPayslips() {
         return;
       }
 
-      // 使用 fetch API 而不是 axios
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl('/payslips/verify-password'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ password })
-      });
-
-      const data = await response.json();
+      const data = await apiPost('/api/payslips/verify-password', { password });
       console.log('[Frontend] Password verification response:', data);
 
       if (data.success) {
@@ -139,24 +127,16 @@ export default function MyPayslips() {
       console.log('[Frontend] Fetching payslip detail for id:', id);
       console.log('[Frontend] PasswordToken:', passwordToken ? passwordToken.substring(0, 30) + '...' : 'none');
       
-      // 使用 fetch API 而不是 axios，避免拦截器问题
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'X-Payslip-Token': passwordToken
-      };
-      console.log('[Frontend] Headers to send:', headers);
-      
-      const response = await fetch(getApiUrl(`/payslips/${id}`), {
-        method: 'GET',
-        headers: headers
+      const response = await apiGet(`/api/payslips/${id}`, {
+        headers: {
+          'X-Payslip-Token': passwordToken
+        }
       });
 
-      const data = await response.json();
-      console.log('[Frontend] Response:', data);
+      console.log('[Frontend] Response:', response);
 
-      if (data.success) {
-        setSelectedPayslip(data.data);
+      if (response.success) {
+        setSelectedPayslip(response.data);
         setShowDetailModal(true);
       }
     } catch (error) {
@@ -176,24 +156,16 @@ export default function MyPayslips() {
       console.log('[Frontend] Fetching payslip detail with token for id:', id);
       console.log('[Frontend] Token:', token ? token.substring(0, 30) + '...' : 'none');
       
-      // 直接使用传入的 token
-      const jwtToken = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${jwtToken}`,
-        'X-Payslip-Token': token
-      };
-      console.log('[Frontend] Headers to send:', headers);
-      
-      const response = await fetch(getApiUrl(`/payslips/${id}`), {
-        method: 'GET',
-        headers: headers
+      const response = await apiGet(`/api/payslips/${id}`, {
+        headers: {
+          'X-Payslip-Token': token
+        }
       });
 
-      const data = await response.json();
-      console.log('[Frontend] Response:', data);
+      console.log('[Frontend] Response:', response);
 
-      if (data.success) {
-        setSelectedPayslip(data.data);
+      if (response.success) {
+        setSelectedPayslip(response.data);
         setShowDetailModal(true);
         // 保存 token 到状态中，供后续使用
         setPasswordToken(token);
@@ -212,9 +184,9 @@ export default function MyPayslips() {
 
   const handleConfirmPayslip = async () => {
     try {
-      const response = await api.post(`/payslips/${selectedPayslip.id}/confirm`);
+      const response = await apiPost(`/api/payslips/${selectedPayslip.id}/confirm`);
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success('工资条已确认');
         setShowDetailModal(false);
         fetchPayslips();
@@ -227,12 +199,12 @@ export default function MyPayslips() {
 
   const handleChangePassword = async (values) => {
     try {
-      const response = await api.post('/payslips/change-password', {
+      const response = await apiPost('/api/payslips/change-password', {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword
       });
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success('密码修改成功');
         setShowChangePasswordModal(false);
         changePasswordForm.resetFields();
@@ -242,18 +214,18 @@ export default function MyPayslips() {
       }
     } catch (error) {
       console.error('修改密码失败:', error);
-      toast.error(error.response?.data?.message || '修改密码失败');
+      toast.error(error.message || '修改密码失败');
     }
   };
 
   const handleSetPassword = async (values) => {
     try {
-      const response = await api.post('/payslips/set-password', {
+      const response = await apiPost('/api/payslips/set-password', {
         password: values.password,
         confirmPassword: values.confirmPassword
       });
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success('密码设置成功');
         setShowSetPasswordModal(false);
         setPasswordForm.resetFields();
@@ -262,7 +234,7 @@ export default function MyPayslips() {
       }
     } catch (error) {
       console.error('设置密码失败:', error);
-      toast.error(error.response?.data?.message || '设置密码失败');
+      toast.error(error.message || '设置密码失败');
     }
   };
 

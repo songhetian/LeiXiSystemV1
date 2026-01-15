@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { apiGet, apiPost } from '../../utils/apiClient'
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig'
 import { motion } from 'framer-motion'
 import { DatePicker, TimePicker, Input } from 'antd';
 import dayjs from 'dayjs';
@@ -141,10 +140,10 @@ export default function LeaveApply() {
 
   const fetchEmployeeInfo = async (userId) => {
     try {
-      const response = await axios.get(getApiUrl(`/api/employees/by-user/${userId}`))
-      if (response.data.success && response.data.data) {
-        setEmployee(response.data.data)
-        fetchBalance(response.data.data.id)
+      const response = await apiGet(`/api/employees/by-user/${userId}`)
+      if (response.success && response.data) {
+        setEmployee(response.data)
+        fetchBalance(response.data.id)
       } else {
         toast.error('未找到员工信息')
       }
@@ -156,9 +155,9 @@ export default function LeaveApply() {
 
   const fetchApprover = async (userId) => {
     try {
-      const response = await axios.get(getApiUrl(`/api/users/${userId}/approver`))
-      if (response.data.success) {
-        setApprover(response.data.data)
+      const response = await apiGet(`/api/users/${userId}/approver`)
+      if (response.success) {
+        setApprover(response.data)
       }
     } catch (error) {
       console.error('获取审批人失败:', error)
@@ -168,17 +167,17 @@ export default function LeaveApply() {
   const fetchBalance = async (employeeId) => {
     try {
       // 获取基础假期余额
-      const response = await axios.get(getApiUrl('/api/vacation/balance'), {
+      const response = await apiGet('/api/vacation/balance', {
         params: { employee_id: employeeId }
       })
-      if (response.data.success) {
-        setBalance(response.data.data)
+      if (response.success) {
+        setBalance(response.data)
       }
 
       // 获取转换假期余额
-      const conversionResponse = await axios.get(getApiUrl(`/api/vacation/conversion-balance/${employeeId}`))
-      if (conversionResponse.data.success) {
-        setConversionBalance(conversionResponse.data.data)
+      const conversionResponse = await apiGet(`/api/vacation/conversion-balance/${employeeId}`)
+      if (conversionResponse.success) {
+        setConversionBalance(conversionResponse.data)
       }
     } catch (error) {
       console.error('获取请假余额失败:', error)
@@ -209,7 +208,7 @@ export default function LeaveApply() {
       const employeeId = employee.id;
       const userId = user.id;
 
-      const response = await axios.post(getApiUrl('/api/leave/apply'), {
+      const response = await apiPost('/api/leave/apply', {
         employee_id: employeeId,
         user_id: userId,
         leave_type: formData.leave_type,
@@ -223,7 +222,7 @@ export default function LeaveApply() {
         conversion_days: formData.conversion_days
       });
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success('请假申请提交成功');
         // 重置表单
         setFormData({
@@ -240,7 +239,7 @@ export default function LeaveApply() {
         fetchBalance(employee.id);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '提交失败');
+      toast.error(error.message || '提交失败');
     } finally {
       setLoading(false);
     }

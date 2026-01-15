@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import axios from '../../utils/axiosConfig'
+import { apiGet, apiPost } from '../../utils/apiClient'
 import { toast } from 'sonner';
-import { getApiUrl } from '../../utils/apiConfig'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ApprovalManagement() {
@@ -60,18 +59,18 @@ export default function ApprovalManagement() {
         ...filters
       }
 
-      const response = await axios.get(getApiUrl(endpoint), { params })
+      const response = await apiGet(endpoint, { params })
 
-      if (response.data.success) {
-        setRecords(response.data.data || [])
+      if (response.success) {
+        setRecords(response.data || [])
         setPagination(prev => ({
           ...prev,
-          total: response.data.pagination?.total || 0
+          total: response.pagination?.total || 0
         }))
       } else {
         setRecords([])
         setPagination(prev => ({ ...prev, total: 0 }))
-        toast.error(response.data.message || '获取记录失败')
+        toast.error(response.message || '获取记录失败')
       }
     } catch (error) {
       console.error('获取记录错误:', error)
@@ -108,18 +107,18 @@ export default function ApprovalManagement() {
           break
       }
 
-      const response = await axios.post(getApiUrl(endpoint), {
+      const response = await apiPost(endpoint, {
         approved,
         approval_note: approvalNote
       })
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success(approved ? '✅ 审批通过' : '❌ 审批驳回')
         setShowModal(false)
         fetchRecords()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '审批失败')
+      toast.error(error.message || '审批失败')
     }
   }
 
@@ -147,19 +146,19 @@ export default function ApprovalManagement() {
           break
       }
 
-      const response = await axios.post(getApiUrl(endpoint), {
+      const response = await apiPost(endpoint, {
         approved,
         approval_note: ''
       })
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success(approved ? '✅ 审批通过' : '❌ 审批驳回')
         setShowConfirmModal(false)
         setConfirmAction(null)
         fetchRecords()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || '审批失败')
+      toast.error(error.message || '审批失败')
     }
   }
 

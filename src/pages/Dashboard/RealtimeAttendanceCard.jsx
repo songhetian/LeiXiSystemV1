@@ -10,7 +10,7 @@ import {
   WarningOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
-import api from '../../api';
+import { apiGet } from '../../utils/apiClient';
 import { getImageUrl } from '../../utils/fileUtils';
 import { wsManager } from '../../services/websocket';
 
@@ -26,13 +26,13 @@ const RealtimeAttendanceCard = () => {
   const fetchAttendance = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/admin/realtime-attendance');
-      if (response.data.success) {
-        setData(response.data.data);
+      const response = await apiGet('/api/admin/realtime-attendance');
+      if (response.success) {
+        setData(response.data);
         
         // 自检逻辑：如果当前用户在列表中且显示离线，但本地 Socket 是连着的
         const myId = String(localStorage.getItem('userId'));
-        const allEmployees = response.data.data.flatMap(d => d.employees);
+        const allEmployees = response.data.flatMap(d => d.employees);
         const me = allEmployees.find(e => String(e.id) === myId);
         
         if (me && !me.isOnline && wsManager.isConnected()) {

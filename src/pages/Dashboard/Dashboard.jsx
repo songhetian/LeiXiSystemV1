@@ -19,7 +19,7 @@ import {
   TeamOutlined as EmployeesIcon
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../api';
+import { apiGet } from '../../utils/apiClient';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -137,11 +137,11 @@ const Dashboard = ({ onNavigate }) => {
     if (!userId) return;
 
     try {
-      const response = await api.get('/notifications', {
+      const response = await apiGet('/api/notifications', {
         params: { userId, pageSize: 5 }
       });
-      if (response.data.success) {
-        setNotifications(response.data.data || []);
+      if (response.success) {
+        setNotifications(response.data || []);
       }
     } catch (error) {
       console.error('Fetch notifications failed:', error);
@@ -159,11 +159,11 @@ const Dashboard = ({ onNavigate }) => {
 
     setLoading(true);
     try {
-      const response = await api.get('/dashboard/stats', {
+      const response = await apiGet('/api/dashboard/stats', {
         params: { user_id: userId }
       });
-      if (response.data.success) {
-        setStats(response.data.data);
+      if (response.success) {
+        setStats(response.data);
       }
     } catch (error) {
       console.error('Fetch dashboard stats failed:', error);

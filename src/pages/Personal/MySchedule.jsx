@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { apiGet } from '../../utils/apiClient'
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/apiConfig'
 import {
@@ -47,9 +47,9 @@ export default function MySchedule() {
 
   const fetchEmployeeInfo = async (userId) => {
     try {
-      const response = await axios.get(getApiUrl(`/api/employees/by-user/${userId}`))
-      if (response.data.success && response.data.data) {
-        setEmployee(response.data.data)
+      const response = await apiGet(`/api/employees/by-user/${userId}`)
+      if (response.success && response.data) {
+        setEmployee(response.data)
       }
     } catch (error) {
       console.error('获取员工信息失败:', error)
@@ -69,7 +69,7 @@ export default function MySchedule() {
       const lastDay = new Date(year, month, 0).getDate()
       const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-      const response = await axios.get(getApiUrl('/api/schedules'), {
+      const response = await apiGet('/api/schedules', {
         params: {
           employee_id: employee.id,
           start_date: startDate,
@@ -77,9 +77,9 @@ export default function MySchedule() {
         }
       })
 
-      if (response.data.success) {
+      if (response.success) {
         // 确保日期格式正确，避免时区问题
-        const formattedSchedules = response.data.data.map(schedule => ({
+        const formattedSchedules = response.data.map(schedule => ({
           ...schedule,
           schedule_date: schedule.schedule_date.split('T')[0] // 确保只取日期部分
         }))
@@ -89,7 +89,7 @@ export default function MySchedule() {
       console.error('获取排班数据失败:', error)
       toast.error('获取排班数据失败')
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

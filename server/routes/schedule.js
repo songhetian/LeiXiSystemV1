@@ -1,6 +1,5 @@
-const pool = require('../config/database')
-
 module.exports = function (fastify, opts, done) {
+  const pool = fastify.mysql;
   // 获取个人排班数据
   fastify.get('/api/schedules/my-schedule', async (request, reply) => {
     const { employee_id, year, month } = request.query

@@ -16,10 +16,10 @@ module.exports = async function (fastify, opts) {
         GROUP BY r.id
         ORDER BY r.level DESC, r.created_at DESC
       `);
-      return rows; // 直接返回数组
+      return { success: true, data: rows };
     } catch (error) {
       console.error('Fetch Roles Error:', error);
-      return [];
+      return { success: false, data: [] };
     }
   });
 
@@ -62,10 +62,10 @@ module.exports = async function (fastify, opts) {
   fastify.get('/api/permissions', async (request, reply) => {
     try {
       const [rows] = await pool.query('SELECT * FROM permissions ORDER BY module, id');
-      return rows; // 直接返回数组
+      return { success: true, data: rows };
     } catch (error) {
       console.error('Fetch Permissions Error:', error);
-      return [];
+      return { success: false, data: [] };
     }
   });
 
@@ -79,10 +79,10 @@ module.exports = async function (fastify, opts) {
         WHERE rp.role_id = ?
         ORDER BY p.module, p.id
       `, [id]);
-      return rows; // 直接返回数组
+      return { success: true, data: rows };
     } catch (error) {
       console.error('Fetch Role Permissions Error:', error);
-      return [];
+      return { success: false, data: [] };
     }
   });
 
@@ -130,10 +130,10 @@ module.exports = async function (fastify, opts) {
         const [roles] = await pool.query(`SELECT r.id, r.name FROM roles r JOIN user_roles ur ON r.id = ur.role_id WHERE ur.user_id = ?`, [user.id]);
         user.roles = roles;
       }
-      return users; // 直接返回数组
+      return { success: true, data: users };
     } catch (error) { 
       console.error('Fetch Users with Roles Error:', error);
-      return []; 
+      return { success: false, data: [] }; 
     }
   });
 

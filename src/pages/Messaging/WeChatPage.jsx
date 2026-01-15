@@ -321,16 +321,18 @@ const WeChatPage = () => {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:3001' : window.location.origin;
-      const res = await fetch(`${baseUrl}/api/upload`, {
+      // 直接使用相对路径，触发 main.jsx 中的全局 fetch 拦截器进行路径清洗
+      const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${tokenManager.getToken()}` },
         body: formData
       });
       const data = await res.json();
       if (data.success) {
-        const fullUrl = `${baseUrl}${data.url}`;
-        sendMessage(data.filename, file.type.startsWith('image/') ? 'image' : 'file', fullUrl);
+        // data.url 后端返回通常是 /uploads/...
+        // 我们需要确保它是一个完整的可访问 URL
+        const fileUrl = data.url; 
+        sendMessage(data.filename, file.type.startsWith('image/') ? 'image' : 'file', fileUrl);
       }
     } catch (err) {
       message.error('上传失败');

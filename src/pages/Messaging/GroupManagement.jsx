@@ -12,7 +12,7 @@ import {
   SearchOutlined,
   PlusOutlined
 } from '@ant-design/icons';
-import { apiGet, apiPost, apiPut } from '../../utils/apiClient';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 
 const GroupManagement = () => {
   const [groups, setGroups] = useState([]);
@@ -103,16 +103,12 @@ const GroupManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`/api/chat/groups/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
+      const res = await apiDelete(`/api/chat/groups/${id}`);
+      if (res.success) {
         message.success('群组已解散');
         fetchGroups();
       } else {
-        message.error(data.message || '删除失败');
+        message.error(res.message || '删除失败');
       }
     } catch (err) { message.error('操作失败'); }
   };

@@ -109,42 +109,4 @@ module.exports = async function (fastify, opts) {
       return reply.code(500).send({ success: false, message: '导出失败' })
     }
   })
-
-  // 导出排班表
-  fastify.get('/api/schedules/export', async (request, reply) => {
-    const { department_id, year, month } = request.query
-
-    try {
-      const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-      const endDate = new Date(year, month, 0).toISOString().split('T')[0]
-
-      const [schedules] = await pool.query(
-        `SELECT
-          ss.*,
-          ws.name as shift_name,
-          ws.start_time,
-          ws.end_time,
-          e.employee_no,
-          u.real_name as employee_name
-        FROM shift_schedules ss
-        LEFT JOIN work_shifts ws ON ss.shift_id = ws.id
-        LEFT JOIN employees e ON ss.employee_id = e.id
-        LEFT JOIN users u ON e.user_id = u.id
-        WHERE u.department_id = ? AND ss.schedule_date BETWEEN ? AND ?
-        ORDER BY u.real_name, ss.schedule_date`,
-        [department_id, startDate, endDate]
-      )
-
-      return {
-        success: true,
-        data: {
-          period: { year, month, start_date: startDate, end_date: endDate },
-          schedules
-        }
-      }
-    } catch (error) {
-      console.error('导出排班表失败:', error)
-      return reply.code(500).send({ success: false, message: '导出失败' })
-    }
-  })
 }
