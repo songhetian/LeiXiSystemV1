@@ -207,21 +207,35 @@ module.exports = async function (fastify, opts) {
             created_at: new Date()
           };
 
+          console.log(`[Broadcast] 开始推送广播: "${title}", ID: ${broadcastId}, 类型: ${targetType}`);
+
           // 1. 如果有 Redis，通过 Redis 发布，实现跨服务器同步
           if (fastify.redis) {
-            targetUserIds.forEach(targetId => {
+            if (targetType === 'all') {
+              console.log('[Broadcast] 通过 Redis 发布全体广播');
               fastify.redis.publish('system_notifications', JSON.stringify({
                 ...broadcastData,
-                userId: targetId,
-                type: 'broadcast' // 显式标记为广播类型
+                category: 'broadcast'
               }));
-            });
+            } else {
+              console.log(`[Broadcast] 通过 Redis 向 ${targetUserIds.length} 个用户发布定向广播`);
+              targetUserIds.forEach(targetId => {
+                fastify.redis.publish('system_notifications', JSON.stringify({
+                  ...broadcastData,
+                  userId: targetId,
+                  category: 'broadcast'
+                }));
+              });
+            }
           } else {
+            console.log(`[Broadcast] 使用本地 Socket.IO 推送给 ${targetUserIds.length} 个用户`);
             // 2. 兜底本地 Socket.io 发送
             sendBroadcast(fastify.io, targetUserIds, broadcastData);
           }
-          
-          console.log(`📣 广播已排队发送给 ${targetUserIds.length} 个用户`);
+
+          console.log(`📣 广播逻辑处理完毕，目标用户: ${targetUserIds.length}`);
+        } else {
+          console.warn('[Broadcast] 推送失败: fastify.io 未定义');
         }
       }
 

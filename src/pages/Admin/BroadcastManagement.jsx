@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { getApiUrl } from '../../utils/apiConfig'
-import { 
-  Table, Button, Modal, Form, Input, Select, 
-  Tag, message, Card, Space, Tooltip, DatePicker, 
+import {
+  Table, Button, Modal, Form, Input, Select,
+  Tag, message, Card, Space, Tooltip, DatePicker,
   Divider, Alert, Typography
 } from 'antd'
 import {
@@ -37,6 +37,7 @@ const { Title, Text, Paragraph } = Typography
 const BroadcastManagement = () => {
   const [broadcasts, setBroadcasts] = useState([])
   const [loading, setLoading] = useState(false)
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
   const [modalVisible, setModalVisible] = useState(false)
   const [previewVisible, setPreviewVisible] = useState(false)
   const [previewData, setPreviewData] = useState(null)
@@ -56,16 +57,28 @@ const BroadcastManagement = () => {
     loadBroadcasts()
     loadDepartments()
     loadEmployees()
-  }, [queryParams])
+    loadEmployees()
+  }, [queryParams, pagination.current, pagination.pageSize])
 
   const loadBroadcasts = async () => {
     setLoading(true)
     try {
+      const { current, pageSize } = pagination
       const response = await axios.get(getApiUrl('/api/broadcasts/created'), {
         headers: { 'Authorization': `Bearer ${token}` },
-        params: queryParams
+        params: {
+          ...queryParams,
+          page: current,
+          limit: pageSize
+        }
       })
-      if (response.data.success) setBroadcasts(response.data.data)
+      if (response.data.success) {
+        setBroadcasts(response.data.data)
+        setPagination(prev => ({
+          ...prev,
+          total: response.data.pagination.total
+        }))
+      }
     } catch (error) {
       message.error('加载广播列表失败')
     } finally {
@@ -216,16 +229,16 @@ const BroadcastManagement = () => {
     <div className="min-h-screen bg-slate-50/50 p-8">
       <div className="max-w-6xl mx-auto">
         <Breadcrumb items={['首页', '办公协作', '广播管理']} />
-        
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mt-8 mb-10">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">系统广播中心</h1>
             <p className="text-slate-500 mt-1">发布全员或定向消息通知，支持实时推送到桌面端</p>
           </div>
-          <Button 
-            type="primary" 
-            size="large" 
-            icon={<Plus className="w-4 h-4" />} 
+          <Button
+            type="primary"
+            size="large"
+            icon={<Plus className="w-4 h-4" />}
             className="bg-slate-900 hover:bg-slate-800 border-none rounded-xl px-8 h-12 shadow-xl shadow-slate-200 font-bold"
             onClick={() => setModalVisible(true)}
           >
@@ -242,8 +255,8 @@ const BroadcastManagement = () => {
               { id: 'yesterday', label: '昨天' },
               { id: 'last7days', label: '近七天' },
             ].map(item => (
-              <button 
-                key={item.id} 
+              <button
+                key={item.id}
                 onClick={() => handleQuickFilter(item.id)}
                 className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${quickFilter === item.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
               >
@@ -251,23 +264,35 @@ const BroadcastManagement = () => {
               </button>
             ))}
           </div>
-          <RangePicker 
-            className="rounded-xl border-slate-200 h-9" 
+          <RangePicker
+            className="rounded-xl border-slate-200 h-9"
             onChange={(dates) => {
               if (dates) setQueryParams({ startDate: dates[0].format('YYYY-MM-DD 00:00:00'), endDate: dates[1].format('YYYY-MM-DD 23:59:59') });
               else setQueryParams({ startDate: undefined, endDate: undefined });
-            }} 
+            }}
           />
           <button onClick={loadBroadcasts} className="p-2 hover:bg-slate-100 rounded-full transition-colors ml-auto"><RefreshCw className={`w-4 h-4 text-slate-400 ${loading ? 'animate-spin' : ''}`} /></button>
         </div>
 
         <Card bordered={false} className="rounded-3xl border border-slate-200 shadow-sm overflow-hidden" bodyStyle={{ padding: 0 }}>
-          <Table 
-            columns={columns} 
-            dataSource={broadcasts} 
-            rowKey="id" 
+          <Table
+            columns={columns}
+            dataSource={broadcasts}
+            rowKey="id"
             loading={loading}
-            pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 条` }}
+            pagination={{
+              ...pagination,
+              showTotal: (total) => `共 ${total} 条`,
+              showSizeChanger: false, // 强制不显示页码切换器，保持样式简洁
+              position: ['bottomRight']
+            }}
+            onChange={(newPagination) => {
+              setPagination(prev => ({ ...prev, current: newPagination.current, pageSize: newPagination.pageSize }))
+              // 这里需要注意，loadBroadcasts 依赖的 pagination 是此时的 state，
+              // 直接调用可能会用旧值。更好的方式是用 useEffect 监听 pagination 变化，或者传参。
+              // 由于 useEffect 依赖 queryParams，我们可以将 pagination 加入依赖，或者在这里直接 setParam。
+              // 简单改法：不在这里调用 load，而是由 useEffect[pagination] 触发，或修改 loadBroadcasts 接收参数
+            }}
             className="custom-table-shadcn"
           />
         </Card>

@@ -3908,16 +3908,15 @@ fastify.register(require('./routes/memos'))
 // ==================== 系统广播路由 ====================
 fastify.register(require('./routes/broadcasts'))
 
-const { setupWebSocket } = require('./websocket')
-
-// 设置WebSocket - 直接使用 fastify.server
-const io = setupWebSocket(fastify.server, redis, () => pool)
-// 将io实例挂载到fastify，供其他路由使用
-fastify.decorate('io', io)
-
 const start = async () => {
   try {
     await initDatabase();
+
+    const { setupWebSocket } = require('./websocket')
+    // 设置WebSocket - 直接使用 fastify.server
+    const io = setupWebSocket(fastify.server, redis, () => pool)
+    // 将io实例挂载到fastify，供其他路由使用
+    fastify.decorate('io', io)
 
     // 先准备fastify
     await fastify.ready()

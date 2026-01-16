@@ -209,7 +209,8 @@ const BroadcastPage = () => {
         type: 'info',
         priority: 'normal',
         targetType: targetType,
-        [`target${targetType.charAt(0).toUpperCase() + targetType.slice(1)}s`]: JSON.stringify(targetData)
+        targetDepartments: targetType === 'department' ? JSON.stringify(targetData) : null,
+        targetUsers: targetType === 'individual' ? JSON.stringify(targetData) : null
       };
 
       // 发送广播

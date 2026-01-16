@@ -20,10 +20,19 @@ function setupWebSocket(server, redis, getPool) {
 
   // --- Redis Pub/Sub Integration ---
   if (redis) {
+    console.log('🔌 [WebSocket] 正在初始化 Redis 订阅客户端...');
     const subClient = redis.duplicate();
-    subClient.subscribe('chat_messages', 'system_notifications', (err, count) => {
-        if (err) console.error('Redis 订阅失败:', err);
-        else console.log(`🔌 [Redis Pub/Sub] 已订阅 ${count} 个频道`);
+    
+    subClient.on('connect', () => {
+      console.log('✅ [Redis Pub/Sub] 订阅客户端已连接');
+      subClient.subscribe('chat_messages', 'system_notifications', (err, count) => {
+          if (err) console.error('❌ [Redis Pub/Sub] 订阅失败:', err);
+          else console.log(`🔌 [Redis Pub/Sub] 订阅成功，当前订阅频道数: ${count}`);
+      });
+    });
+
+    subClient.on('error', (err) => {
+      console.error('❌ [Redis Pub/Sub] 客户端错误:', err);
     });
 
     subClient.on('message', (channel, message) => {
@@ -33,11 +42,12 @@ function setupWebSocket(server, redis, getPool) {
                 if (data.group_id) io.to(`group_${data.group_id}`).emit('receive_message', data);
                 else if (data.receiver_id) io.to(`user_${data.receiver_id}`).emit('receive_message', data);
             } else if (channel === 'system_notifications') {
+                const event = data.category === 'broadcast' ? 'new_broadcast' : (data.category === 'memo' ? 'new_memo' : 'new_notification');
                 if (data.userId) {
-                    const event = data.type === 'broadcast' ? 'new_broadcast' : (data.type === 'memo' ? 'new_memo' : 'new_notification');
                     io.to(`user_${data.userId}`).emit(event, data);
                 } else {
-                    io.emit('new_notification', data);
+                    // 如果没有 userId，广播给所有人
+                    io.emit(event, data);
                 }
             }
         } catch (e) { console.error('Redis 消息解析失败:', e); }
@@ -187,7 +197,7 @@ function broadcastNotification(io, userIds, notification) {
 function sendBroadcast(io, userIds, broadcast) {
   userIds.forEach(userId => {
     if (io.redis) {
-        io.redis.publish('system_notifications', JSON.stringify({ ...broadcast, userId, type: 'broadcast' }));
+        io.redis.publish('system_notifications', JSON.stringify({ ...broadcast, userId, category: 'broadcast' }));
     } else {
         io.to(`user_${userId}`).emit('new_broadcast', broadcast)
     }
@@ -196,7 +206,7 @@ function sendBroadcast(io, userIds, broadcast) {
 
 function sendMemoToUser(io, userId, memo) {
   if (io.redis) {
-      io.redis.publish('system_notifications', JSON.stringify({ ...memo, userId, type: 'memo' }));
+      io.redis.publish('system_notifications', JSON.stringify({ ...memo, userId, category: 'memo' }));
   } else {
       io.to(`user_${userId}`).emit('new_memo', memo)
   }

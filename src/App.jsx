@@ -276,13 +276,18 @@ function App() {
 
     // 监听系统广播
     const handleBroadcast = (broadcast) => {
-      console.log('📣 收到系统广播:', broadcast)
+      console.log('📣 [App.jsx] 收到系统广播事件:', broadcast)
+      if (!broadcast) return;
 
-      // 🔔 根据类型播放不同声音
-      if (broadcast.type === 'warning' || broadcast.type === 'error') {
-        soundManager.playWarning()
-      } else {
-        soundManager.playNotification()
+      try {
+        // 🔔 根据类型播放不同声音
+        if (broadcast.type === 'warning' || broadcast.type === 'error') {
+          soundManager.playWarning()
+        } else {
+          soundManager.playNotification()
+        }
+      } catch (e) {
+        console.warn('播放声音失败:', e)
       }
 
       const typeConfig = {
@@ -292,10 +297,14 @@ function App() {
         error: toast.error,
         announcement: toast.info
       }
-      const toastMethod = typeConfig[broadcast.type] || typeConfig.info
-      toastMethod(broadcast.title, {
+      
+      const toastMethod = typeConfig[broadcast.type] || toast.info
+      
+      console.log('📣 准备显示广播Toast:', broadcast.title);
+      
+      toastMethod(broadcast.title || '系统广播', {
         description: broadcast.content,
-        duration: 5000,
+        duration: 10000, // 广播停留时间长一点
         position: 'bottom-right',
         className: 'broadcast-toast',
         action: {
